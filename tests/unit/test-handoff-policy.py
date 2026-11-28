@@ -4,23 +4,19 @@
 explicitly main-session-direct grants no exemption; the cases below are the ones a regression
 would most plausibly open (an empty list is vacuously "all direct"; a mixed plan has SOME direct
 tasks; an unreadable plan has no tasks to disagree)."""
+from unit_support import BIN  # noqa: F401  (puts bin/ and tests/ on sys.path)
 from pathlib import Path
+from unittest import mock
 import os
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
+import artifact_accessors
 import handoff_policy
+from check_support import Checks
 
-failures = []
-
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def task(tid, mode):
@@ -82,20 +78,13 @@ if os.geteuid() != 0:
 
 # FEAT-64 (SC-03): "does not parse" is the loader's YamlParseError; an unrelated
 # RuntimeError raised inside the loader escapes rather than becoming a parenthetical.
-import artifact_accessors  # noqa: E402
-_real = artifact_accessors.load_plan
-def _boom(path):
-    raise RuntimeError("unrelated defect")
-artifact_accessors.load_plan = _boom
-try:
+with mock.patch.object(artifact_accessors, "load_plan",
+                       side_effect=RuntimeError("unrelated defect")):
     try:
         reason_for("schema: plan/1\ntasks:\n" + task("T-01", "main-session-direct"))
         escaped = False
     except RuntimeError:
         escaped = True
-finally:
-    artifact_accessors.load_plan = _real
 check("FEAT-64: an unrelated RuntimeError in the plan loader escapes _plan_mapping", escaped)
 
-print(f"{len(NOT_EXEMPT) * 2 + 3 - len(failures)} passed, {len(failures)} failed")
-sys.exit(1 if failures else 0)
+sys.exit(C.report())

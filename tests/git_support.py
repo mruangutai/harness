@@ -4,7 +4,7 @@ Two ways to run git, each with its exit-code policy explicit:
 
     git(cwd, *args, check=True) -> CompletedProcess (text)
         Runs under ENV, the isolated environment: system and global git config disabled, a fixed
-        author and committer identity, GIT_DIR/GIT_WORK_TREE dropped. check=True raises
+        author and committer identity, every inherited GIT_* variable dropped. check=True raises
         AssertionError naming the command on a non-zero exit; check=False never checks.
     quiet_git(args, cwd) / checked_git(args, cwd)
         The `git=` callables the primitives below accept. quiet_git inherits os.environ and never
@@ -32,15 +32,13 @@ MAINTENANCE_OFF = (("maintenance.auto", "false"), ("gc.auto", "0"))
 
 
 def _isolated_env():
-    env = dict(os.environ)
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env.update({
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
     })
-    env.pop("GIT_DIR", None)
-    env.pop("GIT_WORK_TREE", None)
     return env
 
 

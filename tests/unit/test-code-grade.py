@@ -1,28 +1,25 @@
 #!/usr/bin/env python3
 """Hand-derived contract tests for code_grade.py."""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT, BIN
 import ast
 import importlib.util
+import itertools
 import json
-import os
+import operator
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-spec = importlib.util.spec_from_file_location("code_grade", os.path.join(HERE, "code_grade.py"))
+from check_support import Checks
+from git_support import checked_git, init_repo
+C = Checks()
+GRADER = ("grader@example.test", "Code Grader")
+spec = importlib.util.spec_from_file_location("code_grade", BIN / "code_grade.py")
 code_grade = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = code_grade
 spec.loader.exec_module(code_grade)
-CLI_SPEC = importlib.util.spec_from_file_location("code_grade_cli", os.path.join(HERE, "code-grade.py"))
+CLI_SPEC = importlib.util.spec_from_file_location("code_grade_cli", BIN / "code-grade.py")
 code_grade_cli = importlib.util.module_from_spec(CLI_SPEC)
 CLI_SPEC.loader.exec_module(code_grade_cli)
 
@@ -129,10 +126,7 @@ DIRECTION_PAIRS = [
 
 def check_commit_resolution():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "sample.py", "def sample():\n    pass\n")
         head_ref = _commit(repo_root, "base")
         blob = subprocess.run(["git", "-C", str(repo_root), "hash-object", "-w", "--stdin"],
@@ -250,22 +244,20 @@ SELF_GRADING_ALLOWLIST = {
 
 def _check_self_graded_file(filename, repo_root, test_kinds):
     failures = 0
-    candidates = [Path(HERE) / filename,
-                  Path(repo_root) / "tests/unit" / filename,
-                  Path(repo_root) / "tests/integration" / filename]
+    candidates = [BIN / filename,
+                  repo_root / "tests/unit" / filename,
+                  repo_root / "tests/integration" / filename]
     path = next((candidate for candidate in candidates if candidate.is_file()), candidates[0])
     failures += check(path.is_file(), True, f"{filename} exists")
-    source = path.read_text()
     try:
-        ast.parse(source)
-        parses = True
+        records = code_grade.grade_source(path.read_text(), filename)
     except SyntaxError:
-        parses = False
-    failures += check(parses, True, f"{filename} parses")
+        records = None
+    failures += check(records is not None, True, f"{filename} parses")
     relative = str(path.resolve().relative_to(repo_root))
     bar = 3 if code_grade._is_test_path(relative, test_kinds) else 4
     matched = set()
-    for record in code_grade.grade_source(source, filename):
+    for record in records or ():
         key = (filename, record.qualname)
         if key in SELF_GRADING_ALLOWLIST:
             matched.add(key)
@@ -292,7 +284,7 @@ def check_self_grading():
     rename cannot let an exemption silently outlive it. Each named file is also asserted to exist
     and parse, so a rename or removal fails loudly instead of silently shrinking coverage.
     """
-    repo_root = Path(HERE).resolve().parents[3]
+    repo_root = ROOT
     test_kinds = _load_test_kinds(repo_root)
     failures = 0
     matched_allowlist = set()
@@ -364,7 +356,7 @@ def _print_graded(records, label):
 def check_feat2337_self_grading():
     """SC-08 at the committed tip: every changed test function grades >= 3, the self-grading
     additions included. TypeScript tests are not Python-graded; Bun runs them."""
-    repo_root = Path(ROOT)
+    repo_root = ROOT
     records = _changed_test_records(repo_root, FEAT2337_BASE, "HEAD",
                                     _load_test_kinds(repo_root))
     failures = _print_graded(records, "feat2337")
@@ -400,10 +392,7 @@ FEAT2337_MUTANT_EXPECTED = {"check_mutant": "FAIL", "check_edited": "PASS"}
 
 
 def _mutant_repository(directory):
-    repo_root = Path(directory)
-    _git(repo_root, "init")
-    _git(repo_root, "config", "user.email", "grader@example.test")
-    _git(repo_root, "config", "user.name", "Code Grader")
+    repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
     for path, before, _after in FEAT2337_MUTANT_FILES:
         if before is not None:
             _write(repo_root, path, before)
@@ -429,9 +418,7 @@ def check_feat2337_grade_two_mutant():
 
 
 def feat2337_main():
-    failures = check_feat2337_grade_two_mutant() + check_feat2337_self_grading()
-    print(f"{failures} failures" if failures else "PASS test-code-grade --feat2337")
-    return failures
+    return check_feat2337_grade_two_mutant() + check_feat2337_self_grading()
 
 
 def _cli(argv):
@@ -445,7 +432,7 @@ def _cli(argv):
 
 
 def check_case_27_grade():
-    source = (Path(ROOT) / "tests/integration/test-check-plan-routes.py").read_text()
+    source = (ROOT / "tests/integration/test-check-plan-routes.py").read_text()
     node = next(item for item in ast.parse(source).body if isinstance(item, ast.FunctionDef)
                 and item.name == "case_27")
     case_source = ast.get_source_segment(source, node)
@@ -454,12 +441,7 @@ def check_case_27_grade():
 
 
 def _git(repo_root, *args):
-    return subprocess.run(
-        ["git", "-C", str(repo_root), *args],
-        check=True,
-        text=True,
-        capture_output=True,
-    )
+    return checked_git(args, repo_root)
 
 
 def _write(repo_root, name, source):
@@ -476,10 +458,7 @@ def _commit(repo_root, message):
 
 def check_changed_function_resolution():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "main.py", '''\
 def worsened():
     pass
@@ -657,10 +636,7 @@ def check_base_source_rename_fallback():
     """A rename-only file resolves its pre-image through old_path, and a file with no
     old_path never falls back to one."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "old.py", "def kept():\n    return 1\n")
         base_ref = _commit(repo_root, "base")
         _git(repo_root, "mv", "old.py", "new.py")
@@ -680,10 +656,7 @@ def check_base_source_absent_from_worktree():
     dropping `--literal-pathspecs` cannot make a present path read as absent; and a
     genuine git failure still raises rather than reading as absence."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "old.py", "def kept():\n    return 1\n")
         base_ref = _commit(repo_root, "base")
         _write(repo_root, "added.py", "def added():\n    return 2\n")
@@ -712,10 +685,7 @@ def check_base_source_absent_from_worktree():
 
 def check_nul_safe_changed_files():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         old_path = "odd\told\nname.py"
         new_path = "odd\tnew\nname.py"
         _write(repo_root, old_path, "def retained():\n    return 1\n")
@@ -742,10 +712,7 @@ def check_docstring_only_rename_not_gated():
     docstring-only edit under a rename must still resolve by body hash and land
     informational, never gated."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "main.py", '''\
 def documented():
     """Original text."""
@@ -785,10 +752,7 @@ class Beta:
         return "beta"
 '''
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(directory)
-        _git(repo_root, "init")
-        _git(repo_root, "config", "user.email", "grader@example.test")
-        _git(repo_root, "config", "user.name", "Code Grader")
+        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
         _write(repo_root, "main.py", source("run"))
         base_ref = _commit(repo_root, "base")
         _write(repo_root, "main.py", source("dispatch"))
@@ -803,8 +767,7 @@ class Beta:
 
 
 def check_worked_examples():
-    repo_root = Path(__file__).resolve().parents[2]
-    skill_path = repo_root / ".claude/skills/harness/references/code-risk-examples.md"
+    skill_path = ROOT / ".claude/skills/harness/references/code-risk-examples.md"
     worked_examples = skill_path.read_text().split("## Worked examples\n", 1)[1]
     examples = re.findall(
         r"```python\n(.*?)```\nEXPECTED GRADE: ([1-5])",
@@ -825,44 +788,23 @@ def check_worked_examples():
 
 
 def check_delivery():
-    repo_root = Path(__file__).resolve().parents[2]
+    tree = ".omp/agents"
     failures = 0
-    for tree in (".omp/agents",):
-        for agent in (
-            "harness-frontend-dev",
-            "harness-backend-dev",
-            "harness-ai-dev",
-            "harness-data-engineer",
-            "harness-dev-ops",
-        ):
-            frontmatter = re.match(
-                r"---\n(.*?)\n---\n",
-                (repo_root / tree / f"{agent}.md").read_text(),
-                re.DOTALL,
-            ).group(1).splitlines()
-            skills_start = next(
-                index
-                for index, line in enumerate(frontmatter)
-                if line in ("skills:", "autoloadSkills:")
-            )
-            skills = []
-            for line in frontmatter[skills_start + 1:]:
-                if not line.startswith("- "):
-                    break
-                skills.append(line[2:])
-            failures += check(
-                "harness-code-risk-grading" in skills,
-                True,
-                f"delivery {tree}: {agent}",
-            )
+    for agent in ("harness-frontend-dev", "harness-backend-dev", "harness-ai-dev",
+                  "harness-data-engineer", "harness-dev-ops"):
+        frontmatter = re.match(r"---\n(.*?)\n---\n", (ROOT / tree / f"{agent}.md").read_text(),
+                               re.DOTALL).group(1).splitlines()
+        skills_start = next(index for index, line in enumerate(frontmatter)
+                            if line in ("skills:", "autoloadSkills:"))
+        skills = [line[2:] for line in itertools.takewhile(lambda line: line.startswith("- "),
+                                                           frontmatter[skills_start + 1:])]
+        failures += check("harness-code-risk-grading" in skills, True, f"delivery {tree}: {agent}")
     return failures
 
 
 def check(actual, expected, label):
-    if actual != expected:
-        print(f"FAIL {label}: expected {expected!r}, got {actual!r}")
-        return 1
-    return 0
+    """One labelled equality check recorded in C; returns 1 on failure so callers can sum."""
+    return 0 if C.check(label, actual == expected, f"expected {expected!r}, got {actual!r}") else 1
 
 
 def check_fixtures():
@@ -893,15 +835,19 @@ def check_nested_qualnames():
 def check_direction_pairs():
     failures = 0
     for name, before, after, metric, direction in DIRECTION_PAIRS:
-        before_value = getattr(code_grade.grade_source(before, "fixture.py")[0], metric)
-        after_value = getattr(code_grade.grade_source(after, "fixture.py")[0], metric)
+        before_record = code_grade.grade_source(before, "fixture.py")[0]
+        after_record = code_grade.grade_source(after, "fixture.py")[0]
+        before_value, after_value = getattr(before_record, metric), getattr(after_record, metric)
         moved_as_named = after_value < before_value if direction == "better" else after_value > before_value
         failures += check(moved_as_named, True, f"{name}: {metric} moves {direction}")
-        before_grade = code_grade.grade_source(before, "fixture.py")[0].grade
-        after_grade = code_grade.grade_source(after, "fixture.py")[0].grade
+        before_grade, after_grade = before_record.grade, after_record.grade
         moved_grade = after_grade > before_grade if direction == "better" else after_grade < before_grade
         failures += check(moved_grade, True, f"{name}: grade moves {direction}")
     return failures
+
+
+# The five raw metrics, as one tuple, of a FunctionGrade record.
+_metrics = operator.attrgetter("cyclomatic", "cognitive", "abc_a", "abc_b", "abc_c")
 
 
 def check_optional_field_guards():
@@ -914,33 +860,21 @@ def check_optional_field_guards():
     Store-context Name, which visit_Name counts and the bare form has none)."""
     failures = 0
     with_record = code_grade.grade_source("def f():\n    with lock:\n        pass\n", "fixture.py")[0]
-    failures += check((with_record.cyclomatic, with_record.cognitive, with_record.abc_a,
-                        with_record.abc_b, with_record.abc_c), (1, 0, 0, 0, 0),
-                       "bare with: literal metrics")
+    failures += check(_metrics(with_record), (1, 0, 0, 0, 0), "bare with: literal metrics")
 
     try_record = code_grade.grade_source(
         "def f():\n    try:\n        pass\n    except:\n        pass\n", "fixture.py")[0]
     try_exc_record = code_grade.grade_source(
         "def f():\n    try:\n        pass\n    except Exception:\n        pass\n", "fixture.py")[0]
-    failures += check((try_record.cyclomatic, try_record.cognitive, try_record.abc_a,
-                        try_record.abc_b, try_record.abc_c), (2, 1, 0, 0, 1),
-                       "bare except: literal metrics")
-    failures += check((try_record.cyclomatic, try_record.cognitive, try_record.abc_a,
-                        try_record.abc_b, try_record.abc_c),
-                       (try_exc_record.cyclomatic, try_exc_record.cognitive, try_exc_record.abc_a,
-                        try_exc_record.abc_b, try_exc_record.abc_c),
-                       "bare except: metric-identical to except Exception:")
+    failures += check(_metrics(try_record), (2, 1, 0, 0, 1), "bare except: literal metrics")
+    failures += check(_metrics(try_record), _metrics(try_exc_record),
+                      "bare except: metric-identical to except Exception:")
 
     ann_record = code_grade.grade_source("def f():\n    x: int\n", "fixture.py")[0]
     ann_none_record = code_grade.grade_source("def f():\n    x: int = None\n", "fixture.py")[0]
-    failures += check((ann_record.cyclomatic, ann_record.cognitive, ann_record.abc_a,
-                        ann_record.abc_b, ann_record.abc_c), (1, 0, 1, 0, 0),
-                       "bare annotation: literal metrics")
-    failures += check((ann_record.cyclomatic, ann_record.cognitive, ann_record.abc_a,
-                        ann_record.abc_b, ann_record.abc_c),
-                       (ann_none_record.cyclomatic, ann_none_record.cognitive, ann_none_record.abc_a,
-                        ann_none_record.abc_b, ann_none_record.abc_c),
-                       "bare annotation: metric-identical to explicit = None")
+    failures += check(_metrics(ann_record), (1, 0, 1, 0, 0), "bare annotation: literal metrics")
+    failures += check(_metrics(ann_record), _metrics(ann_none_record),
+                      "bare annotation: metric-identical to explicit = None")
     return failures
 
 
@@ -968,13 +902,10 @@ def main():
         check_classify_grade_two_is_reasoned,
         check_classify_precedence,
     )
-    failures = sum(fn() for fn in checks)
-    if failures:
-        print(f"{failures} failures")
-    else:
-        print("PASS test-code-grade")
-    return failures
+    return sum(fn() for fn in checks)
 
 
 if __name__ == "__main__":
-    sys.exit(1 if _cli(sys.argv[1:]) else 0)
+    # _print_graded's per-record verdicts (--feat2337) count outside C, so both feed the exit.
+    failures = _cli(sys.argv[1:])
+    sys.exit(C.report() or (1 if failures else 0))

@@ -1,24 +1,19 @@
 #!/usr/bin/env python3
 """Fail when a Python test mutates a path derived from its live checkout."""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import BIN
 
 import argparse
 import ast
-import fnmatch
 import os
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
 import harness_boundary
+from check_support import Checks
+
+HERE = str(BIN)
+C = Checks()
+check = C.check
 
 CONTENT_READS = {"read", "readline", "readlines", "read_text", "read_bytes", "load", "safe_load"}
 OS_ONE = {"remove", "unlink", "rmdir", "truncate", "utime", "chmod", "makedirs", "mkdir"}
@@ -26,10 +21,6 @@ OS_TWO = {"rename", "replace"}
 OS_DEST = {"symlink", "link"}
 SHUTIL_DEST = {"copy", "copy2", "copyfile", "copytree", "move", "copymode", "copystat"}
 PATH_METHODS = {"write_text", "write_bytes", "touch", "unlink", "rename", "replace", "mkdir", "rmdir", "chmod", "symlink_to", "hardlink_to"}
-
-
-def resolve_scan_root(start):
-    return harness_boundary.root_above(start)
 
 
 def _names(node):
@@ -188,8 +179,8 @@ def scan_file(path):
 def _scanned(name, under_tests):
     """A test file anywhere, or a shared *_support.py helper under tests/ (tests import them, so
     a write hidden in one is a test's write)."""
-    return (fnmatch.fnmatch(name, "test-*.py") or fnmatch.fnmatch(name, "test_*.py")
-            or (under_tests and fnmatch.fnmatch(name, "*_support.py")))
+    return ((name.startswith(("test-", "test_")) and name.endswith(".py"))
+            or (under_tests and name.endswith("_support.py")))
 
 
 def discover(root):
@@ -220,22 +211,20 @@ def _fixture_findings(root, name, source):
 
 def _check_fixture(root, name, source, expected):
     got = {line for _path, line, _sink in _fixture_findings(root, name, source)}
-    ok = got == expected
-    print(f"{'ok' if ok else 'FAIL'} self-test {name}")
-    return None if ok else f"{name}: expected {sorted(expected)}, got {sorted(got)}"
+    check(f"self-test {name}", got == expected, f"expected {sorted(expected)}, got {sorted(got)}")
 
 
-def _red_fixture_failures(root):
+def _red_fixture_checks(root):
     cases = [
         ("injection idiom", "import os\nfs=os.path.join(os.path.dirname(os.path.realpath(__file__)),'x')\nopen(fs,'w').write('x')\n", {3}),
         ("mutant beside original", "import os,shutil\nSCRIPT=os.path.join(os.path.dirname(__file__),'s')\nmpath=os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),'.m')\nopen(mpath,'w').write('x')\nshutil.copymode(SCRIPT,mpath)\n", {4, 5}),
         ("pid named mutant", "import os\nHERE=os.path.dirname(__file__)\npath=os.path.join(HERE,f'.mutant-{os.getpid()}.sh')\nopen(path,'w').write('x')\n", {4}),
     ]
-    return [failure for index, (name, source, expected) in enumerate(cases)
-            if (failure := _check_fixture(root, f"{index}-{name}", source, expected))]
+    for index, (name, source, expected) in enumerate(cases):
+        _check_fixture(root, f"{index}-{name}", source, expected)
 
 
-def _clean_fixture_failure(root):
+def _clean_fixture_check(root):
     source = """import os, pathlib, shutil, tempfile
 BIN_DIR=os.path.dirname(os.path.realpath(__file__))
 text=open(os.path.join(BIN_DIR,'source')).read()
@@ -247,8 +236,7 @@ open(os.path.join(root,changed),'w').write('x')
 pathlib.Path(root,'x').write_text('x')
 """
     findings = _fixture_findings(root, "clean controls", source)
-    print(f"{'ok' if not findings else 'FAIL'} self-test clean controls")
-    return None if not findings else f"clean controls: {findings!r}"
+    check("self-test clean controls", not findings, repr(findings))
 
 
 def _independent_expected_root():
@@ -262,23 +250,27 @@ def _independent_expected_root():
         current = parent
 
 
-def _live_fixture_failure():
-    root = resolve_scan_root(HERE)
-    files, findings = scan_directory(root) if root else ([], [])
+def _live_fixture_check(scanned_root, scanned):
+    """main's scan is reused only when main scanned the root this self-test resolves itself."""
+    root = harness_boundary.root_above(HERE)
+    if root == scanned_root:
+        files, findings = scanned
+    else:
+        files, findings = scan_directory(root) if root else ([], [])
     ok = root == _independent_expected_root() and len(files) >= 50 and not findings
-    print(f"{'ok' if ok else 'FAIL'} self-test live tree, independent root and discovered floor")
-    return None if ok else f"live tree: root={root!r} discovered={len(files)} findings={len(findings)}"
+    check("self-test live tree, independent root and discovered floor", ok,
+          f"root={root!r} discovered={len(files)} findings={len(findings)}")
 
 
 def _resolved_root_or_exit(start):
-    root = resolve_scan_root(start)
+    root = harness_boundary.root_above(start)
     if root is None:
         print(f"ERROR could not resolve scan root above {start}", file=sys.stderr)
         raise SystemExit(2)
     return root
 
 
-def _root_refusal_failure():
+def _root_refusal_check():
     with tempfile.TemporaryDirectory() as rootless:
         try:
             _resolved_root_or_exit(rootless)
@@ -286,12 +278,11 @@ def _root_refusal_failure():
             refused = exc.code == 2
         else:
             refused = False
-        ok = resolve_scan_root(rootless) is None and refused
-    print(f"{'ok' if ok else 'FAIL'} self-test unresolved root refuses")
-    return None if ok else "unresolved root did not refuse at exit 2"
+        ok = harness_boundary.root_above(rootless) is None and refused
+    check("self-test unresolved root refuses", ok, "unresolved root did not refuse at exit 2")
 
 
-def _support_discovery_failure():
+def _support_discovery_check():
     """Shared helpers under tests/ are scanned like the tests that import them; a *_support.py
     elsewhere (production code) is not."""
     with tempfile.TemporaryDirectory() as root:
@@ -301,39 +292,33 @@ def _support_discovery_failure():
             open(os.path.join(root, rel), "w").close()
         got = {os.path.relpath(path, root) for path in discover(root)}
     want = {"tests/x_support.py", "tests/unit/y_support.py", "tests/unit/test-z.py"}
-    ok = got == want
-    print(f"{'ok' if ok else 'FAIL'} self-test discovery scans tests/**/*_support.py")
-    return None if ok else f"support discovery: expected {sorted(want)}, got {sorted(got)}"
+    check("self-test discovery scans tests/**/*_support.py", got == want,
+          f"expected {sorted(want)}, got {sorted(got)}")
 
 
-def run_self_tests():
+def run_self_tests(scanned_root, scanned):
     with tempfile.TemporaryDirectory() as root:
-        failures = _red_fixture_failures(root)
-        clean = _clean_fixture_failure(root)
-    return failures + [failure for failure in (clean, _support_discovery_failure(),
-                                               _live_fixture_failure(), _root_refusal_failure())
-                       if failure]
+        _red_fixture_checks(root)
+        _clean_fixture_check(root)
+    _support_discovery_check()
+    _live_fixture_check(scanned_root, scanned)
+    _root_refusal_check()
 
 
-def main(argv=None, start=None):
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--scan-dir")
     args = parser.parse_args(argv)
-    root = os.path.abspath(args.scan_dir) if args.scan_dir else _resolved_root_or_exit(start or HERE)
-    self_failures = run_self_tests()
+    root = os.path.abspath(args.scan_dir) if args.scan_dir else _resolved_root_or_exit(HERE)
     files, findings = scan_directory(root)
+    run_self_tests(root, (files, findings))
     print(f"root {root}")
     print(f"discovered {len(files)}")
     for path, line, sink in findings:
         print(f"VIOLATION {path}:{line} {sink} mutates a path derived from the live checkout")
-    for failure in self_failures:
-        print(f"FAIL self-test detail: {failure}")
-    if findings or self_failures:
-        print(f"FAIL {len(findings)} live-tree mutation site(s), {len(self_failures)} self-test failure(s)")
-        return 1
-    print("ok no test mutates a path derived from the live checkout")
-    return 0
-
+    check("no test mutates a path derived from the live checkout", not findings,
+          f"{len(findings)} live-tree mutation site(s)")
+    return C.report()
 
 if __name__ == "__main__":
     raise SystemExit(main())

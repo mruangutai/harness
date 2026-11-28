@@ -1,28 +1,24 @@
 #!/usr/bin/env python3
 """Behavior tests for the write-once run identity witness (BUG-1305 T-01)."""
+from unit_support import BIN
+
 import importlib.util
 import os
 import re
 import sys
 import tempfile
+from unittest import mock
 
 import yaml
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-SCRIPT = os.environ.get("RUN_IDENTITY_BIN") or os.path.join(
-    ROOT, ".claude", "skills", "harness", "bin", "run_identity.py")
+from check_support import Checks
+
+SCRIPT = os.environ.get("RUN_IDENTITY_BIN") or str(BIN / "run_identity.py")
 BIN_DIR = os.path.dirname(SCRIPT)
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
-failures = []
-
-
-def check(name, condition, detail=""):
-    if condition:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def module():
@@ -32,8 +28,7 @@ def module():
     return mod
 
 
-def case_seed_is_write_once():
-    mod = module()
+def case_seed_is_write_once(mod):
     with tempfile.TemporaryDirectory() as run_dir:
         doc = {"run_id": "r1", "feature": "F", "squad": "eng", "host": "omp"}
         check("fresh seed is recorded", mod.record_seed(run_dir, doc, "session-1", "uid-1"))
@@ -49,8 +44,7 @@ def case_seed_is_write_once():
     check("missing directory seed fails open", mod.record_seed(missing, {}, None, None) is False)
 
 
-def case_marker_absent_and_unreadable():
-    mod = module()
+def case_marker_absent_and_unreadable(mod):
     with tempfile.TemporaryDirectory() as run_dir:
         path = mod.marker_path(run_dir)
         try:
@@ -76,8 +70,7 @@ def case_marker_absent_and_unreadable():
                 check(f"{name} marker is unreadable", False)
 
 
-def case_uid_mint_and_injection():
-    mod = module()
+def case_uid_mint_and_injection(mod):
     values = [mod.mint_uid() for _ in range(1000)]
     check("minted uid shape", all(re.fullmatch(r"[0-9a-f]{32}", value) for value in values))
     check("minted uids are distinct", len(set(values)) == 1000)
@@ -98,8 +91,7 @@ def case_uid_mint_and_injection():
         check("missing checkpoint fails open", mod.inject_uid(os.path.join(root, "missing.yaml"), "u4") is False)
 
 
-def case_seed_conflict_guards():
-    mod = module()
+def case_seed_conflict_guards(mod):
     with tempfile.TemporaryDirectory() as run_dir:
         doc = {"run_id": "A", "feature": "F", "squad": "eng", "host": "omp", "run_uid": "old"}
         mod.record_seed(run_dir, doc, "session", "old")
@@ -117,8 +109,7 @@ def case_seed_conflict_guards():
         check("born-null squad stays writable", mod.conflict(marker, {"feature": "F", "squad": "eng", "host": "omp"}) is None)
 
 
-def case_uid_conflicts():
-    mod = module()
+def case_uid_conflicts(mod):
     check("legacy prior without uid is allowed", mod.uid_conflict({"run_id": "A"}, {"run_id": "B", "run_uid": "new"}) is None)
     check("legacy null uid is allowed", mod.uid_conflict({"run_uid": None}, {"run_uid": "new"}) is None)
     check("same uid is allowed", mod.uid_conflict({"run_uid": "same"}, {"run_uid": "same"}) is None)
@@ -128,11 +119,10 @@ def case_uid_conflicts():
     check("missing incoming uid explains recovery", reason is not None and "old" in reason and "carry" in reason and "witness" in reason, reason)
 
 
-def case_seed_boundary_is_typed():
+def case_seed_boundary_is_typed(mod):
     """FEAT-64 (SC-03): record_seed stays best-effort for filesystem/encoding/shape failures
     (an unwritable run dir is False, nothing raised) but an unrelated programming defect in
     the serializer escapes instead of reading as a quiet False."""
-    mod = module()
     with tempfile.TemporaryDirectory() as run_dir:
         if os.geteuid() != 0:
             os.chmod(run_dir, 0o500)
@@ -142,33 +132,32 @@ def case_seed_boundary_is_typed():
                 os.chmod(run_dir, 0o700)
             check("an unwritable run dir is False, not a raise", got is False and not os.path.exists(mod.marker_path(run_dir)))
     with tempfile.TemporaryDirectory() as run_dir:
-        real = mod._json.dump
-        def boom(*a, **k):
-            raise RuntimeError("unrelated defect")
-        mod._json.dump = boom
-        try:
+        escaped = False
+        with mock.patch.object(mod._json, "dump", side_effect=RuntimeError("unrelated defect")):
             try:
                 mod.record_seed(run_dir, {"feature": "F"}, None, "u1")
-                escaped = False
             except RuntimeError:
                 escaped = True
-        finally:
-            mod._json.dump = real
         check("an unrelated RuntimeError escapes record_seed", escaped)
         check("the temp file is still cleaned up after the escape",
               not [n for n in os.listdir(run_dir) if n.startswith(".run-identity-")], os.listdir(run_dir))
 
 
 def main():
+    try:
+        mod = module()
+    except Exception as exc:
+        check("load run_identity.py", False, repr(exc))
+        return C.report()
     for case in (case_seed_is_write_once, case_marker_absent_and_unreadable,
                  case_uid_mint_and_injection, case_seed_conflict_guards,
                  case_uid_conflicts, case_seed_boundary_is_typed):
         try:
-            case()
+            case(mod)
         except Exception as exc:
             check(case.__name__, False, repr(exc))
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

@@ -12,21 +12,23 @@ Post hooks cannot veto a git operation, so every shim exits 0 whatever happens. 
 and must pin is that each failure is SAID: a missing implementation, a delegate's nonzero exit,
 and a dirty-tree skip each print a line naming it.
 """
+from unit_support import ROOT
+
 import json
 import os
 import shutil
-import stat
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from git_support import checked_git
+
 HOOKS = ROOT / ".claude/skills/harness/hooks"
-SHIMS = ("post-checkout", "post-merge", "post-rewrite")
 ARGS = {"post-checkout": ["a" * 40, "b" * 40, "1"], "post-merge": ["0"],
         "post-rewrite": ["rebase"]}
+SHIMS = tuple(ARGS)
 REWRITE_STDIN = "1111111111111111111111111111111111111111 2222222222222222222222222222222222222222\n"
 
 STUB = f"""#!{sys.executable}
@@ -45,7 +47,7 @@ class Installed(unittest.TestCase):
     """An install root holding the real shims and stub delegates, and a separate checkout."""
 
     def setUp(self):
-        base = Path(os.path.realpath(tempfile.mkdtemp(prefix="hook shims ")))
+        self.base = base = Path(os.path.realpath(tempfile.mkdtemp(prefix="hook shims ")))
         self.addCleanup(shutil.rmtree, base, True)
         self.install = base / "install root"
         self.hooks = self.install / ".claude/skills/harness/hooks"
@@ -53,54 +55,58 @@ class Installed(unittest.TestCase):
         self.hooks.mkdir(parents=True)
         self.bin.mkdir(parents=True)
         for name in SHIMS:
-            if (HOOKS / name).exists():
-                shutil.copy2(HOOKS / name, self.hooks / name)
+            shutil.copy2(HOOKS / name, self.hooks / name)
         for name in ("worktree-state.py", "post-merge-sweep.py"):
             (self.bin / name).write_text(STUB)
             (self.bin / name).chmod(0o755)
         self.checkout = base / "the checkout"
         self.checkout.mkdir()
-        subprocess.run(["git", "init", "-q", str(self.checkout)], check=True)
+        checked_git(["init", "-q"], self.checkout)
         self.log = base / "stub log.jsonl"
         self.env = dict(os.environ, STUB_LOG=str(self.log), GIT_CONFIG_NOSYSTEM="1",
                         GIT_CONFIG_GLOBAL=os.devnull)
 
     def fire(self, name, cwd=None, **stub_exits):
+        """Run shim `name` as git would; every shim must exit 0 whatever happens."""
         env = dict(self.env, **{f"STUB_EXIT_{k}": str(v) for k, v in stub_exits.items()})
         stdin = REWRITE_STDIN if name == "post-rewrite" else ""
-        return subprocess.run([str(self.hooks / name), *ARGS[name]], cwd=cwd or self.checkout,
+        proc = subprocess.run([str(self.hooks / name), *ARGS[name]], cwd=cwd or self.checkout,
                               input=stdin, env=env, capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        return proc
 
-    def calls(self):
+    def calls(self, name=None):
+        """The stub log's entries, only those of stub `name` when one is given."""
         if not self.log.exists():
             return []
-        return [json.loads(line) for line in self.log.read_text().splitlines()]
+        calls = [json.loads(line) for line in self.log.read_text().splitlines()]
+        return [c for c in calls if name is None or c["name"] == name]
 
 
 class Shims(Installed):
     def test_every_shim_is_tracked_executable(self):
-        for name in SHIMS:
+        paths = [f".claude/skills/harness/hooks/{name}" for name in SHIMS]
+        listed = subprocess.run(["git", "ls-files", "-s", *paths], cwd=ROOT,
+                                capture_output=True, text=True).stdout
+        modes = {line.split("\t", 1)[1]: line.split()[0] for line in listed.splitlines()}
+        for name, path in zip(SHIMS, paths):
             with self.subTest(name):
-                listed = subprocess.run(["git", "ls-files", "-s", f".claude/skills/harness/hooks/{name}"],
-                                        cwd=ROOT, capture_output=True, text=True).stdout
-                self.assertTrue(listed.startswith("100755 "), f"{name}: {listed!r}")
+                self.assertEqual(modes.get(path), "100755", f"{name}: {listed!r}")
                 self.assertTrue(os.access(HOOKS / name, os.X_OK))
 
     def test_repair_runs_on_gits_checkout_not_the_install_root(self):
         for name in SHIMS:
             with self.subTest(name):
                 self.log.unlink(missing_ok=True)
-                proc = self.fire(name)
-                self.assertEqual(proc.returncode, 0, proc.stderr)
-                repair = [c for c in self.calls() if c["name"] == "worktree-state.py"]
+                self.fire(name)
+                repair = self.calls("worktree-state.py")
                 self.assertEqual(len(repair), 1, self.calls())
                 argv = repair[0]["argv"]
                 self.assertIn("--repair", argv)
                 self.assertEqual(argv[argv.index("--checkout") + 1], str(self.checkout))
 
     def test_repair_does_not_consume_hook_stdin(self):
-        proc = self.fire("post-rewrite")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.fire("post-rewrite")
         self.assertEqual(self.calls()[0]["stdin"], "")
 
     def test_a_successful_repair_prints_nothing(self):
@@ -114,7 +120,6 @@ class Shims(Installed):
         for name in SHIMS:
             with self.subTest(name):
                 proc = self.fire(name)
-                self.assertEqual(proc.returncode, 0)
                 self.assertIn(f"{self.bin / 'worktree-state.py'} is missing or not executable",
                               proc.stderr)
                 self.assertIn("no layout repair ran", proc.stderr)
@@ -123,7 +128,6 @@ class Shims(Installed):
         for name in SHIMS:
             with self.subTest(name):
                 proc = self.fire(name, worktree_state=2)
-                self.assertEqual(proc.returncode, 0)
                 self.assertIn("worktree-state.py stub output", proc.stderr)
                 self.assertIn(f"worktree-state.py --repair exited 2 in {self.checkout}", proc.stderr)
                 self.assertIn("NOT converged", proc.stderr)
@@ -132,55 +136,44 @@ class Shims(Installed):
         for name in SHIMS:
             with self.subTest(name):
                 proc = self.fire(name, worktree_state=8)
-                self.assertEqual(proc.returncode, 0)
                 self.assertIn(f"layout repair SKIPPED in {self.checkout}", proc.stderr)
 
     def test_outside_a_working_tree_nothing_is_repaired(self):
-        outside = Path(tempfile.mkdtemp(prefix="not a checkout "))
-        self.addCleanup(shutil.rmtree, outside, True)
         for name in SHIMS:
             with self.subTest(name):
-                proc = self.fire(name, cwd=outside)
-                self.assertEqual(proc.returncode, 0)
+                proc = self.fire(name, cwd=self.base)
                 self.assertIn("not inside a working tree", proc.stderr)
         # post-merge's sweep still runs there; repair, which needs a checkout, never does.
-        self.assertEqual([c for c in self.calls() if c["name"] == "worktree-state.py"], [])
+        self.assertEqual(self.calls("worktree-state.py"), [])
 
 
 class PostMergeSweep(Installed):
     """post-merge keeps its terminal sweep: after repair, with git's argv, whatever repair did."""
 
-    def sweep_calls(self):
-        return [c for c in self.calls() if c["name"] == "post-merge-sweep.py"]
-
     def test_the_sweep_runs_after_repair_with_gits_argv(self):
         proc = self.fire("post-merge")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual([c["name"] for c in self.calls()],
                          ["worktree-state.py", "post-merge-sweep.py"])
-        self.assertEqual(self.sweep_calls()[0]["argv"], ["0"])
+        self.assertEqual(self.calls("post-merge-sweep.py")[0]["argv"], ["0"])
         self.assertIn("post-merge-sweep.py stub output", proc.stdout)
 
     def test_the_sweep_still_runs_when_repair_fails_or_is_missing(self):
-        proc = self.fire("post-merge", worktree_state=2)
-        self.assertEqual(proc.returncode, 0)
-        self.assertEqual(len(self.sweep_calls()), 1)
+        self.fire("post-merge", worktree_state=2)
+        self.assertEqual(len(self.calls("post-merge-sweep.py")), 1)
         self.log.unlink()
         (self.bin / "worktree-state.py").unlink()
         self.fire("post-merge")
-        self.assertEqual(len(self.sweep_calls()), 1)
+        self.assertEqual(len(self.calls("post-merge-sweep.py")), 1)
 
     def test_a_failing_sweep_is_attributed_and_exits_0(self):
         proc = self.fire("post-merge", post_merge_sweep=3)
-        self.assertEqual(proc.returncode, 0)
         self.assertIn("post-merge-sweep.py exited 3", proc.stderr)
 
     def test_a_missing_sweep_is_reported_and_exits_0(self):
         (self.bin / "post-merge-sweep.py").unlink()
         proc = self.fire("post-merge")
-        self.assertEqual(proc.returncode, 0)
         self.assertIn("no worktree sweep ran", proc.stdout + proc.stderr)
-        self.assertEqual(len([c for c in self.calls() if c["name"] == "worktree-state.py"]), 1)
+        self.assertEqual(len(self.calls("worktree-state.py")), 1)
 
 
 if __name__ == "__main__":

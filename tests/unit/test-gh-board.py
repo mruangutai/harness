@@ -11,42 +11,37 @@ sentinel `gh` heads PATH. On exit each asserts the sentinel never ran, so no cas
 
     ./test-gh-board.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import json
-from harness_config_support import write_config  # noqa: E402
-from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
+import unit_support  # noqa: F401 — puts bin/ and tests/ on sys.path; must come first
 import contextlib
+import json
 import os
 import stat
 import sys
 import tempfile
 from unittest import mock
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
+from check_support import Checks  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
 import artifact_accessors  # noqa: E402
 import gh_board  # noqa: E402
-import factory_gh  # noqa: E402
 import factory_config  # noqa: E402
 
-FAILURES = []
+C = Checks()
+check = C.check
+
+# The one board every gh-touching case reads; gh_board only reads it, never mutates it.
+BOARD = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
 
 
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
+def _call(fn, *args):
+    """fn(*args), or "<raised …>" — a mutation that raises IS the failure, so it reddens only
+    the block whose fixture provokes it (P-04) instead of crashing the whole file."""
+    try:
+        return fn(*args)
+    except Exception as exc:  # noqa: BLE001
+        return f"<raised {exc!r}>"
 
 
 def write_harness_json(root, github):
@@ -112,8 +107,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ---------------- derive_station ----------------
 
-def plan(*statuses):
-    return {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
+def plan(*statuses, top=None):
+    doc = {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
+    if top is not None:
+        doc["status"] = top
+    return doc
 
 
 # derive_station TAKES plan.yaml ALONE and returns a LOWERCASE station name (FEAT-41 T-02). The
@@ -179,11 +177,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
             ],
         }}}}
     })):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
-    try:
-        st = gh_board.board_stations(board, "mruangutai/harness")
-    except Exception as exc:  # noqa: BLE001 — a mutation that raises IS the failure, caught here
-        st = f"<raised {exc!r}>"
+    st = _call(gh_board.board_stations, BOARD, "mruangutai/harness")
     check("board_stations: item from another repository is EXCLUDED",
           isinstance(st, dict) and 99 not in st, repr(st))
     # THE READ HALF OF THE CASE BOUNDARY (FEAT-41 T-02): the board answered "Building", and what
@@ -211,11 +205,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
             ],
         }}}}
     })):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
-    try:
-        st = gh_board.board_stations(board, "mruangutai/harness")
-    except Exception as exc:  # noqa: BLE001
-        st = f"<raised {exc!r}>"
+    st = _call(gh_board.board_stations, BOARD, "mruangutai/harness")
     check("board_stations: item with content null does not crash and is not in output",
           isinstance(st, dict) and len(st) == 0, repr(st))
 
@@ -231,11 +221,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({"data": {"re
             {"project": {"number": 3}, "fieldValueByName": None}]}},
         "i328": None,
     }}})):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
-    try:
-        st = gh_board.board_stations_for(board, "mruangutai/harness", [326, 327, 328])
-    except Exception as exc:  # noqa: BLE001 — a mutation that raises IS the failure, caught here
-        st = f"<raised {exc!r}>"
+    st = _call(gh_board.board_stations_for, BOARD, "mruangutai/harness", [326, 327, 328])
     # The same case boundary board_stations holds: the board answered "Building", and asserting
     # the capitalised form is ABSENT is the half that catches a pass-through implementation.
     check("board_stations_for: a board value is lowercased on read",
@@ -258,11 +244,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({"data": {"re
 # would raise and the check below would redden — which is the only way to assert "no call"
 # through a fake binary rather than an in-process recorder.
 with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
-    try:
-        st = gh_board.board_stations_for(board, "mruangutai/harness", [])
-    except Exception as exc:  # noqa: BLE001
-        st = f"<raised {exc!r}>"
+    st = _call(gh_board.board_stations_for, BOARD, "mruangutai/harness", [])
     check("board_stations_for: an empty number set touches no network and returns {}",
           st == {}, repr(st))
 
@@ -281,12 +263,9 @@ check("read_station: present with a None value -> (None, 'no station set')",
 # ---------------- set_station ----------------
 
 with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
-    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     raised = None
     try:
-        gh_board.set_station(board, "mruangutai/harness", 326, "building")
-    except gh_board.BoardError as exc:
-        raised = exc
+        gh_board.set_station(BOARD, "mruangutai/harness", 326, "building")
     except Exception as exc:  # noqa: BLE001 — any other type is itself the failure
         raised = exc
     check("set_station: a failing gh raises BoardError",
@@ -313,10 +292,7 @@ _orig_item_id = gh_board.factory_gh.issue_board_item_id
 try:
     gh_board.factory_gh.project_field_set = _capture_field_set
     gh_board.factory_gh.issue_board_item_id = lambda repo, num, board_number: "ITEM-1"
-    gh_board.set_station(
-        {"owner": "mruangutai", "number": 3, "station_field": "Status"},
-        "mruangutai/harness", 326, "done",
-    )
+    gh_board.set_station(BOARD, "mruangutai/harness", 326, "done")
     check('set_station passes "Done" to project_field_set when given "done"',
           _captured.get("value") == "Done", _captured)
 
@@ -325,10 +301,7 @@ try:
     # board, and nothing should reach GitHub.
     _captured.clear()
     try:
-        gh_board.set_station(
-            {"owner": "mruangutai", "number": 3, "station_field": "Status"},
-            "mruangutai/harness", 326, "Done",
-        )
+        gh_board.set_station(BOARD, "mruangutai/harness", 326, "Done")
         check("set_station raises FleetError on a capitalised station and writes nothing",
               False, "did not raise")
     except artifact_accessors.FleetError:
@@ -338,8 +311,6 @@ finally:
     gh_board.factory_gh.project_field_set = _orig_field_set
     gh_board.factory_gh.issue_board_item_id = _orig_item_id
 
-
-
 # --------------------------------------------------------------- project (FEAT-41 T-06) ------
 # ONE function answers "which card goes where", so plan.yaml is the only input to the answer.
 # Every value it returns is a LOWERCASE station; station_column is the one place a column name
@@ -348,18 +319,11 @@ def _rec(issues=None, parent=None, source_issues=None):
     return {"issues": issues or {}, "parent": parent, "source_issues": source_issues or []}
 
 
-def _plan(*statuses, top=None):
-    doc = {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
-    if top is not None:
-        doc["status"] = top
-    return doc
-
-
 # --- every active feature phase is one projection for every unique recorded card. A mixed
 # --- task list proves task-local statuses cannot leak back into active board placement.
 for _phase in ("plan", "ready", "building", "review"):
     _p = gh_board.project(
-        _plan("done", "building", "ready", "abandoned", top=_phase),
+        plan("done", "building", "ready", "abandoned", top=_phase),
         _rec(issues={"T-01": 11, "T-02": 12, "T-03": 13, "T-04": 14},
              parent=12, source_issues=[91, 12, 91, 11]),
     )
@@ -369,14 +333,14 @@ for _phase in ("plan", "ready", "building", "review"):
 # --- terminal Done still places every non-abandoned card at done, while abandoned task cards
 # --- stay absent. This is deliberately distinct from active projection above.
 _p = gh_board.project(
-    _plan("done", "abandoned", top="done"),
+    plan("done", "abandoned", top="done"),
     _rec(issues={"T-01": 21, "T-02": 22}, parent=20, source_issues=[19, 20]),
 )
 check("project: done preserves terminal placement and excludes abandoned tasks",
       _p == {21: "done", 20: "done", 19: "done"}, repr(_p))
 
 # --- absent remains absent: no top-level phase and no derivation must not invent a placement.
-_p = gh_board.project(_plan("done", "ready"), _rec(issues={"T-01": 31}, parent=30,
+_p = gh_board.project(plan("done", "ready"), _rec(issues={"T-01": 31}, parent=30,
                                                    source_issues=[29]))
 check("project: absent phase leaves only the task-local non-terminal card",
       _p == {31: "done"}, repr(_p))
@@ -384,12 +348,12 @@ check("project: absent phase leaves only the task-local non-terminal card",
 # --- FEAT-61 T-02: the active projection is the ACTIVE bucket, not "every board column".
 # --- `backlog` has a column but is not active — the parent keeps its recorded backlog station
 # --- and the tasks keep their own — while abandoned and rejected project nothing at all.
-_p = gh_board.project(_plan("done", "ready", top="backlog"),
+_p = gh_board.project(plan("done", "ready", top="backlog"),
                       _rec(issues={"T-01": 51, "T-02": 52}, parent=50, source_issues=[49]))
 check("project: backlog is a column but never an active projection",
       _p == {51: "done", 52: "ready", 50: "backlog", 49: "backlog"}, repr(_p))
 for _terminal in factory_config.TERMINAL_STATIONS:
-    _p = gh_board.project(_plan("done", "ready", top=_terminal),
+    _p = gh_board.project(plan("done", "ready", top=_terminal),
                           _rec(issues={"T-01": 61, "T-02": 62}, parent=60, source_issues=[59]))
     check(f"project: {_terminal} places no parent or source card and no active projection",
           _p == {61: "done", 62: "ready"}, repr(_p))
@@ -399,7 +363,7 @@ for _terminal in factory_config.TERMINAL_STATIONS:
 for _bad in ("pending", "Building", "shipped"):
     _raised = None
     try:
-        gh_board.project(_plan(_bad), _rec(issues={"T-01": 31}))
+        gh_board.project(plan(_bad), _rec(issues={"T-01": 31}))
     except artifact_accessors.FleetError as exc:
         _raised = str(exc)
     check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
@@ -407,11 +371,7 @@ for _bad in ("pending", "Building", "shipped"):
 
 # --- it performs no I/O and produces no column: the returned values are stations, and a
 # --- station's column differs from its name for every one of the six.
-_p = gh_board.project(_plan("review"), _rec(issues={"T-01": 41}))
+_p = gh_board.project(plan("review"), _rec(issues={"T-01": 41}))
 check("project: the value is a station, never a column",
       _p[41] == "review" and _p[41] != factory_config.station_column("review"), repr(_p))
-print()
-if FAILURES:
-    print(f"{len(FAILURES)} FAIL")
-    sys.exit(1)
-print("all pass")
+sys.exit(C.report())

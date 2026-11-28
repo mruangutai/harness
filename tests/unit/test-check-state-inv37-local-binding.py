@@ -5,33 +5,25 @@ These tests run in-process against the public `inv_37(ctx)`. They use the real f
 
     ./test-check-state-inv37-local-binding.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-from harness_config_support import build_config, write_config  # noqa: E402
 import os
+import sys
 import tempfile
+from unittest import mock
 
-import artifact_accessors  # noqa: E402
-import factory_config  # noqa: E402
-from feature_record import binding as record_binding  # noqa: E402
-from check_state import board  # noqa: E402
+from unit_support import ROOT, BIN, TESTS  # noqa: F401  (puts bin/ and tests/ on sys.path)
+from check_support import Checks
+from harness_config_support import build_config, write_config
 
-FAILURES = []
+import artifact_accessors
+import factory_config
+from feature_record import binding as record_binding
+from check_state import board
+
+C = Checks()
+check = C.check
 BOUND = "FEAT-9002-bound-fixture"
 OWNER = "FEAT-9003-owner-fixture"
 _STATIONS = ["backlog", "plan", "ready", "building", "review", "done"]
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
 
 
 class _Ctx:
@@ -39,10 +31,11 @@ class _Ctx:
 
     def __init__(self, root, docs, online, owner_sync=True):
         self.root, self.H = root, os.path.join(root, ".harness")
-        self.cj = build_config({"github": {"sync": owner_sync, "repo": "org/repo"}})
+        self.cj = write_config(os.path.join(self.H, "harness.json"),
+                               {"github": {"sync": owner_sync, "repo": "org/repo"}})
         self._docs, self._online = docs, online
         self.features = sorted(docs)
-        self.plan_docs = {f: {"status": "ready", "tasks": []} for f in docs}
+        self.plan_docs = dict.fromkeys(docs)  # INV-37 reads membership only
         self.fpath = lambda feat, name: os.path.join(".harness", "x", "features", feat, name)
 
     def gh_ok(self, _gh_bin):
@@ -55,22 +48,14 @@ class _Ctx:
         return os.path.join(self.H, "x", "features", feat)
 
 
-def _bound(github, repo="org/prod", factory=None):
-    return {"feature_id": BOUND, "factory": {"repo": repo} if factory is None else factory,
+def _bound(github, factory=None):
+    return {"feature_id": BOUND, "factory": {"repo": "org/prod"} if factory is None else factory,
             "github": github}
 
 
 def _run(docs, online, remote_ok=True, owner_sync=True):
     """(findings, remote log) with the remote boundaries recorded and restored."""
-    log = {"resolve": 0, "product_config": 0}
-    real_resolve, real_product = record_binding.resolve_binding, factory_config.product_config
-
-    def resolve(doc, root):
-        log["resolve"] += 1
-        return real_resolve(doc, root)
-
     def product_config(fleet, repo):
-        log["product_config"] += 1
         if not remote_ok:
             raise artifact_accessors.FleetError("product config unreadable", repo, "offline")
         return build_config({"github": {"sync": True, "repo": repo, "board": {
@@ -82,15 +67,16 @@ def _run(docs, online, remote_ok=True, owner_sync=True):
             f.write(f"schema: factory-fleet/1\nrepos:\n  - name: org/prod\n"
                     f"    default_branch: main\nworkspace_root: {root}\n")
         ctx = _Ctx(root, docs, online, owner_sync)
-        write_config(os.path.join(ctx.H, "harness.json"), ctx.cj)
-        record_binding.resolve_binding, factory_config.product_config = resolve, product_config
         factory_config.clear_product_config_memo()
         try:
-            bad, _warn = board.inv_37(ctx)
+            with mock.patch.object(record_binding, "resolve_binding",
+                                   wraps=record_binding.resolve_binding) as resolve, \
+                    mock.patch.object(factory_config, "product_config",
+                                      side_effect=product_config) as product:
+                bad, _warn = board.inv_37(ctx)
         finally:
-            record_binding.resolve_binding, factory_config.product_config = real_resolve, real_product
             factory_config.clear_product_config_memo()
-    return bad, log
+    return bad, {"resolve": resolve.call_count, "product_config": product.call_count}
 
 
 def _has(bad, *needles):
@@ -127,7 +113,7 @@ def case_offline_receipts_are_graded_against_factory_repo():
 
 def case_offline_invalid_bindings_still_fail():
     for repo in ("not a repository", 5, "", "org/gone"):
-        bad, log = _run({BOUND: _bound(OPENED, repo=repo)}, online=False)
+        bad, log = _run({BOUND: _bound(OPENED, factory={"repo": repo})}, online=False)
         check(f"u.3 offline factory.repo={repo!r}: still an invalid authoritative binding",
               _has(bad, BOUND, "invalid authoritative repository binding")
               and log["product_config"] == 0, f"bad={bad} log={log}")
@@ -165,11 +151,8 @@ def main():
     case_offline_invalid_bindings_still_fail()
     case_online_keeps_full_remote_verification()
     case_owner_path_is_unchanged()
-    if FAILURES:
-        print(f"\n{len(FAILURES)} FAILURE(S): {FAILURES}")
-        return 1
-    return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
+    sys.exit(C.report())

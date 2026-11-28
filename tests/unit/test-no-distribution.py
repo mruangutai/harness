@@ -9,33 +9,23 @@ assertion with a PRESENCE assertion for that reason.
 Root is resolved from this file's own location, never from the cwd (matches its siblings, e.g.
 test-check-plan-routes.py's BIN_DIR/REPO_ROOT derivation).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT as _ROOT, BIN as _BIN
+import functools
 import os
 import re
-import subprocess
 import sys
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+from check_support import Checks
+from git_support import git
 
-failures = []
+ROOT = str(_ROOT)
+BIN_DIR = str(_BIN)
 
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
+@functools.lru_cache(maxsize=None)
 def git_ls_files():
     """Tracked files only, resolved via -C ROOT so cwd never matters (see module docstring).
 
@@ -44,14 +34,13 @@ def git_ls_files():
     carry and make the gate non-deterministic. It also means THIS file is invisible to its own
     scan until it is committed — see the first ALLOW_LIST entry below.
     """
-    r = subprocess.run(
-        ["git", "-C", ROOT, "ls-files"],
-        capture_output=True, text=True, check=True,
-    )
-    return [line for line in r.stdout.splitlines() if line]
+    r = git(ROOT, "ls-files")
+    return tuple(line for line in r.stdout.splitlines() if line)
 
 
+@functools.lru_cache(maxsize=None)
 def read_text(rel_path):
+    """Read once per run: case2 and case6 scan the same tracked files, and nothing writes them."""
     full = os.path.join(ROOT, rel_path)
     try:
         with open(full, "r", encoding="utf-8", errors="ignore") as fh:
@@ -84,12 +73,11 @@ def case1():
     check("case1_presence_canonical_four_doors_survive", len(canonical_cmds) >= 4,
           f"only {len(canonical_cmds)} harness*.md commands under .omp/commands: {canonical_cmds}")
 
-    bin_dir = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
     check("case1_presence_check_plan_routes_survives",
-          os.path.exists(os.path.join(bin_dir, "check-plan-routes.py")),
+          os.path.exists(os.path.join(BIN_DIR, "check-plan-routes.py")),
           "check-plan-routes.py is missing")
     check("case1_presence_factory_workspace_survives",
-          os.path.exists(os.path.join(bin_dir, "factory_workspace.py")),
+          os.path.exists(os.path.join(BIN_DIR, "factory_workspace.py")),
           "factory_workspace.py is missing")
 
 
@@ -149,14 +137,23 @@ def case2():
 # ============================== Case 3 ==============================
 # the fleet declaration is the reachability record.
 
+FLEET_PATH = os.path.join(ROOT, ".harness", "factory", "fleet.yaml")
+
+
+@functools.lru_cache(maxsize=None)
+def load_fleet():
+    """fleet.yaml parsed once; case3 and case5 both read it."""
+    import yaml
+    with open(FLEET_PATH, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
 def case3():
-    fleet_path = os.path.join(ROOT, ".harness", "factory", "fleet.yaml")
+    fleet_path = FLEET_PATH
     data = None
     loaded_ok = False
     try:
-        import yaml
-        with open(fleet_path, "r", encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+        data = load_fleet()
         loaded_ok = True
     except Exception as e:  # noqa: BLE001 - reported via check(), not raised
         check("case3_presence_fleet_yaml_safe_loads", False, f"{fleet_path} failed to parse: {e}")
@@ -257,10 +254,8 @@ def case4():
                 rel = os.path.relpath(full, ROOT)
                 if rel.endswith("DECISIONS.md"):
                     saw_decisions = True
-                try:
-                    with open(full, "r", encoding="utf-8", errors="ignore") as fh:
-                        text = fh.read()
-                except OSError:
+                text = read_text(rel)
+                if text is None:
                     continue
                 if DEC12_REF_RE.search(text):
                     ref_hits.append(rel)
@@ -288,10 +283,7 @@ def case4():
 # the repository-to-board pairing declared in the live fleet is pinned.
 
 def case5():
-    fleet_path = os.path.join(ROOT, ".harness", "factory", "fleet.yaml")
-    import yaml
-    with open(fleet_path, "r", encoding="utf-8") as fh:
-        data = yaml.safe_load(fh) or {}
+    data = load_fleet() or {}
 
     check("board_lives_per_repo_not_fleet_level",
           "board" not in data,
@@ -342,7 +334,8 @@ def case5():
 # every caller was migrated.
 CHAIN_NAME = "HARNESS" + "_PROJECT_DIR"      # assembled so this line is not itself a site
 
-RESOLVER_REL = ".claude/skills/harness/bin/harness_boundary.py"
+CASE6_BIN_REL = ".claude/skills/harness/bin/"
+RESOLVER_REL = CASE6_BIN_REL + "harness_boundary.py"
 
 # Names this feature DELETED. Each was a second implementation of the one rule.
 DELETED_NAMES = ("harness_root", "_repo_root_from_script", "_root_from", "_resolve_repo_root")
@@ -394,9 +387,6 @@ def _case6_presence(tracked, resolver):
           f"{sorted(importers)[:20]}")
 
 
-CASE6_BIN_REL = ".claude/skills/harness/bin/"
-
-
 def _case6_deleted_names(tracked):
     # SAME test-* EXCLUSION AS THE ABSENCE HALF ABOVE, and for the same reason: those files
     # discuss the deleted names in prose — test-post-merge-sweep.py's docstring records the
@@ -440,8 +430,6 @@ def case6():
     _case6_survivors(resolver)
 
 
-
-
 def main():
     case1()
     case2()
@@ -450,12 +438,7 @@ def main():
     case5()
     case6()
 
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
-
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
+    sys.exit(C.report())

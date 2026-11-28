@@ -12,41 +12,39 @@ cases, SC-22). Both are read via `factory_claim.artifact_accessors`, never re-de
 that proves "no plan file consulted" monkeypatches `artifact_accessors.load_plan` itself.
 
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+import atexit
 import contextlib
-import io
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
+from unittest import mock
 
-import yaml
+from unit_support import BIN
+
 import artifact_accessors
-
 import factory_claim as claim
 import factory_cli
 import factory_config as fc
 import factory_gh
 import harness_boundary as hb
 import harness_yaml
+from check_support import Checks
+from factory_support import board as board_block, board_stub, fleet as make_fleet, invoke
+from factory_support import repo as repo_entry, split_boards, write_yaml
 
-FAILS = 0
-RAN = 0
+C = Checks()
+check = C.check
+
+# Every temp dir this file makes lives under one base, removed at exit.
+TMP = tempfile.mkdtemp(prefix="claim-test-")
+atexit.register(shutil.rmtree, TMP, True)
 
 
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+def tmpdir(prefix):
+    return tempfile.mkdtemp(prefix=prefix, dir=TMP)
 
 
 OWNER = "acme"
@@ -98,13 +96,15 @@ class Recorder:
         self.create_ref_results = {}  # number -> True | False | Exception
         self.default_sha = "deadbeef"
         self.preflight_raises = None
-        self.queries = []
+
+    def calls_named(self, *names):
+        return [c for c in self.calls if c[0] in names]
 
     def mutating_calls(self):
-        return [c for c in self.calls if c[0] in MUTATING_NAMES]
+        return self.calls_named(*MUTATING_NAMES)
 
     def create_ref_calls(self):
-        return [c for c in self.calls if c[0] == "create_ref"]
+        return self.calls_named("create_ref")
 
     # --- factory_gh's public surface used by factory_claim ---
     def preflight(self):
@@ -121,7 +121,6 @@ class Recorder:
 
     def project_items(self, owner, number, query=None, limit=500):
         self.calls.append(("project_items", (owner, number, query)))
-        self.queries.append(query)
         key = (owner, number)
         if key in self.items_by_board:
             return list(self.items_by_board[key])
@@ -175,18 +174,6 @@ PATCHED = (
 )
 
 
-def patch_gh(rec):
-    saved = {name: getattr(factory_gh, name) for name in PATCHED}
-    for name in PATCHED:
-        setattr(factory_gh, name, getattr(rec, name))
-    return saved
-
-
-def unpatch_gh(saved):
-    for name, fn in saved.items():
-        setattr(factory_gh, name, fn)
-
-
 # --------------------------------------------------------------------------
 # Fixture builders.
 # --------------------------------------------------------------------------
@@ -201,12 +188,7 @@ def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD):
     factory_config.station_column. What still varies per repository — and is what every
     per-repository-board case in this file actually turns on — is the owner, the board number and
     the station field."""
-    return {
-        "owner": owner,
-        "number": number,
-        "station_field": station_field,
-        "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-    }
+    return board_block(owner, number, station_field)
 
 
 def repo_dict(name, default_branch=DEFAULT_BRANCH, board=None):
@@ -214,42 +196,19 @@ def repo_dict(name, default_branch=DEFAULT_BRANCH, board=None):
     carrier only, stripped by `_split_boards` before the fleet is written to disk, and used to
     build the `factory_config.product_config` stub that stands in for each repository's own
     remote `.harness/harness.json`."""
-    return {"name": name, "default_branch": default_branch, "board": board or repo_board()}
-
-
-def _split_boards(fleet_dict):
-    """Splits a test-side fleet dict into (yaml-safe fleet dict with no repos[].board,
-    {repo_name: board_mapping}). The board never reaches fleet.yaml; it becomes the shape
-    `factory_config.product_config` is monkeypatched to return for that repository."""
-    boards = {}
-    clean_repos = []
-    for r in fleet_dict["repos"]:
-        r = dict(r)
-        board = r.pop("board", None)
-        if board is not None:
-            boards[r["name"]] = board
-        clean_repos.append(r)
-    clean = dict(fleet_dict)
-    clean["repos"] = clean_repos
-    return clean, boards
+    return repo_entry(name, default_branch, board or repo_board())
 
 
 def good_fleet_dict(workspace_root, repos=None):
-    return {
-        "schema": "factory-fleet/1",
-        "repos": repos if repos is not None else [repo_dict(REPO)],
-        "workspace_root": workspace_root,
-    }
+    return make_fleet(workspace_root, repos if repos is not None else [repo_dict(REPO)])
 
 
-def two_repo_fleet(workspace_root, board_b_number=BOARD_B, station_field_b=STATION_FIELD_B):
+def two_repo_fleet(workspace_root):
     """REPO on board BOARD (owner OWNER), REPO_B on a DIFFERENT board — the per-repository-board
     cases (FEAT-16 T-02)."""
     return good_fleet_dict(workspace_root, repos=[
         repo_dict(REPO),
-        repo_dict(REPO_B, board=repo_board(
-            number=board_b_number, station_field=station_field_b,
-        )),
+        repo_dict(REPO_B, board=repo_board(number=BOARD_B, station_field=STATION_FIELD_B)),
     ])
 
 
@@ -257,15 +216,8 @@ def same_board_two_repo_fleet(workspace_root):
     """REPO and REPO_B declare the SAME board number — the de-duplication case."""
     return good_fleet_dict(workspace_root, repos=[
         repo_dict(REPO),
-        repo_dict(REPO_B, board=repo_board()),
+        repo_dict(REPO_B),
     ])
-
-
-def write_yaml(path, data):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f)
-    return path
 
 
 def write_json(path, data):
@@ -275,16 +227,16 @@ def write_json(path, data):
     return path
 
 
-def board_item(item_id, num, repo_owner_name, repo_url=None, title=None):
+def board_item(item_id, num, repo_owner_name):
     """The REAL measured shape (T-05's intent): `repository` holds the URL form of the SAME
     repository `content.repository` holds in owner/name form. The fleet lists repositories in
     owner/name form, so an implementation reading the wrong key (`repository`) matches nothing
     and every candidate is silently discarded — this fixture is what catches that."""
     return {
         "id": item_id,
-        "content": {"number": num, "repository": repo_owner_name, "title": title or f"stub {num}"},
-        "repository": repo_url or f"https://github.com/{repo_owner_name}",
-        "title": title or f"stub {num}",
+        "content": {"number": num, "repository": repo_owner_name, "title": f"stub {num}"},
+        "repository": f"https://github.com/{repo_owner_name}",
+        "title": f"stub {num}",
     }
 
 
@@ -340,7 +292,7 @@ def build_features_root():
     T-88), harness's T-77 depends on T-99 which its OWN map resolves to a closed issue — so a
     case can prove a per-repository resolver reaches each segment's own plan AND ITS OWN
     ISSUE MAP, neither cache served across repositories (BUG-1290 5a/5b, SC-01/SC-02)."""
-    harness_root = tempfile.mkdtemp(prefix="claim-harness-")
+    harness_root = tmpdir("claim-harness-")
     widget_features = os.path.join(harness_root, ".harness", "widget", "features")
 
     demo = os.path.join(widget_features, "FEAT-01-demo")
@@ -431,50 +383,27 @@ write_json(os.path.join(_dangling_widget_features, FEAT_DANGLING_LEGAL, "feature
 # Driver.
 # --------------------------------------------------------------------------
 
-def run_main(rec, extra_args, workspace_root=None, fleet_dict=None, features_root_fn=None):
-    workspace_root = workspace_root or tempfile.mkdtemp(prefix="claim-ws-")
-    fleet_dir = tempfile.mkdtemp(prefix="claim-fleet-")
-    raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root)
-    clean_fleet, boards_by_repo = _split_boards(raw_fleet)
-    fleet_path = write_yaml(os.path.join(fleet_dir, "fleet.yaml"), clean_fleet)
-    argv_saved = sys.argv
-    sys.argv = ["factory_claim.py", "--fleet", fleet_path] + extra_args
-    saved_gh = patch_gh(rec)
-    resolved_features_root_fn = features_root_fn or fixture_features_root
-    had_features_root = hasattr(fc, "features_root")
-    saved_features_root = getattr(fc, "features_root", None)
-    fc.features_root = resolved_features_root_fn
-    # The board is resolved through factory_config.product_config, never from fleet.yaml
-    # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
-    # is monkeypatched rather than faking a `gh` call.
-    saved_product_config = fc.product_config
-
-    def fake_product_config(fleet, repo_name):
-        return {"github": {"board": boards_by_repo.get(repo_name)}}
-
-    fc.product_config = fake_product_config
-    out, err = io.StringIO(), io.StringIO()
-    code = None
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                factory_cli.run(
-                    "claim", claim._main,
-                    expected=(artifact_accessors.FleetError, factory_gh.GhError),
-                )
-            except SystemExit as e:
-                code = e.code
-        if code is None:
-            code = 0
-    finally:
-        sys.argv = argv_saved
-        unpatch_gh(saved_gh)
-        if had_features_root:
-            fc.features_root = saved_features_root
-        else:
-            del fc.features_root
-        fc.product_config = saved_product_config
-    return code, out.getvalue(), err.getvalue()
+def run_main(rec, extra_args, fleet_dict=None, features_root_fn=None):
+    raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(tmpdir("claim-ws-"))
+    clean_fleet, boards_by_repo = split_boards(raw_fleet)
+    fleet_path = write_yaml(os.path.join(tmpdir("claim-fleet-"), "fleet.yaml"), clean_fleet)
+    with contextlib.ExitStack() as stack:
+        for name in PATCHED:
+            stack.enter_context(mock.patch.object(factory_gh, name, getattr(rec, name)))
+        stack.enter_context(mock.patch.object(
+            fc, "features_root", features_root_fn or fixture_features_root))
+        # The board is resolved through factory_config.product_config, never from fleet.yaml
+        # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function
+        # itself is monkeypatched rather than faking a `gh` call.
+        stack.enter_context(mock.patch.object(fc, "product_config", board_stub(boards_by_repo)))
+        result = invoke(
+            lambda: factory_cli.run(
+                "claim", claim._main,
+                expected=(artifact_accessors.FleetError, factory_gh.GhError),
+            ),
+            argv=["factory_claim.py", "--fleet", fleet_path] + extra_args,
+        )
+    return result.code or 0, result.out, result.err
 
 
 # ==========================================================================
@@ -499,7 +428,7 @@ check("(M2) issue_view never called for it", not any(c[0] == "issue_view" for c 
 # M3/M6/M7/M8. happy path — real board-item shape, station set once, JSON branch, feature key,
 # harness-only label claims with feature null, project_items called with a real query.
 rec = Recorder()
-rec.items = [board_item("i1", 42, REPO, repo_url=f"https://github.com/{REPO}")]
+rec.items = [board_item("i1", 42, REPO)]
 rec.issue_data[42] = issue_data(42, "T-01 do the thing", labels=["harness", "feature:FEAT-01-demo"])
 code, out, err = run_main(rec, ["--as", AS_LOGIN])
 check("(M3/M6) happy path exits 0", code == 0, code)
@@ -508,13 +437,12 @@ check("(M3/M6) stdout parses as one JSON payload", payload is not None, out)
 check("(M6) branch is factory/issue-42", payload and payload.get("branch") == "factory/issue-42",
       payload)
 check("(M6) station set to Building exactly once",
-      len([c for c in rec.calls if c[0] == "project_field_set"]) == 1
-      and rec.calls[[c[0] for c in rec.calls].index("project_field_set")][1][4] == "Building",
-      rec.calls)
+      [c[1][4] for c in rec.calls_named("project_field_set")] == ["Building"], rec.calls)
 check("(M7) feature key equals label value with prefix stripped",
       payload and payload.get("feature") == "FEAT-01-demo", payload)
+queries = [c[1][2] for c in rec.calls_named("project_items")]
 check("(M8) project_items called with a query naming the ready option",
-      rec.queries and rec.queries[0] and "Ready" in rec.queries[0], rec.queries)
+      queries and queries[0] and "Ready" in queries[0], queries)
 
 rec2 = Recorder()
 rec2.items = [board_item("i1", 43, REPO)]
@@ -776,7 +704,7 @@ check("(R8) poll mode never calls issue_board_item_id",
 # ENTRY, not the product config, and it deliberately does not move (D-02). The branch asserted is
 # read from the fleet fixture itself, not respelled as a literal.
 rec = Recorder()
-db_ws = tempfile.mkdtemp(prefix="claim-ws-db-")
+db_ws = tmpdir("claim-ws-db-")
 # A non-default default_branch, deliberately not the DEFAULT_BRANCH constant every other fixture
 # in this file uses — a call site that hardcoded "main" instead of reading entry["default_branch"]
 # would still pass against DEFAULT_BRANCH, and this case exists to catch exactly that (P-01).
@@ -906,7 +834,7 @@ check("(B5-bis) edge (i) reason distinct from open-blocker and unresolvable-bloc
 # does not exist, so no plan can ever be read for any feature. The refusal must name the real
 # cause (the path tried) rather than reusing edge (i)'s "no matching plan task" text, which
 # blames the title for a directory that was never there (D-03).
-absent_root = os.path.join(tempfile.mkdtemp(prefix="claim-absent-"), "no-such-features-root")
+absent_root = os.path.join(tmpdir("claim-absent-"), "no-such-features-root")
 rec = Recorder()
 rec.items = [board_item("i1", 731, REPO)]
 rec.issue_data[731] = issue_data(
@@ -939,26 +867,16 @@ check("(B5-ter) plan present, task id absent: still the edge (i) text",
       "no matching plan task" in err, err)
 
 # B6. FEATURE NULL IS UNGATED — no plan file consulted for it.
-load_plan_calls = []
-real_load_plan = artifact_accessors.load_plan
-
-
-def recording_load_plan(path):
-    load_plan_calls.append(path)
-    return real_load_plan(path)
-
-
-artifact_accessors.load_plan = recording_load_plan
-try:
+with mock.patch.object(artifact_accessors, "load_plan",
+                       wraps=artifact_accessors.load_plan) as load_plan_spy:
     rec = Recorder()
     rec.items = [board_item("i1", 730, REPO)]
     rec.issue_data[730] = issue_data(730, "some mirrored issue", labels=["harness"])
     code, out, err = run_main(rec, ["--as", AS_LOGIN])
-finally:
-    artifact_accessors.load_plan = real_load_plan
 check("(B6) feature: null claims normally", code == 0 and json.loads(out).get("feature") is None,
       (code, out))
-check("(B6) no plan file was consulted for it", load_plan_calls == [], load_plan_calls)
+check("(B6) no plan file was consulted for it", load_plan_spy.call_args_list == [],
+      load_plan_spy.call_args_list)
 
 # B7. --ISSUE ON A BLOCKED ISSUE — not owned: exit 2, zero mutations, no create_ref, stderr
 # names the blocking T-NN. Owned (self-ownership): exit 0, re-emits the payload.
@@ -1010,14 +928,9 @@ except Exception as exc:
 # factory_claim.py:380-382, over a candidate resolving to the dangling fixture. No issue_view
 # call is reachable here — a dangling plan fails before any depends_on entry is walked — so
 # factory_gh needs no patching for this case.
-_saved_features_root_d = fc.features_root
-fc.features_root = fixture_features_root
-try:
-    _cache_a = claim._BlockerCache()
-    _gate_a = claim._blocker_gate(_cache_a, REPO, FEAT_DANGLING, "T-02")
+with mock.patch.object(fc, "features_root", fixture_features_root):
+    _gate_a = claim._blocker_gate(claim._BlockerCache(), REPO, FEAT_DANGLING, "T-02")
     _reason_a = claim._blocker_reason_text(_gate_a, 780)
-finally:
-    fc.features_root = _saved_features_root_d
 check("(Da) blocker-gate reason a caller receives names BOTH T-02 and T-99",
       "T-02" in _reason_a and "T-99" in _reason_a, _reason_a)
 check("(Da) blocker-gate reason no longer carries the missing-or-unparseable wording "
@@ -1028,15 +941,9 @@ check("(Da) blocker-gate reason no longer carries the missing-or-unparseable wor
 # (T-01) closed: the gate is CLEAR, exactly the verdict (B3)'s "all blockers closed" case
 # asserts (gate is None -> the candidate is claimed) — so a change that broke correct plans
 # reddens here.
-_saved_issue_view_d = factory_gh.issue_view
-factory_gh.issue_view = lambda repo, num, fields: {"state": "CLOSED"}
-fc.features_root = fixture_features_root
-try:
-    _cache_b = claim._BlockerCache()
-    _gate_b = claim._blocker_gate(_cache_b, REPO, FEAT_DANGLING_LEGAL, "T-02")
-finally:
-    fc.features_root = _saved_features_root_d
-    factory_gh.issue_view = _saved_issue_view_d
+with mock.patch.object(fc, "features_root", fixture_features_root), \
+        mock.patch.object(factory_gh, "issue_view", lambda repo, num, fields: {"state": "CLOSED"}):
+    _gate_b = claim._blocker_gate(claim._BlockerCache(), REPO, FEAT_DANGLING_LEGAL, "T-02")
 check("(Db) blocker-gate over the legal fixture is CLEAR, exactly (B3)'s verdict",
       _gate_b is None, _gate_b)
 
@@ -1163,7 +1070,7 @@ check(
 # P1. a two-repo fleet on two different board numbers issues its poll query against BOTH boards,
 # each with its own station_field and ready option name.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p1-")
+ws = tmpdir("claim-ws-p1-")
 fleet = two_repo_fleet(ws)
 rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD)] = []
@@ -1182,7 +1089,7 @@ check("(P1) board B's query is built from board B's own FIELD, not board A's —
 # P2. a candidate found on repository A is claimed using A's board number, and B's board is
 # never addressed by the winner-only bookkeeping (project_field_set).
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p2-")
+ws = tmpdir("claim-ws-p2-")
 fleet = two_repo_fleet(ws)
 rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD)] = [board_item("iA", 200, REPO)]
@@ -1199,7 +1106,7 @@ check("(P2) exactly one project_field_set call, addressed to A's board and never
 # P3. station validation failing for repository B still names B's board number in the refusal —
 # repository A's board validates cleanly.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p3-")
+ws = tmpdir("claim-ws-p3-")
 fleet = two_repo_fleet(ws)
 rec.board_field_options[(OWNER, BOARD)] = {STATION_FIELD: ["Ready", "Building", "Review"]}
 rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building"]}  # no Review column
@@ -1212,7 +1119,7 @@ check("(P3) refusal does NOT name board A's board number", f"{OWNER} project {BO
 # P4. --repo filters the served set to one repository, so only that repository's board is read
 # at all — never the other fleet member's.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p4-")
+ws = tmpdir("claim-ws-p4-")
 fleet = two_repo_fleet(ws)
 rec.items_by_board[(OWNER, BOARD)] = []
 code, out, err = run_main(rec, ["--as", AS_LOGIN, "--repo", REPO], fleet_dict=fleet)
@@ -1225,7 +1132,7 @@ check("(P4) --repo filters the served set: every board read names A's board, non
 # P5. two fleet entries declaring the SAME board number produce exactly one candidate per issue —
 # the claimed issue gets exactly one project_field_set call despite the duplicate.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p5-")
+ws = tmpdir("claim-ws-p5-")
 fleet = same_board_two_repo_fleet(ws)
 rec.items = [board_item("i1", 300, REPO)]
 rec.issue_data[300] = issue_data(300, "issue 300", labels=["harness"])
@@ -1248,7 +1155,7 @@ check("(P5) exactly one project_field_set call despite the duplicate", len(p5_fi
 # per-repository loop that treats an empty repository as a "continue" and falls off the end of
 # the served set into a normal exit 0 — silence where a report belongs.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="claim-ws-p6-")
+ws = tmpdir("claim-ws-p6-")
 fleet = two_repo_fleet(ws)
 rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD_B)] = []
@@ -1272,7 +1179,7 @@ check("(P6) SC-13: exit code is EXIT_NOTHING (1), not a silent 0",
 # the blocker-gate verdict that plan implies (unresolvable, naming T-88), not no_plan.
 name_5a = "BUG-1290 5a: served non-harness repository reaches its own segment's blocker verdict, not no_plan"
 try:
-    ws_5a = tempfile.mkdtemp(prefix="claim-ws-5a-")
+    ws_5a = tmpdir("claim-ws-5a-")
     fleet_5a = good_fleet_dict(ws_5a, repos=[repo_dict(REPO_SAMPLE)])
     rec = Recorder()
     rec.items = [board_item("i1", 950, REPO_SAMPLE)]
@@ -1298,7 +1205,7 @@ except Exception as exc:
 # other.
 def _run_5b_scenario():
     """Builds and runs 5b's two-repository, one-feature-id fleet. Returns (code, out, err)."""
-    ws_5b = tempfile.mkdtemp(prefix="claim-ws-5b-")
+    ws_5b = tmpdir("claim-ws-5b-")
     fleet_5b = good_fleet_dict(
         ws_5b, repos=[repo_dict(REPO_SAMPLE), repo_dict(REPO_HARNESS_SEG)],
     )
@@ -1334,18 +1241,10 @@ def _5b_property_holds(code, out, err):
     )
 
 
-def _emit_5b(record):
-    """Runs 5b's scenario and reports its verdict through `record` under name_5b. `record` may
-    be `check` (the intact run, which prints and counts) or a non-printing capturing shim (5g's
-    self-defence run) — the SAME verdict-producing path either way, so 5g exercises case 5b
-    itself rather than a lookalike."""
-    code, out, err = _run_5b_scenario()
-    record(name_5b, _5b_property_holds(code, out, err), (code, out, err))
-
-
 name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
 try:
-    _emit_5b(check)
+    run_5b = _run_5b_scenario()
+    check(name_5b, _5b_property_holds(*run_5b), run_5b)
 except Exception as exc:
     check(name_5b, False, repr(exc))
 
@@ -1355,7 +1254,7 @@ except Exception as exc:
 name_5c = "BUG-1290 5c: absent segment root still refuses via no_plan, naming that segment's own path"
 try:
     repo_missing = "acme/zzz-missing-segment"
-    ws_5c = tempfile.mkdtemp(prefix="claim-ws-5c-")
+    ws_5c = tmpdir("claim-ws-5c-")
     fleet_5c = good_fleet_dict(ws_5c, repos=[repo_dict(repo_missing)])
     rec = Recorder()
     rec.items = [board_item("i1", 953, repo_missing)]
@@ -1409,7 +1308,7 @@ try:
     }
     counts = {}
     for filename in scanned:
-        with open(os.path.join(_anchor_bin, filename), "r", encoding="utf-8") as fh:
+        with open(os.path.join(BIN, filename), "r", encoding="utf-8") as fh:
             counts[filename] = len(segment_scan.findall(fh.read()))
     check(name_5f, counts == scanned, counts)
 except Exception as exc:
@@ -1418,9 +1317,9 @@ except Exception as exc:
 # 5g. B-16 self-defence: a mutant _BlockerCache that routes every repository's issue-map lookup
 # through the FIRST repository seen for a given feature id — collapsing the (repo, feature) key
 # B-3 introduced back to feature alone. This defends 5b's cache-bleed proof by making CASE 5b
-# ITSELF fail: `_emit_5b` reruns under the mutant cache through a capturing shim (never
-# `check`, so this arm prints and counts nothing — the mutation never leaks into 5c-5f, which
-# run afterward against the real, restored cache). The captured 5b verdict must be False AND
+# ITSELF fail: 5b's own scenario builder and predicate rerun under the mutant cache, patched only
+# for that run (the mutation never leaks into later cases, which run against the real, restored
+# cache). The 5b verdict under the mutant must be False AND
 # must carry the SPECIFIC observable the mutation is expected to produce, not merely any
 # falsy shape a differently-broken mutant (e.g. one that raises instead of delegating) could
 # also produce: under the mutant, the harness segment's dep T-99 is looked up in sample-product's map
@@ -1438,19 +1337,9 @@ try:
             canonical = self._first_repo_for.setdefault(feature, repo)
             return super().issue_number(canonical, feature, task_id)
 
-    captured = {}
-
-    def _capture(name, cond, detail):
-        captured[name] = (cond, detail)
-
-    saved_blocker_cache = claim._BlockerCache
-    claim._BlockerCache = _FeatureOnlyIssueMapCache
-    try:
-        _emit_5b(_capture)
-    finally:
-        claim._BlockerCache = saved_blocker_cache
-
-    mutant_cond, (mutant_code, mutant_out, mutant_err) = captured[name_5b]
+    with mock.patch.object(claim, "_BlockerCache", _FeatureOnlyIssueMapCache):
+        mutant_code, mutant_out, mutant_err = _run_5b_scenario()
+    mutant_cond = _5b_property_holds(mutant_code, mutant_out, mutant_err)
     check(name_5g,
           not mutant_cond
           and mutant_code == 1
@@ -1463,5 +1352,4 @@ except Exception as exc:
     check(name_5g, False, repr(exc))
 
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

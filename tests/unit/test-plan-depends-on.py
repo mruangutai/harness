@@ -7,18 +7,15 @@ NO self-dependency check, NO cycle detection, NO ordering policy. These cases as
 on the ids and the `depends_on` field name only, never on the rest of a message's
 wording.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import re
-import sys
+from unit_support import ROOT  # noqa: F401 — must precede the bin imports below
 import glob
 import os
+import re
+import sys
 import tempfile
 
 try:
+    import yaml
     import artifact_accessors
     import feature_corpus
     import harness_yaml
@@ -27,23 +24,10 @@ except ModuleNotFoundError:
           "(PyYAML missing?) — treating as a hard failure, not a skip.")
     sys.exit(1)
 
-fails = 0
-ran = 0
+from check_support import Checks
 
-
-def check(name, ok, detail=""):
-    # Counted, never a frozen literal: a frozen total reddens (or lies) the moment
-    # a case is added.
-    global fails, ran
-    ran += 1
-    if ok:
-        print(f"  ok  {name}")
-    else:
-        fails += 1
-        print(f"  FAIL {name}")
-        if detail:
-            for line in str(detail).splitlines():
-                print(f"      | {line}")
+C = Checks()
+check = C.check
 
 
 # --- fixtures -----------------------------------------------------------------
@@ -87,6 +71,21 @@ def _validate(doc):
         return e
 
 
+def expect_ok(name, doc):
+    exc = _validate(doc)
+    check(name, exc is None, f"unexpectedly raised {exc!r}")
+
+
+def expect_reject(name, doc, *needles, extra=lambda s: True):
+    """One PlanSchemaError whose message holds every needle and passes `extra`."""
+    exc = _validate(doc)
+    msg = str(exc)
+    check(name,
+          isinstance(exc, harness_yaml.PlanSchemaError)
+          and all(n in msg for n in needles) and extra(msg),
+          f"got {exc!r}" if exc is not None else "no exception raised")
+
+
 # A quoted single character, e.g. 'T' or "0" — the shape a message would contain
 # if a buggy implementation iterated a bare-string depends_on's CHARACTERS instead
 # of rejecting the non-list shape, and reported each character as a phantom
@@ -95,71 +94,47 @@ _SINGLE_CHAR_ID_RE = re.compile(r"['\"][^'\"\s]['\"]")
 
 
 # --- 1. a single dangling edge is rejected, naming both ends ------------------
-doc1 = _doc(_task("T-01"), _task("T-02", depends_on=["T-99"]))
-exc1 = _validate(doc1)
-check("a depends_on entry naming an absent task id is rejected, naming both ids",
-      isinstance(exc1, harness_yaml.PlanSchemaError)
-      and "T-02" in str(exc1) and "T-99" in str(exc1),
-      f"got {exc1!r}" if exc1 is not None else "no exception raised")
+expect_reject("a depends_on entry naming an absent task id is rejected, naming both ids",
+              _doc(_task("T-01"), _task("T-02", depends_on=["T-99"])), "T-02", "T-99")
 
 # --- 2. THE PAIRED ALLOW: the same shape naming a task that DOES exist --------
 # Without this case a deny-everything implementation would pass case 1.
-doc2 = _doc(_task("T-01"), _task("T-02", depends_on=["T-01"]))
-exc2 = _validate(doc2)
-check("a depends_on entry naming a task id present in the same plan is accepted",
-      exc2 is None, f"unexpectedly raised {exc2!r}")
+expect_ok("a depends_on entry naming a task id present in the same plan is accepted",
+          _doc(_task("T-01"), _task("T-02", depends_on=["T-01"])))
 
 # --- 3. two dangling edges in one document: exactly one exception, both named -
-doc3 = _doc(_task("T-01"),
-            _task("T-02", depends_on=["T-98"]),
-            _task("T-03", depends_on=["T-99"]))
-exc3 = _validate(doc3)
-check("two dangling edges in one document raise ONE exception naming BOTH (D-02)",
-      isinstance(exc3, harness_yaml.PlanSchemaError)
-      and "T-98" in str(exc3) and "T-99" in str(exc3),
-      f"got {exc3!r}" if exc3 is not None else "no exception raised")
+expect_reject("two dangling edges in one document raise ONE exception naming BOTH (D-02)",
+              _doc(_task("T-01"),
+                   _task("T-02", depends_on=["T-98"]),
+                   _task("T-03", depends_on=["T-99"])),
+              "T-98", "T-99")
 
 # --- 4. depends_on absent, None, and [] are all accepted ----------------------
-doc4a = _doc(_task("T-01"))
-doc4b = _doc(_task("T-01", depends_on=None))
-doc4c = _doc(_task("T-01", depends_on=[]))
-exc4a, exc4b, exc4c = _validate(doc4a), _validate(doc4b), _validate(doc4c)
-check("depends_on absent is accepted", exc4a is None, f"unexpectedly raised {exc4a!r}")
-check("depends_on: null is accepted", exc4b is None, f"unexpectedly raised {exc4b!r}")
-check("depends_on: [] is accepted", exc4c is None, f"unexpectedly raised {exc4c!r}")
+expect_ok("depends_on absent is accepted", _doc(_task("T-01")))
+expect_ok("depends_on: null is accepted", _doc(_task("T-01", depends_on=None)))
+expect_ok("depends_on: [] is accepted", _doc(_task("T-01", depends_on=[])))
 
 # --- 5. depends_on given as a bare string, not a list --------------------------
-doc5 = _doc(_task("T-01"), _task("T-02", depends_on="T-01"))
-exc5 = _validate(doc5)
-check("a bare-string depends_on is rejected, naming the task id and the field, "
-      "with no single-character phantom id from iterating the string",
-      isinstance(exc5, harness_yaml.PlanSchemaError)
-      and "T-02" in str(exc5) and "depends_on" in str(exc5)
-      and not _SINGLE_CHAR_ID_RE.search(str(exc5)),
-      f"got {exc5!r}" if exc5 is not None else "no exception raised")
+expect_reject("a bare-string depends_on is rejected, naming the task id and the field, "
+              "with no single-character phantom id from iterating the string",
+              _doc(_task("T-01"), _task("T-02", depends_on="T-01")),
+              "T-02", "depends_on", extra=lambda s: not _SINGLE_CHAR_ID_RE.search(s))
 
 # --- 6. mixed id types: str() coercion must be applied on BOTH sides ----------
 # 6a. integer id 1, referenced as the string "1" (a quoted id, as YAML produces).
-doc6a = _doc(_task(1), _task(2, depends_on=["1"]))
-exc6a = _validate(doc6a)
-check("6a: integer id 1 referenced as the string \"1\" is accepted",
-      exc6a is None, f"unexpectedly raised {exc6a!r}")
+expect_ok("6a: integer id 1 referenced as the string \"1\" is accepted",
+          _doc(_task(1), _task(2, depends_on=["1"])))
 
 # 6b. the mirror: string ids, referenced with an integer.
-doc6b = _doc(_task("1"), _task("2", depends_on=[1]))
-exc6b = _validate(doc6b)
-check("6b: string id \"1\" referenced as the integer 1 is accepted",
-      exc6b is None, f"unexpectedly raised {exc6b!r}")
+expect_ok("6b: string id \"1\" referenced as the integer 1 is accepted",
+          _doc(_task("1"), _task("2", depends_on=[1])))
 
 # 6c. integer ids, referencing an id that is genuinely absent — must still redden.
 # THE VARIANT THIS CATCHES: an implementation coercing on only ONE side (known
 # built from str(t["id"]) while the entry stays raw, or the reverse) accepts every
 # same-type document and gives 6a and 6b a PHANTOM dangling-edge rejection instead.
-doc6c = _doc(_task(1), _task(2, depends_on=[3]))
-exc6c = _validate(doc6c)
-check("6c: integer ids with a genuinely absent integer dependency (3) is rejected",
-      isinstance(exc6c, harness_yaml.PlanSchemaError) and "3" in str(exc6c),
-      f"got {exc6c!r}" if exc6c is not None else "no exception raised")
+expect_reject("6c: integer ids with a genuinely absent integer dependency (3) is rejected",
+              _doc(_task(1), _task(2, depends_on=[3])), "3")
 
 
 # --- walk(root): shared by cases 7 and 8 (synthetic corpora) and case 9 (the live
@@ -184,28 +159,13 @@ def walk(root):
 
 
 def _write_plan(root, fid, depends_on):
-    feat_dir = _anchor_os.path.join(root, ".harness", "harness", "features", fid)
-    _anchor_os.makedirs(feat_dir)
-    plan = _anchor_os.path.join(feat_dir, "plan.yaml")
+    """Write a two-task plan.yaml, built from _task, whose T-02 depends on `depends_on`."""
+    feat_dir = os.path.join(root, ".harness", "harness", "features", fid)
+    os.makedirs(feat_dir)
+    plan = os.path.join(feat_dir, "plan.yaml")
     with open(plan, "w", encoding="utf-8") as fh:
-        fh.write(
-            "tasks:\n"
-            "  - id: T-01\n"
-            "    title: t\n"
-            "    change_type: bugfix\n"
-            "    execution_mode: team\n"
-            "    files: [a.py]\n"
-            "    verify: \"true\"\n"
-            "    intent: do the thing\n"
-            "  - id: T-02\n"
-            "    title: t\n"
-            "    change_type: bugfix\n"
-            "    execution_mode: team\n"
-            "    files: [b.py]\n"
-            "    verify: \"true\"\n"
-            "    intent: do the next thing\n"
-            f"    depends_on: [{depends_on}]\n"
-        )
+        yaml.safe_dump(_doc(_task("T-01"), _task("T-02", depends_on=[depends_on])), fh,
+                       sort_keys=False)
     return plan
 
 
@@ -236,13 +196,10 @@ with tempfile.TemporaryDirectory() as _tmp:
 # --- 9. THE LIVE CORPUS (D-04): every real plan.yaml loads ---------------------
 # Asserts integrity only, never a size: cases 7 and 8 carry the vacuity guard, so this holds
 # for however many features the corpus keeps.
-_REPO = _anchor_os.environ.get("HARNESS_PROJECT_DIR") or _anchor_os.getcwd()
+_REPO = os.environ.get("HARNESS_PROJECT_DIR") or os.getcwd()
 _count_a, _failures_a = walk(_REPO)
 check(f"the live plan corpus loads cleanly ({_count_a} files found)",
       not _failures_a,
       "\n".join(f"{p} — {m}" for p, m in _failures_a))
 
-
-
-print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

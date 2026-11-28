@@ -9,25 +9,27 @@ FEAT-2337 SC-05: the same seams take an explicit optional `kind`. `unit` validat
 full-suite `--shard 1/1` receipt against top-level tests/unit/test-*.py; omitting `kind`
 keeps every integration default the CI aggregation relies on.
 """
-import copy
+from unit_support import BIN
+
 import importlib.util
-import os
 import sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-GATE = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-integration-shards.py")
+from check_support import Checks
+
+GATE = BIN / "check-integration-shards.py"
 SHA = "a" * 40
 OTHER = "b" * 40
 EXPECTED = ["tests/integration/test-a.py", "tests/integration/test-b.py",
             "tests/integration/test-c.py", "tests/integration/test-d.py",
             "tests/integration/test-e.py"]
-failures = []
-
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, "" if condition else detail)
-    if not condition:
-        failures.append(name)
+# FEAT-2337 SC-05: one unit receipt, shard 1/1, validated through the same seams.
+UNIT_EXPECTED = ["tests/unit/test-a.py", "tests/unit/test-b.py"]
+FILTER_NAMES = ["tests/integration/test-a.py", "tests/integration/sub/test-b.py",
+                "tests/integration/helper.py", "tests/unit/test-c.py", "tests/integration/test-d.txt",
+                "xtests/integration/test-e.py", "tests/unit/nested/test-f.py", "tests/unit/helper.py",
+                "xtests/unit/test-g.py"]
+C = Checks()
+check = C.check
 
 
 def load_gate():
@@ -37,11 +39,10 @@ def load_gate():
     return module
 
 
-def manifest(index, paths, sha=SHA, rcs=None, kind="integration", count=4):
-    rcs = rcs or [0] * len(paths)
-    return {"schema": 1, "tested_commit": sha, "kind": kind, "shard_index": index,
+def manifest(index, paths, kind="integration", count=4):
+    return {"schema": 1, "tested_commit": SHA, "kind": kind, "shard_index": index,
             "shard_count": count, "selected_files": list(paths), "runner_exit": 0,
-            "completed_files": [{"path": p, "returncode": rc} for p, rc in zip(paths, rcs)]}
+            "completed_files": _completed(paths)}
 
 
 def exact():
@@ -55,11 +56,15 @@ def run(gate, docs, expected=EXPECTED, checks="success", matrix="success"):
     return defects
 
 
-def expect(gate, name, docs, status, needle, **kw):
-    defects = run(gate, docs, **kw)
+def assert_defects(gate, name, defects, status, needle=None):
     text = " | ".join(message for _status, message in defects)
     check(f"{name}: exit {status}", gate.exit_status(defects) == status, text or "no defects")
-    check(f"{name}: diagnostic names '{needle}'", needle in text, text or "no defects")
+    if needle is not None:
+        check(f"{name}: diagnostic names '{needle}'", needle in text, text or "no defects")
+
+
+def expect(gate, name, docs, status, needle, **kw):
+    assert_defects(gate, name, run(gate, docs, **kw), status, needle)
 
 
 def mutate(fn):
@@ -159,7 +164,8 @@ def _add(doc, path):
 
 
 def positive_cases(gate):
-    defects = run(gate, exact())
+    pristine = exact()
+    defects = run(gate, pristine)
     check("all-success exact coverage passes", gate.exit_status(defects) == 0, repr(defects))
     docs = {f"m{i}.json": manifest(i, []) for i in (1, 2, 3)}
     docs["m4.json"] = manifest(4, EXPECTED)
@@ -168,17 +174,7 @@ def positive_cases(gate):
           repr(defects))
     check("filter keeps only top-level tests/integration/test-*.py", gate.expected_paths(
         FILTER_NAMES) == ["tests/integration/test-a.py"])
-    before = copy.deepcopy(exact())
-    run(gate, before)
-    check("validation does not mutate evidence", before == exact())
-
-
-# FEAT-2337 SC-05: one unit receipt, shard 1/1, validated through the same seams.
-UNIT_EXPECTED = ["tests/unit/test-a.py", "tests/unit/test-b.py"]
-FILTER_NAMES = ["tests/integration/test-a.py", "tests/integration/sub/test-b.py",
-                "tests/integration/helper.py", "tests/unit/test-c.py", "tests/integration/test-d.txt",
-                "xtests/integration/test-e.py", "tests/unit/nested/test-f.py", "tests/unit/helper.py",
-                "xtests/unit/test-g.py"]
+    check("validation does not mutate evidence", pristine == exact())
 
 
 def unit_receipt(**changes):
@@ -224,10 +220,7 @@ UNIT_KIND_CASES = (
 def _unit_case(gate, label, docs, expected, kind, status, needle):
     defects = (gate.evidence_defects(docs, SHA, 1, expected, kind=kind) if kind
                else gate.evidence_defects(docs, SHA, 1, expected))
-    text = " | ".join(message for _status, message in defects)
-    check(f"{label}: exit {status}", gate.exit_status(defects) == status, text or "no defects")
-    if needle is not None:
-        check(f"{label}: diagnostic names '{needle}'", needle in text, text or "no defects")
+    assert_defects(gate, label, defects, status, needle)
 
 
 def _unsupported_kind_refused(gate):
@@ -261,8 +254,7 @@ def main():
             group(gate)
         except Exception as error:  # a missing API is a red case, not a crash
             check(f"{group.__name__} ran", False, f"{type(error).__name__}: {error}")
-    print(f"{len(failures)} failed")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":

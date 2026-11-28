@@ -10,29 +10,23 @@ of the new contract language or absence of the stale, DEC-120-contradicting word
 replaces. This mirrors test-orchestrator-playbook.py's established convention — a text
 assertion, not an execution test, because the fix IS the text these agents read.
 """
-import os
+import functools
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+from unit_support import ROOT
+from check_support import Checks
 
-HARNESS_MD = os.path.join(ROOT, ".omp", "commands", "harness.md")
-ORCH_CANONICAL = os.path.join(ROOT, ".omp", "agents", "harness-orchestrator.md")
-SKILL_MD = os.path.join(ROOT, ".claude", "skills", "harness", "SKILL.md")
-SPEC_MD = os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md")
-STATE_TEMPLATE = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "STATE.md")
+HARNESS_MD = ROOT / ".omp" / "commands" / "harness.md"
+ORCH_CANONICAL = ROOT / ".omp" / "agents" / "harness-orchestrator.md"
+SKILL_MD = ROOT / ".claude" / "skills" / "harness" / "SKILL.md"
+SPEC_MD = ROOT / ".harness" / "harness" / "docs" / "SPEC.md"
+STATE_TEMPLATE = ROOT / ".claude" / "skills" / "harness" / "templates" / "STATE.md"
 
-failures = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
+@functools.lru_cache(maxsize=None)
 def read(path):
     with open(path, encoding="utf-8") as f:
         return f.read()
@@ -125,7 +119,6 @@ def case_skill_lateral_routing_no_longer_claims_a_second_write():
           "the DEC-78 supersession")
 
 
-
 def case_state_template_reconciled_with_dec_120():
     text = read(STATE_TEMPLATE)
     check("case_state_template_reconciled_with_dec_120",
@@ -154,9 +147,7 @@ def main():
     case_skill_lateral_routing_no_longer_claims_a_second_write()
     case_state_template_reconciled_with_dec_120()
     case_state_template_no_longer_says_orchestrator_asks()
-
-    print(f"\n{13 - len(failures)}/13 cases passed.")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":

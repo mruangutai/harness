@@ -7,21 +7,20 @@ so FACTORY_GH cannot be silently bypassed (the T-12 stub-gh escape named in the 
 case here monkeypatches subprocess.run or run_gh with an in-process recorder; nothing spawns a
 real gh (run-unit-tests.py classifies this as UNIT for exactly that reason).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path; import before repo modules)
 import base64
 import contextlib
 import dataclasses
+import datetime as _dt
 import io
 import json
 import os
+import re
 import sys
 
 import artifact_accessors
 import factory_gh as fgh
+from check_support import Checks
 
 # FEAT-29 T-03, amendment 4: run_gh now wraps its subprocess call with gh_cost_log.measured(),
 # which (when enabled) makes TWO extra `gh api rate_limit` calls per invocation to read the
@@ -30,19 +29,9 @@ import factory_gh as fgh
 # recorder here ever sees a counter-read call.
 os.environ["HARNESS_GH_COST_LOG"] = "0"
 
-FAILS = 0
-RAN = 0
+C = Checks()
+check = C.check
 RAISED = []  # every GhError caught below — the "every GhError" invariant is asserted once, at the end
-
-
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
 
 
 class Result:
@@ -714,6 +703,7 @@ except Exception as e:
     if isinstance(e, fgh.GhError):
         RAISED.append(e)
 restore()
+_sargv = calls[0]["argv"] if calls else []  # the argv-shape checks below read this same run
 check("project_item_stations: made exactly ONE gh api graphql call",
       len(calls) == 1, f"calls={calls}")
 check("project_item_stations: a stationed item maps to its station string",
@@ -844,15 +834,6 @@ check("project_item_stations: a null user (organization-owned board) raises GhEr
 
 # ---- argv shape and query selection guard: -F for owner/number/field/cursor, -f for query,
 # and the selection stays narrow (no widened fieldValues connection) ----
-fake, calls = recorder([Result(0, stdout=STATION_SINGLE_PAGE_JSON)])
-fgh.subprocess.run = fake
-try:
-    fgh.project_item_stations("owner", 3, "Station")
-except Exception as _e:
-    if isinstance(_e, fgh.GhError):
-        RAISED.append(_e)
-restore()
-_sargv = calls[0]["argv"]
 check("project_item_stations: argv passes owner/number/field/cursor as -F and query as -f",
       _sargv[1:3] == ["api", "graphql"]
       and "-F" in _sargv and "owner=owner" in _sargv and "number=3" in _sargv
@@ -862,9 +843,8 @@ _squery = ""
 for _i, _a in enumerate(_sargv):
     if _a == "-f" and _i + 1 < len(_sargv) and _sargv[_i + 1].startswith("query="):
         _squery = _sargv[_i + 1][len("query="):]
-import re as _re_station
 check("project_item_stations: query has no widened plural fieldValues connection",
-      _re_station.search(r"fieldValues\s*\(", _squery) is None, f"q={_squery!r}")
+      re.search(r"fieldValues\s*\(", _squery) is None, f"q={_squery!r}")
 
 
 # ---------------- issue_board_item_id: one targeted call, no whole-board scan (D-01) ----------
@@ -894,8 +874,7 @@ check("issue_board_item_id: returns the matching node's id when project.number =
 # a STRUCTURAL check (the argument-name list inside `issue( ... )`), not a keyword blacklist and
 # not an equality check on the whole query text, so it reddens under any state-scoping argument
 # regardless of spelling and survives a pure whitespace/reformat of the query.
-import re as _re_query
-_issue_sel = _re_query.search(r"issue\s*\(([^)]*)\)", fgh._ISSUE_ITEM_QUERY)
+_issue_sel = re.search(r"issue\s*\(([^)]*)\)", fgh._ISSUE_ITEM_QUERY)
 _issue_arg_names = []
 if _issue_sel:
     for _part in _issue_sel.group(1).split(","):
@@ -1462,11 +1441,6 @@ fgh.subprocess.run = fake
 text = fgh.file_at_ref("o/r", "path/to/file.txt", "main")
 restore()
 check("file_at_ref: returns the decoded file body", text == "hello world", f"text={text!r}")
-
-fake, calls = recorder([Result(0, stdout=base64.b64encode(b"x").decode())])
-fgh.subprocess.run = fake
-fgh.file_at_ref("o/r", "path/to/file.txt", "main")
-restore()
 check("file_at_ref: hits the contents path with the ref",
       any("repos/o/r/contents/path/to/file.txt" in a for a in calls[0]["argv"])
       and any("ref=main" in a for a in calls[0]["argv"])
@@ -1639,79 +1613,51 @@ def with_recorder(results, fn, *a, **kw):
     return result, out, calls
 
 
-_, out, _ = with_recorder([Result(0, stdout="ok")], fgh.run_gh, ["auth", "status"])
-check("run_gh: writes nothing to stdout on success", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout="https://github.com/o/r/issues/1\n")],
-    fgh.create_issue, "o/r", "t", "b", [],
+_STDOUT_CASES = (
+    ("run_gh: writes nothing to stdout on success",
+     [Result(0, stdout="ok")], fgh.run_gh, (["auth", "status"],)),
+    ("create_issue: writes nothing to stdout",
+     [Result(0, stdout="https://github.com/o/r/issues/1\n")], fgh.create_issue, ("o/r", "t", "b", [])),
+    ("ensure_labels: writes nothing to stdout",
+     [Result(0), Result(0)], fgh.ensure_labels, ("o/r", ["a", "b"])),
+    ("project_items: writes nothing to stdout",
+     [Result(0, stdout=json.dumps(PROJECT_ITEMS_2))], fgh.project_items, ("o", 3)),
+    ("project_field_options: writes nothing to stdout",
+     [Result(0, stdout=GRAPHQL_FIELD_JSON)], fgh.project_field_options, ("owner", 3, "Station")),
+    ("internal_id: writes nothing to stdout",
+     [Result(0, stdout="55\n")], fgh.internal_id, ("o/r", 3)),
+    ("attach_sub_issue: writes nothing to stdout",
+     [Result(0)], fgh.attach_sub_issue, ("o/r", 5, 999)),
+    ("blocked_by: writes nothing to stdout",
+     [Result(0)], fgh.blocked_by, ("o/r", 5, 999)),
+    ("create_ref: writes nothing to stdout on success",
+     [Result(0)], fgh.create_ref, ("o/r", "refs/heads/x", "sha")),
+    ("create_ref: writes nothing to stdout on the measured conflict",
+     [Result(1, stdout='{"status":"422"}', stderr="gh: Reference already exists (HTTP 422)")],
+     fgh.create_ref, ("o/r", "refs/heads/x", "sha")),
+    ("project_field_set: writes nothing to stdout",
+     [Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout="")],
+     fgh.project_field_set, ("owner", 3, "ITEM1", "Station", "Ready")),
+    ("issue_view: writes nothing to stdout",
+     [Result(0, stdout="{}")], fgh.issue_view, ("o/r", 9, ["title"])),
+    ("add_label: writes nothing to stdout",
+     [Result(0)], fgh.add_label, ("o/r", 9, "harness")),
+    ("assign: writes nothing to stdout",
+     [Result(0)], fgh.assign, ("o/r", 9, "mruangutai")),
+    ("project_item_add: writes nothing to stdout",
+     [Result(0, stdout='{"id":"PVTI_1"}')], fgh.project_item_add,
+     ("owner", 3, "https://github.com/o/r/issues/9")),
+    ("default_branch_sha: writes nothing to stdout",
+     [Result(0, stdout="deadbeef\n")], fgh.default_branch_sha, ("o/r", "main")),
+    ("delete_ref: writes nothing to stdout",
+     [Result(0)], fgh.delete_ref, ("o/r", "refs/heads/factory/issue-1")),
 )
-check("create_issue: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0), Result(0)], fgh.ensure_labels, "o/r", ["a", "b"])
-check("ensure_labels: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout=json.dumps(PROJECT_ITEMS_2))], fgh.project_items, "o", 3,
-)
-check("project_items: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout=GRAPHQL_FIELD_JSON)], fgh.project_field_options, "owner", 3, "Station",
-)
-check("project_field_options: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0, stdout="55\n")], fgh.internal_id, "o/r", 3)
-check("internal_id: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.attach_sub_issue, "o/r", 5, 999)
-check("attach_sub_issue: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.blocked_by, "o/r", 5, 999)
-check("blocked_by: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.create_ref, "o/r", "refs/heads/x", "sha")
-check("create_ref: writes nothing to stdout on success", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(1, stdout='{"status":"422"}', stderr="gh: Reference already exists (HTTP 422)")],
-    fgh.create_ref, "o/r", "refs/heads/x", "sha",
-)
-check("create_ref: writes nothing to stdout on the measured conflict", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout="")],
-    fgh.project_field_set, "owner", 3, "ITEM1", "Station", "Ready",
-)
-check("project_field_set: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout="{}")], fgh.issue_view, "o/r", 9, ["title"],
-)
-check("issue_view: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.add_label, "o/r", 9, "harness")
-check("add_label: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.assign, "o/r", 9, "mruangutai")
-check("assign: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder(
-    [Result(0, stdout='{"id":"PVTI_1"}')],
-    fgh.project_item_add, "owner", 3, "https://github.com/o/r/issues/9",
-)
-check("project_item_add: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0, stdout="deadbeef\n")], fgh.default_branch_sha, "o/r", "main")
-check("default_branch_sha: writes nothing to stdout", out == "", f"out={out!r}")
-
-_, out, _ = with_recorder([Result(0)], fgh.delete_ref, "o/r", "refs/heads/factory/issue-1")
-check("delete_ref: writes nothing to stdout", out == "", f"out={out!r}")
+for _name, _results, _fn, _args in _STDOUT_CASES:
+    _, out, _ = with_recorder(_results, _fn, *_args)
+    check(_name, out == "", f"out={out!r}")
 
 
 # ---------------- run_gh: rate-limit failure names the GraphQL budget (T-04, FEAT-29) ----------
-import datetime as _dt
-
 _RESET_EPOCH = 1755600000
 _RESET_ISO = _dt.datetime.fromtimestamp(_RESET_EPOCH, tz=_dt.timezone.utc).isoformat().replace(
     "+00:00", "Z")
@@ -1931,9 +1877,6 @@ for exc in RAISED:
     check(f"GhError invariant holds for {m[:60]!r}",
           "—" in m and "GhError" not in m and "Traceback" not in m and value.strip() != "",
           f"msg={m!r}")
-
-
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 
 
 # ---------------- FEAT-64: run_gh's boundary is ONE typed error ----------------
@@ -2289,5 +2232,4 @@ for _name, _fn in (
 ):
     t01_case(_name, _fn)
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

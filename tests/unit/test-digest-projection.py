@@ -5,6 +5,9 @@ The provider projection of every persona digest schema, its refusals (each namin
 JSON pointer), its freshness across calls, and the generator that writes the projection into
 each harness agent's frontmatter as `structured: true` plus `output:`.
 """
+from unit_support import ROOT, BIN
+
+from contextlib import contextmanager
 from pathlib import Path
 import json
 import re
@@ -13,21 +16,14 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
+from check_support import Checks
+import digest_schema
+
 SCHEMAS = ROOT / ".claude/skills/harness/schemas/digest"
 GENERATOR = BIN / "gen-agent-output.py"
-sys.path.insert(0, str(BIN))
-import digest_schema  # noqa: E402
-
 STRUCTURAL = {"type", "properties", "required", "additionalProperties", "items", "enum", "anyOf"}
-FAILURES = []
-
-
-def check(name, ok, detail=""):
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else f" — {detail}"))
-    if not ok:
-        FAILURES.append(name)
+C = Checks()
+check = C.check
 
 
 def projection():
@@ -53,26 +49,17 @@ def walk(node, path="#"):
     return bad
 
 
-def schema_copy():
-    scratch = Path(tempfile.mkdtemp(prefix="bug2565-projection-"))
-    target = scratch / "digest"
-    shutil.copytree(SCHEMAS, target)
-    return scratch, target
-
-
 def refusal(name, mutate, file, pointer):
-    scratch, target = schema_copy()
-    try:
+    with tempfile.TemporaryDirectory(prefix="bug2565-projection-") as scratch:
+        target = Path(scratch) / "digest"
+        shutil.copytree(SCHEMAS, target)
         mutate(target)
         try:
             projection().provider_bundle("harness-qa", target)
         except projection().ProjectionError as error:
-            text = str(error)
-            check(name, text.startswith(f"digest schema {file}#{pointer}"), text)
-            return
-        check(name, False, "no ProjectionError")
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
+            check(name, str(error).startswith(f"digest schema {file}#{pointer}"), str(error))
+        else:
+            check(name, False, "no ProjectionError")
 
 
 def put(target, name, schema):
@@ -93,9 +80,8 @@ def case_projection():
     check("all 16 personas project", len(bundles) == 16, sorted(set(digest_schema.PERSONAS) - set(bundles)))
     for alias, persona in digest_schema.ALIASES.items():
         check(f"alias {alias} equals {persona}",
-              alias in digest_schema.ALIASES and persona in bundles
-              and projection().provider_bundle(alias) == bundles[persona])
-    bad = {persona: walk(bundle) for persona, bundle in bundles.items() if walk(bundle)}
+              persona in bundles and projection().provider_bundle(alias) == bundles[persona])
+    bad = {persona: found for persona, bundle in bundles.items() if (found := walk(bundle))}
     check("no projected node carries $ref or a non-structural key", not bad, bad)
 
 
@@ -135,10 +121,12 @@ def case_refusals():
 
 
 def case_fresh_read():
-    scratch = Path(tempfile.mkdtemp(prefix="bug2565-fresh-"))
-    try:
-        entry = lambda required: {"type": "object", "additionalProperties": False, "required": required,  # noqa: E731
-                                  "properties": {name: {"type": "string"} for name in required}}
+    def entry(required):
+        return {"type": "object", "additionalProperties": False, "required": required,
+                "properties": {name: {"type": "string"} for name in required}}
+
+    with tempfile.TemporaryDirectory(prefix="bug2565-fresh-") as name:
+        scratch = Path(name)
         put(scratch, "harness-qa.json", {"type": "object", "properties": {"x": {"$ref": "common.json#/$defs/e"}}})
         put(scratch, "common.json", {"$defs": {"e": entry(["op"])}})
         first = projection().provider_bundle("harness-qa", scratch)
@@ -147,15 +135,16 @@ def case_fresh_read():
         check("a schema file changed on disk changes the next result",
               first["properties"]["x"]["required"] == ["op"]
               and second["properties"]["x"]["required"] == ["op", "persona"], (first, second))
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
 
 
+@contextmanager
 def generator_root():
-    scratch = Path(tempfile.mkdtemp(prefix="bug2565-generator-"))
-    shutil.copytree(ROOT / ".omp/agents", scratch / ".omp/agents")
-    shutil.copytree(SCHEMAS, scratch / ".claude/skills/harness/schemas/digest")
-    return scratch
+    """A scratch root holding a copy of the agents and digest schemas; removed on exit."""
+    with tempfile.TemporaryDirectory(prefix="bug2565-generator-") as name:
+        scratch = Path(name)
+        shutil.copytree(ROOT / ".omp/agents", scratch / ".omp/agents")
+        shutil.copytree(SCHEMAS, scratch / ".claude/skills/harness/schemas/digest")
+        yield scratch
 
 
 def generate(root, *flags):
@@ -187,9 +176,8 @@ def kept_lines(frontmatter):
 
 
 def case_generator():
-    root = generator_root()
-    agents = root / ".omp/agents"
-    try:
+    with generator_root() as root:
+        agents = root / ".omp/agents"
         before = {path.name: path.read_text(encoding="utf-8") for path in agents.glob("harness-*.md")}
         first = generate(root)
         once = {path.name: path.read_bytes() for path in agents.glob("harness-*.md")}
@@ -213,23 +201,24 @@ def case_generator():
         drift = generate(root, "--check")
         check("a hand-edited output makes --check exit 1 naming the agent",
               drift.returncode == 1 and "DRIFT .omp/agents/harness-pm.md" in drift.stdout, drift.stdout + drift.stderr)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+
+
+@contextmanager
+def rewritten_qa(rewrite):
+    """Yield (root, qa path, rewritten text, generator run) after `rewrite(text)` of harness-qa.md."""
+    with generator_root() as root:
+        qa = root / ".omp/agents/harness-qa.md"
+        before = rewrite(qa.read_bytes().decode("utf-8"))
+        qa.write_bytes(before.encode("utf-8"))
+        yield root, qa, before, generate(root)
 
 
 def edge(name, rewrite, accept):
     """Regenerate one agent after `rewrite(text)`; `accept(before, after)` judges the bytes."""
-    root = generator_root()
-    qa = root / ".omp/agents/harness-qa.md"
-    try:
-        before = rewrite(qa.read_bytes().decode("utf-8"))
-        qa.write_bytes(before.encode("utf-8"))
-        run = generate(root)
+    with rewritten_qa(rewrite) as (root, qa, before, run):
         after = qa.read_bytes().decode("utf-8")
         stable = generate(root, "--check").returncode == 0
         check(name, run.returncode == 0 and stable and accept(before, after), run.stderr or after[:400])
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 FRONT_KEY = re.compile(r"""^(?:"([^"]*)"|'([^']*)'|([^\s:#"'-][^:]*?))\s*:(?:\s|$)""")
@@ -237,8 +226,7 @@ FRONT_KEY = re.compile(r"""^(?:"([^"]*)"|'([^']*)'|([^\s:#"'-][^:]*?))\s*:(?:\s|
 
 def front_keys(text):
     """Top-level frontmatter keys, unquoted, one entry per occurrence."""
-    lines = text.replace("\r\n", "\n").split("\n")
-    found = (FRONT_KEY.match(line) for line in lines[1:lines.index("---", 1)])
+    found = (FRONT_KEY.match(line) for line in split(text.replace("\r\n", "\n"))[0])
     return [next(group for group in match.groups() if group is not None) for match in found if match]
 
 
@@ -269,16 +257,9 @@ def case_generator_edges():
 
 def refused(name, rewrite):
     """Regenerate one agent after `rewrite(text)`: the generator must exit 2 with its bytes unchanged."""
-    root = generator_root()
-    qa = root / ".omp/agents/harness-qa.md"
-    try:
-        before = rewrite(qa.read_bytes().decode("utf-8")).encode("utf-8")
-        qa.write_bytes(before)
-        run = generate(root)
-        check(name, run.returncode == 2 and qa.read_bytes() == before and "nothing written" in run.stderr,
+    with rewritten_qa(rewrite) as (_root, qa, before, run):
+        check(name, run.returncode == 2 and qa.read_bytes() == before.encode("utf-8") and "nothing written" in run.stderr,
               f"exit {run.returncode}: {run.stderr[:300]}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 def lookalike_in_description(line):
@@ -303,8 +284,7 @@ def main():
             case()
         except Exception as error:  # noqa: BLE001 — a crashing case is a failing case, reported by name
             check(case.__name__, False, repr(error))
-    print(f"{'FAIL' if FAILURES else 'PASS'} test-digest-projection.py ({len(FAILURES)})")
-    return 1 if FAILURES else 0
+    return C.report()
 
 
 if __name__ == "__main__":

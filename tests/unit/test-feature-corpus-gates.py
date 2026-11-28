@@ -7,24 +7,20 @@ tests/integration/test-feature-corpus.py.
 """
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import feature_corpus as fc  # noqa: E402
 import harness_boundary as hb  # noqa: E402
-
-ENV = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
-           GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com",
-           GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.com")
+from git_support import git  # noqa: E402
 
 
-def git(cwd, *args):
-    subprocess.run(["git", *args], cwd=cwd, env=ENV, check=True, capture_output=True)
+def put(root, rel, text):
+    path = Path(root, rel)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
 
 
 def record(fid):
@@ -40,16 +36,13 @@ class Seam(unittest.TestCase):
                  ".harness/harness/features/FEAT-1-a/feature.json": record("FEAT-1-a"),
                  ".harness/harness/features/FEAT-2-b/feature.json": record("FEAT-2-b")}
         for rel, text in files.items():
-            path = os.path.join(self.owner, rel)
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            Path(path).write_text(text)
+            put(self.owner, rel, text)
         git(self.base, "init", "-q", "-b", "main", self.owner)
         git(self.owner, "add", "-A")
         git(self.owner, "commit", "-qm", "seed")
 
     def worktree(self, name):
         path = os.path.join(self.owner, ".claude", "worktrees", "harness", name)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
         git(self.owner, "worktree", "add", "-q", "-b", f"feat/{name}", path)
         return path
 
@@ -68,8 +61,7 @@ class Seam(unittest.TestCase):
 
     def test_population_from_a_worktree_is_landed_plus_its_own(self):
         wt = self.worktree("FEAT-3-c")
-        Path(wt, ".harness/harness/features/FEAT-3-c").mkdir(parents=True)
-        Path(wt, ".harness/harness/features/FEAT-3-c/feature.json").write_text(record("FEAT-3-c"))
+        put(wt, ".harness/harness/features/FEAT-3-c/feature.json", record("FEAT-3-c"))
         sibling = self.worktree("FEAT-4-d")
         Path(sibling, ".harness/harness/features/FEAT-4-d").mkdir(parents=True)
         ids = [e["id"] for e in fc.population(wt)]
@@ -97,7 +89,7 @@ class Seam(unittest.TestCase):
 
     def test_layout_is_not_examined_outside_a_linked_worktree(self):
         self.assertIsNone(fc.layout_refusal(self.owner))
-        self.assertIsNone(fc.layout_refusal(os.path.join(self.base)))
+        self.assertIsNone(fc.layout_refusal(self.base))
 
     def test_corpus_path_reads_another_feature_at_the_owner(self):
         wt = self.worktree("FEAT-3-c")

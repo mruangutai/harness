@@ -8,119 +8,95 @@ This file proves it drives product_config(fleet, name) once per declared repo, i
 order, catches only FleetError, and that the CLI flag turns an unreachable member into exit 2
 (factory_cli.EXIT_REFUSED) while an all-reachable fleet exits 0.
 
-Mirrors tests/unit/test-factory-config.py's conventions exactly: the same sys.path anchor
-preamble, the same check()/FAILS/RAN accounting, and the same patched_file_at_ref contextmanager
-shape that swaps fc.factory_gh.file_at_ref on the imported module object. This file is UNIT: no
-subprocess, no gh, no network, and no case calls load_fleet() with no argument — FLEET_PATH binds
-at import to the LIVE repository's fleet.yaml, so an omitted path would pass for the wrong
-reason.
+Mirrors tests/unit/test-factory-config.py's conventions: the shared unit_support/check_support
+seams, the same memo-clearing check() wrapper, and fc.factory_gh.file_at_ref swapped on the
+imported module object. This file is UNIT: no subprocess, no gh, no network, and no case calls
+load_fleet() with no argument — FLEET_PATH binds at import to the LIVE repository's fleet.yaml,
+so an omitted path would pass for the wrong reason.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import contextlib
-import io
+from unit_support import ROOT  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import sys
 import tempfile
+from unittest import mock
 
-import yaml
 import artifact_accessors
 
 import factory_config as fc
+from check_support import Checks
+from factory_support import invoke, write_fleet
 from harness_config_support import build_config  # noqa: E402
 
 # Every remote member returns the same builder-valid harness.json text.
 VALID_PAYLOAD = json.dumps(build_config())
 
-FAILS = 0
-RAN = 0
+C = Checks()
 
 
 def check(name, cond, detail=""):
-    global FAILS, RAN
     # Same memo-trap guard test-factory-config.py's check() uses: clear the process memo as the
     # first statement of every check() call, so the NEXT case begins with an empty memo. A case
     # that wants two memo-sensitive calls counted together must make all of them before calling
     # check(), since Python evaluates `cond` before check() runs.
     fc.clear_product_config_memo()
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+    return C.check(name, cond, detail)
 
 
-@contextlib.contextmanager
 def patched_file_at_ref(func):
-    """Monkeypatch factory_gh.file_at_ref on the imported module object — never gh, never a
-    network call — for the life of the `with` block."""
-    saved = fc.factory_gh.file_at_ref
-    fc.factory_gh.file_at_ref = func
-    try:
-        yield
-    finally:
-        fc.factory_gh.file_at_ref = saved
+    """Swap factory_gh.file_at_ref on the imported module object — never gh, never a network
+    call — for the life of the `with` block."""
+    return mock.patch.object(fc.factory_gh, "file_at_ref", func)
 
 
-def two_repo_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
-    """Two declared repos, in DECLARATION ORDER, so product_config_report's ordering claim and
-    case (b)'s "exactly the first entry is not ok" claim both have something to distinguish."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {"name": "mruangutai/repo-one", "default_branch": "trunk-report-one"},
-            {"name": "mruangutai/repo-two", "default_branch": "trunk-report-two"},
-        ],
-        "workspace_root": workspace_root,
-    }
+# Two declared repos, in DECLARATION ORDER, so product_config_report's ordering claim and case
+# (b)'s "exactly the first entry is not ok" claim both have something to distinguish.
+_FLEET = {
+    "schema": "factory-fleet/1",
+    "repos": [
+        {"name": "mruangutai/repo-one", "default_branch": "trunk-report-one"},
+        {"name": "mruangutai/repo-two", "default_branch": "trunk-report-two"},
+    ],
+    "workspace_root": "/tmp/does-not-need-to-exist/factories",
+}
+_FIRST_NAME = _FLEET["repos"][0]["name"]
+_FIRST_REF = _FLEET["repos"][0]["default_branch"]
+_SECOND_NAME = _FLEET["repos"][1]["name"]
 
-
-def write_fleet(dirpath, data):
-    path = _anchor_os.path.join(dirpath, "fleet.yaml")
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f)
-    return path
+# One fleet.yaml for every case; each case loads it afresh so no case shares a parsed object.
+_TD = tempfile.TemporaryDirectory()
+FLEET_PATH = write_fleet(_TD.name, _FLEET)
 
 
 def run_main(argv):
     """Call fc._main() directly, in-process — never factory_cli.run — per T-04's own case (e):
     "assert SystemExit.code is 2 ... and that _main() returns without raising SystemExit". Both
     outcomes are asserted directly on _main() itself."""
-    out, err = io.StringIO(), io.StringIO()
-    argv_saved = sys.argv
-    sys.argv = argv
-    code, raised = None, False
+    return tuple(invoke(fc._main, argv))
+
+
+def payload_ok(out, ok, unreachable):
+    """stdout parses as ONE JSON dict carrying declared/ok/unreachable/members with these counts;
+    returns (passed, parsed-or-error) for check()'s cond and detail."""
     try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                fc._main()
-            except SystemExit as e:
-                raised = True
-                code = e.code
-    finally:
-        sys.argv = argv_saved
-    return code, raised, out.getvalue(), err.getvalue()
-
-
-_FLEET = two_repo_fleet_dict()
-_FIRST_NAME = _FLEET["repos"][0]["name"]
-_FIRST_REF = _FLEET["repos"][0]["default_branch"]
-_SECOND_NAME = _FLEET["repos"][1]["name"]
+        parsed = json.loads(out)
+        passed = (
+            isinstance(parsed, dict)
+            and {"declared", "ok", "unreachable", "members"} <= set(parsed.keys())
+            and parsed["declared"] == 2 and parsed["ok"] == ok and parsed["unreachable"] == unreachable
+        )
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
+    return passed, parsed
 
 
 def stub_all_ok(repo, path, ref):
     return VALID_PAYLOAD
 
 
-def stub_first_gherror_second_ok(repo, path, ref, _first=_FIRST_NAME):
+def stub_first_gherror_second_ok(repo, path, ref):
     """Raises factory_gh.GhError for the FIRST declared name, returns valid JSON for the
     second — case (b)'s exact shape."""
-    if repo == _first:
+    if repo == _FIRST_NAME:
         raise fc.factory_gh.GhError(
             ["gh", "api", f"repos/{repo}/contents/.harness/harness.json"],
             1, "", "404", "gh call failed", repo, "check gh auth and the ref",
@@ -128,45 +104,43 @@ def stub_first_gherror_second_ok(repo, path, ref, _first=_FIRST_NAME):
     return VALID_PAYLOAD
 
 
-def stub_first_unexpected_second_ok(repo, path, ref, _first=_FIRST_NAME):
+def stub_first_unexpected_second_ok(repo, path, ref):
     """Raises a bare RuntimeError — neither FleetError nor factory_gh.GhError — for the FIRST
     declared name, returns valid JSON for the second. V-2: product_config_report's except
     clause must stay narrowed to FleetError; a widened `except Exception` would swallow this."""
-    if repo == _first:
+    if repo == _FIRST_NAME:
         raise RuntimeError("unexpected failure, not a GhError")
     return VALID_PAYLOAD
 
 
 # --- (a) two declared repos, stub returns valid JSON for both -> every entry ok --------------
-with tempfile.TemporaryDirectory() as td:
-    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    with patched_file_at_ref(stub_all_ok):
-        report_a = fc.product_config_report(fleet)
-    _a_all_ok = all(m["ok"] for m in report_a)
-    _a_ok_count = sum(1 for m in report_a if m["ok"])
-    _a_unreachable_count = len(report_a) - _a_ok_count
+fleet = artifact_accessors.load_fleet(FLEET_PATH)
+with patched_file_at_ref(stub_all_ok):
+    report_a = fc.product_config_report(fleet)
+_a_all_ok = all(m["ok"] for m in report_a)
+_a_ok_count = sum(1 for m in report_a if m["ok"])
+_a_unreachable_count = len(report_a) - _a_ok_count
 check("(a) two declared repos, both succeed -> every entry ok, ok count 2, unreachable 0",
       _a_all_ok and _a_ok_count == 2 and _a_unreachable_count == 0, report_a)
 check("(a)/(d) len(report) equals len(fleet['repos'])",
       len(report_a) == len(fleet["repos"]), (len(report_a), len(fleet["repos"])))
 
 # --- (b) stub raises GhError for the FIRST name, valid JSON for the second -------------------
-with tempfile.TemporaryDirectory() as td:
-    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    with patched_file_at_ref(stub_first_gherror_second_ok):
-        report_b = fc.product_config_report(fleet)
-    _b_entry0, _b_entry1 = report_b[0], report_b[1]
-    _b_entry0_ok = (
-        _b_entry0["ok"] is False
-        and _b_entry0["repo"] == _FIRST_NAME
-        and _FIRST_NAME in _b_entry0["detail"]
-        and _FIRST_REF in _b_entry0["detail"]
-    )
-    _b_entry1_ok = (
-        _b_entry1["ok"] is True
-        and _b_entry1["repo"] == _SECOND_NAME
-        and _b_entry1["detail"] == ""
-    )
+fleet = artifact_accessors.load_fleet(FLEET_PATH)
+with patched_file_at_ref(stub_first_gherror_second_ok):
+    report_b = fc.product_config_report(fleet)
+_b_entry0, _b_entry1 = report_b[0], report_b[1]
+_b_entry0_ok = (
+    _b_entry0["ok"] is False
+    and _b_entry0["repo"] == _FIRST_NAME
+    and _FIRST_NAME in _b_entry0["detail"]
+    and _FIRST_REF in _b_entry0["detail"]
+)
+_b_entry1_ok = (
+    _b_entry1["ok"] is True
+    and _b_entry1["repo"] == _SECOND_NAME
+    and _b_entry1["detail"] == ""
+)
 check("(b) the FIRST entry, asserted individually, is not ok and names repo and ref",
       _b_entry0_ok, _b_entry0)
 check("(b) the SECOND entry, asserted individually, is ok with an empty detail",
@@ -179,19 +153,18 @@ check("(b)/(d) len(report) equals len(fleet['repos'])",
 # distinguishes `except FleetError` from a widened `except Exception`: every stub above only
 # ever raises factory_gh.GhError, which product_config already converts to FleetError before
 # product_config_report's except clause sees it, so none of them exercise its narrowness.
-with tempfile.TemporaryDirectory() as td:
-    fleet = artifact_accessors.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    with patched_file_at_ref(stub_first_unexpected_second_ok):
-        try:
-            fc.product_config_report(fleet)
-            _f_propagated = False
-            _f_detail = "product_config_report returned normally instead of propagating"
-        except RuntimeError as e:
-            _f_propagated = "unexpected failure" in str(e)
-            _f_detail = repr(e)
-        except Exception as e:
-            _f_propagated = False
-            _f_detail = f"wrong exception type propagated: {type(e).__name__}: {e}"
+fleet = artifact_accessors.load_fleet(FLEET_PATH)
+with patched_file_at_ref(stub_first_unexpected_second_ok):
+    try:
+        fc.product_config_report(fleet)
+        _f_propagated = False
+        _f_detail = "product_config_report returned normally instead of propagating"
+    except RuntimeError as e:
+        _f_propagated = "unexpected failure" in str(e)
+        _f_detail = repr(e)
+    except Exception as e:
+        _f_propagated = False
+        _f_detail = f"wrong exception type propagated: {type(e).__name__}: {e}"
 check("(f) an exception that is neither FleetError nor GhError propagates out of "
       "product_config_report instead of being reported as an ok:False entry",
       _f_propagated, _f_detail)
@@ -211,32 +184,22 @@ check("product_config_report preserves fleet['repos'] declaration order",
 # --- (e) _main() exit codes, in-process, under --check-product-configs -----------------------
 
 # (e-1) a failing member -> SystemExit.code == 2, and stdout still parses as the ONE payload.
-with tempfile.TemporaryDirectory() as td:
-    fleet_path = write_fleet(td, two_repo_fleet_dict())
-    with patched_file_at_ref(stub_first_gherror_second_ok):
-        code_e1, raised_e1, out_e1, err_e1 = run_main(
-            ["factory_config", "--fleet", fleet_path, "--check-product-configs"]
-        )
+with patched_file_at_ref(stub_first_gherror_second_ok):
+    code_e1, raised_e1, out_e1, err_e1 = run_main(
+        ["factory_config", "--fleet", FLEET_PATH, "--check-product-configs"]
+    )
 check("(e) --check-product-configs exits 2 (EXIT_REFUSED) under a failing stub",
       raised_e1 and code_e1 == fc.factory_cli.EXIT_REFUSED, (raised_e1, code_e1))
-try:
-    _parsed_e1 = json.loads(out_e1)
-    _payload_e1_ok = (
-        isinstance(_parsed_e1, dict)
-        and {"declared", "ok", "unreachable", "members"} <= set(_parsed_e1.keys())
-        and _parsed_e1["declared"] == 2 and _parsed_e1["ok"] == 1 and _parsed_e1["unreachable"] == 1
-    )
-except Exception as _e:
-    _payload_e1_ok, _parsed_e1 = False, f"{type(_e).__name__}: {_e}"
+_payload_e1_ok, _parsed_e1 = payload_ok(out_e1, ok=1, unreachable=1)
 check("(e) stdout under failure parses as ONE JSON payload with declared/ok/unreachable/members",
       _payload_e1_ok, _parsed_e1)
+_e1_lines = [l for l in err_e1.split("\n") if l]
 check("(e) exactly one stderr line is written for the one unreachable member",
-      len([l for l in err_e1.split("\n") if l]) == 1, repr(err_e1))
+      len(_e1_lines) == 1, repr(err_e1))
 
 # --- V-7: the one stderr line names the unreachable member's repo@ref:path triple EXACTLY ----
 # ONCE, behind the canonical "factory: config: " prefix — not once for factory_cli.fail's own
 # `value` and again inside the FleetError's own message text.
-_e1_lines = [l for l in err_e1.split("\n") if l]
 _e1_line = _e1_lines[0] if _e1_lines else ""
 _e1_token = f"{_FIRST_NAME}@{_FIRST_REF}:{fc._PRODUCT_CONFIG_PATH}"
 check("(g) V-7: the stderr line starts with the canonical 'factory: config: ' prefix",
@@ -245,27 +208,17 @@ check("(g) V-7: the repo@ref:path token appears exactly once in the stderr line,
       _e1_line.count(_e1_token) == 1, (repr(_e1_line), _e1_token))
 
 # (e-2) every member succeeds -> _main() returns without raising SystemExit.
-with tempfile.TemporaryDirectory() as td:
-    fleet_path = write_fleet(td, two_repo_fleet_dict())
-    with patched_file_at_ref(stub_all_ok):
-        code_e2, raised_e2, out_e2, err_e2 = run_main(
-            ["factory_config", "--fleet", fleet_path, "--check-product-configs"]
-        )
+with patched_file_at_ref(stub_all_ok):
+    code_e2, raised_e2, out_e2, err_e2 = run_main(
+        ["factory_config", "--fleet", FLEET_PATH, "--check-product-configs"]
+    )
 check("(e) --check-product-configs returns without SystemExit under an all-succeeding stub",
       not raised_e2, (raised_e2, code_e2))
-try:
-    _parsed_e2 = json.loads(out_e2)
-    _payload_e2_ok = (
-        isinstance(_parsed_e2, dict)
-        and {"declared", "ok", "unreachable", "members"} <= set(_parsed_e2.keys())
-        and _parsed_e2["declared"] == 2 and _parsed_e2["ok"] == 2 and _parsed_e2["unreachable"] == 0
-    )
-except Exception as _e:
-    _payload_e2_ok, _parsed_e2 = False, f"{type(_e).__name__}: {_e}"
+_payload_e2_ok, _parsed_e2 = payload_ok(out_e2, ok=2, unreachable=0)
 check("(e) stdout under success parses as ONE JSON payload with declared/ok/unreachable/members",
       _payload_e2_ok, _parsed_e2)
 check("(e) no stderr line is written when nothing is unreachable",
       err_e2 == "", repr(err_e2))
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+_TD.cleanup()
+sys.exit(C.report())

@@ -13,43 +13,31 @@ recorder and spawn no subprocess; the BUG-240 cases that exercise the hard-reset
 exception — they build a real local bare origin and checkout via real_repo() and drive real
 git, with no network.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import contextlib
 import io
 import json
 import os
-import subprocess
 import sys
 import tempfile
+from unittest import mock
 
-import yaml
 import artifact_accessors
+from check_support import Checks
+from factory_support import write_fleet
+from git_support import checked_git, commit_files, git, init_repo
 
 import factory_workspace as fw
-import factory_config as fc
 
-FAILS = 0
-RAN = 0
-
-
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+C = Checks()
+check = C.check
 
 
 REPO = "acme/widget"
 ISSUE = 42
 BRANCH = f"factory/issue-{ISSUE}"
 DEFAULT_BRANCH = "main"
+ARGS = ["--repo", REPO, "--issue", str(ISSUE)]
 
 
 def good_fleet_dict(workspace_root):
@@ -66,13 +54,6 @@ def good_fleet_dict(workspace_root):
         ],
         "workspace_root": workspace_root,
     }
-
-
-def write_fleet(dirpath, data):
-    path = os.path.join(dirpath, "fleet.yaml")
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f)
-    return path
 
 
 class Recorder:
@@ -127,26 +108,24 @@ def run_main(rec, extra_args, workspace_root):
     fleet_dir = os.path.join(workspace_root, ".fleet-config")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = write_fleet(fleet_dir, good_fleet_dict(workspace_root))
-    argv_saved = sys.argv
-    sys.argv = ["factory_workspace.py", "--fleet", fleet_path] + extra_args
-    fw_run_git_saved = fw.run_git
-    fw.run_git = rec
+    argv = ["factory_workspace.py", "--fleet", fleet_path] + extra_args
     out, err = io.StringIO(), io.StringIO()
     code = None
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                fw.factory_cli.run("workspace", fw._main, expected=(artifact_accessors.FleetError,))
-            except SystemExit as e:
-                code = e.code
-    finally:
-        sys.argv = argv_saved
-        fw.run_git = fw_run_git_saved
+    with mock.patch.object(sys, "argv", argv), mock.patch.object(fw, "run_git", rec), \
+            contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            fw.factory_cli.run("workspace", fw._main, expected=(artifact_accessors.FleetError,))
+        except SystemExit as e:
+            code = e.code
     return code, out.getvalue(), err.getvalue()
 
 
 def checkout_path(workspace_root):
     return os.path.join(workspace_root, "widget")
+
+
+def existing_checkout(workspace_root):
+    os.makedirs(os.path.join(checkout_path(workspace_root), ".git"))
 
 
 @contextlib.contextmanager
@@ -164,45 +143,58 @@ def _env_without_harness_project_dir():
             os.environ["HARNESS_PROJECT_DIR"] = prev
 
 
-def real_repo(wr):
+def real_repo(wr, extra_files=None):
     """BUG-240: a real bare origin plus a real working checkout, so cases 2-4 can run the
-    refresh path end to end with no network — every remote here is a local path."""
+    refresh path end to end with no network — every remote here is a local path. Any
+    `extra_files` ({relpath: text}) land in the same initial commit that reaches origin/main."""
     origin = os.path.join(wr, "origin.git")
-    subprocess.run(["git", "init", "--bare", "-b", "main", origin],
-                    check=True, capture_output=True)
-    checkout = checkout_path(wr)
-    subprocess.run(["git", "init", "-b", "main", checkout], check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "bug240@example.com"], cwd=checkout,
-                    check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.name", "BUG-240"], cwd=checkout,
-                    check=True, capture_output=True)
-    with open(os.path.join(checkout, "tracked.txt"), "wb") as f:
-        f.write(b"tracked content, known bytes\n")
-    subprocess.run(["git", "add", "tracked.txt"], cwd=checkout, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "initial"], cwd=checkout,
-                    check=True, capture_output=True)
-    subprocess.run(["git", "remote", "add", "origin", origin], cwd=checkout,
-                    check=True, capture_output=True)
-    subprocess.run(["git", "push", "-u", "origin", "main"], cwd=checkout,
-                    check=True, capture_output=True)
+    git(wr, "init", "--bare", "-b", "main", origin)
+    checkout = init_repo(checkout_path(wr), "main", ("bug240@example.com", "BUG-240"),
+                         git=checked_git)
+    files = {"tracked.txt": "tracked content, known bytes\n", **(extra_files or {})}
+    commit_files(checkout, files, "initial", git=checked_git)
+    git(checkout, "remote", "add", "origin", origin)
+    git(checkout, "push", "-u", "origin", "main")
     return checkout
+
+
+# --- (C) the final recorded git command is always the checkout of factory/issue-<n>, and ------
+# --- (I) C-3: happy path's stdout parses as JSON in a single json.loads of the whole stream: ---
+# --- both read the same missing-checkout run as (A); (C) also reads (B)'s existing run. --------
+def check_final_checkout(label, rec):
+    last = rec.calls[-1][0] if rec.calls else ()
+    check(f"(C) {label} checkout: final command checks out the issue branch",
+          last and last[0] == "checkout" and BRANCH in last, rec.calls)
+
 
 # --- (A) a missing checkout produces a clone followed by the branch checkout, in that order ---
 with tempfile.TemporaryDirectory() as wr:
     rec = Recorder()
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     check("(A) missing checkout: exits 0", code in (0, None), f"code={code!r} err={err!r}")
     kinds = [c[0][0] for c in rec.calls]
     check("(A) missing checkout: first call is clone", kinds[0] == "clone", kinds)
     check("(A) missing checkout: some later call checks out the issue branch",
           any(c[0][0] == "checkout" and BRANCH in c[0] for c in rec.calls), rec.calls)
     check("(A) missing checkout: no fetch", "fetch" not in kinds, kinds)
+    check_final_checkout("missing", rec)
+    try:
+        parsed = json.loads(out)
+        check("(I) happy path: stdout is exactly one JSON object", True)
+        check("(I) happy path: payload has path and branch",
+              parsed.get("branch") == BRANCH and parsed.get("path") == os.path.abspath(
+                  checkout_path(wr)),
+              parsed)
+        check("(I) happy path: payload path is absolute", os.path.isabs(parsed.get("path", "")),
+              parsed)
+    except Exception as e:
+        check("(I) happy path: stdout is exactly one JSON object", False, str(e))
 
 # --- (B) an existing checkout produces a fetch and no clone -----------------------------------
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
+    existing_checkout(wr)
     rec = Recorder()
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     kinds = [c[0][0] for c in rec.calls]
     check("(B) existing checkout: exits 0", code in (0, None), f"code={code!r} err={err!r}")
     check("(B) existing checkout: fetch is called", "fetch" in kinds, kinds)
@@ -220,23 +212,13 @@ with tempfile.TemporaryDirectory() as wr:
     except Exception as exc:
         check("BUG-240 existing checkout: refresh order is fetch, checkout default, reset --hard",
               False, str(exc))
-
-# --- (C) the final recorded git command is always the checkout of factory/issue-<n> -----------
-for label, pre_existing in (("missing", False), ("existing", True)):
-    with tempfile.TemporaryDirectory() as wr:
-        if pre_existing:
-            os.makedirs(os.path.join(checkout_path(wr), ".git"))
-        rec = Recorder()
-        code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
-        last = rec.calls[-1][0] if rec.calls else ()
-        check(f"(C) {label} checkout: final command checks out the issue branch",
-              last and last[0] == "checkout" and BRANCH in last, rec.calls)
+    check_final_checkout("existing", rec)
 
 # --- (D) origin carries factory/issue-<n>: track it, never origin/<default_branch> as start ---
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
+    existing_checkout(wr)
     rec = Recorder(origin_has_branch=True, local_has_branch=False)
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     last = rec.calls[-1][0] if rec.calls else ()
     check("(D) origin carries the ref: final checkout tracks origin",
           last[:2] == ("checkout", "-b") and "--track" in last and f"origin/{BRANCH}" in last,
@@ -248,19 +230,19 @@ with tempfile.TemporaryDirectory() as wr:
 
 # --- (E) origin carries no such ref: branch IS created off origin/<default_branch> ------------
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
+    existing_checkout(wr)
     rec = Recorder(origin_has_branch=False, local_has_branch=False)
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     last = rec.calls[-1][0] if rec.calls else ()
     check("(E) origin has no ref: final checkout is created off origin/<default_branch>",
           last[:2] == ("checkout", "-b") and f"origin/{DEFAULT_BRANCH}" in last, rec.calls)
 
 # --- (F) an existing local branch tracking the remote ref is checked out rather than recreated -
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
+    existing_checkout(wr)
     rec = Recorder(origin_has_branch=True, local_has_branch=True,
                     local_upstream=f"origin/{BRANCH}")
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     last = rec.calls[-1][0] if rec.calls else ()
     check("(F) existing local branch tracking origin: checked out as-is, not recreated with -b",
           last == ("checkout", BRANCH), rec.calls)
@@ -271,10 +253,10 @@ with tempfile.TemporaryDirectory() as wr:
 for label, bad_upstream in (("cut from default_branch", f"origin/{DEFAULT_BRANCH}"),
                              ("no upstream at all", "")):
     with tempfile.TemporaryDirectory() as wr:
-        os.makedirs(os.path.join(checkout_path(wr), ".git"))
+        existing_checkout(wr)
         rec = Recorder(origin_has_branch=True, local_has_branch=True,
                         local_upstream=bad_upstream)
-        code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+        code, out, err = run_main(rec, ARGS, wr)
         last = rec.calls[-1][0] if rec.calls else ()
         check(f"(F2) local branch diverges from origin ({label}): NOT a bare checkout "
               "(the fail-open shape)",
@@ -286,39 +268,13 @@ for label, bad_upstream in (("cut from default_branch", f"origin/{DEFAULT_BRANCH
               "not refused)",
               code in (0, None), f"code={code!r} err={err!r}")
 
-# --- (G) a repository absent from the fleet exits 2 and the recorder shows zero git calls -----
+# --- (G) a repository absent from the fleet exits 2 and the recorder shows zero git calls, and -
+# --- (J) C-3: that refusal writes nothing to stdout, one stderr line, exit 2 (one shared run) --
 with tempfile.TemporaryDirectory() as wr:
     rec = Recorder()
     code, out, err = run_main(rec, ["--repo", "someone/unlisted", "--issue", str(ISSUE)], wr)
     check("(G) unlisted repo: exits 2", code == 2, f"code={code!r}")
     check("(G) unlisted repo: zero git calls", rec.calls == [], rec.calls)
-
-# --- (H) a failing git command propagates a non-zero exit --------------------------------------
-with tempfile.TemporaryDirectory() as wr:
-    rec = Recorder(fail_on="clone")
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
-    check("(H) a failing git command exits non-zero", code not in (0, None), f"code={code!r}")
-
-# --- (I) C-3: happy path's stdout parses as JSON in a single json.loads of the whole stream ----
-with tempfile.TemporaryDirectory() as wr:
-    rec = Recorder()
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
-    try:
-        parsed = json.loads(out)
-        check("(I) happy path: stdout is exactly one JSON object", True)
-        check("(I) happy path: payload has path and branch",
-              parsed.get("branch") == BRANCH and parsed.get("path") == os.path.abspath(
-                  checkout_path(wr)),
-              parsed)
-        check("(I) happy path: payload path is absolute", os.path.isabs(parsed.get("path", "")),
-              parsed)
-    except Exception as e:
-        check("(I) happy path: stdout is exactly one JSON object", False, str(e))
-
-# --- (J) C-3: unlisted-repository refusal writes nothing to stdout, one stderr line, exit 2 ----
-with tempfile.TemporaryDirectory() as wr:
-    rec = Recorder()
-    code, out, err = run_main(rec, ["--repo", "someone/unlisted", "--issue", str(ISSUE)], wr)
     check("(J) unlisted repo refusal: nothing on stdout", out == "", repr(out))
     err_lines = [l for l in err.split("\n") if l]
     check("(J) unlisted repo refusal: exactly one stderr line", len(err_lines) == 1, err)
@@ -326,18 +282,24 @@ with tempfile.TemporaryDirectory() as wr:
           err_lines and "someone/unlisted" in err_lines[0], err)
     check("(J) unlisted repo refusal: exits 2", code == 2, f"code={code!r}")
 
+# --- (H) a failing git command propagates a non-zero exit --------------------------------------
+with tempfile.TemporaryDirectory() as wr:
+    rec = Recorder(fail_on="clone")
+    code, out, err = run_main(rec, ARGS, wr)
+    check("(H) a failing git command exits non-zero", code not in (0, None), f"code={code!r}")
+
 # --- (K) C-3: a run_git recorder raising a plain RuntimeError exits 2, NOT 1 -------------------
 with tempfile.TemporaryDirectory() as wr:
     rec = Recorder(raise_plain="clone")
-    code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+    code, out, err = run_main(rec, ARGS, wr)
     check("(K) a plain RuntimeError from run_git exits 2, not 1", code == 2, f"code={code!r}")
 
 # --- BUG-240 case 1: dirty tracked (Recorder): exits 2 before any fetch -----------------------
 with tempfile.TemporaryDirectory() as wr:
     try:
-        os.makedirs(os.path.join(checkout_path(wr), ".git"))
+        existing_checkout(wr)
         rec = Recorder(porcelain=" M tracked.txt\n")
-        code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+        code, out, err = run_main(rec, ARGS, wr)
         kinds = [c[0][0] for c in rec.calls]
         check("BUG-240 dirty tracked: exits 2 before any fetch",
               code == 2 and not any(k in ("fetch", "reset", "clone") for k in kinds),
@@ -356,7 +318,7 @@ with tempfile.TemporaryDirectory() as wr:
         with open(tracked, "wb") as f:
             f.write(second_content)
         with _env_without_harness_project_dir():
-            code, out, err = run_main(fw.run_git, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+            code, out, err = run_main(fw.run_git, ARGS, wr)
         err_lines = [l for l in err.split("\n") if l]
         check("BUG-240 dirty tracked: refusal line names the path and the uncommitted-work "
               "condition",
@@ -379,24 +341,15 @@ with tempfile.TemporaryDirectory() as wr:
 # --- BUG-240 case 4: ignored-only dirt (real git): not refused --------------------------------
 with tempfile.TemporaryDirectory() as wr:
     try:
-        checkout = real_repo(wr)
-        with open(os.path.join(checkout, ".gitignore"), "w", encoding="utf-8") as f:
-            f.write("junk/\n")
-        subprocess.run(["git", "add", ".gitignore"], cwd=checkout,
-                        check=True, capture_output=True)
-        subprocess.run(["git", "commit", "-m", "ignore junk"], cwd=checkout,
-                        check=True, capture_output=True)
-        subprocess.run(["git", "push", "origin", "main"], cwd=checkout,
-                        check=True, capture_output=True)
+        checkout = real_repo(wr, {".gitignore": "junk/\n"})
         junk_dir = os.path.join(checkout, "junk")
         os.makedirs(junk_dir, exist_ok=True)
         junk_file = os.path.join(junk_dir, "scratch.txt")
         with open(junk_file, "w", encoding="utf-8") as f:
             f.write("scratch\n")
         with _env_without_harness_project_dir():
-            code, out, err = run_main(fw.run_git, ["--repo", REPO, "--issue", str(ISSUE)], wr)
-        head = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=checkout,
-                               check=True, capture_output=True, text=True).stdout.strip()
+            code, out, err = run_main(fw.run_git, ARGS, wr)
+        head = git(checkout, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
         check("BUG-240 ignored-only dirt: not refused",
               code in (0, None) and os.path.exists(junk_file) and head == BRANCH,
               f"code={code!r} err={err!r} head={head!r}")
@@ -405,13 +358,11 @@ with tempfile.TemporaryDirectory() as wr:
 
 # --- BUG-240 case 5: self checkout: refused when clean, naming the self-checkout condition -----
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
-    _missing = object()
-    _prev = getattr(fw, "_control_plane_root", _missing)
-    setattr(fw, "_control_plane_root", lambda: checkout_path(wr))
+    existing_checkout(wr)
     try:
-        rec = Recorder(porcelain="")
-        code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+        with mock.patch.object(fw, "_control_plane_root", lambda: checkout_path(wr)):
+            rec = Recorder(porcelain="")
+            code, out, err = run_main(rec, ARGS, wr)
         kinds = [c[0][0] for c in rec.calls]
         err_lines = [l for l in err.split("\n") if l]
         check("BUG-240 self checkout: refused when clean, naming the self-checkout condition",
@@ -422,27 +373,19 @@ with tempfile.TemporaryDirectory() as wr:
     except Exception as exc:
         check("BUG-240 self checkout: refused when clean, naming the self-checkout condition",
               False, str(exc))
-    finally:
-        if _prev is _missing:
-            if hasattr(fw, "_control_plane_root"):
-                delattr(fw, "_control_plane_root")
-        else:
-            setattr(fw, "_control_plane_root", _prev)
 
 # --- BUG-240 case 6: other harness checkout: onboarded but not the control plane -> not refused
 with tempfile.TemporaryDirectory() as wr:
-    os.makedirs(os.path.join(checkout_path(wr), ".git"))
+    existing_checkout(wr)
     os.makedirs(os.path.join(checkout_path(wr), ".harness"), exist_ok=True)
     with open(os.path.join(checkout_path(wr), ".harness", "team-config.yaml"), "w",
               encoding="utf-8") as f:
         f.write("schema: team-config/1\n")
-    with tempfile.TemporaryDirectory() as other_root:
-        _missing = object()
-        _prev = getattr(fw, "_control_plane_root", _missing)
-        setattr(fw, "_control_plane_root", lambda: other_root)
+    with tempfile.TemporaryDirectory() as other_root, \
+            mock.patch.object(fw, "_control_plane_root", lambda: other_root):
         try:
             rec = Recorder(porcelain="")
-            code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+            code, out, err = run_main(rec, ARGS, wr)
             kinds = [c[0][0] for c in rec.calls]
             check("BUG-240 other harness checkout: onboarded but not the control plane is not "
                   "refused",
@@ -451,20 +394,14 @@ with tempfile.TemporaryDirectory() as wr:
         except Exception as exc:
             check("BUG-240 other harness checkout: onboarded but not the control plane is not "
                   "refused", False, str(exc))
-        finally:
-            if _prev is _missing:
-                if hasattr(fw, "_control_plane_root"):
-                    delattr(fw, "_control_plane_root")
-            else:
-                setattr(fw, "_control_plane_root", _prev)
 
 # --- BUG-240 case 7: no bypass: the parser rejects --force --------------------------------------
 try:
     with tempfile.TemporaryDirectory() as wr:
-        os.makedirs(os.path.join(checkout_path(wr), ".git"))
+        existing_checkout(wr)
         rec = Recorder(porcelain="")
         code, out, err = run_main(
-            rec, ["--repo", REPO, "--issue", str(ISSUE), "--force"], wr)
+            rec, ARGS + ["--force"], wr)
     with open(fw.__file__, "r", encoding="utf-8") as f:
         source = f.read()
     check("BUG-240 no bypass: the parser rejects --force",
@@ -483,14 +420,12 @@ with tempfile.TemporaryDirectory() as wr:
         print("skip  BUG-240 case-mismatched self checkout: filesystem is case-sensitive, "
               "premise does not apply here")
     else:
-        os.makedirs(os.path.join(checkout_path(wr), ".git"))
+        existing_checkout(wr)
         cased_root = os.path.join(wr, "Widget")
-        _missing = object()
-        _prev = getattr(fw, "_control_plane_root", _missing)
-        setattr(fw, "_control_plane_root", lambda: cased_root)
         try:
-            rec = Recorder(porcelain="")
-            code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+            with mock.patch.object(fw, "_control_plane_root", lambda: cased_root):
+                rec = Recorder(porcelain="")
+                code, out, err = run_main(rec, ARGS, wr)
             kinds = [c[0][0] for c in rec.calls]
             err_lines = [l for l in err.split("\n") if l]
             check("BUG-240 case-mismatched self checkout: refused via identity, not spelling",
@@ -501,13 +436,5 @@ with tempfile.TemporaryDirectory() as wr:
         except Exception as exc:
             check("BUG-240 case-mismatched self checkout: refused via identity, not spelling",
                   False, str(exc))
-        finally:
-            if _prev is _missing:
-                if hasattr(fw, "_control_plane_root"):
-                    delattr(fw, "_control_plane_root")
-            else:
-                setattr(fw, "_control_plane_root", _prev)
 
-
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

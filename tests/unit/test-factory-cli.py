@@ -8,44 +8,37 @@ sys.exit(3) must pass through unchanged. A wrapper that got either direction wro
 still look plausible in isolation, so both are asserted here, in-process, with no
 subprocess spawned (run-unit-tests.py classifies this as UNIT for exactly that reason).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import BIN  # noqa: F401  (puts bin/ on sys.path)
 import contextlib
 import io
 import json
 import os
 import sys
 import unicodedata
+from unittest import mock
 
+from check_support import Checks
 import factory_cli as cli
 
-FAILS = 0
-RAN = 0
+C = Checks()
+check = C.check
 
 
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
-
-
-def run_capturing(fn):
-    """Call fn under run(), capturing stdout/stderr and the resulting exit code."""
+def capture(fn, *args, **kw):
+    """Call fn(*args, **kw), capturing stdout/stderr and any SystemExit code (None if none)."""
     out, err = io.StringIO(), io.StringIO()
     code = None
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         try:
-            cli.run("t", fn)
+            fn(*args, **kw)
         except SystemExit as e:
             code = e.code
     return code, out.getvalue(), err.getvalue()
+
+
+def run_capturing(fn):
+    """Call fn under run(), capturing stdout/stderr and the resulting exit code."""
+    return capture(cli.run, "t", fn)
 
 
 # ---------------- run(): success path ----------------
@@ -98,18 +91,12 @@ def _raises_expected():
     raise MyError("bad config at /x/y")
 
 
-out, err = io.StringIO(), io.StringIO()
-code = None
-with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-    try:
-        cli.run("t", _raises_expected, expected=(MyError,))
-    except SystemExit as e:
-        code = e.code
+code, out, err = capture(cli.run, "t", _raises_expected, expected=(MyError,))
 want = "factory: t: bad config at /x/y\n"
 check("run(): expected exception produces the preformed line, no prefix duplication",
-      err.getvalue() == want, f"err={err.getvalue()!r}")
+      err == want, f"err={err!r}")
 check("run(): expected exception has no 'unexpected failure' text",
-      "unexpected failure" not in err.getvalue())
+      "unexpected failure" not in err)
 check("run(): expected exception exits 2", code == cli.EXIT_REFUSED, f"code={code!r}")
 
 
@@ -118,9 +105,7 @@ check("run(): expected exception exits 2", code == cli.EXIT_REFUSED, f"code={cod
 # var (asserted above) — that alone does not prove the env var actually gates a traceback.
 # Deleting the `if os.environ.get("FACTORY_DEBUG")` branch in factory_cli.py would still pass
 # every other check in this file, so this pair is the one that would catch it.
-_prev_debug = os.environ.pop("FACTORY_DEBUG", None)
-try:
-    os.environ["FACTORY_DEBUG"] = "1"
+with mock.patch.dict(os.environ, {"FACTORY_DEBUG": "1"}):
     code, out, err = run_capturing(_raises_keyerror)
     check("run(): FACTORY_DEBUG=1 prints a traceback after the hint line",
           "Traceback" in err and err.index("FACTORY_DEBUG") < err.index("Traceback"),
@@ -130,11 +115,6 @@ try:
     code, out, err = run_capturing(_raises_keyerror)
     check("run(): without FACTORY_DEBUG set, no traceback is printed",
           "Traceback" not in err, f"err={err!r}")
-finally:
-    if _prev_debug is None:
-        os.environ.pop("FACTORY_DEBUG", None)
-    else:
-        os.environ["FACTORY_DEBUG"] = _prev_debug
 
 
 # ---------------- message(): exact grammar and ordering ----------------
@@ -162,14 +142,12 @@ check("body(): the dash emitted is U+2014, not a hyphen or en dash",
 
 
 # ---------------- payload(): the sole stdout shape ----------------
-out, err = io.StringIO(), io.StringIO()
-with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-    cli.payload({"a": 1})
-lines = out.getvalue().splitlines()
+_, out, err = capture(cli.payload, {"a": 1})
+lines = out.splitlines()
 check("payload(): writes exactly one stdout line", len(lines) == 1, f"lines={lines!r}")
 check("payload(): that line parses as json.loads",
       len(lines) == 1 and json.loads(lines[0]) == {"a": 1})
-check("payload(): writes nothing to stderr", err.getvalue() == "", f"err={err.getvalue()!r}")
+check("payload(): writes nothing to stderr", err == "", f"err={err!r}")
 
 try:
     cli.payload("a string")
@@ -180,17 +158,9 @@ check("payload(): a plain string raises TypeError", raised)
 
 
 # ---------------- nothing_to_do(): stderr only, exit 1 ----------------
-out, err = io.StringIO(), io.StringIO()
-code = None
-with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-    try:
-        cli.nothing_to_do("t", "no issues claimable")
-    except SystemExit as e:
-        code = e.code
-check("nothing_to_do(): writes nothing to stdout", out.getvalue() == "",
-      f"out={out.getvalue()!r}")
-check("nothing_to_do(): writes to stderr", "no issues claimable" in err.getvalue(),
-      f"err={err.getvalue()!r}")
+code, out, err = capture(cli.nothing_to_do, "t", "no issues claimable")
+check("nothing_to_do(): writes nothing to stdout", out == "", f"out={out!r}")
+check("nothing_to_do(): writes to stderr", "no issues claimable" in err, f"err={err!r}")
 check("nothing_to_do(): exits 1 (EXIT_NOTHING), not an error", code == cli.EXIT_NOTHING,
       f"code={code!r}")
 
@@ -203,28 +173,15 @@ check("EXIT_RACE == 3", cli.EXIT_RACE == 3)
 
 
 # ---------------- refuse() / lost_race(): fail() plus the right exit ----------------
-out, err = io.StringIO(), io.StringIO()
-code = None
-with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-    try:
-        cli.refuse("t", "bad config", "/x", "fix it")
-    except SystemExit as e:
-        code = e.code
+code, out, err = capture(cli.refuse, "t", "bad config", "/x", "fix it")
 check("refuse(): exits EXIT_REFUSED", code == cli.EXIT_REFUSED, f"code={code!r}")
-check("refuse(): stdout stays empty", out.getvalue() == "")
+check("refuse(): stdout stays empty", out == "")
 check("refuse(): stderr carries message()",
-      err.getvalue() == cli.message("t", "bad config", "/x", "fix it") + "\n")
+      err == cli.message("t", "bad config", "/x", "fix it") + "\n")
 
-out, err = io.StringIO(), io.StringIO()
-code = None
-with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-    try:
-        cli.lost_race("t", "issue owned", "#12", "pick another")
-    except SystemExit as e:
-        code = e.code
+code, out, err = capture(cli.lost_race, "t", "issue owned", "#12", "pick another")
 check("lost_race(): exits EXIT_RACE", code == cli.EXIT_RACE, f"code={code!r}")
-check("lost_race(): stdout stays empty", out.getvalue() == "")
+check("lost_race(): stdout stays empty", out == "")
 
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

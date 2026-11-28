@@ -9,28 +9,19 @@ Every call to `factory_gh` is recorded, so the tests can check:
 
     ./test-gh-board-item-add.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+import sys
+from unittest import mock
 
-import factory_gh  # noqa: E402
-import gh_board  # noqa: E402
+import unit_support  # noqa: F401 — puts bin/ and tests/ on sys.path
+from check_support import Checks
+import factory_gh
+import gh_board
 
-FAILURES = []
+C = Checks()
+check = C.check
 BOARD = {"owner": "acme", "number": 9, "station_field": "Status"}
 REPO = "acme/widgets"
 URL = "https://github.com/acme/widgets/issues/17"
-_NAMES = ("issue_board_item_id", "project_item_add", "project_field_set")
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
 
 
 def _error():
@@ -60,17 +51,13 @@ def _run(existing=None, fail_at=None):
         if fail_at == "set":
             raise _error()
 
-    real = {name: getattr(gh_board.factory_gh, name) for name in _NAMES}
-    for name, fake in zip(_NAMES, (lookup, add, field_set)):
-        setattr(gh_board.factory_gh, name, fake)
     raised = None
-    try:
-        gh_board.set_station(BOARD, REPO, 17, "ready")
-    except Exception as exc:  # noqa: BLE001 — the type is asserted by the caller
-        raised = exc
-    finally:
-        for name, fn in real.items():
-            setattr(gh_board.factory_gh, name, fn)
+    with mock.patch.multiple(gh_board.factory_gh, issue_board_item_id=lookup,
+                             project_item_add=add, project_field_set=field_set):
+        try:
+            gh_board.set_station(BOARD, REPO, 17, "ready")
+        except Exception as exc:  # noqa: BLE001 — the type is asserted by the caller
+            raised = exc
     return log, raised
 
 
@@ -111,11 +98,8 @@ def main():
     case_absent_item_is_added_then_set()
     case_present_item_is_never_added()
     case_each_failure_is_a_board_error()
-    if FAILURES:
-        print(f"\n{len(FAILURES)} FAILURE(S): {FAILURES}")
-        return 1
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

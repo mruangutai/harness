@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """gh_issue_types.py must get these mappings and this capability classifier right — no gh
-call, no network, offline. This file is RED until T-02 writes gh_issue_types.py; T-01 (this
-task) writes only the test.
+call, no network, offline.
 
 FEAT-55 REQ-02/REQ-03/REQ-04/REQ-09. Covers, one assertion per value, never a loop-wide count:
 
@@ -26,64 +25,55 @@ FEAT-55 REQ-02/REQ-03/REQ-04/REQ-09. Covers, one assertion per value, never a lo
 
     ./test-issue-types.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import sys
 
 import gh_issue_types
+from check_support import Checks
 
-FAILS = 0
+C = Checks()
+check = C.check
 
 
-def check(name, cond, detail=""):
-    global FAILS
-    if cond:
-        print(f"ok    {name}")
+def f_values(args):
+    """Every value that follows a "-f" flag in a gh argv."""
+    return [v for f, v in zip(args, args[1:]) if f == "-f"]
+
+
+def check_unknown(label, fn):
+    """fn("hovercraft", {}) must raise UnknownWorkNature naming the value and the missing map."""
+    name = f"{label}('hovercraft', {{}}) raises UnknownWorkNature"
+    try:
+        fn("hovercraft", {})
+    except gh_issue_types.UnknownWorkNature as e:
+        check(name, True)
+        check("...message contains the offending value 'hovercraft'", "hovercraft" in str(e), str(e))
+        check("...message contains 'no issue type is mapped'", "no issue type is mapped" in str(e),
+              str(e))
+    except Exception as e:
+        check(name, False, f"raised {type(e).__name__} instead: {e}")
     else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+        check(name, False, "returned instead of raising")
 
 
 # ---------------------------------------------------------------------------------------------
 # 1. type_for_change_type(ct, {}) — twelve separate assertions. feature -> "Task" is D-18.
 # ---------------------------------------------------------------------------------------------
-check("type_for_change_type: bugfix -> Bug",
-      gh_issue_types.type_for_change_type("bugfix", {}) == "Bug")
-check("type_for_change_type: feature -> Task (D-18: a task sub-issue, whatever its diff shape)",
-      gh_issue_types.type_for_change_type("feature", {}) == "Task")
-check("type_for_change_type: logic -> Task",
-      gh_issue_types.type_for_change_type("logic", {}) == "Task")
-check("type_for_change_type: api -> Task",
-      gh_issue_types.type_for_change_type("api", {}) == "Task")
-check("type_for_change_type: cross_module -> Task",
-      gh_issue_types.type_for_change_type("cross_module", {}) == "Task")
-check("type_for_change_type: frontend -> Task",
-      gh_issue_types.type_for_change_type("frontend", {}) == "Task")
-check("type_for_change_type: ai_behavior -> Task",
-      gh_issue_types.type_for_change_type("ai_behavior", {}) == "Task")
-check("type_for_change_type: docs -> Task",
-      gh_issue_types.type_for_change_type("docs", {}) == "Task")
-check("type_for_change_type: config -> Task",
-      gh_issue_types.type_for_change_type("config", {}) == "Task")
-check("type_for_change_type: scaffolding -> Task",
-      gh_issue_types.type_for_change_type("scaffolding", {}) == "Task")
-check("type_for_change_type: infra -> Task",
-      gh_issue_types.type_for_change_type("infra", {}) == "Task")
-check("type_for_change_type: ci -> Task",
-      gh_issue_types.type_for_change_type("ci", {}) == "Task")
+for _ct, _want, _note in [
+        ("bugfix", "Bug", ""),
+        ("feature", "Task", " (D-18: a task sub-issue, whatever its diff shape)"),
+        ("logic", "Task", ""), ("api", "Task", ""), ("cross_module", "Task", ""),
+        ("frontend", "Task", ""), ("ai_behavior", "Task", ""), ("docs", "Task", ""),
+        ("config", "Task", ""), ("scaffolding", "Task", ""), ("infra", "Task", ""),
+        ("ci", "Task", "")]:
+    check(f"type_for_change_type: {_ct} -> {_want}{_note}",
+          gh_issue_types.type_for_change_type(_ct, {}) == _want)
 
 # ---------------------------------------------------------------------------------------------
 # 2. type_for_nature(n, {}) — three separate assertions.
 # ---------------------------------------------------------------------------------------------
-check("type_for_nature: bug -> Bug",
-      gh_issue_types.type_for_nature("bug", {}) == "Bug")
-check("type_for_nature: chore -> Task",
-      gh_issue_types.type_for_nature("chore", {}) == "Task")
-check("type_for_nature: enhancement -> Feature",
-      gh_issue_types.type_for_nature("enhancement", {}) == "Feature")
+for _n, _want in [("bug", "Bug"), ("chore", "Task"), ("enhancement", "Feature")]:
+    check(f"type_for_nature: {_n} -> {_want}", gh_issue_types.type_for_nature(_n, {}) == _want)
 
 # ---------------------------------------------------------------------------------------------
 # 3. type_for_parent({}) == "Feature".
@@ -95,31 +85,8 @@ check("type_for_parent: {} -> Feature",
 # 4. Unrecognised change_type/nature raises UnknownWorkNature, message names the value AND
 #    says no type is mapped. Assert the raise, not a returned None.
 # ---------------------------------------------------------------------------------------------
-try:
-    gh_issue_types.type_for_change_type("hovercraft", {})
-    check("type_for_change_type('hovercraft', {}) raises UnknownWorkNature", False,
-          "returned instead of raising")
-except gh_issue_types.UnknownWorkNature as e:
-    check("type_for_change_type('hovercraft', {}) raises UnknownWorkNature", True)
-    check("...message contains the offending value 'hovercraft'", "hovercraft" in str(e), str(e))
-    check("...message contains 'no issue type is mapped'", "no issue type is mapped" in str(e),
-          str(e))
-except Exception as e:
-    check("type_for_change_type('hovercraft', {}) raises UnknownWorkNature", False,
-          f"raised {type(e).__name__} instead: {e}")
-
-try:
-    gh_issue_types.type_for_nature("hovercraft", {})
-    check("type_for_nature('hovercraft', {}) raises UnknownWorkNature", False,
-          "returned instead of raising")
-except gh_issue_types.UnknownWorkNature as e:
-    check("type_for_nature('hovercraft', {}) raises UnknownWorkNature", True)
-    check("...message contains the offending value 'hovercraft'", "hovercraft" in str(e), str(e))
-    check("...message contains 'no issue type is mapped'", "no issue type is mapped" in str(e),
-          str(e))
-except Exception as e:
-    check("type_for_nature('hovercraft', {}) raises UnknownWorkNature", False,
-          f"raised {type(e).__name__} instead: {e}")
+check_unknown("type_for_change_type", gh_issue_types.type_for_change_type)
+check_unknown("type_for_nature", gh_issue_types.type_for_nature)
 
 # ---------------------------------------------------------------------------------------------
 # 5. Overrides keyed by CANONICAL TYPE NAME (D-12: "Bug", "Feature", "Task", "parent" — no
@@ -186,7 +153,7 @@ check("classify_capability: exit 1, top-level errors array -> declared {}",
 check("classify_capability: exit 1, top-level errors array -> message contains 'Could not resolve'",
       "Could not resolve" in _message_fail, repr(_message_fail))
 
-_state_unparse, _declared_unparse, _message_unparse = gh_issue_types.classify_capability(0, "")
+_state_unparse = gh_issue_types.classify_capability(0, "")[0]
 check("classify_capability: exit 0, unparseable stdout -> state query_failed, never absent",
       _state_unparse == "query_failed", _state_unparse)
 
@@ -195,13 +162,11 @@ check("classify_capability: exit 0, unparseable stdout -> state query_failed, ne
 # ---------------------------------------------------------------------------------------------
 _cap_args = gh_issue_types.capability_query_args("owner/name")
 check("capability_query_args: first two elements are api, graphql",
-      _cap_args[0] == "api" and _cap_args[1] == "graphql", _cap_args)
+      _cap_args[:2] == ["api", "graphql"], _cap_args)
 check("capability_query_args: contains -f owner=owner",
-      any(a == "-f" and _cap_args[i + 1] == "owner=owner"
-          for i, a in enumerate(_cap_args[:-1])), _cap_args)
+      "owner=owner" in f_values(_cap_args), _cap_args)
 check("capability_query_args: contains -f name=name",
-      any(a == "-f" and _cap_args[i + 1] == "name=name"
-          for i, a in enumerate(_cap_args[:-1])), _cap_args)
+      "name=name" in f_values(_cap_args), _cap_args)
 _cap_query = next((a for a in _cap_args if "issueTypes" in a), "")
 check("capability_query_args: query element contains issueTypes(first:10)",
       "issueTypes(first:10)" in _cap_query, _cap_query)
@@ -215,28 +180,25 @@ check("capability_query_args: query element contains name",
 # ---------------------------------------------------------------------------------------------
 # 9. node_id_args("owner/name", 77)
 # ---------------------------------------------------------------------------------------------
+_node_args = gh_issue_types.node_id_args("owner/name", 77)
 check("node_id_args: exact argv",
-      gh_issue_types.node_id_args("owner/name", 77) ==
-      ["api", "repos/owner/name/issues/77", "--jq", ".node_id"],
-      gh_issue_types.node_id_args("owner/name", 77))
+      _node_args == ["api", "repos/owner/name/issues/77", "--jq", ".node_id"], _node_args)
 
 # ---------------------------------------------------------------------------------------------
 # 10. apply_type_args("I_node", "IT_1")
 # ---------------------------------------------------------------------------------------------
 _apply_args = gh_issue_types.apply_type_args("I_node", "IT_1")
 check("apply_type_args: starts api, graphql",
-      _apply_args[0] == "api" and _apply_args[1] == "graphql", _apply_args)
+      _apply_args[:2] == ["api", "graphql"], _apply_args)
 _apply_query = next((a for a in _apply_args if "updateIssue" in a), "")
 check("apply_type_args: query element contains updateIssue",
       "updateIssue" in _apply_query, _apply_query)
 check("apply_type_args: query element contains issueTypeId",
       "issueTypeId" in _apply_query, _apply_query)
 check("apply_type_args: passes the node id as an -f value",
-      any(a == "-f" and "I_node" in _apply_args[i + 1]
-          for i, a in enumerate(_apply_args[:-1])), _apply_args)
+      any("I_node" in v for v in f_values(_apply_args)), _apply_args)
 check("apply_type_args: passes the type id as an -f value",
-      any(a == "-f" and "IT_1" in _apply_args[i + 1]
-          for i, a in enumerate(_apply_args[:-1])), _apply_args)
+      any("IT_1" in v for v in f_values(_apply_args)), _apply_args)
 
 # ---------------------------------------------------------------------------------------------
 # 11. missing_types(required, declared)
@@ -258,5 +220,4 @@ check("refusal_text: contains 'github.issue_types.Task'",
 check("refusal_text: contains the repo 'owner/name'",
       "owner/name" in _refusal, _refusal)
 
-print(f"\n{'ALL PASSED' if not FAILS else str(FAILS) + ' FAILED'}")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

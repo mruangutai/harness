@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
+from unit_support import ROOT, BIN
+
 import ast
 import fnmatch
 import json
-import os
 from pathlib import Path
 import posixpath
-import re
 import shutil
-import subprocess
 import sys
 import tempfile
+from unittest import mock
+
+from check_support import Checks
+from git_support import checked_git, commit_all, init_repo
+import suite_layout
+import code_grade
 
 SELF_AST = ast.parse(Path(__file__).read_text())
 
@@ -18,23 +23,22 @@ def _self_fn(name):
     return next(node for node in ast.walk(SELF_AST)
                 if isinstance(node, ast.FunctionDef) and node.name == name)
 
-TESTS_DIR = Path(__file__).resolve().parent
-ROOT = TESTS_DIR.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
-import suite_layout
-import code_grade
+C = Checks()
+check = C.check
+
+real_violations = suite_layout.violations(ROOT)
+check("real layout is valid", real_violations == [], repr(real_violations))
 
 
-failures = []
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
+def plant(root, rel, text="pass\n"):
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
 
 
-check("real layout is valid", suite_layout.violations(ROOT) == [],
-      repr(suite_layout.violations(ROOT)))
+def violations_with(root, exceptions):
+    with mock.patch.object(suite_layout, "DOCUMENTED_EXCEPTIONS", exceptions):
+        return suite_layout.violations(root)
 
 def legal_tree():
     td = Path(tempfile.mkdtemp())
@@ -94,15 +98,11 @@ check("manual tests are not actively detected", all("tests/manual" not in d for 
 
 def base_git_fixture(include_self=True):
     td = Path(tempfile.mkdtemp())
-    subprocess.run(["git", "init", "-b", "main", "-q"], cwd=td, check=True)
-    (td / ".harness").mkdir(parents=True)
-    (td / ".harness/team-config.yaml").write_text("teams: {}\n")
-    (td / "tests/unit").mkdir(parents=True)
-    (td / "tests/integration").mkdir(parents=True)
-    (td / "tests/manual").mkdir(parents=True)
-    (td / "tests/unit/test-unit.py").write_text("pass\n")
-    (td / "tests/integration/test-integration.py").write_text("pass\n")
-    (td / "tests/manual/probe-fixture.py").write_text("pass\n")
+    init_repo(td, "main", git=checked_git)
+    plant(td, ".harness/team-config.yaml", "teams: {}\n")
+    plant(td, "tests/unit/test-unit.py")
+    plant(td, "tests/integration/test-integration.py")
+    plant(td, "tests/manual/probe-fixture.py")
     if include_self:
         (td / ".claude/skills/harness/bin").mkdir(parents=True)
         shutil.copy(BIN / "suite_layout.py", td / ".claude/skills/harness/bin/suite_layout.py")
@@ -110,19 +110,14 @@ def base_git_fixture(include_self=True):
 
 
 def git_commit(td, message="fixture"):
-    subprocess.run(["git", "add", "-A"], cwd=td, check=True)
-    subprocess.run(
-        ["git", "-c", "user.email=t@example.com", "-c", "user.name=t",
-         "commit", "-q", "-m", message],
-        cwd=td, check=True)
+    commit_all(td, message, git=checked_git)
 
 
 # Case 1: rogue tracked file outside tests/ is refused, and the exact-equality
 # assertion that grades SC-06's first clause once DOCUMENTED_EXCEPTIONS is cleared.
 td = base_git_fixture()
 try:
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
+    plant(td, ".harness/tools/test_rogue.py")
     git_commit(td)
     got = suite_layout.violations(td)
     matches = [g for g in got if "test_rogue.py" in g]
@@ -132,12 +127,7 @@ try:
     check("case 1: legal manual probe file is not named by any finding",
           not any("probe-fixture.py" in g for g in got), repr(got))
 
-    saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
-    suite_layout.DOCUMENTED_EXCEPTIONS = ()
-    try:
-        got_cleared = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got_cleared = violations_with(td, ())
     check("case 1: exact one-element violation list with exceptions cleared",
           got_cleared == ["tracked test-shaped file outside tests/: .harness/tools/test_rogue.py"],
           repr(got_cleared))
@@ -148,8 +138,7 @@ finally:
 td = base_git_fixture()
 try:
     git_commit(td)
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
+    plant(td, ".harness/tools/test_rogue.py")
     got = suite_layout.violations(td)
     check("case 2: untracked rogue file is not reported",
           not any("test_rogue.py" in g for g in got), repr(got))
@@ -159,12 +148,9 @@ finally:
 # Case 3: three rogue tracked files in different directories, stable sorted order.
 td = base_git_fixture()
 try:
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
-    (td / ".harness/notes").mkdir(parents=True)
-    (td / ".harness/notes/test_second.py").write_text("pass\n")
-    (td / ".harness/evidence").mkdir(parents=True)
-    (td / ".harness/evidence/test_third.py").write_text("pass\n")
+    plant(td, ".harness/tools/test_rogue.py")
+    plant(td, ".harness/notes/test_second.py")
+    plant(td, ".harness/evidence/test_third.py")
     git_commit(td)
     got1 = suite_layout.violations(td)
     rogue_findings = [g for g in got1 if g.startswith("tracked test-shaped file outside tests/:")]
@@ -211,54 +197,31 @@ try:
 finally:
     shutil.rmtree(r)
 
-# Case 6: registry self-policing, each rebound temporarily in a try/finally.
+# Case 6: registry self-policing, each rebound temporarily through violations_with.
 td = base_git_fixture()
 try:
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
+    plant(td, ".harness/tools/test_rogue.py")
     git_commit(td)
     rogue_rel = ".harness/tools/test_rogue.py"
-    saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
-
-    suite_layout.DOCUMENTED_EXCEPTIONS = ((rogue_rel, "accepted for case 6"),)
-    try:
-        got = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got = violations_with(td, ((rogue_rel, "accepted for case 6"),))
     check("case 6: listed tracked rogue path is accepted",
           not any(g.startswith("tracked test-shaped file outside tests/:") and rogue_rel in g
                   for g in got),
           repr(got))
 
-    suite_layout.DOCUMENTED_EXCEPTIONS = (("foo/test-*.py", "glob reason"),)
-    try:
-        got = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got = violations_with(td, (("foo/test-*.py", "glob reason"),))
     check("case 6: glob entry refused as not an exact path",
           "documented exception is not an exact path: foo/test-*.py" in got, repr(got))
 
-    suite_layout.DOCUMENTED_EXCEPTIONS = ((rogue_rel, "one"), (rogue_rel, "two"))
-    try:
-        got = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got = violations_with(td, ((rogue_rel, "one"), (rogue_rel, "two")))
     check("case 6: duplicate entry refused as listed twice",
           f"documented exception is listed twice: {rogue_rel}" in got, repr(got))
 
-    suite_layout.DOCUMENTED_EXCEPTIONS = ((".harness/team-config.yaml", "not test-shaped"),)
-    try:
-        got = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got = violations_with(td, ((".harness/team-config.yaml", "not test-shaped"),))
     check("case 6: non-test-shaped entry refused as unnecessary",
           "documented exception is unnecessary: .harness/team-config.yaml" in got, repr(got))
 
-    suite_layout.DOCUMENTED_EXCEPTIONS = (("does/not/exist/test_x.py", "not tracked"),)
-    try:
-        got = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got = violations_with(td, (("does/not/exist/test_x.py", "not tracked"),))
     check("case 6: untracked entry refused as no longer tracked",
           "documented exception is no longer tracked: does/not/exist/test_x.py" in got, repr(got))
 finally:
@@ -268,21 +231,11 @@ finally:
 # the live tuple, which is empty since its last entry moved under tests/manual/.
 td = base_git_fixture()
 try:
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/probe-listed.ts").write_text("export {};\n")
+    plant(td, ".harness/tools/probe-listed.ts", "export {};\n")
     git_commit(td)
     listed_rel = ".harness/tools/probe-listed.ts"
-    saved_exceptions = suite_layout.DOCUMENTED_EXCEPTIONS
-    suite_layout.DOCUMENTED_EXCEPTIONS = ((listed_rel, "synthetic case 7 entry"),)
-    try:
-        got_listed = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
-    suite_layout.DOCUMENTED_EXCEPTIONS = ()
-    try:
-        got_cleared = suite_layout.violations(td)
-    finally:
-        suite_layout.DOCUMENTED_EXCEPTIONS = saved_exceptions
+    got_listed = violations_with(td, ((listed_rel, "synthetic case 7 entry"),))
+    got_cleared = violations_with(td, ())
     check("case 7: fixture layout is clean with the synthetic entry listed",
           got_listed == [], repr(got_listed))
     check("case 7: synthetic registry entry is load-bearing when cleared",
@@ -293,15 +246,15 @@ finally:
 
 check("case 7: live registry is empty", suite_layout.DOCUMENTED_EXCEPTIONS == (),
       repr(suite_layout.DOCUMENTED_EXCEPTIONS))
+real_violations_after = suite_layout.violations(ROOT)
 check("case 7: real layout is clean with the live registry",
-      suite_layout.violations(ROOT) == [], repr(suite_layout.violations(ROOT)))
+      real_violations_after == [], repr(real_violations_after))
 
 # Case 8: extension-restricted boundary — probe-shaped Markdown is legal, .py is not.
 td = base_git_fixture()
 try:
-    (td / ".harness/notes").mkdir(parents=True)
-    (td / ".harness/notes/probe-something.md").write_text("notes\n")
-    (td / ".harness/notes/probe-something.py").write_text("pass\n")
+    plant(td, ".harness/notes/probe-something.md", "notes\n")
+    plant(td, ".harness/notes/probe-something.py")
     git_commit(td)
     got = suite_layout.violations(td)
     check("case 8: markdown probe record is not flagged",
@@ -314,15 +267,9 @@ finally:
 
 # Case 9: self-ownership is load-bearing in the other direction — a repo not
 # shipping suite_layout.py itself is untouched by the outside-tests clause.
-td = Path(tempfile.mkdtemp())
+td = base_git_fixture(include_self=False)
 try:
-    subprocess.run(["git", "init", "-b", "main", "-q"], cwd=td, check=True)
-    (td / "tests/unit").mkdir(parents=True)
-    (td / "tests/integration").mkdir(parents=True)
-    (td / "tests/unit/test-unit.py").write_text("pass\n")
-    (td / "tests/integration/test-integration.py").write_text("pass\n")
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/test_rogue.py").write_text("pass\n")
+    plant(td, ".harness/tools/test_rogue.py")
     git_commit(td)
     got = suite_layout.violations(td)
     check("case 9: repository not shipping suite_layout.py gets no outside-tests finding",
@@ -333,10 +280,8 @@ finally:
 # Case 10: extension-agnostic mirror — *_test.* / *.test.* are refused at any extension.
 td = base_git_fixture()
 try:
-    (td / ".harness/tools").mkdir(parents=True)
-    (td / ".harness/tools/session_test.md").write_text("notes\n")
-    (td / ".harness/evidence").mkdir(parents=True)
-    (td / ".harness/evidence/run.test.jsonl").write_text("{}\n")
+    plant(td, ".harness/tools/session_test.md", "notes\n")
+    plant(td, ".harness/evidence/run.test.jsonl", "{}\n")
     git_commit(td)
     got = suite_layout.violations(td)
     check("case 10: session_test.md flagged with no extension restriction",
@@ -367,10 +312,7 @@ def _is_inside_tests(pattern):
         if any(ch in segment for ch in "*?["):
             break
         prefix_segments.append(segment)
-    prefix = "/".join(prefix_segments)
-    normalized = posixpath.normpath(prefix) if prefix else ""
-    if not normalized or normalized == "." or posixpath.isabs(normalized):
-        return False
+    normalized = posixpath.normpath("/".join(prefix_segments))
     return normalized == "tests" or normalized.startswith("tests/")
 
 B5_CORPUS = (
@@ -391,9 +333,9 @@ B5_CORPUS = (
     ("testsuite/*.py", False),
 )
 b5_mismatches = [
-    (pattern, expected, _is_inside_tests(pattern))
-    for pattern, expected in B5_CORPUS
-    if _is_inside_tests(pattern) is not expected
+    (pattern, expected, got) for pattern, expected, got in
+    ((pattern, expected, _is_inside_tests(pattern)) for pattern, expected in B5_CORPUS)
+    if got is not expected
 ]
 check("b5 corpus: _is_inside_tests verdicts unchanged",
       b5_mismatches == [], repr(b5_mismatches))
@@ -435,9 +377,9 @@ B4_CORPUS = (
     ("*.py", False),
 )
 b4_mismatches = [
-    (core, expected, _literal_key_present(core))
-    for core, expected in B4_CORPUS
-    if _literal_key_present(core) is not expected
+    (core, expected, got) for core, expected, got in
+    ((core, expected, _literal_key_present(core)) for core, expected in B4_CORPUS)
+    if got is not expected
 ]
 check("b4 corpus: _literal_key_present verdicts unchanged",
       b4_mismatches == [], repr(b4_mismatches))
@@ -466,43 +408,47 @@ ADVERSARIAL_CORPUS = (
 )
 
 
-def _corpus_oracle(core):
-    for basename in ADVERSARIAL_CORPUS:
-        if fnmatch.fnmatch(basename, core) and not suite_layout.is_test_shaped(
-                ".harness/tools/" + basename):
-            return False, basename
-    return True, None
+def _corpus_offender(core):
+    """The first corpus basename the pattern core matches but is_test_shaped rejects, or None."""
+    return next((basename for basename in ADVERSARIAL_CORPUS
+                 if fnmatch.fnmatch(basename, core)
+                 and not suite_layout.is_test_shaped(".harness/tools/" + basename)), None)
 
 
-def _certify_pattern(pattern):
+def _uncertified_reason(pattern):
+    """Why a detect pattern is not certified, or None when it is (inside tests/ or guard-covered)."""
     if _is_inside_tests(pattern):
-        return "inside-tests", None
+        return None
     core = pattern[len("**/"):] if pattern.startswith("**/") else pattern
     if "/" in core:
-        return None, "core contains a directory separator"
+        return "core contains a directory separator"
     if not any(ch in core for ch in "*?[") or core.strip("*?[") == "":
-        return None, "core carries no wildcard-free literal text"
+        return "core carries no wildcard-free literal text"
     if not _literal_key_present(core):
-        return None, ("no fixed literal key (_test., .test., or a restricted prefix "
-                       "plus a source extension)")
-    oracle_ok, offending = _corpus_oracle(core)
-    if not oracle_ok:
-        return None, f"corpus basename {offending!r} matches but is_test_shaped rejects it"
-    return "guard-covered", None
+        return ("no fixed literal key (_test., .test., or a restricted prefix "
+                "plus a source extension)")
+    offending = _corpus_offender(core)
+    if offending is not None:
+        return f"corpus basename {offending!r} matches but is_test_shaped rejects it"
+    return None
 
 
 def hygiene_uncertified(test_kinds_cfg):
     uncertified = []
     for kind_name, kind_cfg in sorted(_running_kinds(test_kinds_cfg).items()):
         for pattern in code_grade._patterns(kind_cfg["detect"]):
-            category, reason = _certify_pattern(pattern)
-            if category is None:
+            reason = _uncertified_reason(pattern)
+            if reason is not None:
                 uncertified.append(f"{kind_name}: {pattern} ({reason})")
     return uncertified
 
 
+def _exception_paths():
+    return {entry[0] for entry in suite_layout.DOCUMENTED_EXCEPTIONS}
+
+
 def offenders(paths, test_kinds_cfg):
-    exception_paths = {entry[0] for entry in suite_layout.DOCUMENTED_EXCEPTIONS}
+    exception_paths = _exception_paths()
     return sorted(
         p for p in paths
         if not p.startswith("tests/")
@@ -520,14 +466,11 @@ CANDIDATE_CORPUS = (
 
 
 def select_control_candidate(test_kinds_cfg):
-    exception_paths = {entry[0] for entry in suite_layout.DOCUMENTED_EXCEPTIONS}
-    for cand in CANDIDATE_CORPUS:
-        if (not cand.startswith("tests/")
-                and code_grade._is_test_path(cand, test_kinds_cfg)
-                and not suite_layout.is_test_shaped(cand)
-                and cand not in exception_paths):
-            return cand
-    return None
+    """The first corpus path the config counts as a test but the layout guard does not refuse."""
+    exception_paths = _exception_paths()
+    return next((cand for cand in CANDIDATE_CORPUS
+                 if cand not in exception_paths
+                 and offenders([cand], test_kinds_cfg) == [cand]), None)
 
 
 test_kinds_cfg = repo_cfg["test_kinds"]
@@ -542,18 +485,18 @@ synthetic_tracked = [
     ".harness/notes/probe-something.md",
     ".claude/skills/harness/bin/suite_layout.py",
 ]
+synthetic_offenders = offenders(synthetic_tracked, test_kinds_cfg)
 check("case 11 behavioural: synthetic tracked set has no offenders",
-      offenders(synthetic_tracked, test_kinds_cfg) == [],
-      repr(offenders(synthetic_tracked, test_kinds_cfg)))
+      synthetic_offenders == [], repr(synthetic_offenders))
 
 try:
     real_tracked = list(suite_layout.tracked_paths(ROOT))
 except LookupError as error:
     check("case 11 behavioural: real tracked set has no offenders", False, str(error))
 else:
+    real_offenders = offenders(real_tracked, test_kinds_cfg)
     check("case 11 behavioural: real tracked set has no offenders",
-          offenders(real_tracked, test_kinds_cfg) == [],
-          repr(offenders(real_tracked, test_kinds_cfg)))
+          real_offenders == [], repr(real_offenders))
 
 control_candidate = select_control_candidate(test_kinds_cfg)
 if control_candidate is not None:
@@ -615,24 +558,26 @@ check("case 11 hygiene: every running-kind detect pattern is certified",
 STATIC_SOURCE = {"status": "active", "detect": "**/*.ts|**/*.tsx", "exclude": ""}
 FLAGGED_KINDS = {"typecheck": {**STATIC_SOURCE, "classifies_tests": False}}
 UNFLAGGED_KINDS = {"typecheck": dict(STATIC_SOURCE)}
+flagged_uncertified = hygiene_uncertified(FLAGGED_KINDS)
 check("classifies_tests: hygiene skips a flagged kind's broad patterns",
-      hygiene_uncertified(FLAGGED_KINDS) == [], repr(hygiene_uncertified(FLAGGED_KINDS)))
+      flagged_uncertified == [], repr(flagged_uncertified))
 unflagged_uncertified = hygiene_uncertified(UNFLAGGED_KINDS)
 check("classifies_tests: hygiene still refuses the same patterns when the flag is absent",
       [entry.split(" (")[0] for entry in unflagged_uncertified]
       == ["typecheck: **/*.ts", "typecheck: **/*.tsx"], repr(unflagged_uncertified))
 production_ts = [".omp/extensions/harness-hooks.ts", "tests/unit/omp-hooks.test.ts"]
+flagged_offenders = offenders(production_ts, FLAGGED_KINDS)
 check("classifies_tests: offenders ignore production source a flagged kind detects",
-      offenders(production_ts, FLAGGED_KINDS) == [], repr(offenders(production_ts, FLAGGED_KINDS)))
+      flagged_offenders == [], repr(flagged_offenders))
+unflagged_offenders = offenders(production_ts, UNFLAGGED_KINDS)
 check("classifies_tests: offenders report it when the flag is absent",
-      offenders(production_ts, UNFLAGGED_KINDS) == [".omp/extensions/harness-hooks.ts"],
-      repr(offenders(production_ts, UNFLAGGED_KINDS)))
+      unflagged_offenders == [".omp/extensions/harness-hooks.ts"], repr(unflagged_offenders))
 STATIC_PY = {"status": "active", "detect": "**/*.py", "exclude": ""}
+flagged_candidate = select_control_candidate({"lint": {**STATIC_PY, "classifies_tests": False}})
+unflagged_candidate = select_control_candidate({"lint": STATIC_PY})
 check("classifies_tests: the control candidate inherits the flag",
-      select_control_candidate({"lint": {**STATIC_PY, "classifies_tests": False}}) is None
-      and select_control_candidate({"lint": STATIC_PY}) == CANDIDATE_CORPUS[0],
-      repr((select_control_candidate({"lint": {**STATIC_PY, "classifies_tests": False}}),
-            select_control_candidate({"lint": STATIC_PY}))))
+      flagged_candidate is None and unflagged_candidate == CANDIDATE_CORPUS[0],
+      repr((flagged_candidate, unflagged_candidate)))
 
 
-raise SystemExit(1 if failures else 0)
+sys.exit(C.report())
