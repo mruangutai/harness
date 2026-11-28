@@ -6321,7 +6321,7 @@ feature; the branch is not to be merged or revived.
 **Why this is forced by the goal rather than preferred syntax.** A role whose frontmatter says `opus`
 or `sonnet` cannot run unchanged on OpenAI, and a hook present only in Claude settings is absent when
 OMP disables the Claude discovery provider. The pre-port probe at
-`.harness/notes/omp-port-baseline.md` measured exactly that split: all 16 roles and both required
+`d35aa81a:.harness/notes/omp-port-baseline.md` (pruned from the tree by FEAT-71) measured exactly that split: all 16 roles and both required
 three-level spawn chains were discoverable, while Expertise injection, domain denial, reviewer Bash
 denial, branch gating and digest rejection were all absent. Two providers agreeing after the port
 would not prove preservation, so that measured baseline is the third comparison point.
