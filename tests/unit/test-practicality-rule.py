@@ -204,35 +204,60 @@ verdict_case("practicality-fail-with-mustfix-accepted",
 verdict_case("practicality-discounted-only-pass-accepted", verdict="PASS")
 
 
-# --- DEC-123 as amended: an open row discounted at med does not deny the carve-out.
-def carveout_case(name, exposure, want_relief, current=None):
-    """`exposure` is the open panel row's; `current` is the team digest's finding with the same
-    PF id, by default the row's own rating."""
-    row_item = finding("a speculative refactor", exposure, "med", reader="fable-advisor")
-    item = current or row_item
+# --- DEC-123 as amended: an open row relieves only while the row AND the digest's current finding
+# with its id are both discounted at a non-gating severity, and the team carries no must_fix.
+SPECULATIVE = "a speculative refactor"
+
+
+def advisor(summary, exposure, severity="med"):
+    return finding(summary, exposure, severity, reader="fable-advisor")
+
+
+def carveout_case(name, want_relief, rows, items, must_fix=()):
+    """`rows` are (finding, disposition) pairs on disk; `items` the team digest's findings."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(os.path.realpath(tmp))
-        feature = rollup.build(root, [rollup.row(row_item, "open",
-                                                 exposure=copy.deepcopy(exposure))])
-        obj = rollup.product_digest(feature, "PASS", [item], member_list=rollup.members(
+        feature = rollup.build(root, [rollup.row(item, disposition,
+                                                 exposure=copy.deepcopy(item["exposure"]))
+                                      for item, disposition in rows])
+        obj = rollup.product_digest(feature, "PASS", items, member_list=rollup.members(
             scope="PASS", **{"should-not-exist": "FAIL"}))
-        obj["DIGEST"]["severity_max"] = item["severity"]
+        obj["DIGEST"]["severity_max"] = max((i["severity"] for i in items), key=vd.SEV.index)
+        obj["DIGEST"]["must_fix"] = list(must_fix)
         errors = vd.validate(rollup.PRODUCT, obj, feature_dir=str(feature))
     C.check(name, not errors if want_relief else rollup.worst_error(errors), show(errors))
 
 
-def run_carveout(name, exposure, want_relief, current=None):
+def run_carveout(name, want_relief, rows, items, must_fix=()):
     try:
-        carveout_case(name, exposure, want_relief, current)
+        carveout_case(name, want_relief, rows, items, must_fix)
     except Exception as exc:  # noqa: BLE001  a base-tree red must still print its line
         C.check(name, False, f"{type(exc).__name__}: {exc}")
 
 
-run_carveout("practicality-carveout-discounted-open-relieved", DISCOUNTED, True)
-run_carveout("practicality-carveout-plausible-open-denied", {**DISCOUNTED, "trigger": "plausible"},
-             False)
-# A stale discounted row never relieves a current finding the rule does not discount (MF-1).
-run_carveout("practicality-carveout-stale-row-current-high-denied", DISCOUNTED, False,
-             current=finding("a speculative refactor", PLAUSIBLE, "high", reader="fable-advisor"))
+OPEN_DISCOUNTED = (advisor(SPECULATIVE, DISCOUNTED), "open")
+run_carveout("practicality-carveout-discounted-open-relieved", True, [OPEN_DISCOUNTED],
+             [advisor(SPECULATIVE, DISCOUNTED)])
+# Leg: the row's own exposure must be discounted.
+PLAUSIBLE_ROW = advisor(SPECULATIVE, {**DISCOUNTED, "trigger": "plausible"})
+run_carveout("practicality-carveout-plausible-open-denied", False, [(PLAUSIBLE_ROW, "open")],
+             [PLAUSIBLE_ROW])
+run_carveout("practicality-carveout-row-plausible-current-discounted-denied", False,
+             [(PLAUSIBLE_ROW, "open")], [advisor(SPECULATIVE, DISCOUNTED)])
+# Leg: the current finding's exposure must be discounted (a stale row never relieves it).
+run_carveout("practicality-carveout-stale-row-current-high-denied", False, [OPEN_DISCOUNTED],
+             [advisor(SPECULATIVE, PLAUSIBLE, "high")])
+run_carveout("practicality-carveout-current-plausible-med-denied", False, [OPEN_DISCOUNTED],
+             [advisor(SPECULATIVE, {**DISCOUNTED, "trigger": "plausible"})])
+# Leg: the current finding's severity must be non-gating.
+run_carveout("practicality-carveout-current-discounted-high-denied", False, [OPEN_DISCOUNTED],
+             [advisor(SPECULATIVE, DISCOUNTED, "high")])
+# Leg: a current finding must exist; an omitted one cannot ride on its row's old rating.
+RESOLVED_GAP = advisor("a resolved scope gap", PLAUSIBLE)
+run_carveout("practicality-carveout-no-current-finding-denied", False,
+             [(RESOLVED_GAP, "resolved"), OPEN_DISCOUNTED], [RESOLVED_GAP])
+# A team must_fix keeps worst-wins (D-06): relief never overrides a must-fix the team carries.
+run_carveout("practicality-carveout-team-mustfix-denied", False, [OPEN_DISCOUNTED],
+             [advisor(SPECULATIVE, DISCOUNTED)], must_fix=["T-01 needs a verify for a.py"])
 
 sys.exit(C.report())

@@ -224,7 +224,8 @@ steps:
 # own severity, kind and exposure, never assign severity to unrated, de-duplicate on normalized
 # summary plus reader id, carry severity_max, and record assessed-and-dismissed findings with
 # reasons. The practicality rule is the one exception: the lead lowers to at most med a finding
-# it discounts (contrived, no_worse, not adversary-controlled), with a one-line reason, never
+# it discounts (contrived, no_worse, not adversary-controlled), with a one-line reason naming the
+# reader's original severity and exposure, never
 # raising a severity or revising kind; in this team it lowers rather than drops, so the panel
 # row exists and, left open at med, does not deny its reader the carve-out (DEC-123 as amended).
 # A remedy that would touch signed text reaches the operator only when its finding survives

@@ -57,3 +57,27 @@ Source: validate run 02 (FAIL, MF-1 to MF-5). Operator rulings are in `notes/ans
 ### Ledger note: closing run 02
 
 `feature-record.py close-run` from this worktree refused run 02's digest: the lead yielded it against the control plane's pre-feature schema (VAL-OQ-02), and the worktree's schema requires `exposure`. That is D-04's known residual, a lead run open while this feature's own schema change is live in the worktree. The run was closed with the control plane's `feature-record.py`, the validator its digest was yielded under, with verdict FAIL recorded. Run 03 will close the same way until the merge.
+
+## Fix round 2
+
+Source: validate run 03 (FAIL, MF-1 to MF-4). Operator rulings are in `notes/answers-2026-11-28-validate-c2.md`. This is the last round under the ruling. Run 03 was closed with the control plane's `feature-record.py`, `--cycles-used 0` as its digest reports.
+
+- **MF-1 (substance, high, T-01).** One rule now decides every attributed open row: `_open_row_reason`. A row relieves only when it is resolved, or when it AND the team digest's current finding with its PF id are both discounted at a non-gating severity. An omitted current finding denies relief. `_digest_finding_reason` keeps only the identity match. `_row_relieves` and `_matched_row_reason` are gone.
+- **MF-2 (substance, high, T-01).**
+  - **Measured first.** A product-lead `team: plan` PASS carrying a non-empty `must_fix` over resolved rows returned no errors at the pin, so it was not already refused.
+  - **Fix.** The carve-out now denies relief while the team's `must_fix` is non-empty ("the team carries must_fix"), in the new `_carveout_inputs`. That keeps `_plan_reader_carveout` at its graded shape, which `test-code-grade.py`'s self-grading requires. VAL-OQ-03's residual, a lead dropping a member's must_fix, is accepted by ruling.
+- **Test first, and one red mutant per leg.**
+  - At the pin, the new cases `practicality-carveout-no-current-finding-denied` and `practicality-carveout-team-mustfix-denied` were FAIL ("no errors").
+  - After the fix, each mutant below turns exactly one case red:
+
+  | Mutant | Red case |
+  |---|---|
+  | Drop the row-discount conjunct | `row-plausible-current-discounted-denied` (new) |
+  | Current check on severity only | `current-plausible-med-denied` (new) |
+  | Current check on exposure only | `current-discounted-high-denied` (new) |
+  | Drop the presence conjunct | `no-current-finding-denied` |
+  | Drop the must_fix check | `team-mustfix-denied` |
+
+  - BUG-2582's `test-validate-digest-plan-rollup.py` stays green. Its resolved-row cases carry an empty `must_fix`.
+- **MF-3 (form, T-05).** DEC-123's clause was rewritten in place (DEC-205) to state the one rule: every attributed row resolved, or open with row and current finding both discounted at a non-gating severity, and an empty team `must_fix`. DEC-260's D-06 bullet matches. The index was regenerated.
+- **MF-4 (form, T-03/T-04).** `harness-product-lead.md` and the `teams/plan.yaml` fan-in comment now require the triage reason to name the reader's original severity and exposure (D-03).

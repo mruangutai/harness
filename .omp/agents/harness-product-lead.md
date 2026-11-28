@@ -441,7 +441,8 @@ persona and reason) and `findings:` (reader, summary, severity, `kind`, `exposur
 `fable-advisor` ran. SHAPE is yours; never CONTENT and never IDENTITY: transcribe `unrated`
 unchanged (gating-equivalent to high), never assign a PF- id, never revise a reader's `kind`, and
 revise its severity only downward under the practicality rule, applied before you write
-`panel-c<N>.md`, with a one-line reason recorded beside the finding. Each finding carries the
+`panel-c<N>.md`, with a one-line reason recorded beside the finding naming the reader's original
+severity and exposure. Each finding carries the
 reader's `exposure` (`trigger`, `vs_today`, `control`); a `fable-advisor` finding with none is
 transcribed as `exposure: unrated`, never invented. In this team a `contrived`, `no_worse`,
 non-adversary finding is lowered to at most `med`, never dropped, so its panel row exists and, left

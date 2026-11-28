@@ -2121,7 +2121,8 @@ PLAN_READER_STEPS = tuple(PLAN_READER_PERSONAS)
 # orchestrator could not tell "plan ready" from "plan failed". A reader member's FAIL ranks as
 # PASS only when the feature's plan.yaml, on disk, records every finding attributed to that
 # reader as `resolved`, or open at a non-gating severity with an exposure the practicality rule
-# discounts while the digest's current finding with that id is discounted too (FEAT-2622 D-06).
+# discounts while the digest's current finding with that id is discounted too, and only while
+# the team's must_fix is empty (FEAT-2622 D-06).
 #
 # - Attribution accepts the slot or the persona spelling, both observed in real digests
 #   (`scope`, `code-reviewer`, `harness-code-reviewer`), but PF identity binds the exact reader
@@ -2142,11 +2143,20 @@ def _plan_reader_carveout(canonical, seen, artifact, feature_dir, mission=None):
     candidates = _carveout_candidates(canonical, seen, members)
     if not candidates:
         return {}
-    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
-    rows, reason = _carveout_rows(findings, members, artifact, feature_dir, mission)
+    findings, rows, reason = _carveout_inputs(seen, members, artifact, feature_dir, mission)
     if reason:
         return {index: reason for index in candidates}
     return {index: _candidate_reason(index, members, findings, rows) for index in candidates}
+
+
+def _carveout_inputs(seen, members, artifact, feature_dir, mission):
+    """(team findings, plan.yaml rows, None), or (None, None, why the carve-out cannot apply).
+    A team that carries must_fix keeps worst-wins (FEAT-2622 D-06)."""
+    if seen.get("must_fix"):
+        return None, None, "the team carries must_fix"
+    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
+    rows, reason = _carveout_rows(findings, members, artifact, feature_dir, mission)
+    return findings, rows, reason
 
 
 def _carveout_candidates(canonical, seen, members):
@@ -2268,22 +2278,27 @@ def _candidate_reason(index, members, findings, rows):
     if not mine:
         return f"no findings attributed to {members[index].get('step')}"
     reasons = ([_digest_finding_reason(item, rows) for item in mine]
-               + [_open_row_reason(row, index, members) for row in rows])
+               + [_open_row_reason(row, index, members, mine) for row in rows])
     return next((reason for reason in reasons if reason), None)
 
 
-def _open_row_reason(row, index, members):
-    """Why an on-disk row attributed to member `index` blocks relief, or None."""
-    if (_matching_members(row.get("reader"), members) == [index]
-            and not _row_relieves(row)):
-        return f"finding {row.get('id')} is not resolved"
-    return None
+def _open_row_reason(row, index, members, mine):
+    """Why an on-disk row attributed to member `index` blocks relief, or None. A resolved row
+    never does. Under the practicality rule (DEC-123 as amended, FEAT-2622 D-06) an open row
+    relieves only when it AND the team digest's current finding with its id are both
+    discounted at a non-gating severity: record-panel keeps a base row's bytes, so a stale
+    discounted rating must never stand in for a re-rated or omitted finding."""
+    if (_matching_members(row.get("reader"), members) != [index]
+            or row.get("disposition") == "resolved"):
+        return None
+    current = [f for f in mine if _finding_pfid(f) == row.get("id")]
+    if _discounted_non_gating(row) and current and all(map(_discounted_non_gating, current)):
+        return None
+    return f"finding {row.get('id')} is not resolved"
 
 
-def _row_relieves(row):
-    """A resolved row, or (DEC-123 as amended by the practicality rule, FEAT-2622 D-06) an open
-    row whose exposure is discounted at a non-gating severity."""
-    return row.get("disposition") == "resolved" or _discounted_non_gating(row)
+def _finding_pfid(item):
+    return panel_findings.finding_id(str(item.get("reader")), str(item.get("summary")))
 
 
 def _discounted_non_gating(entry):
@@ -2291,29 +2306,18 @@ def _discounted_non_gating(entry):
             and panel_findings.is_non_gating(entry.get("severity")))
 
 
-def _matched_row_reason(item, row, pfid):
-    """An open discounted row relieves only while the team digest's current finding with its
-    id is discounted at a non-gating severity too: record-panel keeps a base row's bytes, so a
-    stale discounted rating must never hide a re-rated gating finding (FEAT-2622 MF-1)."""
-    if row.get("disposition") == "resolved":
-        return None
-    if _discounted_non_gating(row) and _discounted_non_gating(item):
-        return None
-    return f"finding {pfid} is not resolved"
-
-
 def _digest_finding_reason(item, rows):
-    """Why one team-digest finding does not match exactly one resolved plan.yaml row, or None."""
+    """Why one team-digest finding does not match exactly one plan.yaml row, or None; whether
+    that row relieves is _open_row_reason's."""
     reader, summary = str(item.get("reader")), str(item.get("summary"))
     pfid = panel_findings.finding_id(reader, summary)
     hits = [row for row in rows if row.get("id") == pfid]
     if not hits:
         return f"finding {pfid} absent from plan.yaml panel.findings"
     if (len(hits) != 1 or str(hits[0].get("reader")) != reader
-            or panel_findings.finding_id(str(hits[0].get("reader")),
-                                         str(hits[0].get("summary"))) != pfid):
+            or _finding_pfid(hits[0]) != pfid):
         return f"finding {pfid} has no matching plan.yaml panel row"
-    return _matched_row_reason(item, hits[0], pfid)
+    return None
 
 
 def _empty_members_errors(members, steps_run):
