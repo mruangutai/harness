@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2641-local-working-files",
   "branch": "feat/FEAT-2641-local-working-files",
   "pr": null,
-  "review_sha": "1848f0752662f70e4eb5d6b841a2c1797bb3bf6f",
+  "review_sha": "5e997e88b36c2460855bc0640f768ef109364963",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -82,6 +82,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T16:00:26+00:00"
+    },
+    {
+      "id": "fix-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T16:32:30+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c3-validator/digest.md",
+        "sha256": "9b3048bcd9ae0c94ebef55e87950fa080c3a332eacbe63e75b467fbfb36dcaf3"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T16:57:33+00:00"
     }
   ],
   "judgements": [
@@ -217,6 +232,13 @@
       "kind": "amendment",
       "decision": "T-12.files",
       "reason": "OQ-YAML operator ruling (notes/answers-fix-c1.md): tests/integration/test-harness-yaml.py joins T-12; its COLLECT_FIXTURE gains the scratch rows T-12's grants add."
+    },
+    {
+      "at": "2026-11-28T17:09:17+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "check-plan-routes receipt from a clean clone at the tested commit",
+      "reason": "OQ-ROUTES-C2/C3: linked worktrees read the owner team-config lacking T-12 grants; clone run at exact HEAD is the integration receipt; gate defect B-2"
     }
   ],
   "mission": "plan",
