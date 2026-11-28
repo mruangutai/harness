@@ -36,7 +36,7 @@ its default branch, every Harness reader refuses that member.
   prints the exact new entries and **exits 1**; the main session MUST relay them and add
   them by hand, preserving the existing globs and their comments.
 - **Working files checklist (DEC-262): the ignore merge in an existing checkout.** Each
-  feature's `notes/`, `runs/`, `observations/` and `scratch/` and the project `.harness/notes/`
+  feature's `notes/`, `runs/`, `observations/` and `scratch/` and the project notes directory
   are local working files, never committed. The operator runs this once per checkout:
   1. Pause teams, distill and worktree removal in this checkout.
   2. Run the merge:
@@ -49,10 +49,10 @@ its default branch, every Harness reader refuses that member.
   4. Untrack the working files:
 
      ```bash
-     git rm -r --cached --sparse --ignore-unmatch -- \
-       ':(glob).harness/*/features/*/notes/**' ':(glob).harness/*/features/*/runs/**' \
-       ':(glob).harness/*/features/*/observations/**' ':(glob).harness/*/features/*/scratch/**' \
-       ':(glob).harness/notes/**'
+     git -C .harness rm -r --cached --sparse --ignore-unmatch -- \
+       ':(glob)*/features/*/notes/**' ':(glob)*/features/*/runs/**' \
+       ':(glob)*/features/*/observations/**' ':(glob)*/features/*/scratch/**' \
+       ':(glob)notes/**'
      ```
 
   5. Commit `.gitignore` and the untracking as their own commit. History is not rewritten and

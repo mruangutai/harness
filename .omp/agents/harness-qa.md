@@ -277,7 +277,7 @@ You still run the matrix; `validate-digest.py` no longer runs it again. An uncon
 3. Keep in your note, beside the named SC and fail-first evidence, one summary per suite: what
    ran (the runner command and kind), at which commit, the verdict and the pass/fail/skip counts.
    Write the runner's raw output to the feature's `scratch/`
-   (`.harness/<repo>/features/<FEAT>/scratch/`), never into the note (DEC-261). A receipt is the
+   (`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/scratch/`), never into the note (DEC-261). A receipt is the
    runner's own file: **never hand-edit one green**.
 4. A refusal names every bad receipt and the exact command that repairs it. Run that command
    and return again; the validator never falls back to a run of its own.

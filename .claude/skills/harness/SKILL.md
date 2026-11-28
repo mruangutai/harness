@@ -47,7 +47,7 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    `## Mission` block and write it — `feature-record.py set-mission --file <feature.json> --mission
    <patch|plan> --by harness-orchestrator --reason "<the block's reason: line>"`; the verb writes
    the `mission` judgement in the same act, so a mission never exists without its entry (INV-40).
-   Record each `.harness/notes/` path your dispatch hands you as made for this feature (the
+   Record each `<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/` path your dispatch hands you as made for this feature (the
    grilling artifact, its facts file) with `feature-record.py project-note --file <feature.json>
    --path <path>`; cleanup deletes only those (DEC-262).
    No `## Mission` is not an intake: return `BLOCKED` naming it.
