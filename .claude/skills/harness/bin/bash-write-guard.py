@@ -198,8 +198,34 @@ if not agent:
 # returned at the check above. The case where IT moves a branch under a live run is
 # answered by isolation instead: after T-01 each orchestrator commits inside its own
 # worktree.
+# GIT'S GLOBAL OPTIONS ARE A CLOSED SET HERE (FEAT-2641 fix c3, MF-2b). An option this walk
+# does not know could take a spaced value, and reading that value as the subcommand hid
+# `git --config-env a=B switch x` from REQ-04 and a native `worktree remove` from T-11's
+# retention. So an option outside these three tuples is undecidable, refused (DEC-151).
+# Taken with a separate value token (and, but for -C and -c, also as one `--name=value`):
 GIT_GLOBAL_FLAGS_WITH_VALUE = ("-C", "-c", "--git-dir", "--work-tree", "--namespace",
-                               "--exec-path", "--super-prefix")
+                               "--exec-path", "--super-prefix", "--config-env", "--attr-source")
+# Accepted only as one `--name=value` token:
+GIT_GLOBAL_FLAGS_EQUALS_ONLY = ("--list-cmds",)
+# Taking no value:
+GIT_GLOBAL_FLAGS_VALUELESS = ("-p", "--paginate", "-P", "--no-pager", "--bare",
+                              "--no-replace-objects", "--no-lazy-fetch", "--no-optional-locks",
+                              "--no-advice", "--literal-pathspecs", "--glob-pathspecs",
+                              "--noglob-pathspecs", "--icase-pathspecs", "-h", "--help", "-v",
+                              "--version", "--html-path", "--man-path", "--info-path")
+
+
+def _git_global_width(option):
+    """The tokens git's global `option` spans: 2 with a separate value, 1 alone or as
+    `--name=value`; None for an option outside the closed set above (undecidable)."""
+    if option in GIT_GLOBAL_FLAGS_WITH_VALUE:
+        return 2
+    name, eq, _value = option.partition("=")
+    if option in GIT_GLOBAL_FLAGS_VALUELESS or (eq and name.startswith("--") and name in (
+            GIT_GLOBAL_FLAGS_WITH_VALUE + GIT_GLOBAL_FLAGS_EQUALS_ONLY)):
+        return 1
+    return None
+
 
 # THE REFUSE LIST IS THE CLOSED SET. Everything else DECIDABLE is allowed and only the
 # UNDECIDABLE case is refused — this direction is load-bearing under R-01, not a
@@ -219,11 +245,11 @@ def _git_subcommand(tokens):
     i = 0
     while i < len(tokens):
         t = tokens[i]
-        if t in GIT_GLOBAL_FLAGS_WITH_VALUE:
-            i += 2
-            continue
         if t.startswith("-"):
-            i += 1
+            width = _git_global_width(t)
+            if width is None:
+                return None, []
+            i += width
             continue
         return t, tokens[i + 1:]
     return None, []
@@ -825,14 +851,28 @@ def _worktree_destination(args, sub):
 # The same count (working_files.untracked_counts) refuses it here; every failure refuses.
 def _git_effective_args(args):
     """(directory, args after git's global options): git's own `-C <dir>` options joined in
-    order, as git applies them ("" when there is none, which is the hook's cwd)."""
+    order, as git applies them ("" when there is none, which is the hook's cwd). The args are
+    None after a global option outside the closed set: where the subcommand starts is then
+    undecidable."""
     where, i = "", 0
     while i < len(args) and args[i].startswith("-"):
         flag, value = args[i], args[i + 1:i + 2]
+        width = _git_global_width(flag)
+        if width is None:
+            return where, None
         if flag == "-C":
             where = os.path.join(where, *value)
-        i += 2 if flag in GIT_GLOBAL_FLAGS_WITH_VALUE else 1
+        i += width
     return where, args[i:]
+
+
+def _refuse_unmodelled_option(args):
+    """Refuse a git call whose global options hold one outside the closed set when `worktree`
+    and then `remove` appear among its arguments: where its subcommand starts is undecidable."""
+    if "worktree" in args and "remove" in args[args.index("worktree") + 1:]:
+        _refuse_native_remove("`git worktree remove` behind a git global option this guard does "
+                              "not model, so it cannot tell which subcommand or worktree git "
+                              "would run, or whether working files would be lost.")
 
 
 def _refuse_native_remove(why):
@@ -911,6 +951,9 @@ def _remove_target(args):
     unique path suffix); git refuses to remove the main worktree. A repository selector and no
     determinable operand both refuse (DEC-151's undecidable direction)."""
     where, rest = _git_effective_args(args)
+    if rest is None:
+        _refuse_unmodelled_option(args)
+        return None
     if rest[:2] != ["worktree", "remove"]:
         return None
     _refuse_repo_selectors(args[:len(args) - len(rest)])

@@ -904,6 +904,8 @@ def _native_selector_cases(root, other, tmp):
            ("--work-tree=", f"git --work-tree={root} worktree remove FEAT-91"),
            ("GIT_DIR=", f"GIT_DIR={gd} git worktree remove FEAT-91"),
            ("GIT_WORK_TREE=", f"GIT_WORK_TREE={root} git worktree remove FEAT-91"),
+           ("GIT_COMMON_DIR=", f"GIT_COMMON_DIR={gd} git worktree remove FEAT-91"),
+           ("env GIT_DIR=", f"env GIT_DIR={gd} git worktree remove FEAT-91"),
            ("export GIT_DIR=", f"export GIT_DIR={gd}; git worktree remove FEAT-91")]
     cases = [(f"T-11 (k) MF-2: `{form}` with an identifier operand and ignored evidence, cwd another "
               f"repository, is refused", cmd, 2, other, ("cannot tell which worktree",), None)
@@ -912,6 +914,24 @@ def _native_selector_cases(root, other, tmp):
                   "crash: exit 2 with notes/ (2 files)", "git worktree remove FEAT-91", 2, root,
                   ("notes/ (2 files)", "runs/ (1 files)"), _undecodable_git(tmp)))
     return cases
+
+
+def _native_option_cases(root):
+    """(name, command, wanted exit, hook cwd, stderr needles, extra env) for fix c3 MF-2b: git's
+    global options are a closed set. One taking a spaced value (--config-env, --attr-source)
+    must not desynchronise the subcommand walk, and an option outside the set refuses."""
+    counted = ("notes/ (1 files)", "runs/ (1 files)")
+    return [
+        ("T-11 (m) MF-2b: spaced `--config-env a=B` is still a removal: counted, exit 2",
+         "git --config-env a=B worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: `--config-env=a=B` is still a removal: counted, exit 2",
+         "git --config-env=a=B worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: spaced `--attr-source HEAD` is still a removal: counted, exit 2",
+         "git --attr-source HEAD worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: a global option outside the closed set is refused before a removal "
+         "(behind `env`, which REQ-04's first-token walk skips, so this gate is the one refusing)",
+         "env git --frobnicate value worktree remove FEAT-91", 2, root, ("does not model",), None),
+    ]
 
 
 def run_native_remove_c2():
@@ -925,11 +945,38 @@ def run_native_remove_c2():
                               f"{_NATIVE_FEATURE_REL}/notes/x.md"], capture_output=True)
     results = [("T-11 c2: the fixture's notes/x.md is ignored by git", ignored.returncode == 0,
                 f"check-ignore exit {ignored.returncode}")]
-    for name, cmd, want, cwd, needles, extra in _native_selector_cases(root, other, tmp):
+    for name, cmd, want, cwd, needles, extra in (_native_selector_cases(root, other, tmp)
+                                                 + _native_option_cases(root)):
         r = fire(root, cmd, cwd=cwd, extra_env=extra)
         ok = r.returncode == want and all(n in r.stderr for n in needles)
         results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
     shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
+_HEAD_OPTION_CASES = (
+    ("REQ-04 MF-2b: spaced `--config-env a=B` cannot hide `switch`",
+     "git --config-env a=B switch x", 2, "moves HEAD"),
+    ("REQ-04 MF-2b: spaced `--attr-source HEAD` cannot hide `checkout main`",
+     "git --attr-source HEAD checkout main", 2, "moves HEAD"),
+    ("REQ-04 MF-2b: a global option outside the closed set is undecidable, so refused",
+     "git --frobnicate value status", 2, "cannot determine"),
+    ("REQ-04 MF-2b: a known spaced global option before `status` stays allowed",
+     "git --config-env a=B status", 0, ""),
+    ("REQ-04 MF-2b: known valueless global options before `log` stay allowed",
+     "git --no-pager --no-optional-locks log -1", 0, ""),
+)
+
+
+def run_head_move_global_options():
+    """FEAT-2641 T-11 (fix c3 MF-2b): the REQ-04 HEAD-mover walk shares the closed global-option
+    set, so a value-taking option cannot pass its value off as the subcommand."""
+    root = fixture(FIXTURE_MANIFEST)
+    results = []
+    for name, cmd, want, needle in _HEAD_OPTION_CASES:
+        r = fire(root, cmd)
+        results.append((name, r.returncode == want and needle in r.stderr,
+                        f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
     _record(results)
 
 
@@ -1913,6 +1960,7 @@ def main():
     run_native_remove_retention()
     run_native_remove_identifier()
     run_native_remove_c2()
+    run_head_move_global_options()
     run_feat50_checkout_binding()
     run_feat61_feature_checkout_adapter()
     run_feat65_guard_cases()
