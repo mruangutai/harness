@@ -4469,7 +4469,8 @@ describe("BUG-2566 stale hook fingerprint", () => {
     expect(typeof reason).toBe("string");
     expect(reason).not.toContain("\n");
     expect(reason).toContain("restart omp");
-    expect(reason).toContain(H);
+    // The path is reported relative to the loaded checkout's root, never to the cwd.
+    expect(reason).toContain(`no longer matches ${H} on disk`);
   }
 
   test("BUG-2566 SC-01: an untouched loaded module is not stale", async () => {
@@ -4507,11 +4508,12 @@ describe("BUG-2566 stale hook fingerprint", () => {
     const { root } = await staleTree();
     const probe = join(root, "fifo-probe.ts");
     writeFileSync(probe, [
-      'import { rmSync } from "node:fs";',
+      'import { lstatSync, rmSync } from "node:fs";',
       'import { spawnSync } from "node:child_process";',
       `const module = await import(${JSON.stringify(join(root, H))});`,
       `rmSync(${JSON.stringify(join(root, H))});`,
-      `spawnSync("mkfifo", [${JSON.stringify(join(root, H))}]);`,
+      `const made = spawnSync("mkfifo", [${JSON.stringify(join(root, H))}]);`,
+      `if (made.status !== 0 || !lstatSync(${JSON.stringify(join(root, H))}).isFIFO()) process.exit(3);`,
       "console.log(JSON.stringify(module.staleHookRefusal()));",
       "",
     ].join("\n"));

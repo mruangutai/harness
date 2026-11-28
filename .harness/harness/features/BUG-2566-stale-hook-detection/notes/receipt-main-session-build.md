@@ -34,3 +34,22 @@ Under DEC-174 the main session ran the four angles itself, read-only, over `87ef
 ## Open for the operator
 
 SC-10 is `verify: uat`: start omp in this worktree, add a comment line to its `harness-hooks.ts`, and confirm that a `task` dispatch is refused with the restart line while read and edit still work, and that it proceeds after a restart.
+
+## Fix round 1 (validate run 2026-11-27-04, ESCALATE)
+
+Operator rulings are in `notes/answers-2026-11-27-validate-c1.md`:
+
+- E-01 is accepted as is and not documented.
+- The SC-10 steps are now `notes/uat.md`.
+
+The two must_fix items are test-only, in `tests/unit/omp-hooks.test.ts`:
+
+- **FIFO probe.** It now exits 3 unless `mkfifo` succeeded and `lstatSync(path).isFIFO()` holds, so a failed `mkfifo` can no longer pass as the deletion case.
+- **`expectStale`.** It asserts `no longer matches ${H} on disk`, which witnesses that the path is relative to the loaded checkout's root.
+
+Mutant M3 (`staleHookRefusal` using `process.cwd()` as the reason root) now fails 6 fingerprint cases: `bun test tests/unit/omp-hooks.test.ts -t 'BUG-2566 stale hook fingerprint'`, exit 1, 7 pass / 6 fail. The hook was restored from the saved copy, and `cmp` confirmed it equal, with `git diff` empty.
+
+After the last edit:
+
+- `bun test tests/unit/omp-hooks.test.ts`: 274 pass / 0 fail.
+- `bun run typecheck`: exit 0.

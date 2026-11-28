@@ -53,6 +53,21 @@
       "tokens": null,
       "ended_at": "2026-11-27T17:05:20+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T00:36:38+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-04-validate-validator/digest.md",
+        "sha256": "ab73252b5fa4871283648e9aa9a8fd25ae3a077a7add6fb4c757d69008b8494f"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T00:51:33+00:00"
     }
   ],
   "judgements": [
