@@ -3,7 +3,9 @@
 
 Every worktree criterion in the BRIEF is verify-automated evidence integration, and prose
 cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, with `create`,
-`list`, `path` and `remove` subcommands.
+`list`, `path`, `remove`, `behind` and `clean` subcommands. `clean` removes a feature's local
+working files (notes/, runs/, observations/ and its listed project notes, DEC-260) once its
+landed or worktree record reads a terminal station, through bin/working_files.py.
 
 --repo accepts exactly two forms:
 
@@ -39,7 +41,9 @@ import re
 import subprocess
 import sys
 import artifact_accessors
+import feature_corpus
 import harness_boundary
+import working_files
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -284,10 +288,37 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
         print(f"{len(paths)} change(s) would be discarded in {dest}")
         sys.exit(4)
 
+    # GATE 2b - ignored working files (notes/, runs/, observations/) are invisible to GATE 2 and
+    # `git worktree remove` deletes them silently (DEC-260 D-08). Tracked files are GATE 3's.
+    if segment is not None:
+        _gate_working_files(fid, segment, dest)
+
     # GATE 3 - every tracked artifact file has landed on the default branch. A code worktree
     # holds no artifacts.
     if segment is not None:
         _gate_landed(fid, segment, default_branch, dest)
+
+
+def _gate_working_files(fid, segment, dest):
+    features_rel = os.path.join(".harness", segment, "features")
+    artifact_rel = os.path.join(features_rel, _artifact_id(fid, os.path.join(dest, features_rel)))
+    try:
+        paths = working_files.untracked(dest, artifact_rel)
+    except working_files.WorkingFilesError as exc:
+        print(f"feature-worktree: remove: {exc}", file=sys.stderr)
+        sys.exit(4)
+    if not paths:
+        return
+    for d in working_files.WORKING_DIRS:
+        prefix = f"{artifact_rel}/{d}/"
+        count = sum(1 for p in paths if p.startswith(prefix))
+        if count:
+            print(f"WOULD DISCARD WORKING FILES {prefix} ({count} files)")
+    retry = working_files.retry_command(os.path.join(dest, artifact_rel))
+    print(f"working files remain for {fid}: distill it (merge-gate.py merge-distill removes them "
+          f"after merging), decline the distill with gh-sync.py skip-distill, which removes them "
+          f"after recording the decline, or retry a failed cleanup with {retry}")
+    sys.exit(4)
 
 
 def _artifact_id(fid, features_abs):
@@ -395,16 +426,97 @@ def _behind_one(owner_root, dest, default_branch):
     return 6
 
 
+_TERMINAL = ("done", "abandoned", "rejected")
+
+
+def _id_matches(name, fid):
+    return name == fid or name.startswith(fid + "-") or fid.startswith(name + "-")
+
+
+def _clean_copies(args):
+    """(owner, owner copy, worktree copy or None) for clean, resolved at the worktree seam."""
+    _role, owner_root, wt_segment, segment, _branch = next(
+        t for t in targets(args.repo) if t[3] is not None)
+    try:
+        owner = feature_corpus.owner_root(owner_root)
+    except feature_corpus.CorpusError as exc:
+        print(f"REFUSED clean: {exc}")
+        sys.exit(7)
+    features_rel = os.path.join(".harness", segment, "features")
+    owner_features = os.path.join(owner, features_rel)
+    owner_copy = os.path.join(owner_features, _artifact_id(args.id, owner_features))
+    wt_parent = os.path.realpath(os.path.join(owner, harness_boundary.WORKTREES_SEGMENT, wt_segment))
+    held = []
+    for path in sorted(_linked_worktree_paths(owner)):
+        if os.path.dirname(path) != wt_parent or not _id_matches(os.path.basename(path), args.id):
+            continue
+        wt_features = os.path.join(path, features_rel)
+        copy = os.path.join(wt_features, _artifact_id(args.id, wt_features))
+        if os.path.isdir(copy):
+            held.append(copy)
+    if len(held) > 1:
+        print(f"REFUSED clean: {args.id} is held by {len(held)} linked worktrees: "
+              f"{', '.join(held)}; nothing was removed")
+        sys.exit(5)
+    return owner, owner_copy, (held[0] if held else None)
+
+
+def cmd_clean(args):
+    """Remove a feature's working files once its landed or worktree record is terminal."""
+    from check_state import ctx as check_ctx
+    owner, owner_copy, wt_copy = _clean_copies(args)
+    stations = [check_ctx.lenient_station(c) if c and os.path.isdir(c) else None
+                for c in (owner_copy, wt_copy)]
+    if not any(s in _TERMINAL for s in stations):
+        landed, worktree = (s or "absent" for s in stations)
+        print(f"REFUSED clean: {args.id} is at no terminal station (landed record: {landed}; "
+              f"worktree record: {worktree}); working files are cleaned only at a terminal station")
+        sys.exit(7)
+    feature_dir = wt_copy or owner_copy
+    try:
+        paths = working_files.targets(feature_dir, owner)
+    except working_files.WorkingFilesError as exc:
+        print(f"REFUSED clean: {exc}")
+        sys.exit(7)
+    if not paths:
+        print(f"nothing to clean for {args.id}")
+        return
+    if not args.yes:
+        for p in paths:
+            print(f"WOULD REMOVE {p}")
+        print("re-run with --yes to remove them")
+        return
+    removed = []
+
+    def emit(line):
+        path = line[len("removed "):]
+        removed.append(path)
+        print(f"REMOVED {path}")
+
+    try:
+        working_files.clean(feature_dir, owner, emit=emit)
+    except working_files.WorkingFilesError as exc:
+        print(f"REFUSED clean: {exc}")
+        sys.exit(7)
+    except OSError as exc:
+        print(f"feature-worktree: clean failed: {exc}", file=sys.stderr)
+        for p in removed:
+            print(f"already removed: {p}", file=sys.stderr)
+        sys.exit(1)
+
+
 def _build_parser():
     parser = argparse.ArgumentParser(prog="feature-worktree.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name, func, takes_id in (("create", cmd_create, True), ("list", cmd_list, False),
                                  ("path", cmd_path, True), ("remove", cmd_remove, True),
-                                 ("behind", cmd_behind, True)):
+                                 ("behind", cmd_behind, True), ("clean", cmd_clean, True)):
         p = sub.add_parser(name)
         p.add_argument("--repo", required=True)
         if takes_id:
             p.add_argument("--id", required=True)
+        if name == "clean":
+            p.add_argument("--yes", action="store_true", help="remove; without it, list only")
         p.set_defaults(func=func)
     return parser
 
