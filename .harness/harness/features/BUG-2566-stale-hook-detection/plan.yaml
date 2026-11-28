@@ -218,7 +218,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - changes the tool_call hook in harness-hooks.ts that enforces the build itself, with its test.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts#registerHarnessHooks
       - tests/unit/omp-hooks.test.ts
@@ -271,7 +271,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - documents the hook change; the operator routed every task of this feature main-session-direct.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/SPEC.md
     verify: |
