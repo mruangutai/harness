@@ -527,20 +527,6 @@
       "task": "T-07"
     },
     {
-      "artifact": "state.yaml",
-      "category": "harness_yaml_file",
-      "dec174_category": "none",
-      "disposition": "exempt",
-      "execution_route": "team",
-      "exemption": "sole_state_yaml_reader",
-      "file": ".claude/skills/harness/bin/check_state/ctx.py",
-      "id": ".claude/skills/harness/bin/check_state/ctx.py::Ctx.run_states::harness_yaml_file#1",
-      "reason": "This is the documented sole state.yaml reader and remains trip-wired.",
-      "remedy": "none",
-      "symbol": "Ctx.run_states",
-      "task": "none"
-    },
-    {
       "artifact": "plan.yaml text at the pinned commit and on disk",
       "category": "harness_yaml_string",
       "dec174_category": "validator",
@@ -2269,33 +2255,6 @@
       "task": "none"
     },
     {
-      "artifact": "run UI results.json",
-      "category": "json_file",
-      "dec174_category": "none",
-      "disposition": "exempt",
-      "execution_route": "main-session-direct",
-      "exemption": "module_internal_format",
-      "file": ".claude/skills/harness/bin/prune-run-evidence.py",
-      "id": ".claude/skills/harness/bin/prune-run-evidence.py::_served_commit::json_file#1",
-      "reason": "Read the UI-owned results envelope solely to match served_bundle_commit.",
-      "remedy": "none",
-      "symbol": "_served_commit",
-      "task": "none"
-    },
-    {
-      "artifact": "feature.json",
-      "category": "load_feature_json",
-      "dec174_category": "validator",
-      "disposition": "canonical",
-      "execution_route": "main-session-direct",
-      "file": ".claude/skills/harness/bin/prune-run-evidence.py",
-      "id": ".claude/skills/harness/bin/prune-run-evidence.py::_load_record::load_feature_json#1",
-      "reason": "",
-      "remedy": "feature_record.read.load_feature_json",
-      "symbol": "_load_record",
-      "task": "none"
-    },
-    {
       "artifact": "fleet.yaml",
       "category": "load_fleet",
       "dec174_category": "validator",
@@ -2519,6 +2478,45 @@
       "remedy": "feature_record.read.load_feature_json",
       "symbol": "cmd_ship",
       "task": "none"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/gh-sync.py",
+      "id": ".claude/skills/harness/bin/gh-sync.py::_validate_pass_recorded::load_feature_json#1",
+      "reason": "",
+      "remedy": "feature_record.read.load_feature_json",
+      "symbol": "_validate_pass_recorded",
+      "task": "none"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/gh-sync.py",
+      "id": ".claude/skills/harness/bin/gh-sync.py::_decline_recorded::load_feature_json#1",
+      "reason": "",
+      "remedy": "feature_record.read.load_feature_json",
+      "symbol": "_decline_recorded",
+      "task": "none"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/working_files.py",
+      "id": ".claude/skills/harness/bin/working_files.py::project_notes::load_feature_json#1",
+      "reason": "",
+      "remedy": "feature_record.read.load_feature_json",
+      "symbol": "project_notes",
+      "task": "none"
     }
   ],
   "scanned_files": [
@@ -2588,7 +2586,6 @@
     ".claude/skills/harness/bin/plan-sign-gate.py",
     ".claude/skills/harness/bin/plan_anchors.py",
     ".claude/skills/harness/bin/post-merge-sweep.py",
-    ".claude/skills/harness/bin/prune-run-evidence.py",
     ".claude/skills/harness/bin/run-unit-tests.py",
     ".claude/skills/harness/bin/run_identity.py",
     ".claude/skills/harness/bin/run_pool.py",
@@ -2598,6 +2595,7 @@
     ".claude/skills/harness/bin/validate-digest.py",
     ".claude/skills/harness/bin/validate-feature-json.py",
     ".claude/skills/harness/bin/wayfind.py",
+    ".claude/skills/harness/bin/working_files.py",
     ".claude/skills/harness/bin/worktree-state.py",
     ".claude/skills/harness/bin/worktree_terminal.py",
     ".claude/skills/harness/bin/check_state/__init__.py",
@@ -2608,9 +2606,7 @@
     ".claude/skills/harness/bin/check_state/feature_record.py",
     ".claude/skills/harness/bin/check_state/host.py",
     ".claude/skills/harness/bin/check_state/plan.py",
-    ".claude/skills/harness/bin/check_state/run_state.py",
     ".claude/skills/harness/bin/check_state/runner.py",
-    ".claude/skills/harness/bin/check_state/seams.py",
     ".claude/skills/harness/bin/check_state/table.py",
     ".claude/skills/harness/bin/check_state/worktrees.py",
     ".claude/skills/harness/bin/feature_record/__init__.py",
