@@ -37,8 +37,8 @@ def _bound_mirror_binding(bound, root):
     fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
     factory_config.repo_entry(fleet, bound)
     config = factory_config.product_config(fleet, bound)
-    github = config["github"]
-    if github["repo"] != bound or not github["sync"]:
+    gh_config = config["github"]
+    if gh_config["repo"] != bound or not gh_config["sync"]:
         raise artifact_accessors.FleetError("invalid product mirror", bound,
                                           "github.sync must be enabled and github.repo must match factory.repo")
     return bound, factory_config.board_for(fleet, bound), issue_types.overrides_from_config(config)
@@ -53,9 +53,9 @@ def _owner_mirror_binding(root):
         config = artifact_accessors.load_harness_json(path)
     except artifact_accessors.ArtifactAccessError as error:
         raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
-    github = config["github"]
-    board = github["board"] if github["sync"] else None
-    return (github["repo"], None if board is None else factory_config.validate_board(board),
+    gh_config = config["github"]
+    board = gh_config["board"] if gh_config["sync"] else None
+    return (gh_config["repo"], None if board is None else factory_config.validate_board(board),
             issue_types.overrides_from_config(config))
 
 
@@ -72,23 +72,23 @@ def effective_recorded_repo(doc, bound_repo):
 
 def mirror_provenance_problem(doc, bound_repo):
     """A readable legacy mapping is not permission to reuse its unproven numbers."""
-    github = doc.get("github") or {}
-    recorded_repo = github.get("repo")
-    active = any(github.get(key) for key in ("milestone", "parent", "issues", "attached", "typed"))
-    if _repo_conflicts(doc, github, bound_repo, active):
+    gh_record = doc.get("github") or {}
+    recorded_repo = gh_record.get("repo")
+    active = any(gh_record.get(key) for key in ("milestone", "parent", "issues", "attached", "typed"))
+    if _repo_conflicts(doc, gh_record, bound_repo, active):
         return f"recorded github.repo {recorded_repo!r} conflicts with bound repository {bound_repo!r}"
     if active and (not bound_repo or effective_recorded_repo(doc, bound_repo) != bound_repo):
         return "nonempty mirror has no matching github.repo provenance"
     return None
 
 
-def _repo_conflicts(doc, github, bound_repo, active):
+def _repo_conflicts(doc, gh_record, bound_repo, active):
     """A recorded repository other than the bound one, on a mapping that claims a binding."""
-    recorded_repo = github.get("repo")
+    recorded_repo = gh_record.get("repo")
     if recorded_repo is None or recorded_repo == bound_repo:
         return False
     return (bound_repo is not None or active
-            or github.get("build_entry") in {"opened", "recovered-terminal"}
+            or gh_record.get("build_entry") in {"opened", "recovered-terminal"}
             or (doc.get("factory") or {}).get("repo") is not None)
 
 
@@ -96,8 +96,8 @@ def receipt_allows_merge(doc, bound_repo):
     """Shared provenance gate: only a recorded, provenanced Build-entry receipt allows."""
     if mirror_provenance_problem(doc, bound_repo):
         return False
-    github = doc.get("github") or {}
-    entry = github.get("build_entry")
+    gh_record = doc.get("github") or {}
+    entry = gh_record.get("build_entry")
     if entry == "not-applicable":
         return not has_repository_binding(doc)
     if entry in {"opened", "recovered-terminal"}:

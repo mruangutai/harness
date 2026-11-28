@@ -306,10 +306,10 @@ def _feature_doc(feat_dir):
         refuse(str(error))
 
 
-def _sync_off(github, local_status):
+def _sync_off(gh_config, local_status):
     """For an unbound feature: False when github.sync is on. When it is off, True for a local
     `status` (which still records locally), else the not-applicable mirror SKIP."""
-    if github.get("sync"):
+    if gh_config.get("sync"):
         return False
     if local_status:
         return True
@@ -322,11 +322,11 @@ def load_config(root, feat_dir, command):
     bound = record_binding.has_repository_binding(doc)
     local_status = command == "status"
     if not bound:
-        github = _unbound_project_config(root)["github"]
+        gh_config = _unbound_project_config(root)["github"]
     repo, board, issue_types = record_binding.resolve_binding(doc, root)
     _BUILD_ENTRY["repo"] = repo
     _provenance_preflight(doc, repo, feat_dir)
-    if not bound and _sync_off(github, local_status):
+    if not bound and _sync_off(gh_config, local_status):
         return repo, board, issue_types
     if local_status and board is None:
         return repo, board, issue_types
@@ -904,18 +904,18 @@ def _record_pr(feat_dir, repo, pr_arg=None):
 
 def _recorded_github(rec):
     """The github block save_recorded writes from REC."""
-    github = {
+    gh_record = {
         "milestone": rec["milestone"], "parent": rec["parent"],
         "attached": rec["attached"], "issues": dict(sorted(rec["issues"].items())),
         "source_issues": list(rec["source_issues"]),
     }
     if rec.get("typed"):
-        github["typed"] = dict(sorted(rec["typed"].items()))
+        gh_record["typed"] = dict(sorted(rec["typed"].items()))
     if rec.get("build_entry"):
-        github["build_entry"] = rec["build_entry"]
+        gh_record["build_entry"] = rec["build_entry"]
     if "repo" in rec:
-        github["repo"] = rec["repo"]
-    return github
+        gh_record["repo"] = rec["repo"]
+    return gh_record
 
 
 def save_recorded(feat_dir, rec):

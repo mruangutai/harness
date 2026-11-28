@@ -1052,14 +1052,14 @@ def _github_numbers(doc):
     """The ticket numbers one record names, coerced as gh-sync reads them (`opt_int`). Absent
     or null containers record nothing; any other wrong shape returns None -- an unreadable
     record names no tickets."""
-    github = _shaped(doc.get("github") if isinstance(doc, dict) else None, dict)
-    if github is None:
+    gh_record = _shaped(doc.get("github") if isinstance(doc, dict) else None, dict)
+    if gh_record is None:
         return None
-    sources = _shaped(github.get("source_issues"), list)
-    issues = _shaped(github.get("issues"), dict)
+    sources = _shaped(gh_record.get("source_issues"), list)
+    issues = _shaped(gh_record.get("issues"), dict)
     if sources is None or issues is None:
         return None
-    values = [github.get("parent"), *sources, *issues.values()]
+    values = [gh_record.get("parent"), *sources, *issues.values()]
     try:
         return {n for n in map(record_read.opt_int, values) if n is not None}
     except ValueError:  # an `isdigit` string int() cannot parse, e.g. "²"
