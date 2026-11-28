@@ -1698,6 +1698,19 @@
     },
     {
       "artifact": "plan.yaml",
+      "category": "load_plan",
+      "dec174_category": "none",
+      "disposition": "canonical",
+      "execution_route": "team",
+      "file": ".claude/skills/harness/bin/plan_merge/union.py",
+      "id": ".claude/skills/harness/bin/plan_merge/union.py::_report_unloadable::load_plan#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_plan",
+      "symbol": "_report_unloadable",
+      "task": "none"
+    },
+    {
+      "artifact": "plan.yaml",
       "category": "harness_yaml_file",
       "dec174_category": "none",
       "disposition": "exempt",
