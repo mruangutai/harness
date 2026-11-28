@@ -94,7 +94,8 @@ compatibility shim left anywhere; the decision record says so without an excepti
   normalized, because fixture and replay scratch paths are one fixed path on both sides.
 - `feature-json-merge.py`, its integration test, its classification row and its durations row are
   deleted; #2569 is folded in and the PR closes #2581 and #2569.
-- Test files change only imports and copy/patch targets; `tests/integration/fixtures/
+- Test files change imports and copy/patch targets, plus the expected values D-02's diagnostics
+  and D-01's two expectations change (below); `tests/integration/fixtures/
   prior-check-domain.fixture` is a frozen prior copy and is not edited.
 - Disclosure for signature: byte identity is required of every output, the twelve regraded
   functions included. D-02 repoints the import-failure diagnostics; signing authorizes that
@@ -117,9 +118,12 @@ compatibility shim left anywhere; the decision record says so without an excepti
   scripts, summary receipts and divergences only, `git ls-tree a98451c5`). They are the price of
   PF-14c27514, measured evidence bound to the pin. You accepted this exceedance as disclosed
   (PL-10) and the gzip measurement files as proposed (PL-09); Q3 (a) is not amended. Since those
-  answers, the cycle-4 rewrite adds one record per test file run to the same store (its exit,
-  stdout, stderr and case list), so the receipt's case and failure lines are recomputed rather
-  than trusted; the measurement files grow by that much beyond what PL-09 accepted.
+  answers, the cycle-4 rewrite adds one record per test file run to the same store, holding the
+  run's argv and cwd, its exit, its exact stdout and stderr, and its case list: for Python files
+  the recorder's unittest outcome lines, for `omp-hooks.test.ts` the bun runner's exact JUnit XML.
+  The receipt's case and failure lines are recomputed from those records rather than trusted; the
+  measurement files grow by that much beyond what PL-09 accepted, and the receipt reports their
+  gzip sizes.
 
 ## Out of scope
 

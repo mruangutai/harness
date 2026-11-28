@@ -113,6 +113,27 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "repanel3-product FAIL: the four PL-11 findings closed but the one read raised 7 new substance findings in T-03 verify and BRIEF; operator ruled no further round; they return open for ruling at signature"
+    },
+    {
+      "at": "2026-11-27T19:54:45.742506+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.intent",
+      "reason": "Signature ruling (answers-2026-11-27-signature.md): the intent states the same cycle-4 build-time fixes the verify now enforces (PF-15af8306, PF-40325938, PF-db2ae14a, PF-eec01ba2, PF-5f54f524, PF-2528cfa8)."
+    },
+    {
+      "at": "2026-11-27T19:54:53.339077+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-03.verify",
+      "reason": "Signature ruling: cycle-4 findings PF-15af8306, PF-40325938, PF-db2ae14a, PF-eec01ba2, PF-5f54f524, PF-2528cfa8 fixed in the T-03 verify at build."
+    },
+    {
+      "at": "2026-11-27T19:55:19.249088+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-01.intent",
+      "reason": "Signature ruling PF-42a75f8f: the stale only-language names D-01's remedy and test exceptions; no scope change."
     }
   ],
   "mission": "plan",
