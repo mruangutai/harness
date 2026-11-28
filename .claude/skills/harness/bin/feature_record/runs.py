@@ -372,7 +372,7 @@ def cmd_stamp_tokens(args):
 
 # close-run (BUG-1723 T-01, D-01): ONE command for the close-out the orchestrator used to spend
 # ~11 model calls on. It COMPOSES the existing authorities — validate-digest.py, the shared
-# atomic run-end transaction, plan-merge.py set-task-station, this file's judgement and spend —
+# atomic run-end transaction, plan-merge.py set-task-station, feature-record.py's judgement and spend —
 # so each keeps its own validation, lock and refusal text. The first refusal
 # stops the sequence, names its stage, and leaves every earlier durable write in place (no
 # rollback: a closed run is a fact, and hiding it would be worse than a half-finished close-out).

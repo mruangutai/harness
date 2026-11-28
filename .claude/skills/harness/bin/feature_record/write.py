@@ -1,9 +1,12 @@
 """feature_record/write.py — the one locked, schema-validated read-modify-write entry point for
 feature.json (stale-anchor-write-hazard, 2026-08-30).
 
-This is a LIBRARY, never a gate: it never calls sys.exit and it is never registered as a hook.
-It raises harness_merge.MergeRefusal for every kind of refusal, exactly like harness_merge.py
-itself, so a caller can inspect the refusal instead of losing it to a bare process exit.
+The library half (FEATURE_JSON_TAIL, schema_checked_transform, write_feature_json) is never a
+gate: it never calls sys.exit, is never registered as a hook, and raises
+harness_merge.MergeRefusal for every kind of refusal, exactly like harness_merge.py itself, so a
+caller can inspect the refusal instead of losing it to a bare process exit. The CLI half
+(REFUSAL_CODE, _refuse, _exit_refused, _apply) serves feature-record.py's verbs: _apply converts
+a refusal into the process exit the CLI reports.
 
 WHAT THIS CLOSES, AND WHAT IT DOES NOT. The incident this exists for was a line-anchored
 EDIT applied to feature.json after another tool had already rewritten it between the agent's
@@ -12,8 +15,9 @@ and nothing refused it because a line-anchored patch is raw text splicing with n
 entry point in between to intercept. THIS MODULE CANNOT PREVENT THAT SPECIFIC SHAPE OF
 INCIDENT: an editor tool that patches file bytes directly by line offset never calls into
 Python at all, so no library, however careful, sits in that path. What this module DOES close
-is the adjacent hazard of every writer that DOES go through Python -- today, gh-sync.py's three
-call sites -- racing each other or writing a document feature_record/schema.py would reject. See the
+is the adjacent hazard of every writer that DOES go through Python -- gh-sync.py,
+factory_decompose.py, plan_merge's approval and amendment writes, and this package's own CLI
+verbs -- racing each other or writing a document feature_record/schema.py would reject. See the
 feature's receipt for the fuller argument.
 
 This module builds no lock or rename primitive of its own (DEC-199): it is entirely a thin,
