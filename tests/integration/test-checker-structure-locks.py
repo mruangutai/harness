@@ -94,7 +94,7 @@ def _consolidation_findings_for_tree(mutate=None):
 
 
 def _append_to_gh_board(root, source):
-    _append_bin(root, "gh_board.py", source)
+    _append_bin(root, "github/board.py", source)
 
 
 def _append_station_literal_mutant(root):
@@ -137,14 +137,14 @@ def case_feat61_station_lock():
     check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
     station = _consolidation_findings_for_tree(_append_station_literal_mutant)
     check("feat61_lock_station_literal_mutant_fails_for_its_own_finding",
-          _only_finding(station, "gh_board.py::_mutant_is_live", "respells factory_config.ACTIVE_STATIONS"),
+          _only_finding(station, "github/board.py::_mutant_is_live", "respells factory_config.ACTIVE_STATIONS"),
           "\n".join(station))
     drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
     check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
           len(drifted) == 2
-          and "gh_board.py::_mutant_is_live" in drifted[0]
+          and "github/board.py::_mutant_is_live" in drifted[0]
           and "respells factory_config.ACTIVE_STATIONS" in drifted[0]
-          and "gh_board.py::<module>" in drifted[1]
+          and "github/board.py::<module>" in drifted[1]
           and "respells factory_config.FINISHED_STATIONS" in drifted[1],
           "\n".join(drifted))
     control = _consolidation_findings_for_tree(_append_work_started_control)
@@ -157,7 +157,7 @@ def case_feat61_loader_lock():
     own finding only, and the CLI reports the shipped tree clean at exit 0."""
     loader = _consolidation_findings_for_tree(_append_second_loader_mutant)
     check("feat61_lock_second_loader_mutant_fails_for_its_own_finding",
-          _only_finding(loader, "gh_board.py::_mutant_load", "second spec_from_file_location"),
+          _only_finding(loader, "github/board.py::_mutant_load", "second spec_from_file_location"),
           "\n".join(loader))
     r = run("--consolidation-audit")
     check("feat61_lock_cli_reports_clean_and_exits_0",
@@ -271,7 +271,7 @@ _UNDECLARED_MUTANTS = (
 # A row whose declaration names the right BINARY but the wrong RESOURCE (GC-02): the lock
 # matches the operation/endpoint, so a false declaration is a finding, not a pass.
 _MISDECLARED_MUTANTS = (
-    ("gh_board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
+    ("github.board", '"gh:auth", "gh:board"', '"gh:auth"', ("INV-26", "reads gh:board", "declares no gh:board read")),
     ("gh_endpoint", '"gh:auth", "gh:board"', '"gh:auth", "gh:issues"',
      ("INV-26", "reads gh:board", "declares no gh:board read")),
     ("git_op", '"git:show", "git:log"', '"git:status", "git:log"', ("INV-33", "reads git:show", "declares no git:show read")),
@@ -443,7 +443,7 @@ def case_feat63_broad_catch_census():
     _feat65_hook_ceiling_checks()
 
 
-_FEAT64_ZEROED = ("factory_decompose.py", "feature_record/schema.py", "gh_cost_log.py", "handoff_done_when.py",
+_FEAT64_ZEROED = ("factory_decompose.py", "feature_record/schema.py", "handoff_done_when.py",
                   "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                   "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
                   "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py")

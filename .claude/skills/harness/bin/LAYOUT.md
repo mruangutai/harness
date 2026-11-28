@@ -8,6 +8,7 @@ harness-codebase-design skill, which this file does not restate.
 |---|---|
 | `check-state.py` | `check_state/` |
 | `feature-record.py` | `feature_record/` |
+| (none, shared domain) | `github/` |
 | `plan-merge.py` | `plan_merge/` |
 
 - **Naming.** The entry keeps its hyphenated name and path, because callers, hooks and tests invoke
@@ -18,5 +19,8 @@ harness-codebase-design skill, which this file does not restate.
   functions from `plan_merge` modules. The entry parses and dispatches; the logic lives in the
   package.
 - **Flat modules.** A flat `bin/` module that serves one package's domain moves into that package.
-  Only cross-cutting modules that many entries share stay flat, such as `harness_boundary.py` and
+  Only a cross-cutting module that stands alone stays flat, such as `harness_boundary.py` and
   `harness_merge.py`.
+- **Shared domains.** When several modules serve one domain that many entries use, they live in one
+  package named for the domain, such as `github/`. The package has an empty `__init__.py` and no
+  entry. Never use flat siblings that share a prefix.

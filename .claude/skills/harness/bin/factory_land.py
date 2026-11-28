@@ -11,8 +11,8 @@ is a write of the same value), so the recovery from any later failure is to re-r
 command.
 
 Every git operation runs through factory_workspace.run_git(args, cwd) — never a second git-binary
-resolution — and every GitHub operation runs through factory_gh's public surface, including the
-generic factory_gh.run_gh for `gh pr create`, which factory_gh does not wrap with a dedicated
+resolution — and every GitHub operation runs through the github package's public surface, including the
+generic github.transport.run_gh for `gh pr create`, which github.transport does not wrap with a dedicated
 helper. Neither module's own resolution is re-derived here.
 """
 import argparse
@@ -22,7 +22,9 @@ import sys
 import factory_cli
 import factory_config
 import artifact_accessors
-import factory_gh
+import github.issues
+import github.projects
+import github.transport
 import factory_workspace
 
 TOOL = "land"
@@ -31,7 +33,7 @@ TOOL = "land"
 def _find_item_id(repo, number, board_number):
     """The board item id for `number`, or None when the board carries no such item — one
     targeted, repository-scoped GraphQL lookup (FEAT-13, D-01) rather than a whole-board scan."""
-    return factory_gh.issue_board_item_id(repo, number, board_number)
+    return github.projects.issue_board_item_id(repo, number, board_number)
 
 
 def _main():
@@ -59,9 +61,9 @@ def _main():
 
     # 4. preflight, then create the pull request. A pull request already open for this head is
     # NOT a failure — it is adopted so the retry path stays usable.
-    factory_gh.preflight()
+    github.transport.preflight()
 
-    issue = factory_gh.issue_view(args.repo, args.issue, ["title", "state"])
+    issue = github.issues.issue_view(args.repo, args.issue, ["title", "state"])
     title = issue.get("title")
     body = f"closes #{args.issue}"
     pr_args = [
@@ -69,9 +71,9 @@ def _main():
         "--head", branch, "--title", title, "--body", body,
     ]
     try:
-        out = factory_gh.run_gh(pr_args)
+        out = github.transport.run_gh(pr_args)
         url = out.strip()
-    except factory_gh.GhError as e:
+    except github.transport.GhError as e:
         combined = f"{e.stdout or ''}\n{e.stderr or ''}"
         m = re.search(r"https?://\S+", combined) if "already exists" in combined.lower() else None
         if m is None:
@@ -101,7 +103,7 @@ def _main():
     # closed issue making land fail so the item never reaches Review) is a known, out-of-scope
     # latent bug; this check does not touch it.
     if issue.get("state") != "OPEN":
-        raise factory_gh.GhError(
+        raise github.transport.GhError(
             [], None, "", "",
             "issue is not open", args.issue,
             "a closed issue is finished work and cannot move to Review",
@@ -109,16 +111,16 @@ def _main():
 
     item_id = _find_item_id(args.repo, args.issue, board_number)
     if item_id is None:
-        raise factory_gh.GhError(
+        raise github.transport.GhError(
             [], None, "", "",
             "issue not found on the board", args.issue,
             f"board {owner}/{board_number}",
         )
-    factory_gh.project_field_set(owner, board_number, item_id, station_field, review_option)
+    github.projects.project_field_set(owner, board_number, item_id, station_field, review_option)
 
     # 6. the single stdout payload.
     factory_cli.payload({"repo": args.repo, "issue": args.issue, "branch": branch, "url": url})
 
 
 if __name__ == "__main__":
-    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, factory_gh.GhError))
+    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, github.transport.GhError))

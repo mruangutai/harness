@@ -532,7 +532,7 @@ class RepoModuleError(Exception):
 def load_repo_module(module_name, path=None, register=False):
     """Load a repo-local script as a module — by path, THE sole `spec_from_file_location` in
     bin/ (FEAT-61 T-01); or, with no `path`, by name through the ordinary import machinery
-    (FEAT-63 T-02: `import gh_board` inside an invariant used to sit in its own broad catch,
+    (FEAT-63 T-02: `import github.board` inside an invariant used to sit in its own broad catch,
     because a sibling that fails while its body executes raises whatever it raises; this is
     the one place that failure is given a type). The kebab-case gate scripts cannot be
     imported by name, and six hand-written copies of this sequence disagreed on two

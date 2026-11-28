@@ -38,9 +38,8 @@ __pycache__/
 .harness/.shape-sweep-stamp
 .harness/.shape-sweep-stamp.*
 
-# gh cost log — opt-in via HARNESS_GH_COST_LOG=1 (FEAT-29). THIS EXACT GLOB, never all of
-# .harness/logs/ — the session journals there are TRACKED and a blanket rule would untrack them.
-# It carries gh argv, which can hold issue titles and body text.
+# Old gh cost logs. #2699 removed the recorder that wrote them. These files hold gh argv,
+# which can include issue titles and body text.
 .harness/logs/gh-cost-*.jsonl
 
 # harness: the single-flight claim registry (issue #551) is per-checkout transient state

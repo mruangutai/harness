@@ -6,8 +6,8 @@ case-by-case cross-check against all five integration files). Mutation-based dis
 proof lives outside this file (throwaway scripts, never the real gh-sync.py) and is recorded in
 this task's receipt.
 
-python3 stdlib only. In-process load of the hyphenated gh-sync.py
-(tests/unit/test-gh-cost-log.py:291).
+python3 stdlib only. In-process load of the hyphenated gh-sync.py through
+unit_support.load_script.
 
     ./test-gh-sync-build-entry.py    -> exit 0 all pass, 1 otherwise
 """

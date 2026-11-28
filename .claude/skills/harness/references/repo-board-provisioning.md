@@ -35,7 +35,7 @@ repository's default branch through `harness-add-repo` step 1.
    Registration is not finished until it reports all three enabled.
 
    **"Auto-add to project" is not required.** gh-sync adds missing cards itself:
-   `gh_board.set_station` puts an issue with no item on the board before it sets the station
+   `github.board.set_station` puts an issue with no item on the board before it sets the station
    (#2181). Leaving that workflow off is not a registration finding.
 
 This workflow check runs only during registration, never in `check-state.py` (which fires

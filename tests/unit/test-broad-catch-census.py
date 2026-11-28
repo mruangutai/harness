@@ -93,7 +93,7 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
 def case_feat64_wave4_ceilings_are_zero():
     """FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
     explicitly zero -- and harness_boundary.py's two designed catches are the whole budget."""
-    for name in ("factory_decompose.py", "feature_record/schema.py", "gh_cost_log.py", "handoff_done_when.py",
+    for name in ("factory_decompose.py", "feature_record/schema.py", "handoff_done_when.py",
                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
                  "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py"):

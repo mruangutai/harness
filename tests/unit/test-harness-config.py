@@ -249,7 +249,7 @@ class RuntimeProjections(unittest.TestCase):
         refuses valid config or acts on values the schema no longer admits."""
         import factory_config
         import gate_policy
-        import gh_issue_types
+        import github.issue_types
         import harness_config
         schema = json.loads(Path(harness_config.SCHEMA_PATH).read_text(encoding="utf-8"))
         self.assertEqual(schema["$defs"]["board"]["properties"]["stations"]["const"],
@@ -257,7 +257,7 @@ class RuntimeProjections(unittest.TestCase):
         self.assertEqual(set(schema["properties"]["gates"]["properties"]["review"]["enum"]),
                          gate_policy.GATE_VOCABULARIES["review"])
         self.assertEqual(list(schema["properties"]["github"]["properties"]["issue_types"]["properties"]),
-                         list(gh_issue_types.LEGAL_OVERRIDE_KEYS))
+                         list(github.issue_types.LEGAL_OVERRIDE_KEYS))
 
 
 if __name__ == "__main__":

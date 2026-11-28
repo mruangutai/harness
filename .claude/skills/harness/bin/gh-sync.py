@@ -85,14 +85,14 @@ LABELS DERIVE, MECHANICALLY (DEC-138), AS THE COMPATIBILITY PATH: change_type
 config/scaffolding/infra/ci -> `chore`; bugfix -> `bug`; anything else unlabeled.
 `harness` marks provenance on every issue. No agent judgment at sync time. Where the
 target repository declares native GitHub Issue Types instead (FEAT-55), every issue
-this file creates is typed from the mapping in `gh_issue_types.py` and the bug/chore
+this file creates is typed from the mapping in `github/issue_types.py` and the bug/chore
 labels above are not applied — the label derivation above is what runs when it does not.
 
 IDEMPOTENT. `open` records issue numbers into feature.json (`github:` block) as it
 creates; a re-run (resume after interruption — DEC-131 taught us flows die mid-step)
 skips anything already recorded rather than duplicating.
 
-Testable offline: every gh call goes through factory_gh.try_gh/run_gh, so FACTORY_GH, read at
+Testable offline: every gh call goes through github.transport.try_gh/run_gh, so FACTORY_GH, read at
 call time, is the only binary override (tests point it at a fake that logs calls).
 """
 import json
@@ -105,18 +105,19 @@ import sys
 
 _BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, _BIN_DIR)
-from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
+from github.issue_args import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
-import gh_issue_types
+import github.issue_types
 
 import artifact_accessors
 from feature_record import binding as record_binding, read as record_read, schema as record_schema
 from feature_record import write as record_write
 import harness_merge
 import factory_config
-import factory_gh
+import github.issues
+import github.transport
 import board_lifecycle
-import gh_board
+import github.board
 import harness_yaml
 import harness_boundary
 import handoff_policy
@@ -142,7 +143,7 @@ STATION_VALUES = tuple(factory_config.MANDATED_STATIONS) + factory_config.TERMIN
 
 
 def _place(board, repo, num, station, note="", failed=None, stations=None):
-    """Write ONE card to ONE station — the single `gh_board.set_station` call in this file.
+    """Write ONE card to ONE station — the single `github.board.set_station` call in this file.
 
     THE FAILURE POSTURE IS UNCHANGED AND IS THE REASON THIS EXISTS: a `BoardError` from one card
     prints exactly one stderr line and returns False, so a bulk write never stops at the first
@@ -156,8 +157,8 @@ def _place(board, repo, num, station, note="", failed=None, stations=None):
     that should have landed.
     """
     try:
-        gh_board.set_station(board, repo, num, station)
-    except gh_board.BoardError as exc:
+        github.board.set_station(board, repo, num, station)
+    except github.board.BoardError as exc:
         print(f"gh-sync: ERROR - {exc}", file=sys.stderr)
         if failed is not None:
             failed.append(num)
@@ -248,7 +249,7 @@ def _gh_failure(result):
 
 
 def gh(args, capture=True):
-    result = factory_gh.try_gh(args)
+    result = github.transport.try_gh(args)
     if not result.ok:
         # Mid-flight environmental failure (network, auth expiry, launch). Still not a gate.
         skip(f"gh {' '.join(args[:3])}… failed: {_gh_failure(result)}")
@@ -264,7 +265,7 @@ def gh_try(args):
     had already written most of its cards, and `post-merge-sweep.py` greps that exact literal
     to decide whether to keep the worktree, so a single unreadable child list would silently
     change worktree behaviour on an otherwise healthy run."""
-    result = factory_gh.try_gh(args)
+    result = github.transport.try_gh(args)
     if not result.ok:
         return (False, _gh_failure(result))
     return (True, result.value)
@@ -290,7 +291,7 @@ def _unbound_project_config(root):
 
 def _require_gh():
     """The mirror's gh precondition: a launchable, authenticated gh, else the mirror SKIP."""
-    auth = factory_gh.try_gh(["auth", "status"])
+    auth = github.transport.try_gh(["auth", "status"])
     if auth.status is None:
         skip(f"gh could not be launched: {auth.error}")
     if not auth.ok:
@@ -466,7 +467,7 @@ def parse_tasks(feat_dir):
                 # `or "pending"` — the third live default of that kind in this file, after the
                 # one T-16 fixed in cmd_status. `pending` left the vocabulary in T-04 and is
                 # not a value in any file. An absent status reads as `ready`, exactly as
-                # gh_board.derive_station and project treat it.
+                # github.board.derive_station and project treat it.
                 "status": t_.get("status") or "ready",
             })
         return out
@@ -801,7 +802,7 @@ def _merged_pull_requests(repo, branch):
     the gh failure line."""
     args = ["pr", "list", "--repo", repo, "--head", branch, "--state", "merged",
             "--limit", "10", "--json", "number"]
-    result = factory_gh.try_gh(args)
+    result = github.transport.try_gh(args)
     if not result.ok:
         # A gh failure here is deliberately NOT routed through gh()/skip() — skip()
         # exits the whole process, which would swallow cmd_ship's remaining work
@@ -1003,7 +1004,7 @@ def ensure_labels(repo, labels):
     and is returned, so no label attachment runs against a repo missing the label; the CALLER
     owns what follows (H1, FEAT-2452 c1): the mirror flows SKIP (`mirror_labels`), abandon
     continues per item and reports the gap, and reject halts."""
-    # "abandoned": b60205 is THIS function's colour for the label. factory_gh.ensure_labels
+    # "abandoned": b60205 is THIS function's colour for the label. github.issues.ensure_labels
     # (a separate implementation, D-04 — three stay three) creates the same label name with
     # `--force` and its own single _LABEL_COLOR, so a run that goes through THAT function
     # after this one has run would silently overwrite this colour. Named here so a later
@@ -1011,7 +1012,7 @@ def ensure_labels(repo, labels):
     colors = {"harness": "5319e7", "chore": "cccccc", "bug": "d73a4a", "enhancement": "a2eeef",
               "abandoned": "b60205"}
     for l in labels:
-        result = factory_gh.try_gh(["label", "create", l, "--repo", repo,
+        result = github.transport.try_gh(["label", "create", l, "--repo", repo,
                                     "--color", colors.get(l, "ededed"),
                                     "--description", "created by harness gh-sync"])
         text = f"{result.stdout}{result.stderr}".lower()
@@ -1035,8 +1036,8 @@ def detect_issue_types(repo):
     GitHub Issue Types (FEAT-55, REQ-05). Prints exactly one line when the state is
     not "available" and NEVER calls `skip()` or exits — the absence of issue types
     must not fail a run."""
-    result = factory_gh.try_gh(gh_issue_types.capability_query_args(repo))
-    state, declared, message = gh_issue_types.classify_capability(result.status, result.stdout)
+    result = github.transport.try_gh(github.issue_types.capability_query_args(repo))
+    state, declared, message = github.issue_types.classify_capability(result.status, result.stdout)
     if state == "absent":
         print(f"gh-sync: issue types unavailable on {repo} - labels only")
     elif state == "query_failed":
@@ -1067,15 +1068,15 @@ def _required_issue_types(tasks, rec, parent_arg, issue_types):
     """The native type NAMES this invocation needs declared, mapped to the CANONICAL
     override key ("Bug"/"Feature"/"Task"/"parent") that produced each — every type
     this run will CREATE, plus every already-recorded key section 6's backfill will
-    type. Raises `gh_issue_types.UnknownWorkNature` for an unmapped change_type."""
+    type. Raises `github.issue_types.UnknownWorkNature` for an unmapped change_type."""
     required = {}
     if _parent_needs_type(rec, parent_arg):
-        required[gh_issue_types.type_for_parent(issue_types)] = gh_issue_types.PARENT_KEY
+        required[github.issue_types.type_for_parent(issue_types)] = github.issue_types.PARENT_KEY
     for task in tasks:
         if not _task_needs_type(task, rec):
             continue
-        name = gh_issue_types.type_for_change_type(task["change_type"], issue_types)
-        required[name] = gh_issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[task["change_type"]]
+        name = github.issue_types.type_for_change_type(task["change_type"], issue_types)
+        required[name] = github.issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[task["change_type"]]
     return required
 
 
@@ -1085,14 +1086,14 @@ def _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, de
     the same way — exit 2, before any create."""
     try:
         required = _required_issue_types(tasks, rec, parent_arg, issue_types)
-    except gh_issue_types.UnknownWorkNature as exc:
+    except github.issue_types.UnknownWorkNature as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(2)
-    missing = gh_issue_types.missing_types(set(required), declared)
+    missing = github.issue_types.missing_types(set(required), declared)
     if not missing:
         return
     for name in missing:
-        print(gh_issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
+        print(github.issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
     sys.exit(2)
 
 
@@ -1101,8 +1102,8 @@ def apply_issue_type(repo, number, type_id):
     then `updateIssue` it through the GraphQL mutation. Both calls go through `gh()`,
     so a failure here is the same environmental SKIP as any other gh() call in this
     file — never a gate."""
-    node_id = gh(gh_issue_types.node_id_args(repo, number))
-    gh(gh_issue_types.apply_type_args(node_id, type_id), capture=False)
+    node_id = gh(github.issue_types.node_id_args(repo, number))
+    gh(github.issue_types.apply_type_args(node_id, type_id), capture=False)
 
 
 def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
@@ -1113,14 +1114,14 @@ def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
     in `_refuse_undeclared_issue_types` has passed."""
     typed = rec["typed"]
     if typed.get("parent") == "created":
-        type_id = declared[gh_issue_types.type_for_parent(issue_types)]
+        type_id = declared[github.issue_types.type_for_parent(issue_types)]
         apply_issue_type(repo, rec["parent"], type_id)
         typed["parent"] = True
         save_recorded(feat_dir, rec)
     for task in tasks:
         tid = task["id"]
         if tid in rec["issues"] and typed.get(tid) == "created":
-            type_id = declared[gh_issue_types.type_for_change_type(task["change_type"], issue_types)]
+            type_id = declared[github.issue_types.type_for_change_type(task["change_type"], issue_types)]
             apply_issue_type(repo, rec["issues"][tid], type_id)
             typed[tid] = True
             save_recorded(feat_dir, rec)
@@ -1131,8 +1132,8 @@ def _created_issue_number(args, url):
     """The issue number in an ordinary create's URL (#1542). An unreadable URL is the mirror
     SKIP: the create may have landed, so nothing is recorded and nothing is created again."""
     try:
-        return factory_gh.issue_number_from_url(args, url)
-    except factory_gh.GhError as error:
+        return github.issues.issue_number_from_url(args, url)
+    except github.transport.GhError as error:
         skip(f"{error}; the create may have succeeded — find it on GitHub and record it "
              "before re-running, or a re-run creates a duplicate")
 
@@ -1151,7 +1152,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
         return
     args = _milestone_create_args(repo, brief)
-    result = factory_gh.try_gh(args)
+    result = github.transport.try_gh(args)
     if result.ok:
         rec["milestone"] = artifact_accessors.parse_gh_json(
             result.stdout, "milestone create response")["number"]
@@ -1395,7 +1396,7 @@ def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
 
 
 def _projected_for(feat_dir, rec):
-    """{issue number: station} for this feature, from gh_board.project — or {} when there is no
+    """{issue number: station} for this feature, from github.board.project — or {} when there is no
     plan.yaml at all.
 
     ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An ABSENT plan yields an
@@ -1422,7 +1423,7 @@ def _projected_for(feat_dir, rec):
         # stderr rather than refuse()'s stdout default, so it is passed explicitly.
         refuse(f"the plan at {plan_path} failed to load — {exc}", stream=sys.stderr)
     try:
-        return gh_board.project(plan_doc, rec)
+        return github.board.project(plan_doc, rec)
     except artifact_accessors.FleetError as exc:
         # A VOCABULARY MISS REFUSES LOUDLY; IT NEVER TRACEBACKS (FEAT-41 T-16). project raises
         # FleetError naming the task and the value, and T-06 left that exception to escape —
@@ -1475,10 +1476,10 @@ def _closed_task_guard(repo, board, issue_num, tid):
     try:
         # ONE ISSUE, not the whole board (issue #1541). This guard has exactly one subject and
         # used to download every card the board has ever held to look it up.
-        stations = gh_board.board_stations_for(board, repo, [issue_num])
-        current_station, _ = gh_board.read_station(stations, issue_num)
-        state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
-    except factory_gh.GhError as exc:
+        stations = github.board.board_stations_for(board, repo, [issue_num])
+        current_station, _ = github.board.read_station(stations, issue_num)
+        state = (github.issues.issue_view(repo, issue_num, ["state"]) or {}).get("state")
+    except github.transport.GhError as exc:
         print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {exc} "
               f"— proceeding without the guard", file=sys.stderr)
         return False
@@ -1507,10 +1508,10 @@ def cmd_start_task(feat_dir, tid, repo, board):
     refused. A refusal is NOT a failure: exit code and control flow are unchanged (DEC-146
     keeps the station flip best-effort; DEC-138 forbids the mirror from gating a flow).
 
-    ADDED COST: start-task performs ONE board read (`gh_board.board_stations_for` for the single
+    ADDED COST: start-task performs ONE board read (`github.board.board_stations_for` for the single
     issue it is about to move — issue #1541 replaced the whole-board read that stood here, which
     downloaded every card the board has ever held to answer one lookup) and ONE issue read
-    (`factory_gh.issue_view` for `state`) before its writes, where before it performed none.
+    (`github.issues.issue_view` for `state`) before its writes, where before it performed none.
     Squarely inside DEC-203's second sanctioned purpose — learning which station an item is at.
 
     A gh or network failure during EITHER read must not gate either: caught, printed as one
@@ -1562,7 +1563,7 @@ def cmd_status(feat_dir, station, repo, board):
     refusal below (step 5) therefore runs BEFORE `_record_station`, since a refusal must leave
     NOTHING recorded.
 
-    STATION WRITES use `gh_board.project`'s one policy. Plan, Ready, Building, and Review
+    STATION WRITES use `github.board.project`'s one policy. Plan, Ready, Building, and Review
     attempt every projected source, parent, and non-abandoned task card after the local record
     succeeds. Done remains ship-only and terminal abandonment has no status write here.
 
@@ -1584,7 +1585,7 @@ def cmd_status(feat_dir, station, repo, board):
         # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-16). This read `or "pending"`,
         # a live default T-04's migration missed because T-04 grepped check-state.py and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
-        # gh_board.derive_station and project treat it.
+        # github.board.derive_station and project treat it.
         # EVERY status crosses the strict predicate (FEAT-61 T-02, D-03) — a list, not a
         # short-circuiting generator, so a status outside the vocabulary refuses naming the value
         # whichever task carries it, instead of being blamed on "not every task is done". Tasks
@@ -2181,14 +2182,14 @@ def _required_backlog_issue_types(parsed, rec, issue_types):
     canonical override key ("Bug"/"Feature"/"Task") that produced each — every item this
     run will CREATE, plus every already-recorded item whose typed value is not yet True
     (a crashed prior run's remnant — case H is the discriminating test). Raises
-    gh_issue_types.UnknownWorkNature for an unmapped nature."""
+    github.issue_types.UnknownWorkNature for an unmapped nature."""
     required = {}
     for nature, _title, key in parsed:
         entry = rec.get(key)
         if isinstance(entry, dict) and entry.get("typed") is True:
             continue
-        name = gh_issue_types.type_for_nature(nature, issue_types)
-        required[name] = gh_issue_types.DEFAULT_TYPE_BY_NATURE[nature]
+        name = github.issue_types.type_for_nature(nature, issue_types)
+        required[name] = github.issue_types.DEFAULT_TYPE_BY_NATURE[nature]
     return required
 
 
@@ -2198,14 +2199,14 @@ def _refuse_undeclared_backlog_types(repo, parsed, rec, issue_types, declared):
     already-recorded remnants included, before any create and before any type-apply."""
     try:
         required = _required_backlog_issue_types(parsed, rec, issue_types)
-    except gh_issue_types.UnknownWorkNature as exc:
+    except github.issue_types.UnknownWorkNature as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(2)
-    missing = gh_issue_types.missing_types(set(required), declared)
+    missing = github.issue_types.missing_types(set(required), declared)
     if not missing:
         return
     for name in missing:
-        print(gh_issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
+        print(github.issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
     sys.exit(2)
 
 
@@ -2249,7 +2250,7 @@ def _backlog_apply_type(feat_dir, repo, key, nature, issue_types, declared):
     entry = rec.get(key)
     if not isinstance(entry, dict) or entry.get("typed") is True:
         return
-    type_id = declared[gh_issue_types.type_for_nature(nature, issue_types)]
+    type_id = declared[github.issue_types.type_for_nature(nature, issue_types)]
     apply_issue_type(repo, entry["number"], type_id)
     entry["typed"] = True
     _save_backlog_entry(feat_dir, key, entry)
@@ -2401,10 +2402,10 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     # rather than left for the next person: a targeted read must follow every number the code
     # can reach, not only the ones on disk.
     try:
-        stations = gh_board.board_stations_for(
+        stations = github.board.board_stations_for(
             board, repo, list(children) + list(sources) + list(parents),
         )
-    except (factory_gh.GhError, gh_board.BoardError) as e:
+    except (github.transport.GhError, github.board.BoardError) as e:
         print(f"gh-sync: ERROR - board read failed, no card moved: {e}", file=sys.stderr)
         stations = None
 
@@ -2444,7 +2445,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         childless, because that is the one error that would close someone else's live epic.
 
         A child counts as OPEN when its card is not at the done station. Both of
-        `gh_board.read_station`'s failure reasons count as open, and they are DISTINGUISHED in
+        `github.board.read_station`'s failure reasons count as open, and they are DISTINGUISHED in
         the parenthetical so the operator can tell an unstationed child from a missing one
         without running a second command."""
         ok, raw = gh_try(sub_issues_args(repo, num))
@@ -2453,7 +2454,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             # carries factory_cli's canonical grammar with gh's captured stderr as the value,
             # so the operator line below reads `… card not moved: sub-issue list unreadable:
             # <gh stderr> — re-run ship once gh is reachable`.
-            raise factory_gh.GhError(sub_issues_args(repo, num), None, "", raw,
+            raise github.transport.GhError(sub_issues_args(repo, num), None, "", raw,
                                      "sub-issue list unreadable", raw,
                                      "re-run ship once gh is reachable")
         kids = artifact_accessors.parse_gh_json(
@@ -2467,9 +2468,9 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         missing = [n for n in numbers if n not in stations and n not in asked]
         if missing:
             asked.update(missing)
-            stations.update(gh_board.board_stations_for(board, repo, missing))
+            stations.update(github.board.board_stations_for(board, repo, missing))
         for kid in numbers:
-            station, reason = gh_board.read_station(stations or {}, kid)
+            station, reason = github.board.read_station(stations or {}, kid)
             if station == done:
                 continue
             note = "not on the board" if reason == "not on the board" else f"not at {done}"
@@ -2486,7 +2487,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
             continue
         try:
             blocker = first_open_child(num)
-        except (factory_gh.GhError, artifact_accessors.ArtifactAccessError) as e:
+        except (github.transport.GhError, artifact_accessors.ArtifactAccessError) as e:
             # SAME BUCKET as the board-read failure four lines above, and for the same
             # reason: this card did not reach done, and nothing downstream reports it. An
             # earlier cut printed and continued WITHOUT recording it, so the run exited 0
@@ -2542,7 +2543,7 @@ def _ship_audit(repo):
     silently change worktree behaviour on a healthy run."""
     try:
         findings = board_lifecycle.audit_findings(repo)
-    except (factory_gh.GhError, gh_board.BoardError, artifact_accessors.ArtifactAccessError,
+    except (github.transport.GhError, github.board.BoardError, artifact_accessors.ArtifactAccessError,
             artifact_accessors.FleetError) as e:
         print(f"gh-sync: ERROR - the board audit could not run: {e}", file=sys.stderr)
         return

@@ -30,8 +30,8 @@ from check_support import Checks
 from harness_config_support import write_config
 from offline_gh_support import assert_sentinel_unused, offline_gh_env
 import wayfind as wf
-import factory_gh
-import gh_issues as ghi
+import github.transport
+from github import issue_args as ghi
 
 REPO = "acme/widget"
 
@@ -112,7 +112,7 @@ def outcome(fn, *args):
 
 
 def is_gh_error(result):
-    return result[0] == "raise" and isinstance(result[1], factory_gh.GhError)
+    return result[0] == "raise" and isinstance(result[1], github.transport.GhError)
 
 
 def run_cli(*argv):
@@ -203,7 +203,7 @@ def case_2_wayfind_no_marker_dies():
 # ============================== T-04: migrated paths ==============================
 # One FACTORY_GH fake answers every read and write; the sentinel proves no other binary ran.
 
-def case_3_strict_json_read_on_factory_gh():
+def case_3_strict_json_read_on_transport():
     rules = [{"match": "api repos/acme/widget/issues/5", "stdout": '{"number": 5, "id": 905}'}]
     with offline("case_3_strict_json_read", rules) as fake:
         got = outcome(wf.gh_json, ["api", f"repos/{REPO}/issues/5"])
@@ -556,7 +556,7 @@ def case_13_gh_bin_deleted():
 def main():
     case_1_wayfind_directory_probe()
     case_2_wayfind_no_marker_dies()
-    case_3_strict_json_read_on_factory_gh()
+    case_3_strict_json_read_on_transport()
     case_4_do_dry_run_and_apply()
     case_5_gist_stdin_byte_exact()
     case_6_reads_fail_closed()

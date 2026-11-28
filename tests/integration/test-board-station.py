@@ -5,8 +5,8 @@ Modeled on `tests/unit/test-gh-board.py`, its nearest sibling: the shared `check
 shape (PASS + one space + name on success, a line beginning FAIL on failure), and the same
 `write_harness_json`-style temporary-root fixture.
 
-**ONE BINARY OVERRIDE: `FACTORY_GH`.** `board-station.py` imports `gh_board`, whose every call goes
-through `factory_gh`, which reads `FACTORY_GH` at call time. Every case builds its environment with
+**ONE BINARY OVERRIDE: `FACTORY_GH`.** `board-station.py` imports `github.board`, whose every call goes
+through `github.transport`, which reads `FACTORY_GH` at call time. Every case builds its environment with
 `tests/offline_gh_support.offline_gh_env`: FACTORY_GH names the fake, every inherited `GH_*`
 variable is dropped, and a sentinel `gh` heads PATH. `assert_sentinel_unused` then proves no case
 reached the default binary, the real board or the network.
@@ -69,7 +69,7 @@ BOARD = {"owner": "implentio", "number": 3, "station_field": "Status",
 # A fake `gh` that logs every invocation (one line per call, argv joined on \x01 so a
 # station string containing a space cannot be mistaken for a field separator) to
 # $FAKE_LOG, and answers board-station's issue-state read (#2639; $FAKE_ISSUE_STATE, default
-# OPEN) and the THREE calls `gh_board.set_station` makes in sequence:
+# OPEN) and the THREE calls `github.board.set_station` makes in sequence:
 # (1) the issue -> board-item-id GraphQL lookup, (2) the field/option resolve GraphQL
 # call, (3) `project item-edit`, the actual write.
 LOG_LINE = """echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
@@ -97,8 +97,8 @@ FAKE_GH_OK = fake_gh(ISSUE_STATE_CASE, """  *"ProjectV2SingleSelectField"*)
 """)
 
 # Same board reads, but the ISSUE-ITEM lookup call returns exit-0 with a NON-JSON body —
-# `factory_gh.run_gh(json_out=True)` calls `json.loads` UNGUARDED on that response, so this
-# raises a bare `ValueError`, never a `gh_board.BoardError`. This is what board-station.py's
+# `github.transport.run_gh(json_out=True)` calls `json.loads` UNGUARDED on that response, so this
+# raises a bare `ValueError`, never a `github.board.BoardError`. This is what board-station.py's
 # broad `except Exception` — documented in its module docstring's EXIT CONTRACT paragraph —
 # exists to catch, and nothing else in this file exercises that branch.
 FAKE_GH_NON_JSON = fake_gh(ISSUE_STATE_CASE, """  *"projectItems(first: 100)"*)
@@ -249,8 +249,8 @@ with project(sync=False) as tmp:
 
 # ---------------- case 7: a non-JSON gh body from set_station ----------------
 # FEAT-64: this used to be titled "non-BoardError exception" and pinned the broad catch. The
-# shape is a gh body that does not decode; run_gh raises factory_gh.GhError for it (T-01), which
-# is the typed class main catches beside gh_board.BoardError. Same exit 0, same ERROR line.
+# shape is a gh body that does not decode; run_gh raises github.transport.GhError for it (T-01), which
+# is the typed class main catches beside github.board.BoardError. Same exit 0, same ERROR line.
 
 with project() as tmp:
     r, log = run(tmp, ["326", "plan"], gh_script=FAKE_GH_NON_JSON)
@@ -269,9 +269,9 @@ with project() as tmp:
     with open(shim, "w") as f:
         f.write("import sys, runpy\n"
                 f"sys.path.insert(0, {BIN_DIR!r})\n"
-                "import gh_board\n"
+                "import github.board\n"
                 "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
-                "gh_board.set_station = boom\n"
+                "github.board.set_station = boom\n"
                 "sys.argv = ['board-station.py'] + sys.argv[1:]\n"
                 f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
     r, _ = run(tmp, ["326", "plan"], entry=shim, extra_env={"HARNESS_PROJECT_DIR": tmp})

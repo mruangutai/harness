@@ -119,7 +119,7 @@ def stage(tmp, sync=True, repo="implentio/fake", phrase="reliable csv export",
     feat = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat)
     # board is an EXPLICIT null (FEAT-24 D-07): an absent board key now raises FleetError
-    # from gh_board.load_board, and this fixture is about the OPEN lifecycle, not boards.
+    # from github.board.load_board, and this fixture is about the OPEN lifecycle, not boards.
     g = {"sync": sync, "board": None}
     if repo:
         g["repo"] = repo
@@ -306,7 +306,7 @@ case "$*" in
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
   *"projectItems(first: 20)"*)
-    # THE BY-ISSUE GUARD READ (issue #1541), gh_board.board_stations_for. Same three
+    # THE BY-ISSUE GUARD READ (issue #1541), github.board.board_stations_for. Same three
     # variables and same meanings as the whole-board branch below — only the response shape
     # differs. An alias the query did not ask about is never emitted, so a lookup for any
     # number other than GUARD_ISSUE reads as "not on the board", exactly as the whole-board
@@ -320,7 +320,7 @@ case "$*" in
     printf '{"data":{"repository":{"i%s":{"number":%s,"projectItems":{"pageInfo":{"hasNextPage":false},"nodes":[{"project":{"number":3},"fieldValueByName":%s}]}}}}}\\n' "$num" "$num" "$fv"
     exit 0 ;;
   *"items(first: 100, after:"*)
-    # T-07's guard read (gh_board.board_stations). GUARD_ISSUE/GUARD_STATION_NAME/GUARD_STATE
+    # T-07's guard read (github.board.board_stations). GUARD_ISSUE/GUARD_STATION_NAME/GUARD_STATE
     # default to empty when unset — an unset GUARD_STATION_NAME reports no station (null),
     # never "Done", and an unset GUARD_STATE reports open (not "CLOSED"), so a case that
     # sets none of them (the pre-existing start-task fixture) exercises the guard's happy

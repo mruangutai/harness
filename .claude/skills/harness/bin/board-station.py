@@ -18,7 +18,7 @@ different repository would silently move THIS repository's issue of the same num
 `<station>` is one of the six MANDATED station names, lowercase, and is validated against
 `factory_config.MANDATED_STATIONS` before any board call (FEAT-41 T-02, reversing D-05). The
 board's COLUMN is then derived from it by `factory_config.station_column` inside
-`gh_board.set_station` — the one place a capitalised station name is produced — and the option is
+`github.board.set_station` — the one place a capitalised station name is produced — and the option is
 still resolved BY NAME at the board, so a board missing that column still fails loudly there.
 What changed is that a station outside the six is now this tool's own refusal, naming the six,
 rather than a value passed through to GitHub.
@@ -41,7 +41,7 @@ repo pinned, or `github.board`
 declared as an EXPLICIT null — still print one plain line and exit 0 having written nothing;
 an explicit null is a project's own declaration that it has no board, never the same state as
 a misconfiguration. The board write itself is wrapped in a broad `except Exception`: a
-`gh_board.BoardError` is the documented failure, but `factory_gh.run_gh(json_out=True)` also
+`github.board.BoardError` is the documented failure, but `github.transport.run_gh(json_out=True)` also
 calls `json.loads` UNGUARDED, so a non-JSON exit-0 response raises `ValueError`, and `OSError`
 is unguarded too — any of these reaching the top as a traceback would abort an operator's
 planning session, which the EXIT CONTRACT paragraph above forbids. So every exception class
@@ -49,11 +49,11 @@ from the write is reported as ONE line on stderr and the process still exits 0 (
 mirror-write rule, applied here — this is a STATION WRITE failure, not an unusable
 declaration, and the two exit differently on purpose).
 
-FEAT-64 supersedes the "broad `except Exception`" sentence above: `factory_gh.run_gh` now
-converts its own `OSError` and non-JSON exit-0 bodies into `factory_gh.GhError`, so the
-write's whole failure surface is `gh_board.BoardError` + `factory_gh.GhError`, and that is
+FEAT-64 supersedes the "broad `except Exception`" sentence above: `github.transport.run_gh` now
+converts its own `OSError` and non-JSON exit-0 bodies into `github.transport.GhError`, so the
+write's whole failure surface is `github.board.BoardError` + `github.transport.GhError`, and that is
 what `main` catches. The ONE-line-on-stderr, exit-0 outcome for those is unchanged; an
-exception of any other class is a programming defect and propagates as itself. `factory_gh.preflight()` is never
+exception of any other class is a programming defect and propagates as itself. `github.transport.preflight()` is never
 called — its callers exit non-zero, and this tool's callers must not.
 """
 import os
@@ -64,8 +64,9 @@ sys.path.insert(0, HERE)
 
 import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402
-import factory_gh  # noqa: E402
-import gh_board  # noqa: E402
+import github.issues  # noqa: E402
+import github.transport  # noqa: E402
+import github.board  # noqa: E402
 
 USAGE = (
     "usage: board-station.py <issue-number> <station> — <issue-number> is an issue of "
@@ -140,7 +141,7 @@ def _github(root):
 def _board(root):
     """(the board declaration, None), or (None, exit code) once the outcome is reported."""
     try:
-        board = gh_board.load_board(root)
+        board = github.board.load_board(root)
     except artifact_accessors.FleetError as exc:
         # An unusable board declaration is a caller-mistake-class refusal (D-01, D-07),
         # not an environmental precondition — str(exc) is printed VERBATIM, not composed,
@@ -186,8 +187,8 @@ def _closed_refusal(repo, issue_number, station):
     # it. Moving a closed issue TO done stays allowed. An unreadable state is a board failure
     # like the write's own (D-02): one ERROR line, exit 0, and the card stays where it was.
     try:
-        state = factory_gh.issue_view(repo, issue_number, ["state"]).get("state")
-    except factory_gh.GhError as exc:
+        state = github.issues.issue_view(repo, issue_number, ["state"]).get("state")
+    except github.transport.GhError as exc:
         err(f"ERROR - #{issue_number} -> {station}: the issue's state could not be read, so "
             f"nothing was written: {exc}")
         return 0
@@ -206,8 +207,8 @@ def _refusal(board, repo, issue_number, station):
 
 def _write(board, repo, issue_number, station):
     try:
-        gh_board.set_station(board, repo, issue_number, station)
-    except (gh_board.BoardError, factory_gh.GhError) as exc:  # see module docstring, D-02
+        github.board.set_station(board, repo, issue_number, station)
+    except (github.board.BoardError, github.transport.GhError) as exc:  # see module docstring, D-02
         err(f"ERROR - #{issue_number} -> {station}: {exc}")
         return 0
     out(f"#{issue_number} -> {station}")

@@ -1,341 +1,13 @@
-"""factory_gh.py — the single seam every factory tool talks to GitHub through (D-02, D-14).
-
-WHY: it exists so the tools are testable offline and so failure behaviour is decided once. This
-module fails loudly in every case — a missing binary, a non-zero exit, a truncated read — in
-deliberate contrast to gh-sync.py's SKIP-and-exit-0 behaviour, which is correct for a one-way
-mirror and wrong for a control plane (D-02): a mirror that skips loses a copy, a control plane
-that skips leaves the board asserting a state that is not true.
-
-file_at_ref is the only function here that reads repository CONTENT rather than issue, board or
-ref metadata.
-
-Every function takes the repository or the board owner/number as an argument. No function reads
-git remotes, the current directory, or any environment variable other than FACTORY_GH. Importing
-this module has no side effects. It is a library with no command-line entry of its own, so it
-never calls factory_cli.run — its share of the C-3 contract is the GhError message shape below,
-plus the rule that no function here mutates anything its caller did not ask for, plus the rule
-that no function here writes to stdout — callers own stdout for their own payload.
-"""
-import base64
-import binascii
-import dataclasses
-import datetime
+"""github/projects.py — Projects v2 board calls: items, stations, fields, workflows and project
+setup, run through github.transport (D-02, D-14)."""
 import json
-import os
-import re
-import subprocess
 
 import artifact_accessors
-import factory_cli
-import gh_cost_log
-import gh_issues
-import gh_issue_types
-
-_LABEL_COLOR = "5319e7"
-
-# T-04 (FEAT-29): text markers that identify a rate-limited gh failure. Detection is on the
-# MESSAGE, never the exit code alone — gh exits 1 for many unrelated reasons, and treating every
-# exit 1 as budget exhaustion would mislabel ordinary failures (e.g. "could not resolve to a
-# Repository").
-_RATE_LIMIT_MARKERS = (
-    "api rate limit exceeded",
-    "was submitted too quickly",
-    "rate limit",
-)
-
-
-def _looks_like_rate_limit(stdout, stderr):
-    combined = f"{stdout or ''}\n{stderr or ''}".lower()
-    return any(marker in combined for marker in _RATE_LIMIT_MARKERS)
-
-
-def _is_rate_limit_query(argv):
-    """True for the exact call this module's own budget lookup issues — the recursion guard
-    named in the plan: the budget lookup's own failure must never re-trigger the budget lookup."""
-    return len(argv) >= 2 and argv[0] == "api" and argv[1] == "rate_limit"
-
-
-def _iso_utc(epoch_seconds):
-    return datetime.datetime.fromtimestamp(
-        epoch_seconds, tz=datetime.timezone.utc
-    ).isoformat().replace("+00:00", "Z")
-
-
-def _rate_limit_budget_error(orig_argv, orig_stdout, orig_stderr):
-    """Build (never raise directly — the caller raises it) the GhError for a gh failure whose
-    text named a rate limit. Queries `gh api rate_limit` once. If that query itself fails, the
-    original error is never swallowed: it survives as this GhError's `stderr`/detail."""
-    rate_argv = ["api", "rate_limit"]
-    try:
-        rl = run_gh(rate_argv, json_out=True)
-    except GhError:
-        return GhError(
-            orig_argv, None, orig_stdout, orig_stderr,
-            "gh reported a rate limit and the budget could not be read",
-            _value_from_argv(orig_argv),
-            "the original gh failure is preserved as detail — re-run after checking gh auth "
-            "status and network access",
-        )
-    resources = rl.get("resources") if isinstance(rl, dict) else None
-    graphql = (resources or {}).get("graphql") or {}
-    core = (resources or {}).get("core") or {}
-    used = graphql.get("used")
-    limit = graphql.get("limit")
-    reset = graphql.get("reset")
-    reset_iso = _iso_utc(reset) if isinstance(reset, (int, float)) else str(reset)
-    return GhError(
-        orig_argv, None, orig_stdout, orig_stderr,
-        "GraphQL budget exhausted",
-        f"{used} of {limit} points used, resets at {reset_iso}",
-        f"this is the GraphQL budget, not the REST budget — REST currently sits at "
-        f"{core.get('used')} of {core.get('limit')}",
-    )
-
-
-class GhError(Exception):
-    """Carries the argv, exit status, captured stdout and captured stderr as attributes for a
-    debugger. Its str() is always built with factory_cli.body(what, value, next_step) — never by
-    hand — because factory_cli.run prints str(exc) verbatim behind "factory: {tool}: ". `value`
-    is always the repository, issue number, field name, option name or gh subcommand; never the
-    class name, never a traceback.
-    """
-
-    def __init__(self, argv, status, stdout, stderr, what, value, next_step):
-        self.argv = argv
-        self.status = status
-        self.stdout = stdout
-        self.stderr = stderr
-        super().__init__(factory_cli.body(what, value, next_step))
-
-
-def _value_from_argv(argv):
-    """Best-effort concrete value for a GhError message: the repo, the owner, or the subcommand."""
-    if "--repo" in argv:
-        i = argv.index("--repo")
-        if i + 1 < len(argv):
-            return argv[i + 1]
-    if "--owner" in argv:
-        i = argv.index("--owner")
-        if i + 1 < len(argv):
-            return argv[i + 1]
-    for a in argv:
-        if a.startswith("repos/"):
-            parts = a.split("/")
-            if len(parts) >= 3:
-                return f"{parts[1]}/{parts[2]}"
-    return " ".join(argv[:2]) if argv else "gh"
-
-
-def _what_from_argv(argv):
-    if len(argv) >= 2:
-        return f"gh {argv[0]} {argv[1]} failed"
-    if len(argv) == 1:
-        return f"gh {argv[0]} failed"
-    return "gh failed"
-
-
-def _first_line(text):
-    text = (text or "").strip()
-    return text.splitlines()[0] if text else ""
-
-
-@dataclasses.dataclass(frozen=True)
-class GhResult:
-    """One gh call's outcome, never raised (FEAT-2452). status, stdout and stderr are the
-    authoritative process facts — status is None only when the launch itself failed — so a
-    caller classifies on them, never on error.status: the rate-limit diagnosis sets that to None
-    after a completed non-zero process. value is the parsed JSON or stripped stdout of a
-    success, else None; error is the GhError run_gh would raise, else None."""
-
-    status: int | None
-    stdout: str
-    stderr: str
-    value: object
-    error: GhError | None
-
-    @property
-    def ok(self):
-        return self.error is None
-
-
-def launch_gh(args, *, input=None):
-    """The one subprocess and FACTORY_GH boundary: run [FACTORY_GH or gh] + args and return the
-    captured text CompletedProcess as it is. It neither measures, interprets a non-zero exit,
-    nor parses JSON. FACTORY_GH is read at CALL time, never cached at import, so a test can set
-    it after import. With no input, stdin is DEVNULL so a real gh cannot block on a prompt;
-    text input is passed as the process input instead. Both launch failures are typed: an
-    absent binary keeps its own message, and any other OSError reaches the caller as the same
-    typed error with the OS failure chained (FEAT-64)."""
-    gh = os.environ.get("FACTORY_GH", "gh")
-    stream = {"stdin": subprocess.DEVNULL} if input is None else {"input": input}
-    try:
-        return subprocess.run([gh] + list(args), capture_output=True, text=True, **stream)
-    except FileNotFoundError as error:
-        raise GhError(
-            args, None, "", "",
-            "gh not found", gh,
-            "install gh, or point FACTORY_GH at its path",
-        ) from error
-    except OSError as error:
-        raise GhError(
-            args, None, "", "",
-            "gh could not be launched", gh, f"{type(error).__name__}: {error}",
-        ) from error
-
-
-def _decode_gh_json(args, r):
-    """The JSON body of a successful gh call. A body that does not decode is a gh failure to
-    the caller, not a parser's — one typed error with the argv, status and captured streams
-    (FEAT-64)."""
-    try:
-        return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
-    except artifact_accessors.ArtifactAccessError as error:
-        raise GhError(args, r.returncode, r.stdout, r.stderr,
-                      _what_from_argv(args), _value_from_argv(args), str(error)) from error
-
-
-def _exit_error(args, r):
-    """The GhError for a completed non-zero gh process: the GraphQL budget diagnosis when its
-    text names a rate limit (never for the budget query itself — the recursion guard), else the
-    first captured line. Diagnosing never re-runs the failed operation."""
-    if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
-        return _rate_limit_budget_error(list(args), r.stdout, r.stderr)
-    next_step = _first_line(r.stderr) or _first_line(r.stdout) or "no output captured"
-    return GhError(args, r.returncode, r.stdout, r.stderr,
-                   _what_from_argv(args), _value_from_argv(args), next_step)
-
-
-def try_gh(args, json_out=False, *, input=None):
-    """Run [gh] + args through launch_gh, measured exactly once, and return a GhResult rather
-    than raising. Only GhError — a launch, non-zero exit or strict-JSON failure — becomes a
-    result; any other exception is a programming error and escapes. A JSON body that does not
-    decode is not ok even though the process exited zero."""
-    try:
-        with gh_cost_log.measured(args) as cost:
-            r = launch_gh(args, input=input)
-            cost.returncode = r.returncode
-    except GhError as error:
-        return GhResult(None, error.stdout, error.stderr, None, error)
-    if r.returncode != 0:
-        return GhResult(r.returncode, r.stdout, r.stderr, None, _exit_error(args, r))
-    if not json_out:
-        return GhResult(0, r.stdout, r.stderr, r.stdout.strip(), None)
-    try:
-        value = _decode_gh_json(args, r)
-    except GhError as error:
-        return GhResult(0, r.stdout, r.stderr, None, error)
-    return GhResult(0, r.stdout, r.stderr, value, None)
-
-
-def run_gh(args, json_out=False, *, input=None):
-    """Run [gh] + args and return the parsed JSON or stripped stdout; raise the GhError
-    try_gh carries on any launch, non-zero exit or strict-JSON failure.
-
-    Never swallows a failure and never returns a default (D-02).
-    """
-    result = try_gh(args, json_out, input=input)
-    if not result.ok:
-        raise result.error
-    return result.value
-
-
-# The authority must be a real host: dot-separated labels, each alphanumeric at both edges with
-# inner hyphens (so no empty, dot-edged or hyphen-edged label), and an optional port 1-65535
-# without a leading zero. Owner is [A-Za-z0-9_-] (EMU logins carry `_shortcode`) and repo
-# [A-Za-z0-9._-] other than `.`/`..`, so `?`, `#`, `%`, `@` and dot segments are refused while
-# any GHE host, port included, passes.
-_HOST_LABEL = r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
-_PORT = r"(?:6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})"
-_ISSUE_URL = re.compile(
-    rf"https?://{_HOST_LABEL}(?:\.{_HOST_LABEL})*(?::{_PORT})?"
-    r"/[A-Za-z0-9_-]+/(?!\.\.?/)[A-Za-z0-9._-]+/issues/([0-9]+)/?", re.ASCII)
-
-
-def issue_number_from_url(args, output):
-    """The positive issue number at the end of a complete http(s) GitHub issue URL, the shape
-    `gh issue create` prints. Malformed, zero, non-ASCII and oversized tails are GhError with
-    the argv and the original output, never a raw ValueError (#1542)."""
-    match = _ISSUE_URL.fullmatch(output.strip())
-    try:
-        number = int(match.group(1)) if match else 0
-    except ValueError:
-        number = 0
-    if number < 1:
-        raise GhError(
-            args, None, output, "",
-            f"{' '.join(['gh'] + list(args[:2]))} returned no issue number", _value_from_argv(args),
-            "output did not contain a /issues/<n> URL",
-        )
-    return number
-
-
-def preflight():
-    """Raise GhError telling the operator to run `gh auth login` when auth is broken."""
-    try:
-        run_gh(["auth", "status"])
-    except GhError as e:
-        raise GhError(
-            e.argv, e.status, e.stdout, e.stderr,
-            "gh auth status failed", "gh",
-            "run `gh auth login` to authenticate",
-        ) from e
-
-
-def ensure_labels(repo, labels):
-    """Create every label the factory needs, idempotently. Propagates a GhError rather than
-    swallowing it — a control plane that cannot create its own vocabulary must stop rather than
-    fail later at the issue create with a confusing message (D-02)."""
-    for label in labels:
-        run_gh([
-            "label", "create", label, "--repo", repo, "--force",
-            "--color", _LABEL_COLOR,
-            "--description", "created by the harness factory",
-        ])
-
-
-def create_issue(repo, title, body, labels):
-    """Create an issue and return its number, parsed from the created URL."""
-    args = ["issue", "create", "--repo", repo, "--title", title, "--body", body]
-    for label in labels:
-        args += ["--label", label]
-    out = run_gh(args)
-    return issue_number_from_url(args, out)
-
-
-def detect_issue_types(repo):
-    """Detect whether `repo` supports native GitHub Issue Types (T-08). NEVER raises: an
-    undetectable capability - the query itself failing - is compatibility mode, not a tool
-    failure, so the caller falls back to the label vocabulary instead of aborting."""
-    try:
-        output = run_gh(gh_issue_types.capability_query_args(repo))
-    except GhError as e:
-        return gh_issue_types.classify_capability(e.status or 1, e.stdout or e.stderr or "")
-    return gh_issue_types.classify_capability(0, output)
-
-
-def apply_issue_type(repo, number, type_id):
-    """Apply `type_id` (a node id from detect_issue_types' declared mapping) to issue
-    `number`. Propagates GhError exactly as create_issue does - a failed type-apply must be
-    visible, and the caller's receipt ordering is what makes it recoverable."""
-    node_id = run_gh(gh_issue_types.node_id_args(repo, number)).strip()
-    run_gh(gh_issue_types.apply_type_args(node_id, type_id))
-
-
-def issue_view(repo, number, fields):
-    return run_gh(["issue", "view", str(number), "--repo", repo, "--json", ",".join(fields)],
-                   json_out=True)
-
-
-def add_label(repo, number, label):
-    run_gh(["issue", "edit", str(number), "--repo", repo, "--add-label", label])
-
-
-def assign(repo, number, login):
-    run_gh(["issue", "edit", str(number), "--repo", repo, "--add-assignee", login])
+from github import transport
 
 
 def project_item_add(owner, number, url):
-    out = run_gh(
+    out = transport.run_gh(
         ["project", "item-add", str(number), "--owner", owner, "--url", url, "--format", "json"],
         json_out=True,
     )
@@ -345,7 +17,7 @@ def project_item_add(owner, number, url):
 def project_items(owner, number, query=None, limit=500):
     """Return the items list exactly as gh gives it — no reshaping.
 
-    Raises GhError when the response's totalCount exceeds the returned item count: that means
+    Raises transport.GhError when the response's totalCount exceeds the returned item count: that means
     the read was truncated and work is hidden behind it, which must never be reported as an
     empty column. A missing totalCount raises too — defaulting it to 0 would make this guard
     permanently silent on exactly the response shape it exists to catch.
@@ -354,17 +26,17 @@ def project_items(owner, number, query=None, limit=500):
             "--limit", str(limit)]
     if query:
         args += ["--query", query]
-    out = run_gh(args, json_out=True)
+    out = transport.run_gh(args, json_out=True)
     items = out.get("items", [])
     total = out.get("totalCount")
     if total is None:
-        raise GhError(
+        raise transport.GhError(
             args, None, "", "",
             "project item-list response has no totalCount", f"{owner} project {number}",
             "cannot verify the read was not truncated",
         )
     if total > len(items):
-        raise GhError(
+        raise transport.GhError(
             args, None, "", "",
             "project item-list truncated", f"{owner} project {number}: totalCount={total} items={len(items)}",
             "widen --limit or narrow with --query",
@@ -408,7 +80,7 @@ def project_item_stations(owner, number, field_name):
     an item with no issue/PR (never dropped). `station` is None when the item carries no value for
     `field_name`, or when the value shape carries no "name" key (never dropped either).
 
-    Raises GhError, never returns a default, when: any of user/projectV2/items resolves null (an
+    Raises transport.GhError, never returns a default, when: any of user/projectV2/items resolves null (an
     organization-owned board resolves user() to null and must fail loudly, not report an empty
     list); totalCount is absent from the first page (never defaulted to 0 — see project_items
     above for the same reasoning); or the accumulated node count falls short of totalCount after
@@ -426,31 +98,31 @@ def project_item_stations(owner, number, field_name):
                 "-F", "field=" + field_name,
                 "-F", "cursor=" + cursor_arg,
                 "-f", "query=" + _STATION_QUERY]
-        env = run_gh(argv, json_out=True)
+        env = transport.run_gh(argv, json_out=True)
         data = env.get("data") if isinstance(env, dict) else None
         user = data.get("user") if isinstance(data, dict) else None
         if user is None:
-            raise GhError(argv, None, "", "",
+            raise transport.GhError(argv, None, "", "",
                           "project item stations unreadable",
                           f"{owner} project {number}: user is null",
                           "check the owner login — an organization-owned board resolves user() "
                           "to null")
         project = user.get("projectV2")
         if project is None:
-            raise GhError(argv, None, "", "",
+            raise transport.GhError(argv, None, "", "",
                           "project item stations unreadable",
                           f"{owner} project {number}: projectV2 is null",
                           "check the board number")
         items_obj = project.get("items")
         if items_obj is None:
-            raise GhError(argv, None, "", "",
+            raise transport.GhError(argv, None, "", "",
                           "project item stations unreadable",
                           f"{owner} project {number}: items is null",
                           "unexpected GraphQL response shape")
         if total is None:
             total = items_obj.get("totalCount")
             if total is None:
-                raise GhError(argv, None, "", "",
+                raise transport.GhError(argv, None, "", "",
                               "project item stations response has no totalCount",
                               f"{owner} project {number}",
                               "cannot verify the read was not truncated")
@@ -472,7 +144,7 @@ def project_item_stations(owner, number, field_name):
         else:
             break
     if len(items_out) < total:
-        raise GhError(
+        raise transport.GhError(
             argv, None, "", "",
             "project item stations truncated",
             f"{owner} project {number}: totalCount={total} items={len(items_out)}",
@@ -520,7 +192,7 @@ def issue_stations(repo, project_number, field_name, numbers):
     """Return {issue number: station or None} for those `numbers` that are ON `project_number`.
 
     The by-issue counterpart of `project_item_stations`, and deliberately the same output
-    vocabulary as `gh_board.board_stations` consumes:
+    vocabulary as `github.board.board_stations` consumes:
 
     - a number ABSENT from the result is not on that board;
     - a number present with None is on the board with no value for `field_name`.
@@ -532,12 +204,12 @@ def issue_stations(repo, project_number, field_name, numbers):
     NO NETWORK CALL IS MADE FOR AN EMPTY `numbers`. That is not an optimisation detail, it is
     the invariant issue #1541 turns on: a checkout with nothing in flight pays nothing.
 
-    Raises GhError, never returns a partial, when `repository` resolves null (a bad repo name
+    Raises transport.GhError, never returns a partial, when `repository` resolves null (a bad repo name
     must fail loudly rather than report every card missing) or when an issue is on more project
     boards than one page holds.
     """
     if "/" not in repo:
-        raise GhError(["api", "graphql"], None, "", "",
+        raise transport.GhError(["api", "graphql"], None, "", "",
                       "issue stations unreadable", repo,
                       "repo must be owner/name")
     owner, name = repo.split("/", 1)
@@ -554,11 +226,11 @@ def issue_stations(repo, project_number, field_name, numbers):
                 "-F", "name=" + name,
                 "-F", "field=" + field_name,
                 "-f", "query=" + query]
-        env = run_gh(argv, json_out=True)
+        env = transport.run_gh(argv, json_out=True)
         data = env.get("data") if isinstance(env, dict) else None
         repository = data.get("repository") if isinstance(data, dict) else None
         if repository is None:
-            raise GhError(argv, None, "", "",
+            raise transport.GhError(argv, None, "", "",
                           "issue stations unreadable",
                           f"{repo}: repository is null",
                           "check the repository name — a null here would otherwise read as "
@@ -569,7 +241,7 @@ def issue_stations(repo, project_number, field_name, numbers):
                 continue
             items = node.get("projectItems") or {}
             if (items.get("pageInfo") or {}).get("hasNextPage"):
-                raise GhError(argv, None, "", "",
+                raise transport.GhError(argv, None, "", "",
                               "issue project items truncated",
                               f"{repo}#{num}",
                               "the issue is on more boards than one page holds, so the "
@@ -617,7 +289,7 @@ def _project_field_resolve(owner, number, field):
     D-03: one diagnosis walk, entered from both the exception path (gh exits non-zero but still
     carries a `data` envelope on stdout — GraphQL's partial-failure shape) and the success path.
     Every raise here carries a real, actionable value (D-03 step e) — never the generic argv[:2]
-    fallback `_value_from_argv` would produce for a `-f owner=` argv.
+    fallback `transport._value_from_argv` would produce for a `-f owner=` argv.
     """
     argv = ["api", "graphql",
             "-f", "query=" + _FIELD_QUERY,
@@ -625,8 +297,8 @@ def _project_field_resolve(owner, number, field):
             "-F", "number=" + str(number),
             "-f", "field=" + field]
     try:
-        env = run_gh(argv, json_out=True)
-    except GhError as e:
+        env = transport.run_gh(argv, json_out=True)
+    except transport.GhError as e:
         parsed = None
         if e.stdout:
             try:
@@ -637,7 +309,7 @@ def _project_field_resolve(owner, number, field):
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
         else:
-            raise GhError(
+            raise transport.GhError(
                 e.argv, e.status, e.stdout, e.stderr,
                 "gh graphql call failed", owner + " project " + str(number),
                 "re-run after checking gh auth status and network access",
@@ -647,26 +319,26 @@ def _project_field_resolve(owner, number, field):
     repo_owner = data.get("repositoryOwner")
     if repo_owner is None:
         # D-02: a login that resolves to nothing, at exit 0, no errors key. Not the org case.
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project owner not found", owner,
                       "check the owner login")
     if repo_owner.get("__typename") != "User":
         # __typename is read before projectV2: present in both the exit-0 and exit-1 envelope,
         # so the refusal never depends on the org's own board existing.
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "organization-owned board not supported", owner,
                       "run against a user-owned board")
     project = repo_owner.get("projectV2")
     if project is None:
         # D-02: a mistyped board number must never report the organization message.
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project not found", owner + " project " + str(number),
                       "check the board number")
     field_obj = project.get("field")
     if not field_obj:
         # `not field_obj` catches BOTH None (field name absent) and {} (field exists but is not
         # single-select) — `field_obj is None` alone would miss the empty-dict shape (D-04).
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project field not found", field,
                       f"field-list for {owner} project {number} does not offer it")
     return {
@@ -683,8 +355,8 @@ def project_field_options(owner, number, field):
 
 # ---------------- board lifecycle primitives (T-03, FEAT-33) ----------------
 # Six read/write primitives board_lifecycle.py's provision/audit subcommands (T-04, T-05) are
-# built on. Every one goes through run_gh, so the fake-binary and rate-limit handling above
-# applies unchanged, and every one raises GhError rather than returning a default — the same
+# built on. Every one goes through transport.run_gh, so the fake-binary and rate-limit handling above
+# applies unchanged, and every one raises transport.GhError rather than returning a default — the same
 # discipline project_item_stations and _project_field_resolve already hold.
 
 # Mirrors _FIELD_QUERY's own repositoryOwner/__typename shape (line 380) exactly, minus the field
@@ -709,7 +381,7 @@ def project_resolve(owner, number):
     but that project number does not exist on their account.
 
     THIS PRIMITIVE EXISTS TO PREVENT A SPECIFIC DISASTER. _project_field_resolve (line 400) raises
-    ONE GhError class for FOUR distinct conditions — owner absent, organization-owned, project
+    ONE transport.GhError class for FOUR distinct conditions — owner absent, organization-owned, project
     absent, field absent/not-single-select — separated only by a message string, and its field
     case deliberately collapses two shapes (D-04). A caller that infers "there is no project" from
     a field-resolution failure will call project_create and CREATE A DUPLICATE PROJECTS V2 BOARD
@@ -718,8 +390,8 @@ def project_resolve(owner, number):
     :439-444, so the refusal never depends on the org's own board existing.
 
     Returns None — never raises — only for "this owner has no project number N", the normal
-    provisioning case. Raises GhError when the owner login does not resolve at all, and raises
-    GhError with the organization message when __typename is not User — both are unusable inputs,
+    provisioning case. Raises transport.GhError when the owner login does not resolve at all, and raises
+    transport.GhError with the organization message when __typename is not User — both are unusable inputs,
     not absent projects.
     """
     argv = ["api", "graphql",
@@ -727,8 +399,8 @@ def project_resolve(owner, number):
             "-f", "owner=" + owner,
             "-F", "number=" + str(number)]
     try:
-        env = run_gh(argv, json_out=True)
-    except GhError as e:
+        env = transport.run_gh(argv, json_out=True)
+    except transport.GhError as e:
         parsed = None
         if e.stdout:
             try:
@@ -739,7 +411,7 @@ def project_resolve(owner, number):
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
         else:
-            raise GhError(
+            raise transport.GhError(
                 e.argv, e.status, e.stdout, e.stderr,
                 "gh graphql call failed", owner,
                 "re-run after checking gh auth status and network access",
@@ -747,11 +419,11 @@ def project_resolve(owner, number):
     data = env.get("data") or {}
     repo_owner = data.get("repositoryOwner")
     if repo_owner is None:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project owner not found", owner,
                       "check the owner login")
     if repo_owner.get("__typename") != "User":
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "organization-owned board not supported", owner,
                       "run against a user-owned board")
     project = repo_owner.get("projectV2")
@@ -774,28 +446,28 @@ _CREATE_PROJECT_MUTATION = """mutation($ownerId: ID!, $title: String!) {
 def project_create(owner, title):
     """Create a new user-owned ProjectV2 board and return {"id": ..., "number": ...}.
 
-    Resolves the owner's node id first, then sends createProjectV2. Raises GhError naming the
+    Resolves the owner's node id first, then sends createProjectV2. Raises transport.GhError naming the
     owner and title when createProjectV2.projectV2 resolves null. Callers MUST have already
     established the project does not exist via project_resolve returning None — this function
     performs no such check itself, so calling it on a whim duplicates a board.
     """
     id_argv = ["api", "graphql", "-f", "query=" + _OWNER_ID_QUERY, "-f", "login=" + owner]
-    env = run_gh(id_argv, json_out=True)
+    env = transport.run_gh(id_argv, json_out=True)
     data = env.get("data") or {}
     user = data.get("user")
     if user is None:
-        raise GhError(id_argv, None, "", "",
+        raise transport.GhError(id_argv, None, "", "",
                       "project owner not found", owner,
                       "check the owner login")
     owner_id = user["id"]
     create_argv = ["api", "graphql", "-f", "query=" + _CREATE_PROJECT_MUTATION,
                    "-f", "ownerId=" + owner_id, "-f", "title=" + title]
-    env2 = run_gh(create_argv, json_out=True)
+    env2 = transport.run_gh(create_argv, json_out=True)
     data2 = env2.get("data") or {}
     created = data2.get("createProjectV2")
     project = created.get("projectV2") if isinstance(created, dict) else None
     if not project:
-        raise GhError(create_argv, None, "", "",
+        raise transport.GhError(create_argv, None, "", "",
                       "project not created", f"{owner}: {title}",
                       "createProjectV2 returned no projectV2")
     return {"id": project["id"], "number": project["number"]}
@@ -825,19 +497,19 @@ def project_link_repository(project_id, repo):
     owner, _, name = repo.partition("/")
     id_argv = ["api", "graphql", "-f", "query=" + _REPO_ID_QUERY,
                "-f", "owner=" + owner, "-f", "name=" + name]
-    env = run_gh(id_argv, json_out=True)
+    env = transport.run_gh(id_argv, json_out=True)
     data = env.get("data") or {}
     repository = data.get("repository")
     if repository is None:
-        raise GhError(id_argv, None, "", "",
+        raise transport.GhError(id_argv, None, "", "",
                       "repository not found", repo,
                       "check the repository name")
     repo_id = repository["id"]
     link_argv = ["api", "graphql", "-f", "query=" + _LINK_REPOSITORY_MUTATION,
                  "-f", "projectId=" + project_id, "-f", "repositoryId=" + repo_id]
     try:
-        run_gh(link_argv, json_out=True)
-    except GhError as e:
+        transport.run_gh(link_argv, json_out=True)
+    except transport.GhError as e:
         combined = f"{e.stdout or ''}\n{e.stderr or ''}".lower()
         if "already" in combined and "link" in combined:
             return None
@@ -862,7 +534,7 @@ def project_single_select_create(project_id, field_name, option_names):
     Returns the new field's node id.
 
     Mutation createProjectV2Field with input {projectId, dataType: SINGLE_SELECT, name,
-    singleSelectOptions}. Raises GhError naming field_name when createProjectV2Field returns no
+    singleSelectOptions}. Raises transport.GhError naming field_name when createProjectV2Field returns no
     projectV2Field.
     """
     query = ("""mutation($projectId: ID!, $name: String!) {
@@ -876,12 +548,12 @@ def project_single_select_create(project_id, field_name, option_names):
 """ % _options_literal(option_names))
     argv = ["api", "graphql", "-f", "query=" + query,
             "-f", "projectId=" + project_id, "-f", "name=" + field_name]
-    env = run_gh(argv, json_out=True)
+    env = transport.run_gh(argv, json_out=True)
     data = env.get("data") or {}
     created = data.get("createProjectV2Field")
     field = created.get("projectV2Field") if isinstance(created, dict) else None
     if not field:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project field not created", field_name,
                       "createProjectV2Field returned no projectV2Field")
     return field["id"]
@@ -909,12 +581,12 @@ def project_single_select_extend(project_id, field_id, option_names):
 }
 """ % _options_literal(option_names))
     argv = ["api", "graphql", "-f", "query=" + query, "-f", "fieldId=" + field_id]
-    env = run_gh(argv, json_out=True)
+    env = transport.run_gh(argv, json_out=True)
     data = env.get("data") or {}
     updated = data.get("updateProjectV2Field")
     field = updated.get("projectV2Field") if isinstance(updated, dict) else None
     if not field:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project field not updated", f"{project_id} field {field_id}",
                       "updateProjectV2Field returned no projectV2Field")
     return None
@@ -938,27 +610,27 @@ def project_workflows(owner, number):
     NAME — there is no ProjectV2 mutation that creates or enables a workflow (all 31 mutations
     include deleteProjectV2Workflow and nothing that creates one).
 
-    Raises GhError — never returns an empty list — when user, projectV2 or workflows resolves
+    Raises transport.GhError — never returns an empty list — when user, projectV2 or workflows resolves
     null: "no workflows" and "cannot see the project" are two different findings, and collapsing
     them would report an inaccessible project as a clean board.
     """
     argv = ["api", "graphql", "-f", "query=" + _WORKFLOWS_QUERY,
             "-f", "owner=" + owner, "-F", "number=" + str(number)]
-    env = run_gh(argv, json_out=True)
+    env = transport.run_gh(argv, json_out=True)
     data = env.get("data") or {}
     user = data.get("user")
     if user is None:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project owner not found", owner,
                       "check the owner login")
     project = user.get("projectV2")
     if project is None:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project not found", owner + " project " + str(number),
                       "check the board number")
     workflows = project.get("workflows")
     if workflows is None:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "project workflows unreadable", owner + " project " + str(number),
                       "unexpected GraphQL response shape")
     return [
@@ -990,7 +662,7 @@ def issue_board_item_id(repo, number, board_number):
 
     THE DISCRIMINATION IS THE POINT (D-03): absence is CORRECT and returns None — an issue
     number that does not exist, or a recognised, non-truncated item list with no node on
-    `board_number`. Only an unrecognised or truncated response shape raises GhError. A caller
+    `board_number`. Only an unrecognised or truncated response shape raises transport.GhError. A caller
     that collapses "issue explicitly null" and "issue key absent" into the same None reads an
     unrecognised shape as go-add-it and re-adds a board item that already exists — the exact
     defect this function exists to prevent — so those two are told apart by explicit
@@ -1000,7 +672,7 @@ def issue_board_item_id(repo, number, board_number):
     """
     parts = repo.split("/")
     if len(parts) != 2 or not parts[0] or not parts[1]:
-        raise GhError(
+        raise transport.GhError(
             [], None, "", "",
             "malformed repository", repo,
             "expected owner/name",
@@ -1012,8 +684,8 @@ def issue_board_item_id(repo, number, board_number):
             "-f", "name=" + name,
             "-F", "number=" + str(number)]
     try:
-        env = run_gh(argv, json_out=True)
-    except GhError as e:
+        env = transport.run_gh(argv, json_out=True)
+    except transport.GhError as e:
         parsed = None
         if e.stdout:
             try:
@@ -1024,14 +696,14 @@ def issue_board_item_id(repo, number, board_number):
         if isinstance(parsed, dict) and "data" in parsed:
             env = parsed
         else:
-            raise GhError(
+            raise transport.GhError(
                 e.argv, e.status, e.stdout, e.stderr,
                 "gh graphql call failed", repo + " issue " + str(number),
                 "re-run after checking gh auth status and network access",
             ) from e
 
     def _generic():
-        return GhError(
+        return transport.GhError(
             argv, None, "", "",
             "gh graphql call failed", repo + " issue " + str(number),
             "re-run after checking gh auth status and network access",
@@ -1046,7 +718,7 @@ def issue_board_item_id(repo, number, board_number):
     if repository is not None and not isinstance(repository, dict):
         raise _generic()
     if repository is None:
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "repository not found", repo,
                       "check the repository name")
     if "issue" not in repository:
@@ -1066,17 +738,17 @@ def issue_board_item_id(repo, number, board_number):
     if "totalCount" not in project_items_obj:
         # Do NOT default to 0 — that would make this guard permanently silent on exactly the
         # response shape it exists to catch.
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "issue projectItems missing totalCount", repo + " issue " + str(number),
                       "cannot verify the read was not truncated")
     total = project_items_obj["totalCount"]
     if not isinstance(total, int):
-        raise GhError(argv, None, "", "",
+        raise transport.GhError(argv, None, "", "",
                       "issue projectItems totalCount is not an integer",
                       repo + " issue " + str(number) + ": totalCount=" + repr(total),
                       "unexpected GraphQL response shape")
     if total > len(nodes):
-        raise GhError(
+        raise transport.GhError(
             argv, None, "", "",
             "issue projectItems truncated",
             f"{repo} issue {number}: totalCount={total} nodes={len(nodes)}",
@@ -1085,7 +757,7 @@ def issue_board_item_id(repo, number, board_number):
     for node in nodes:
         if not isinstance(node, dict) or "id" not in node \
                 or not isinstance(node.get("project"), dict) or "number" not in node["project"]:
-            raise GhError(argv, None, "", "",
+            raise transport.GhError(argv, None, "", "",
                           "issue projectItems node has unrecognised shape",
                           repo + " issue " + str(number),
                           "unexpected GraphQL response shape")
@@ -1093,71 +765,6 @@ def issue_board_item_id(repo, number, board_number):
         if node["project"]["number"] == board_number:
             return node["id"]
     return None
-
-
-def default_branch_sha(repo, branch):
-    return run_gh(["api", f"repos/{repo}/git/ref/heads/{branch}", "--jq", ".object.sha"]).strip()
-
-
-def file_at_ref(repo, path, ref):
-    """Read one file's content from `repo` (owner/name) at `path` (repository-relative, no
-    leading slash) as it exists at `ref` (a branch name). Returns the decoded text and parses
-    nothing else — JSON handling belongs to the caller. Hits the REST contents endpoint with
-    `ref` as a query parameter and asks gh for the `content` field alone via --jq, never the
-    whole object.
-
-    Every failure raises GhError, never a sentinel: repo not found, path not found at that ref,
-    ref not found, unauthenticated gh, and a `content` field that is absent or does not
-    base64-decode. A caller must never mistake "not there" for "empty file" (D-02).
-    """
-    argv = ["api", f"repos/{repo}/contents/{path}?ref={ref}", "--jq", ".content"]
-    value = f"{repo} {path}@{ref}"
-    try:
-        raw = run_gh(argv)
-    except GhError as e:
-        raise GhError(
-            e.argv, e.status, e.stdout, e.stderr,
-            "gh api contents failed", value,
-            "check the repository, path and ref",
-        ) from e
-    if not raw or raw == "null":
-        raise GhError(
-            argv, None, raw, "",
-            "file content missing from response", value,
-            "gh returned no content field",
-        )
-    try:
-        decoded = base64.b64decode("".join(raw.split()), validate=True)
-    except (binascii.Error, ValueError):
-        raise GhError(
-            argv, None, raw, "",
-            "file content could not be decoded", value,
-            "gh returned invalid base64",
-        )
-    return decoded.decode("utf-8")
-
-
-def create_ref(repo, ref, sha):
-    """THE ATOMIC PRIMITIVE. Return True on success. Return False — never raise — only for the
-    measured conflict: exit non-zero, "422" AND "already exists" both present (case-insensitive)
-    across the captured stdout+stderr. Any other non-zero exit raises, because a False there
-    would report a lost race that did not happen and the caller would skip live work forever.
-    """
-    args = ["api", "-X", "POST", f"repos/{repo}/git/refs", "-f", f"ref={ref}", "-f", f"sha={sha}"]
-    try:
-        run_gh(args)
-        return True
-    except GhError as e:
-        combined = f"{e.stdout or ''}\n{e.stderr or ''}".lower()
-        if "422" in combined and "already exists" in combined:
-            return False
-        raise
-
-
-def delete_ref(repo, ref):
-    """The release path for an abandoned claim. Not called by any tool in this increment."""
-    name = ref[len("refs/heads/"):] if ref.startswith("refs/heads/") else ref
-    run_gh(["api", "-X", "DELETE", f"repos/{repo}/git/refs/heads/{name}"])
 
 
 def project_field_set(owner, number, item_id, field, option):
@@ -1168,7 +775,7 @@ def project_field_set(owner, number, item_id, field, option):
             option_id = o["id"]
             break
     if option_id is None:
-        raise GhError(
+        raise transport.GhError(
             [], None, "", "",
             "project field option not found", option,
             f"field {field} on {owner} project {number} does not offer it",
@@ -1177,27 +784,10 @@ def project_field_set(owner, number, item_id, field, option):
     # that every other `gh project` subcommand accepts — measured live: --project-id 4 raises
     # "Could not resolve to a node with the global id of '4'". The id comes from the same single
     # query, above, that resolved the field and option ids — there is no second read.
-    run_gh([
+    transport.run_gh([
         "project", "item-edit",
         "--id", item_id,
         "--project-id", resolved["project_id"],
         "--field-id", resolved["field_id"],
         "--single-select-option-id", option_id,
     ])
-
-
-# ---------------- the three edge functions (D-14) ----------------
-# Each is one line: build the argv with gh_issues' builder, run it through THIS module's run_gh.
-
-def internal_id(repo, num):
-    """The internal REST integer id — never the GraphQL node id `issue view` returns. Both edge
-    endpoints below take this id, never the issue number (the trap gh_issues.py documents)."""
-    return int(run_gh(gh_issues.internal_id_args(repo, num)).strip())
-
-
-def attach_sub_issue(repo, parent_num, child_id):
-    run_gh(gh_issues.attach_sub_issue_args(repo, parent_num, child_id))
-
-
-def blocked_by(repo, num, blocker_id):
-    run_gh(gh_issues.blocked_by_args(repo, num, blocker_id))

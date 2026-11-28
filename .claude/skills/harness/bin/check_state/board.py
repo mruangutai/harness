@@ -360,7 +360,7 @@ def inv_37(ctx):
 # the operator's view of the factory being wrong is the condition the ticket opens with, and
 # a warning is the same silence in a quieter font.
 #
-# THE IMPORTS ARE A VIOLATION WHEN THEY FAIL — INV-25's precedent, and for its reason: gh_board
+# THE IMPORTS ARE A VIOLATION WHEN THEY FAIL — INV-25's precedent, and for its reason: github.board
 # and feature_record ship with the repository, so being unimportable is a defect in the tree,
 # never a property of the environment. An offline, unauthenticated or unconfigured environment
 # records NOTHING and never becomes a red gate; a board read that was ATTEMPTED and failed is a
@@ -368,14 +368,14 @@ def inv_37(ctx):
 def _inv26_import():
     bad = []
     try:
-        _gb = harness_boundary.load_repo_module("gh_board")
+        _gb = harness_boundary.load_repo_module("github.board")
         # artifact_accessors owns FleetError, so INV-26 can classify the error without importing
-        # another domain module. gh_board still imports factory_config for board validation.
+        # another domain module. github.board still imports factory_config for board validation.
     except harness_boundary.RepoModuleError as _gbe:
         _gb, _gbe = None, _gbe.cause
-        bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
+        bad.append("INV-26 CANNOT RUN: github/board.py did not import (%s: %s), so a board that "
                    "disagrees with the plan would go unreported. The module ships with this "
-                   "repository — restore .agents/skills/harness/bin/gh_board.py."
+                   "repository — restore .agents/skills/harness/bin/github/board.py."
                    % (type(_gbe).__name__, _gbe))
     try:
         # feature_record.binding resolves a bound feature's own repository and board — INV-37's
@@ -461,7 +461,7 @@ def _inv26_task_status(_pdoc):
 
 
 def _inv26_projected(_gb, _feat, _pdoc, _fj, _issues):
-    # ONE CALL, INSIDE THE TRY THAT ALREADY TREATS A gh_board FAILURE AS A VIOLATION.
+    # ONE CALL, INSIDE THE TRY THAT ALREADY TREATS A github.board FAILURE AS A VIOLATION.
     # `rec` is the shape gh-sync.load_recorded returns, built from the feature.json this
     # loop already has. source_issues is empty because this invariant compares TASK
     # cards and the parent, and a source issue's card is the parent's station — already
@@ -684,7 +684,7 @@ def _inv26_group(ctx, _gb, plan_docs, group):
     missing-card finding for every card."""
     # THE PLACEMENT RULE IS NOT HERE ANY MORE (FEAT-41 T-06, D-11). The two lookup tables
     # that stood here are DELETED, not lowercased: the rule they encoded — which card
-    # belongs at which station, and when — now lives in gh_board.project and nowhere else,
+    # belongs at which station, and when — now lives in github.board.project and nowhere else,
     # so this file holds the COMPARE side only. It asks project where a card belongs and
     # reports the cards that disagree.
     #
@@ -700,7 +700,7 @@ def _inv26_group(ctx, _gb, plan_docs, group):
     repo, board = group["repo"], group["board"]
     try:
         _stations = _gb.board_stations_for(board, repo, group["numbers"])
-    except (_gb.BoardError, _gb.factory_gh.GhError) as error:
+    except (_gb.BoardError, _gb.transport.GhError) as error:
         for _feat in group["features"]:
             bad.append(f"INV-26 CANNOT VERIFY {_feat}: the board read from {repo} "
                        f"({board['owner']} project {board['number']}) failed — {error}. "
@@ -739,7 +739,7 @@ def inv_26(ctx):
     if _gb is None or _fs is None:
         return bad, warn
 
-    # THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable factory_gh
+    # THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable github.transport
     # already honours, so ONE fake serves both the module and this invariant. A third variable
     # name would be a third thing to get wrong.
     _gh_bin = os.environ.get("FACTORY_GH") or "gh"

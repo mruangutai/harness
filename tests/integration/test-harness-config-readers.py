@@ -22,6 +22,7 @@ from unittest import mock
 
 from harness_config_support import build_config, write_config  # noqa: E402
 import artifact_accessors  # noqa: E402
+import github.refs  # noqa: E402
 from git_support import checked_git, commit_all, git_out, init_repo  # noqa: E402
 
 # name -> (write the broken config into the file at path, token its diagnosis must carry)
@@ -149,7 +150,7 @@ READERS = {
     "gate_policy.load_policy": (lambda r: _module("gp", "gate_policy.py").load_policy(
         str(r / ".harness" / "harness.json")), lambda v: v == {"review": "advisory_unless_high"}),
     "gh-sync._unbound_project_config": (_unbound, lambda v: v["github"]["sync"] is False),
-    "gh_board.load_board": (lambda r: _module("gb", "gh_board.py").load_board(str(r)), lambda v: v is None),
+    "github.board.load_board": (lambda r: _module("gb", "github/board.py").load_board(str(r)), lambda v: v is None),
     "layout_migration._declared_segments": (_declared_segments, lambda v: v == {"app"}),
     "plan_merge.check._era": (_era, lambda v: v is None),
     "plan_merge.guards._legal_stations": (_legal_stations, lambda v: v[:6] == (
@@ -187,12 +188,12 @@ class Readers(unittest.TestCase):
 
 class Boards(unittest.TestCase):
     def test_a_valid_board_is_normalised_idempotently(self):
-        gh_board = _module("gb", "gh_board.py")
+        gb = _module("gb", "github/board.py")
         factory_config = _module("factory_config", "factory_config.py")
         board = {"owner": "acme", "number": " 7 ", "station_field": "Status",
                  "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
         root = project({"github": {"repo": "acme/w", "board": board}})
-        loaded = gh_board.load_board(str(root))
+        loaded = gb.load_board(str(root))
         self.assertEqual(7, loaded["number"])
         self.assertIsInstance(loaded["stations"], tuple)
         self.assertEqual(loaded, factory_config.validate_board(loaded))
@@ -210,7 +211,7 @@ class RemoteProductConfig(unittest.TestCase):
         def fetch(repo, path, ref):
             self.calls.append(repo)
             return self.served[repo]
-        self.enterContext(mock.patch.object(self.factory_config.factory_gh, "file_at_ref", fetch))
+        self.enterContext(mock.patch.object(github.refs, "file_at_ref", fetch))
 
     def test_invalid_remote_text_is_refused_with_its_diagnosis_and_no_local_fallback(self):
         self.served["acme/app"] = json.dumps({**build_config(), "colour": "blue"})
