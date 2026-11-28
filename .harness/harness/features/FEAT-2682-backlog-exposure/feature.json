@@ -10,8 +10,16 @@
       "id": "2026-11-28-01-plan-product",
       "squad": "product",
       "agent": "harness-product-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-28T13:51:25+00:00"
+      "verdict": "PASS",
+      "started_at": "2026-11-28T13:51:25+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-01-plan-product/digest.md",
+        "sha256": "e101012b023347145758bf7213b3ce2826b709134525a270644d4fad35000659"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T14:00:38+00:00"
     }
   ],
   "judgements": [
@@ -23,5 +31,32 @@
       "reason": "known cause (no exposure slot in briefing table or backlog verb); bounded diff; refusal inside an existing verb reusing panel_findings.is_discounted; no record format change"
     }
   ],
-  "mission": "patch"
+  "mission": "patch",
+  "rework": {
+    "rounds": 1,
+    "wall_clock_minutes": 45,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2682-backlog-exposure/.harness/harness/features/FEAT-2682-backlog-exposure/notes/answers-2026-11-28-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "e03bab45167317d285d0cb2c7b990f1f35bcf4e82ed78c76f6ae6d6941ed1fa3"
+  },
+  "github": {
+    "milestone": 151,
+    "parent": 2684,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 2685
+    },
+    "source_issues": [
+      2682
+    ],
+    "typed": {
+      "T-01": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }

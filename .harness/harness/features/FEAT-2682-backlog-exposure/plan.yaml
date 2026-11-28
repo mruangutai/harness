@@ -1,0 +1,123 @@
+schema: plan/1
+feature: FEAT-2682-backlog-exposure
+approval:
+  date: '2026-11-28'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-28T13:59:05Z'
+status: ready
+source_issues: [2682]
+
+lanes:
+  resolved_at: 0a9387f79481414e4c3cb85426cacd8194f159fe
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: main-session-direct
+      reason: DEC-174 - T-01 adds a refusal to a Harness gate script; check-domain grants it to backend-dev and dev-ops, the carve-out keeps it main-session, as FEAT-2622.
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's tests with its gate.
+    - surface: .claude/skills/harness/references/briefing.md
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY; an ungranted surface is a declared main-session step (DEC-179).
+    - surface: .omp/commands/harness.md
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY; an ungranted surface is a declared main-session step (DEC-179).
+
+decisions:
+  - id: D-01
+    choice: A backlog item's receipt key in backlog-issues.json stays nature:title, the exposure dropped, so the receipt keeps its shape and an entry an earlier run wrote still suppresses re-creating its item.
+    because: The operator ruled the receipt unchanged and forward only; keying on the whole item would put the exposure into the receipt and make every rerun of an already-filed row create a duplicate. Rejected - keying on the full nature:exposure:title item. Accepted cost - re-passing a filed title with a different exposure is skipped, not re-filed.
+    dec: none
+
+decisions_affected:
+  - dec: DEC-138
+    disposition: keep
+    clause: "on the user's ship acceptance,\nunstruck entries become plain backlog issues"
+    successor: none
+    reason: Labels, no milestone and the briefing-only route are unchanged; a discounted row is listed but struck by DEC-260, so every unstruck row still becomes an issue.
+  - dec: DEC-260
+    disposition: keep
+    clause: predicate and the non-gating set live once
+    successor: none
+    reason: gh-sync.py imports panel_findings and calls exposure_faults and is_discounted; the digest-scoped unrated rule is untouched, and a backlog item's unrated carries a mandatory reason.
+  - dec: DEC-174
+    disposition: keep
+    clause: Planning such a change through the harness remains fine and useful
+    successor: none
+    reason: T-01 adds a refusal to gh-sync.py, a Harness gate script; it is planned through Harness and executed main-session-direct.
+
+tasks:
+  - id: T-01
+    title: Require and state a DEC-260 exposure on every gh-sync.py backlog item
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - adds a refusal to gh-sync.py, a Harness gate script, with its tests; FEAT-2622 is the precedent.
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - tests/integration/test-gh-backlog-issue-types.py
+      - tests/integration/test-gh-sync-open.py
+      - .claude/skills/harness/references/briefing.md
+      - .omp/commands/harness.md
+    verify: |
+      set -eu
+      m=$(git log -1 --format=%H --grep=FEAT-2643 main)
+      test -n "$m"
+      git merge-base --is-ancestor "$m" HEAD
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-backlog-issue-types.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync-open.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-issue-types.py
+      grep -q "^import panel_findings" .claude/skills/harness/bin/gh-sync.py
+      test "$(grep -cE "[\"'](routine|plausible|contrived|regression|no_worse|chance|adversary)[\"']" .claude/skills/harness/bin/gh-sync.py)" = 0
+      grep -q "nature:<exposure>:title" .omp/commands/harness.md
+      grep -q "struck by DEC-260" .claude/skills/harness/references/briefing.md
+      env -u HARNESS_AGENT_TYPE python3 - tests/integration/test-gh-backlog-issue-types.py 37 <<'PY'
+      import os, re, shutil, subprocess, sys, tempfile
+      rel, count = sys.argv[1], int(sys.argv[2])
+      red = re.compile(r"(PASS|FAIL) (CASE (J|K[1-6]|L[1-3]|M[1-4]): .*)$")
+      def run(cwd):
+          out = subprocess.run([sys.executable, rel], cwd=cwd, capture_output=True, text=True).stdout.splitlines()
+          return dict((m.group(2), m.group(1)) for m in map(red.match, out) if m)
+      head = run(".")
+      base_sha = subprocess.run(["git", "merge-base", "HEAD", "main"], check=True, capture_output=True, text=True).stdout.strip()
+      with tempfile.TemporaryDirectory() as tmp:
+          tar = subprocess.run(["git", "archive", base_sha], check=True, capture_output=True).stdout
+          subprocess.run(["tar", "-x", "-C", tmp], input=tar, check=True)
+          shutil.copy(rel, os.path.join(tmp, rel))
+          base = run(tmp)
+      bad = sorted(n for n in head if head[n] != "PASS" or base.get(n) != "FAIL")
+      print("red-first:", len(head), "of", count, "cases; not green now or not red at base:", bad)
+      sys.exit(1 if bad or len(head) != count else 0)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree; every relative path stays inside it. Product guidance is the decision record: read DEC-138, DEC-174 and DEC-260 in .harness/harness/docs/DECISIONS.md (find them through DECISIONS-INDEX.md) and SC-01 to SC-06 in .harness/harness/features/FEAT-2682-backlog-exposure/BRIEF.md. Harness has no docs/spec.md or docs/architecture.md. Execute main-session-direct (DEC-174).
+
+      PRECONDITION. Start only after FEAT-2643-ship-before-merge has merged to main, with this branch rebased onto that main; FEAT-2643 rewrites the ship order in gh-sync.py and .omp/commands/harness.md. Plan and touch no FEAT-2643 surface (ship order, finalize, references/github-mirror.md). The verify's first three lines refuse a base without FEAT-2643.
+
+      1. .claude/skills/harness/bin/gh-sync.py.
+      a. Add the line import panel_findings beside the other bin imports (after import harness_merge). Take every exposure value and the discount from it; write no literal of routine, plausible, contrived, regression, no_worse, chance or adversary in this file.
+      b. Rewrite _parse_backlog_items(items) to return a list of 4-tuples (nature, title, key, exposure_line), validating the WHOLE list before returning and stopping at the first bad item. Per item: nature, _, rest = item.partition(":"). If nature is not bug, chore or enhancement, die(f"backlog item must be nature:<exposure>:title (bug|chore|enhancement), got {item!r}") - exit 1 as today. exposure_text, sep, title = rest.partition(":"); title = title.strip(). If sep is empty, refuse(f"backlog item {item!r} carries no exposure - write nature:trigger/vs_today/control:title or nature:unrated=<reason>:title (DEC-260)"). Then exposure_line = _backlog_exposure_line(item, exposure_text.strip()). Then if title is empty, die with the same message as the nature failure. key = f"{nature}:{title}" exactly as today (plan D-01: the receipt key never carries the exposure). refuse() is the existing helper: prints gh-sync: REFUSED - <msg> to stdout and exits 2.
+      c. Add _backlog_exposure_line(item, text) -> str. unrated = panel_findings.EXPOSURE_UNRATED + "=". If text starts with unrated: reason = text[len(unrated):].strip(); if reason is empty, refuse(f"backlog item {item!r}: unrated needs a one-line reason, unrated=<reason> (DEC-260)"); return f"Exposure (DEC-260): unrated - {reason}". Otherwise parts = text.split("/"); if len(parts) != 3, refuse(f"backlog item {item!r}: exposure {text!r} must be trigger/vs_today/control or unrated=<reason> (DEC-260)"). exposure = dict(zip(("trigger", "vs_today", "control"), parts)). faults = panel_findings.exposure_faults(exposure); if faults, refuse(f"backlog item {item!r}: {'; '.join(faults)} (DEC-260)"). If panel_findings.is_discounted(exposure), refuse(f"backlog item {item!r} is discounted by the practicality rule (DEC-260): a contrived trigger no worse than today and not adversary-controlled never becomes a backlog issue"). Return f"Exposure (DEC-260): trigger {parts[0]}, vs_today {parts[1]}, control {parts[2]}". There is no flag, argument or environment variable that admits a discounted item.
+      d. main(): validate before any gh call. Directly after the existing if not os.path.isdir(feat_dir): die(...) check and before the root walk-up and load_config (which runs gh auth status), add: backlog_items = None; if cmd == "backlog": if len(argv) < 3, die("backlog needs at least one nature:<exposure>:title item"); backlog_items = _parse_backlog_items(argv[2:]). In the later elif cmd == "backlog" branch delete the old length check and call cmd_backlog(feat_dir, repo, backlog_items, issue_types). In the usage string replace nature:title ... with nature:<exposure>:title ....
+      e. cmd_backlog(feat_dir, repo, parsed, issue_types=None) takes the parsed list and no longer parses. Rewrite its docstring: one arg per accepted residual as nature:<exposure>:title (nature bug|chore|enhancement; exposure trigger/vs_today/control in DEC-260 values or unrated=<reason>); main validates every item before config resolution and before any gh call, refusing a missing, malformed or discounted exposure with exit 2; detection then runs once, as the first statement of cmd_backlog. Keep the rest of the docstring. Unpack the 4-tuples in every loop in cmd_backlog and in _required_backlog_issue_types; pass exposure_line through _backlog_create_or_skip to _backlog_create.
+      f. _backlog_create(feat_dir, repo, feat, nature, title, key, state, exposure_line): body becomes f"Residual finding from {feat}, accepted at the ship briefing. {exposure_line}". Change nothing else in it: labels, the receipt write and the print line stay.
+      g. Leave _load_backlog_receipt, _save_backlog_entry, _backlog_apply_type's logic, _refuse_undeclared_backlog_types and every label rule unchanged.
+
+      2. tests/integration/test-gh-backlog-issue-types.py.
+      a. ITEMS = ["bug:plausible/regression/chance:a defect", "chore:unrated=post-ship measurement:a chore", "enhancement:routine/no_worse/user:a wish"]; add KEYS = ["bug:a defect", "chore:a chore", "enhancement:a wish"]. Every receipt lookup that today indexes the receipt by an ITEMS entry indexes by the matching KEYS entry (zip them where a loop walks ITEMS); the seeded remnant key bug:a defect stays. Update the module docstring's command line to the new items and add cases J to N to its case list.
+      b. run() gains items=None, defaulting to ITEMS, passed in place of *ITEMS.
+      c. Add refused_case(case, label, items, discounted=False): fresh tmp, install_gh(tmp, FAKE_GH_TYPES), feat_dir = stage(tmp), r = run(feat_dir, tmp, {"FAKE_TYPES": "available"}, items=items); three checks, exact names: f"CASE {case}: {label} exits 2" (r.returncode == 2), f"CASE {case}: {label} makes no gh call" (calls(tmp) == []), f"CASE {case}: {label} writes no receipt" (read_receipt(feat_dir) is None); when discounted is True a fourth, f"CASE {case}: {label} names DEC-260" ("DEC-260" in r.stdout). Call it for: J "an item without exposure" [bug:a defect]; K1 "an off-enum trigger" [bug:rare/regression/chance:a defect]; K2 "a two-part exposure" [bug:plausible/regression:a defect]; K3 "a four-part exposure" [bug:plausible/regression/chance/user:a defect]; K4 "a bare unrated" [bug:unrated:a defect]; K5 "an unrated with a blank reason" [the item bug:unrated= followed by three spaces then :a defect]; K6 "a malformed item after a valid one" [chore:plausible/regression/chance:a chore, bug:a defect]; L1 "a discounted harness-controlled item" [bug:contrived/no_worse/harness:a defect], L2 the same with chance, L3 the same with user, each L with discounted=True. That is 37 checks named CASE J, K1-K6, L1-L3, M1-M4 in total with M below; every one must FAIL against the pre-change gh-sync.py and PASS now, which the verify proves.
+      d. case_m(): one fresh fixture run of ITEMS with FAKE_TYPES available, and one with FAKE_TYPES absent. Exact names: CASE M1: a rated item's body states trigger plausible, vs_today regression, control chance - the available run's create argv containing a defect contains Exposure (DEC-260): trigger plausible, vs_today regression, control chance. CASE M2: an unrated item's body states its reason - the available run's create argv containing a chore contains Exposure (DEC-260): unrated - post-ship measurement. CASE M3: the labels-only path states the rating - the absent run's create argv containing a wish contains Exposure (DEC-260): trigger routine, vs_today no_worse, control user. CASE M4: the receipt is keyed nature:title with only number and typed - the available run's receipt keys equal set(KEYS) and every entry's keys equal {number, typed}. Guard every lookup with .get or a default so the file runs to its report against the pre-change verb.
+      e. case_n() positive controls, no red-first requirement: CASE N1: a contrived, no_worse, adversary-controlled item is filed - [bug:contrived/no_worse/adversary:a defect], FAKE_TYPES available, exit 0 and exactly one create argv. CASE N2: an earlier run's nature:title receipt entry suppresses its re-create - seed_receipt(feat_dir, {bug:a defect: {number: 77, typed: True}}), run ITEMS with FAKE_TYPES available, exit 0 and no create argv contains a defect.
+      f. Call the new cases before sys.exit(C.report()).
+
+      3. tests/integration/test-gh-sync-open.py. Replace the item bug:fixture with bug:plausible/regression/chance:fixture in both the fleet_unproven_command_cases commands list and _BOUND_COMMANDS. In the open-backlog block replace the three items with bug:plausible/regression/chance:echo-only returns unhandled, chore:routine/regression/harness:INV-10 exec-bit hole and enhancement:unrated=post-ship measurement:progress events. Keep every assertion, including typo-no-colon exiting 1.
+
+      4. .claude/skills/harness/references/briefing.md, the proposed-backlog paragraph. After each with its nature (bug/chore/enhancement), add that each row also carries its exposure: trigger/vs_today/control in DEC-260's values (for example plausible/regression/chance), or unrated=<one-line reason> for a row that is not a defect, such as a post-ship measurement. Add: a row the practicality rule discounts (contrived, no_worse, control other than adversary) is still listed, its exposure cell ending with the words struck by DEC-260, and is never passed to gh-sync.py backlog, which refuses it. Extend the sentence Unstruck rows become backlog issues on ship acceptance (DEC-138) with: each passed as nature:<exposure>:title. Format code tokens with backticks as the surrounding text does.
+
+      5. .omp/commands/harness.md, the shipped / PASS row. Replace (labeled by nature, no milestone; DEC-138) with: one argument per row as nature:<exposure>:title, where <exposure> is trigger/vs_today/control in DEC-260's values or unrated=<reason>; labeled by nature, no milestone; DEC-138; a row struck by DEC-260 is never passed, and the verb refuses it. Write nature:<exposure>:title verbatim inside backticks, as the row formats gh-sync.py backlog. Change nothing else in the row; FEAT-2643 owns its ship-order text.
+
+      Out of this task: backlog-issues.json's shape, every other issue-creating route, references/github-mirror.md and tests/unit/test-issue-types.py (it never calls the verb; the verify runs it unchanged). If any test file not listed reddens, stop and report it instead of editing it.
