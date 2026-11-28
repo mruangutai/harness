@@ -34,6 +34,7 @@ import factory_config
 import factory_gh
 import feature_corpus
 import harness_yaml
+from feature_record import read as record_read
 
 TOOL = "claim"
 
@@ -161,7 +162,7 @@ class _BlockerCache:
         if key not in self._issue_maps:
             path = _record_path(repo, feature, "feature.json")
             try:
-                doc = artifact_accessors.load_feature_json(path)
+                doc = record_read.load_feature_json(path)
             except artifact_accessors.ArtifactAccessError:
                 doc = None
             issues = {}

@@ -1,0 +1,80 @@
+schema_version: 2
+run_id: 2026-11-27-01-validate-validator
+run_uid: ae470f49505244feade0bea517916410
+feature: FEAT-2581-feature-record-package
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs: [".harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-qa-c1.md"]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-qa-c1.md
+    evidence:
+      matrix_ok: true
+      unit_files: 68
+      integration_files: 94
+  - id: code
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: []
+    outputs: [".harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-c1.md"]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-c1.md
+    evidence:
+      code_grade: fail
+      high_findings: 2
+  - id: security
+    persona: harness-security-reviewer
+    seq: 3
+    depends_on: []
+    outputs: [".harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-security-reviewer-c1.md"]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-security-reviewer-c1.md
+    evidence:
+      severity_max: med
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: []
+    outputs: [".harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-c1.md"]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-c1.md
+    note: out of scope by census of 135 changed paths
+  - id: goalcheck
+    persona: harness-pm
+    seq: 5
+    depends_on: []
+    outputs: [".harness/harness/features/FEAT-2581-feature-record-package/notes/research-FEAT-2581-feature-record-package-goalcheck-validate-c1.md"]
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/research-FEAT-2581-feature-record-package-goalcheck-validate-c1.md
+    evidence:
+      sc_met: 10

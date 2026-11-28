@@ -1,9 +1,10 @@
 """The parse-once runner context and the primitives every family shares. (FEAT-69)"""
-import glob, json, os, re, subprocess, sys
+import glob, json, os, re, subprocess
 import artifact_accessors
 import digest_record
 import harness_boundary
 import harness_yaml
+from feature_record import read as record_read
 def read(p):
     """The file's text, or None when it is absent, unreadable or not UTF-8."""
     try:
@@ -360,14 +361,13 @@ class Ctx:
     def _load_hash_module(self):
         bad = self.bad
         try:
-            _pm40 = harness_boundary.load_repo_module(
-                "harness_plan_merge", os.path.join(sys.argv[2], "plan-merge.py"))
+            _pm40 = harness_boundary.load_repo_module("plan_merge.approval")
             self.signed_task_hash = _pm40.signed_task_hash
         except harness_boundary.RepoModuleError as _pme40:
             self.signed_task_hash = None
             # The ORIGINAL exception is rendered, not the boundary's wrapper: the reader wants
-            # the type and text of what went wrong inside plan-merge.py (FEAT-63 T-01).
-            bad.append("INV-40 CANNOT RUN its signed-text check: plan-merge.py did not import "
+            # the type and text of what went wrong inside plan_merge/approval.py (FEAT-63 T-01).
+            bad.append("INV-40 CANNOT RUN its signed-text check: plan_merge/approval.py did not import "
                        f"({type(_pme40.cause).__name__}: {_pme40.cause}), so an unledgered task-text change would go "
                        "unreported. The module ships with this repository.")
 
@@ -455,8 +455,8 @@ class Ctx:
         # recorded-issue validation. A reader failure is loud below; it never reduces
         # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
         try:
-            doc = artifact_accessors.load_feature_json(fy) or {}
-        except artifact_accessors.FeatureJsonError as e:
+            doc = record_read.load_feature_json(fy) or {}
+        except record_read.FeatureJsonError as e:
             self._record_errors[feat] = e
             # A file that does not parse is a VIOLATION, never a silent skip — the whole
             # point of DEC-171 is that there is no quieter mode. Report and move on

@@ -1,0 +1,136 @@
+schema_version: 2
+run_id: plan-product
+run_uid: e3fecf3116de4148a348d44ac7468c42
+feature: FEAT-2581-feature-record-package
+squad: product
+host: harness-product-lead
+team: plan
+status: complete
+verdict: FAIL
+severity_max: high
+digest: runs/plan-product/digest.md
+cycles_used: 1
+steps:
+  - id: draft
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/BRIEF.md
+      - .harness/harness/features/FEAT-2581-feature-record-package/plan.yaml
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/research-feature-record-package.md
+    note: 3 tasks (T-01 move, T-02 DECISIONS, T-03 pin); check exit 0; OQ-01..05 non-blocking
+    evidence:
+      plan_merge_check_exit: 0
+      tasks: 3
+      open_questions: [OQ-01, OQ-02, OQ-03, OQ-04, OQ-05]
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [draft]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-plan-c1.md
+    mutates_repo: false
+    on_fail: loop_back
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-plan-c1.md
+    note: 7 findings routed to apply; applied substance findings unread, re-panel of T-01/T-03 needed in a new run dir
+    evidence:
+      findings: 7
+      severity_max: high
+  - id: should-not-exist
+    persona: fable-advisor
+    seq: 2
+    depends_on: [draft]
+    outputs: []
+    mutates_repo: false
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    note: resolved and ran; 2 findings transcribed into panel-c1.md
+    evidence:
+      findings: 2
+      severity_max: med
+  - id: design
+    persona: harness-ui-reviewer
+    seq: 2
+    depends_on: [draft]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-plan-c1.md
+    mutates_repo: false
+    on_fail: loop_back
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-plan-c1.md
+    note: self-scoped out, no user-facing surface
+    evidence:
+      findings: 0
+  - id: apply
+    persona: harness-pm
+    seq: 3
+    depends_on: [scope, should-not-exist, design]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/BRIEF.md
+      - .harness/harness/features/FEAT-2581-feature-record-package/plan.yaml
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 1
+    redispatches: 1
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-9
+    recompleted_at: seq-10
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/research-feature-record-package.md
+    note: send-back 1 closed GC-01..04; 7 findings resolved, PF-d35d (bun) and PF-7999 (D-02) open for operator; check exit 0
+    evidence:
+      plan_merge_check_exit: 0
+      panel_findings_resolved: 7
+      panel_findings_open: 2
+      sendback_reasons: [GC-01, GC-02, GC-03]
+  - id: goalcheck
+    persona: harness-pm
+    seq: 4
+    depends_on: [apply]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/research-FEAT-2581-feature-record-package-goalcheck-plan.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    redispatches: 1
+    dispatched_at: seq-7
+    completed_at: seq-8
+    redispatched_at: seq-11
+    recompleted_at: seq-12
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/research-FEAT-2581-feature-record-package-goalcheck-plan.md
+    note: first grade FAIL (operator partial); re-grade PASS both perspectives, appended to same note
+    evidence:
+      plan_merge_check_exit: 0
+      first_grade: FAIL
+      regrade: PASS

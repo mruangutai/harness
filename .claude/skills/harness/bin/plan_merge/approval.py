@@ -7,13 +7,13 @@ import sys
 import yaml
 
 import factory_config
-import feature_json_write
-import harness_boundary
+from feature_record import read as record_read, write as record_write
+from feature_record.budget import _require_decision_file
 import harness_merge
 import harness_yaml
 import panel_findings
 from plan_merge.guards import (
-    BIN_DIR, _die, _load_base_doc, _locked_plan_update, _refuse_governed_agent, _reload_or_refuse,
+    _die, _load_base_doc, _locked_plan_update, _refuse_governed_agent, _reload_or_refuse,
     _resolve_plan,
 )
 from plan_merge.stations import (
@@ -304,7 +304,7 @@ def cmd_sign_approval(args):
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
     ruling, feature_json = _rework_ruling(args, resolved)
-    # THE RULING IS RECORDED BEFORE THE SIGNATURE (review F4). feature_json_write can still
+    # THE RULING IS RECORDED BEFORE THE SIGNATURE (review F4). feature_record.write can still
     # refuse past the existence check — invalid JSON, a schema regression, a lock timeout —
     # and a signed plan with no ruling is the half-state SC-15 exists to prevent. The other
     # order fails safe: a ruling without a signature is harmless, and the plan is re-signed.
@@ -505,34 +505,26 @@ def _rework_ruling(args, resolved):
         _die(2, f"plan-merge: {feature_json} does not exist, so the rework ruling has nowhere "
                 "to go — REFUSING to sign. Create the feature's feature.json first.")
     try:
-        _feature_record_module()._require_decision_file(feature_json, ruling["decision"],
-                                                       "sign-approval --rework")
+        _require_decision_file(feature_json, ruling["decision"], "sign-approval --rework")
     except harness_merge.MergeRefusal as refusal:
         _die(2, *refusal.lines)
     return ruling, feature_json
 
 
-def _feature_record_module():
-    """feature-record.py as a module: the hyphen keeps it out of `import`, like check-plan-routes.
-    Loaded through the one bin loader (FEAT-61 T-02), unregistered: it declares no dataclass."""
-    return harness_boundary.load_repo_module(
-        "feature_record", os.path.join(BIN_DIR, "feature-record.py"))
-
-
 def _record_rework(feature_json, ruling):
     """Set `rework` on the sibling feature.json through the one locked, schema-checked writer
-    (feature_json_write, C1). A refusal there propagates its own code."""
+    (feature_record.write, C1). A refusal there propagates its own code."""
     def transform(base):
-        doc = feature_json_write.parse_doc(base, feature_json)
+        doc = record_read.parse_doc(base, feature_json)
         if doc is None:
             raise harness_merge.MergeRefusal(
-                feature_json_write.SCHEMA_REFUSAL_CODE,
+                record_read.SCHEMA_REFUSAL_CODE,
                 [f"REFUSED: {feature_json} vanished between the existence check and the write."])
         doc["rework"] = ruling
         return json.dumps(doc, indent=2) + "\n"
 
     try:
-        feature_json_write.write_feature_json(feature_json, transform)
+        record_write.write_feature_json(feature_json, transform)
     except harness_merge.MergeRefusal as refusal:
         _die(refusal.code, *refusal.lines)
 
@@ -570,13 +562,13 @@ def _record_signed_task_hashes(resolved, plan_doc):
     hashes = signed_task_hashes(plan_doc)
 
     def transform(base):
-        doc = feature_json_write.parse_doc(base, feature_json)
+        doc = record_read.parse_doc(base, feature_json)
         if doc is None:
             raise harness_merge.MergeRefusal(
-                feature_json_write.SCHEMA_REFUSAL_CODE,
+                record_read.SCHEMA_REFUSAL_CODE,
                 [f"REFUSED: {feature_json} vanished between the existence check and the write."])
         doc["signed_task_hashes"] = hashes
         return json.dumps(doc, indent=2) + "\n"
 
-    feature_json_write.write_feature_json(feature_json, transform)
+    record_write.write_feature_json(feature_json, transform)
     print(f"HASHED {len(hashes)} task(s) -> {feature_json}")

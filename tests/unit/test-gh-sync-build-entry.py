@@ -168,13 +168,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # A Build start with NO receipt is refused, and a recovery-required one proceeds with the
 # merge-refused notice, for EVERY feature id: synthetic ones, plus every feature-id-shaped
-# string feature_schema itself holds as module data — read from the module, never named here,
-# so a reintroduced per-feature exemption table is probed without this file naming any real
-# feature.
+# string the feature_record package itself holds as module data — read from the modules, never
+# named here, so a reintroduced per-feature exemption table is probed without this file naming
+# any real feature.
 import re  # noqa: E402
-import feature_schema  # noqa: E402
+from feature_record import binding as record_binding, evidence as record_evidence  # noqa: E402
+from feature_record import schema as record_schema  # noqa: E402
 _held = set()
-for _value in vars(feature_schema).values():
+for _value in [v for m in (record_schema, record_evidence, record_binding) for v in vars(m).values()]:
     if isinstance(_value, (dict, set, frozenset, list, tuple)):
         _held.update(m for m in _value
                      if isinstance(m, str) and re.match(r"^(FEAT|BUG|PR)-[0-9]+", m))

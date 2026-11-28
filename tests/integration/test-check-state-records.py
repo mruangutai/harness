@@ -931,11 +931,11 @@ def case_t06_inv37_receipt():
 
 
 def _t06_recovery(station, task_status=None):
-    import feature_schema
+    from feature_record import schema as record_schema
     with tempfile.TemporaryDirectory() as tmp:
         feat_dir = _t06_fixture(tmp, "FEAT-9001-fixture", station=station,
                                 task_status=task_status)
-        return feature_schema.recovery_command_for(feat_dir)
+        return record_schema.recovery_command_for(feat_dir)
 
 
 def case_t06_recovery_command():
@@ -1059,7 +1059,7 @@ def case_bug440_digest_verdict_reconciliation():
 
 
 def case_historical_refusal_completion():
-    import feature_schema
+    from feature_record import evidence as record_evidence
     outcomes = []
     with tempfile.TemporaryDirectory() as tmp:
         original = "# assessment completed; the return was refused\n"
@@ -1078,7 +1078,7 @@ def case_historical_refusal_completion():
         _, before = run(tmp)
         outcomes.append("runs/R/digest.md: does not satisfy" in before)
         digest = os.path.join(fdir, "runs", "R", "digest.md")
-        ref = feature_schema.resolve_evidence_ref(fdir, digest)
+        ref = record_evidence.resolve_evidence_ref(fdir, digest)
         note = os.path.join(fdir, "authorization.json")
         with open(note, "w", encoding="utf-8") as target:
             json.dump({"feature_id": "FEAT-TEST", "effects": [
@@ -1195,13 +1195,13 @@ def _refused_fixture(tmp, prose):
 
 
 def _record_refusal(tmp, path, digest):
-    import feature_schema
+    from feature_record import evidence as record_evidence
     fdir = os.path.dirname(path)
     note = os.path.join(fdir, "authorization.json")
     with open(note, "w", encoding="utf-8") as target:
         json.dump({"feature_id": "FEAT-TEST", "effects": [{
             "effect": "record-refusal", "run_id": "R",
-            "digest": feature_schema.resolve_evidence_ref(fdir, digest)}]}, target)
+            "digest": record_evidence.resolve_evidence_ref(fdir, digest)}]}, target)
     return _feature_record(
         "record-refusal", "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
         "--by", "operator", "--reason", "authentic historical contract rejection", "--yes",

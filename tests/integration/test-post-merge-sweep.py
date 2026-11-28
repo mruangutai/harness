@@ -1019,12 +1019,12 @@ def case_t07_build_entry_receipt(row):
 def case_t07_no_feature_id_is_exempt():
     """FEAT-71: the receipt rule is uniform. A feature with an absent or recovery-required
     receipt keeps its worktree whatever its id: synthetic ids plus
-    feature_id_probe_support.held_feature_ids(feature_schema). Stops at the first swept
+    feature_id_probe_support.held_feature_ids(record_schema). Stops at the first swept
     worktree; one is enough to fail."""
-    import feature_schema
+    from feature_record import schema as record_schema
     from feature_id_probe_support import held_feature_ids
     probed = 0
-    for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(feature_schema):
+    for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(record_schema):
         for entry in (None, "recovery-required"):
             with tempfile.TemporaryDirectory() as tmp:
                 run, dest = _t07_sweep(tmp, feature, entry)

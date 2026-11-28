@@ -2,10 +2,10 @@
 """feature-record.py and the FEAT-59 feature.json ledger keys (SC-15, SC-18, SC-19, SC-21).
 
 Every verb is exercised through the CLI as a subprocess, the way the orchestrator and the
-main session call it, and every written document is re-validated with feature_schema so a
+main session call it, and every written document is re-validated with feature_record.schema so a
 verb that writes a shape the schema rejects cannot pass here. The refusal cases assert the
 file is byte-identical afterwards: a refused write that still moved bytes is the incident
-feature_json_write exists to close.
+feature_record.write exists to close.
 """
 from pathlib import Path
 import json
@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[2]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(ROOT / "tests"))
-import feature_schema  # noqa: E402
-import feature_json_write  # noqa: E402
+from feature_record import evidence as record_evidence, read as record_read  # noqa: E402
+from feature_record import runs as record_runs, schema as record_schema  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
 CLI = BIN / "feature-record.py"
@@ -68,7 +68,7 @@ class FeatureRecordCase(unittest.TestCase):
         self.assertEqual(0, result.returncode, f"stdout={result.stdout!r} stderr={result.stderr!r}")
 
     def assert_clean(self):
-        problems = feature_schema.problems_for_text(
+        problems = record_schema.problems_for_text(
             self.path.read_text(encoding="utf-8"), str(self.path))
         self.assertEqual([], problems)
 
@@ -88,9 +88,9 @@ class RunStartEndTest(FeatureRecordCase):
                  "verdict": "BLOCKED", "return_disposition": "refused",
                  "ended_at": "2026-10-05T10:00:00+00:00"}
         doc = base_doc(runs=[entry])
-        self.assertEqual([], feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        self.assertEqual([], record_schema.problems_for_text(json.dumps(doc), str(self.path)))
         entry["verdict"] = "PASS"
-        self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        self.assertTrue(record_schema.problems_for_text(json.dumps(doc), str(self.path)))
 
     def test_run_start_appends_a_pending_entry_stamped_started_at(self):
         self.write(base_doc())
@@ -293,7 +293,7 @@ class RunStartEndTest(FeatureRecordCase):
     def test_missing_file_is_refused_not_created(self):
         result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
                               "--squad", "engineering", "--agent", "harness-eng-lead")
-        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertFalse(self.path.exists())
 
 class StampTokensTest(FeatureRecordCase):
@@ -532,7 +532,7 @@ class CloseRunTest(FeatureRecordCase):
         refusal = entry["refusal"]
         self.assertEqual(("close-run", "r1"), (refusal["source"], refusal["run_id"]))
         self.assertEqual(
-            feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest)),
+            record_evidence.resolve_evidence_ref(str(self.path.parent), str(self.digest)),
             refusal["digest"])
         self.assertNotIn("return_disposition", entry)
         self.assertRegex(entry["ended_at"], ISO_UTC)
@@ -551,18 +551,16 @@ class CloseRunTest(FeatureRecordCase):
         self.assertEqual(before, self.path.read_bytes())
 
     def test_refused_digest_stage_does_not_accept_an_internal_validator_failure(self):
-        import runpy
         broken = self.tmp / "broken-validator.py"
         broken.write_text("raise RuntimeError('validator internal failure')\n", encoding="utf-8")
-        stage = runpy.run_path(str(CLI))["_stage"]
+        stage = record_runs._stage
         with self.assertRaises(SystemExit) as refused:
             stage("refused-return", [str(broken)], refuse_on_success="accepted digest")
         self.assertEqual(1, refused.exception.code)
 
     def test_refused_digest_stage_does_not_accept_validator_usage_failure(self):
-        import runpy
         validator = CLI.with_name("validate-digest.py")
-        stage = runpy.run_path(str(CLI))["_stage"]
+        stage = record_runs._stage
         with self.assertRaises(SystemExit) as refused:
             stage("refused-return", [str(validator), "--not-a-validator-option"],
                   refuse_on_success="accepted digest")
@@ -673,14 +671,11 @@ class CloseRunTest(FeatureRecordCase):
     def test_validator_crash_or_noncontract_failure_cannot_become_refusal_evidence(self):
         import argparse
         import contextlib
-        import importlib.util
         import io
         from unittest import mock
-        spec = importlib.util.spec_from_file_location("feature_record_refusal_cli", CLI)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = record_runs
         before = self.write(base_doc(runs=[dict(self.OPEN)]))
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest))
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), str(self.digest))
         note = self.path.parent / "refusal-authorization.json"
         note.write_text(json.dumps({
             "feature_id": "FEAT-77-record", "effects": [{
@@ -704,7 +699,7 @@ class CloseRunTest(FeatureRecordCase):
                 self.assertIn("status: building", self.plan.read_text(encoding="utf-8"))
 
     def close_refused(self, verdict, *extra):
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(self.digest))
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), str(self.digest))
         note = self.path.parent / "close-authorization.json"
         note.write_text(json.dumps({
             "feature_id": "FEAT-77-record",
@@ -745,7 +740,7 @@ class CloseRunTest(FeatureRecordCase):
         judgement lands, and the one-line success summary (which carries spend) is not printed."""
         self.write(base_doc(runs=[dict(self.OPEN)]))
         result = self.close("--judgement", "kind=regate,decision=x,reason=" + "r" * 241)
-        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertIn("REFUSED at stage judgement", result.stderr)
         self.assertIn("reason", result.stderr)
         doc = self.load()
@@ -760,12 +755,9 @@ class CloseRunTest(FeatureRecordCase):
         reordered stage fails the caller."""
         import argparse
         import contextlib
-        import importlib.util
         import io
         from unittest import mock
-        spec = importlib.util.spec_from_file_location("feature_record_cli", CLI)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
+        mod = record_runs
         real_run = subprocess.run
 
         def run_or_refuse_spend(argv, **kw):
@@ -851,7 +843,7 @@ class JudgementTest(FeatureRecordCase):
         before = self.write(base_doc())
         result = self.run_cli("judgement", "--file", str(self.path), "--by", "x",
                               "--kind", "regate", "--decision", "d", "--reason", "r" * 241)
-        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertIn("reason", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
@@ -1042,7 +1034,7 @@ class SetMissionTest(FeatureRecordCase):
         before = self.write(base_doc())
         result = self.run_cli("set-mission", "--file", str(self.path), "--mission", "patch",
                               "--by", "harness-orchestrator", "--reason", "r" * 241)
-        self.assertEqual(feature_json_write.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
 
@@ -1310,7 +1302,7 @@ class PinReviewTest(FeatureRecordCase):
         self.assertEqual({**doc, "review_sha": self.head}, self.load())
 
     def test_the_write_goes_through_the_shared_writers_destination_contract(self):
-        """feature_json_write refuses a feature.json outside `.harness/*/features/*/` before
+        """feature_record.write refuses a feature.json outside `.harness/*/features/*/` before
         it locks anything; a verb that wrote the file itself would pin it anyway."""
         stray = self.tmp / "elsewhere" / "feature.json"
         stray.parent.mkdir()
@@ -1425,10 +1417,10 @@ class ProposeReworkTest(FeatureRecordCase):
         self.assertIn("mission", result.stderr)
 
 class SchemaTest(unittest.TestCase):
-    """The schema half of the ledger: what feature_json_write refuses at every verb."""
+    """The schema half of the ledger: what feature_record.write refuses at every verb."""
 
     def problems(self, doc):
-        return feature_schema.problems_for_text(json.dumps(doc), "sample.json")
+        return record_schema.problems_for_text(json.dumps(doc), "sample.json")
 
     def judgement(self, **overrides):
         entry = {"at": "2026-09-11T10:00:00+00:00", "by": "harness-orchestrator",
@@ -1629,7 +1621,7 @@ class CycleEvidenceTest(FeatureRecordCase):
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertEqual(before, self.path.read_bytes())
         doc = self.load()
-        self.assertTrue(feature_schema.run_evidence_problems(
+        self.assertTrue(record_evidence.run_evidence_problems(
             str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
 
     def test_historical_authorization_does_not_claim_unattested_previous_artifacts(self):
@@ -1639,18 +1631,18 @@ class CycleEvidenceTest(FeatureRecordCase):
         doc = base_doc(runs=[{"id": "r1", "squad": "product", "verdict": "FAIL",
                               "agent": "harness-product-lead", "cycles_used": 0,
                               "cycle_evidence": evidence}])
-        self.assertEqual([], feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        self.assertEqual([], record_schema.problems_for_text(json.dumps(doc), str(self.path)))
         evidence["previous"] = [{"path": "notes/not-authorized.md", "sha256": "b" * 64}]
-        self.assertTrue(feature_schema.problems_for_text(json.dumps(doc), str(self.path)))
+        self.assertTrue(record_schema.problems_for_text(json.dumps(doc), str(self.path)))
 
     def test_evidence_cannot_bless_boolean_float_or_absent_attribution(self):
         digest = self.lead_evidence(0)
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), digest)
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), digest)
         for count in (False, 0.0, None):
             run = {"id": "r1", "verdict": "PASS", "cycles_used": count,
                    "cycle_evidence": dict(ref, source="lead-digest")}
             with self.subTest(count=count):
-                self.assertTrue(feature_schema.run_evidence_problems(
+                self.assertTrue(record_evidence.run_evidence_problems(
                     str(self.path.parent), "FEAT-77-record", run, [run]))
 
     def test_new_zero_attribution_requires_evidence_before_any_write(self):
@@ -1683,7 +1675,7 @@ class CycleEvidenceTest(FeatureRecordCase):
                                     "--verdict", "FAIL", "--cycles-used", "0", "--digest", "relative.md"))
         doc = self.load()
         self.assertEqual(2, doc["cycles_used"])
-        self.assertEqual([], feature_schema.run_evidence_problems(
+        self.assertEqual([], record_evidence.run_evidence_problems(
             str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
 
     def test_zero_sendback_fail_and_one_sendback_preserve_legacy_residual(self):
@@ -1749,7 +1741,7 @@ class HistoricalRecoveryTest(FeatureRecordCase):
         before = self.write(base_doc(runs=[{
             "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "BLOCKED", "cycles_used": 0, "ended_at": "2026-09-11T11:00:00+00:00"}]))
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), str(digest))
         note = self.path.parent / "ambiguous.json"
         note.write_text('{"feature_id":"WRONG","feature_id":"FEAT-77-record","effects":'
                         + json.dumps([{"effect": "record-refusal", "run_id": "r1", "digest": ref}]) + "}")
@@ -1764,7 +1756,7 @@ class HistoricalRecoveryTest(FeatureRecordCase):
         before = self.write(base_doc(cycles_used=2, runs=[{
             "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "FAIL", "cycles_used": 0, "ended_at": "2026-09-11T11:00:00+00:00"}]))
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), str(digest))
         note = self.path.parent / "count-authorization.json"
         note.write_text(json.dumps({"feature_id": "FEAT-77-record", "effects": [{
             "effect": "record-cycle-evidence", "run_id": "r1", "digest": ref, "cycles_used": 0}]}))
@@ -1781,7 +1773,7 @@ class HistoricalRecoveryTest(FeatureRecordCase):
             "id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
             "verdict": "BLOCKED", "cycles_used": 0,
             "ended_at": "2026-09-11T11:00:00+00:00"}]))
-        ref = feature_schema.resolve_evidence_ref(str(self.path.parent), str(digest))
+        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), str(digest))
         note = self.path.parent / "authorization.json"
         note.write_text(json.dumps({
             "feature_id": "FEAT-77-record",
@@ -1795,13 +1787,13 @@ class HistoricalRecoveryTest(FeatureRecordCase):
         self.assertEqual("BLOCKED", doc["runs"][0]["verdict"])
         self.assertEqual("2026-09-11T11:00:00+00:00", doc["runs"][0]["ended_at"])
         self.assertEqual(original, digest.read_bytes())
-        self.assertEqual([], feature_schema.run_evidence_problems(
+        self.assertEqual([], record_evidence.run_evidence_problems(
             str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         before = self.path.read_bytes()
         self.assert_ok(self.run_cli(*args))
         self.assertEqual(before, self.path.read_bytes())
         digest.write_text("changed report\n", encoding="utf-8")
-        self.assertNotEqual([], feature_schema.run_evidence_problems(
+        self.assertNotEqual([], record_evidence.run_evidence_problems(
             str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         result = self.run_cli(*args)
         self.assertEqual(2, result.returncode, result.stderr)

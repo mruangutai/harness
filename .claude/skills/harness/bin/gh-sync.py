@@ -110,8 +110,8 @@ from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
 import gh_issue_types
 
 import artifact_accessors
-import feature_json_write
-import feature_schema
+from feature_record import binding as record_binding, read as record_read, schema as record_schema
+from feature_record import write as record_write
 import harness_merge
 import factory_config
 import factory_gh
@@ -273,10 +273,10 @@ def gh_try(args):
 # ---------- config ----------
 
 def _provenance_preflight(doc, repo, feat_dir):
-    problem = feature_schema.mirror_provenance_problem(doc, repo)
+    problem = record_binding.mirror_provenance_problem(doc, repo)
     if problem:
         refuse(f"mirror provenance: {problem}. To recover, "
-               f"{feature_schema.recovery_command_line(feat_dir, doc, repo)}")
+               f"{record_schema.recovery_command_line(feat_dir, doc, repo)}")
 
 
 def _unbound_project_config(root):
@@ -300,8 +300,8 @@ def _require_gh():
 def _feature_doc(feat_dir):
     """feature.json as a mapping ({} when empty); an unreadable one refuses."""
     try:
-        return artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    except artifact_accessors.FeatureJsonError as error:
+        return record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    except record_read.FeatureJsonError as error:
         refuse(str(error))
 
 
@@ -318,11 +318,11 @@ def _sync_off(github, local_status):
 def load_config(root, feat_dir, command):
     """Resolve the feature before environmental skips, remote writes or local station writes."""
     doc = _feature_doc(feat_dir)
-    bound = feature_schema.has_repository_binding(doc)
+    bound = record_binding.has_repository_binding(doc)
     local_status = command == "status"
     if not bound:
         github = _unbound_project_config(root)["github"]
-    repo, board, issue_types = feature_schema.resolve_binding(doc, root)
+    repo, board, issue_types = record_binding.resolve_binding(doc, root)
     _BUILD_ENTRY["repo"] = repo
     _provenance_preflight(doc, repo, feat_dir)
     if not bound and _sync_off(github, local_status):
@@ -502,7 +502,7 @@ def parse_source_issues(feat_dir):
     `source_issues` key, when the value is not a list, or when the feature is still on
     the PLAN.md format (no plan.yaml at all, same absence check). Members that are not
     real integers (bool excluded — an int subclass in Python, same exclusion
-    feature_json_write.opt_int documents) are dropped silently, in the order plan.yaml
+    feature_record.read.opt_int documents) are dropped silently, in the order plan.yaml
     wrote them; a malformed
     field here must not block issue creation, which is the whole reason this reader is
     tolerant rather than loud.
@@ -551,14 +551,14 @@ def type_label(change_type):
 # as today. A `github` key that IS present but is not itself a mapping is treated as the
 # error case too — refusing to sync beats guessing what is mirrored.
 #
-# BUG-285: the public feature.json read boundary is artifact_accessors.load_feature_json.
-# feature_json_write remains the inward locked writer and owns opt_int, the shared numeric
-# coercion used after the boundary validates recorded fields.
+# BUG-285: the public feature.json read boundary is feature_record.read.load_feature_json.
+# feature_record.write remains the inward locked writer; opt_int, the shared numeric coercion
+# used after the boundary validates recorded fields, sits beside the loader in feature_record.read.
 
 
 def load_recorded(feat_dir):
     """Read the `github:` block from feature.json through
-    artifact_accessors.load_feature_json. This function converts the validated record into
+    feature_record.read.load_feature_json. This function converts the validated record into
     its caller-facing GitHub shape but no longer validates recorded parent or issue fields.
 
     Three states stay distinct on purpose (fix1 Part B) — collapsing either pair
@@ -585,8 +585,8 @@ def load_recorded(feat_dir):
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
            "source_issues": [], "build_entry": None}
     try:
-        doc = artifact_accessors.load_feature_json(path)
-    except artifact_accessors.FeatureJsonError as e:
+        doc = record_read.load_feature_json(path)
+    except record_read.FeatureJsonError as e:
         # Absent (returned as None below, never raised) and malformed (this branch) stay
         # distinct on purpose — see the docstring above.
         raise SystemExit(f"gh-sync: {e}. Refusing to sync rather than risk duplicate issues.")
@@ -603,8 +603,8 @@ def load_recorded(feat_dir):
                          f"mirrored cannot be known. Refusing to sync rather than risk "
                          f"duplicate issues.")
 
-    parent = feature_json_write.opt_int(gh.get("parent"))
-    rec["milestone"] = feature_json_write.opt_int(gh.get("milestone"))
+    parent = record_read.opt_int(gh.get("parent"))
+    rec["milestone"] = record_read.opt_int(gh.get("milestone"))
     rec["parent"] = parent
     # THE PARENT'S ORIGIN IS NOT RECORDED (DEC-203 item 4). A github block written before
     # this feature may still carry that key; it is read without complaint and never
@@ -620,7 +620,7 @@ def load_recorded(feat_dir):
     issues = gh.get("issues")
     if isinstance(issues, dict):
         for k, v in issues.items():
-            n = feature_json_write.opt_int(v)
+            n = record_read.opt_int(v)
             if re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
 
@@ -633,7 +633,7 @@ def load_recorded(feat_dir):
     # T-02 (FEAT-26): source_issues is a MIRROR of plan.yaml's own top-level field (D-01 of
     # that task — the plan is truth, feature.json just reflects it), so a malformed value
     # here does not put issue creation at risk: a non-list value, or a non-integer member,
-    # is dropped silently rather than raising, the same tolerance feature_json_write.opt_int
+    # is dropped silently rather than raising, the same tolerance feature_record.read.opt_int
     # already documents for bool (an int subclass in Python).
     si = gh.get("source_issues")
     if isinstance(si, list):
@@ -653,7 +653,7 @@ def _record_station(feat_dir, station):
     """Record the feature's station in plan.yaml, through `plan-merge.py set-feature-station`.
 
     A SUBPROCESS CALL TO THE VERB, NOT A WRITE (FEAT-41 T-07, D-13). This function used to set
-    feature.json's `status` through feature_json_write.write_feature_json. The field is gone, and
+    feature.json's `status` through feature_record.write.write_feature_json. The field is gone, and
     the file that replaced it has exactly one legal write route: plan.yaml is only ever written
     by plan-merge.py's verbs, which take the merge lock, validate the station against the
     vocabulary BEFORE opening the file, and parse the spliced result before replacing it. Doing
@@ -845,7 +845,7 @@ def _merged_pr_number(doc, repo):
 def _record_pr(feat_dir, repo, pr_arg=None):
     """Set feature.json's top-level `pr` to the number of the branch's exactly-one merged
     pull request (T-03, FEAT-26) — the mirror image of `_record_station`: same read pattern,
-    same locked write through feature_json_write.write_feature_json, same one-line-and-return
+    same locked write through feature_record.write.write_feature_json, same one-line-and-return
     on every failure path, and it NEVER creates a document either.
 
     IDEMPOTENT: an already-recorded int `pr` is never overwritten, on any path — not even
@@ -864,8 +864,8 @@ def _record_pr(feat_dir, repo, pr_arg=None):
     """
     path = os.path.join(feat_dir, "feature.json")
     try:
-        doc = artifact_accessors.load_feature_json(path)
-    except artifact_accessors.FeatureJsonError:
+        doc = record_read.load_feature_json(path)
+    except record_read.FeatureJsonError:
         print(f"gh-sync: {path} could not be read — pr not recorded")
         return
     existing = doc.get("pr")
@@ -890,7 +890,7 @@ def _record_pr(feat_dir, repo, pr_arg=None):
         return json.dumps(current, indent=2) + "\n"
 
     try:
-        feature_json_write.write_feature_json(path, transform)
+        record_write.write_feature_json(path, transform)
     except harness_merge.MergeRefusal:
         print(f"gh-sync: {path} could not be read — pr not recorded")
         return
@@ -919,7 +919,7 @@ def _recorded_github(rec):
 
 def save_recorded(feat_dir, rec):
     """Read-modify-write the `github:` key into feature.json through
-    feature_json_write.write_feature_json (DEC-199): the same lock, same-directory
+    feature_record.write.write_feature_json (DEC-199): the same lock, same-directory
     tempfile, fsync and os.replace `_atomic_write` gave it, matching factory_decompose.py's
     write_factory (`:142-186`) in shape for the file that exists — load the document,
     tolerating a not-a-JSON-mapping document by starting from `{}` (B-5's
@@ -971,7 +971,7 @@ def save_recorded(feat_dir, rec):
         doc["github"] = _recorded_github(rec)
         return json.dumps(doc, indent=2) + "\n"
 
-    feature_json_write.write_feature_json(p, transform)
+    record_write.write_feature_json(p, transform)
 
 
 def record_build_entry(feat_dir, value):
@@ -981,8 +981,8 @@ def record_build_entry(feat_dir, value):
     within its bound repository."""
     rec = load_recorded(feat_dir)
     repo = _BUILD_ENTRY.get("repo") or rec.get("repo")
-    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    same_repo = feature_schema.effective_recorded_repo(doc, repo) == repo
+    doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    same_repo = record_binding.effective_recorded_repo(doc, repo) == repo
     if rec.get("build_entry") == "opened" and value != "opened" and same_repo:
         return
     if repo:
@@ -1438,8 +1438,8 @@ def _projected_for(feat_dir, rec):
 def _build_entry_preflight(feat_dir, rec):
     """Print the recovery-required notice or refuse a Build start with no receipt."""
     entry = rec.get("build_entry")
-    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
+    doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    recovery = record_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
     if entry is None:
         refuse(f"this feature has no recorded build entry, so Build must not start. "
                f"First {recovery}.")
@@ -1448,8 +1448,8 @@ def _build_entry_preflight(feat_dir, rec):
 
 
 def _build_entry_recovery_notice(feat_dir):
-    doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-    recovery = feature_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
+    doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    recovery = record_schema.recovery_command_line(feat_dir, doc, _BUILD_ENTRY.get("repo"))
     print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
           f"Build proceeds, the MERGE is refused until explicit recovery: {recovery}.",
           file=sys.stderr)
@@ -2370,8 +2370,8 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
-        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
-        recovery = feature_schema.recovery_command_line(feat_dir, doc, repo)
+        doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+        recovery = record_schema.recovery_command_line(feat_dir, doc, repo)
         skip(f"no recorded milestone — there is nothing to close. "
              f"To create the receipt, {recovery}, then ship again.")
 

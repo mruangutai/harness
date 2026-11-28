@@ -1,0 +1,1 @@
+PASS — Mode A is out of scope: T-01 and T-03 add no visual or interactive UI; the CLI compatibility checks and module-name diagnostic updates are governed by `plan.yaml` (T-01, T-03, D-02) and `BRIEF.md` (SC-05, SC-06, SC-08), so no `DESIGN.md` is needed.

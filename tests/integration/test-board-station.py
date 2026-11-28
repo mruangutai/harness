@@ -65,14 +65,19 @@ BOARD = {"owner": "implentio", "number": 3, "station_field": "Status",
 
 # A fake `gh` that logs every invocation (one line per call, argv joined on \x01 so a
 # station string containing a space cannot be mistaken for a field separator) to
-# $FAKE_LOG, and answers the THREE calls `gh_board.set_station` makes in sequence:
+# $FAKE_LOG, and answers board-station's issue-state read (#2639; $FAKE_ISSUE_STATE, default
+# OPEN) and the THREE calls `gh_board.set_station` makes in sequence:
 # (1) the issue -> board-item-id GraphQL lookup, (2) the field/option resolve GraphQL
 # call, (3) `project item-edit`, the actual write.
+ISSUE_STATE_CASE = """  *"issue view"*)
+    printf '{"state":"%s"}\\n' "${FAKE_ISSUE_STATE:-OPEN}"
+    exit 0 ;;
+"""
 FAKE_GH_OK = """#!/bin/bash
 echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
-  *"ProjectV2SingleSelectField"*)
-    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_BUILDING","name":"Building"}]}}}}}\\n'
+""" + ISSUE_STATE_CASE + """  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
   *"projectItems(first: 100)"*)
     num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
@@ -92,7 +97,7 @@ exit 0
 FAKE_GH_NON_JSON = """#!/bin/bash
 echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
-  *"projectItems(first: 100)"*)
+""" + ISSUE_STATE_CASE + """  *"projectItems(first: 100)"*)
     echo 'not json, but a clean exit 0'
     exit 0 ;;
 esac
@@ -104,11 +109,22 @@ exit 0
 FAKE_GH_NOT_ON_BOARD_ADD_FAILS = """#!/bin/bash
 echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
-  *"projectItems(first: 100)"*)
+""" + ISSUE_STATE_CASE + """  *"projectItems(first: 100)"*)
     printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":0,"nodes":[]}}}}}\\n'
     exit 0 ;;
   *"project item-add"*)
     echo "simulated item-add failure" >&2
+    exit 1 ;;
+esac
+exit 0
+"""
+
+# The issue-state read itself fails (#2639): the card must stay where it is.
+FAKE_GH_STATE_FAILS = """#!/bin/bash
+echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"issue view"*)
+    echo "simulated issue view failure" >&2
     exit 1 ;;
 esac
 exit 0
@@ -123,7 +139,7 @@ def install_gh(tmp, script):
     return path
 
 
-def run(tmp, args, gh_script=FAKE_GH_OK, cwd=None):
+def run(tmp, args, gh_script=FAKE_GH_OK, cwd=None, extra_env=None):
     """Fork the real script — the discipline this module's docstring pins. Returns
     (CompletedProcess, log_lines) — `log_lines` empty when no `gh` call was ever logged
     (the fake writes nothing until it is actually invoked)."""
@@ -131,6 +147,9 @@ def run(tmp, args, gh_script=FAKE_GH_OK, cwd=None):
     log_path = os.path.join(tmp, "calls.log")
     env, sentinel_log = offline_gh_env(gh_path, tmp)
     env["FAKE_LOG"] = log_path
+    env.update(extra_env or {})
+    if os.path.exists(log_path):  # one run's calls only, when a case reuses its tmp
+        os.remove(log_path)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
         capture_output=True, text=True, env=env, cwd=cwd or tmp,
@@ -322,6 +341,40 @@ with tempfile.TemporaryDirectory() as tmp:
     check("an invalid station does NOT override the sync-off exit-0 no-op",
           r.returncode == 0 and not log and "nothing written" in r.stdout,
           f"rc={r.returncode} stdout={r.stdout!r} log={log}")
+
+# ---------------- case 9: a closed issue's card stays at done (#2639) ----------------
+# The FEAT-2516 intake looped board-station over nine backlog issues, one already closed by an
+# unrelated PR, and pulled that closed card from Done back to Plan, where it sat unnoticed.
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": True, "repo": REPO, "board": BOARD})
+    r, log = run(tmp, ["2519", "plan"], extra_env={"FAKE_ISSUE_STATE": "CLOSED"})
+    check("#2639: a CLOSED issue named for 'plan' is refused with exit 2 and its card is not moved",
+          r.returncode == 2
+          and not any("item-edit" in l or "projectItems" in l for l in log)
+          and "#2519" in r.stderr and "closed" in r.stderr and "'done'" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+    r, log = run(tmp, ["2519", "done"], extra_env={"FAKE_ISSUE_STATE": "CLOSED"})
+    check("#2639: a CLOSED issue may still be moved to 'done'",
+          r.returncode == 0 and "board-station: #2519 -> done" in r.stdout
+          and sum("item-edit" in l for l in log) == 1,
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r} log={log}")
+    r, log = run(tmp, ["326", "plan"], extra_env={"FAKE_ISSUE_STATE": "OPEN"})
+    check("#2639: an OPEN issue still moves to 'plan'",
+          r.returncode == 0 and sum("item-edit" in l for l in log) == 1,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": True, "repo": REPO, "board": BOARD})
+    r, log = run(tmp, ["326", "plan"], gh_script=FAKE_GH_STATE_FAILS)
+    check("#2639: an unreadable issue state writes nothing and reports ERROR on stderr, exit 0 (D-02)",
+          r.returncode == 0
+          and r.stderr.startswith("board-station: ERROR - ")
+          and "326" in r.stderr and "plan" in r.stderr
+          and not any("item-edit" in l or "projectItems" in l for l in log),
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
 
 print()
 if FAILURES:

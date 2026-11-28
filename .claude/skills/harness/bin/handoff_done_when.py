@@ -8,6 +8,7 @@ import stat
 import artifact_accessors
 import factory_config
 import harness_yaml
+from feature_record import read as record_read
 
 SECTION = "## Done when"
 LEGAL_PREFIXES = ("plan-task:", "brief-sc:", "finding:", "approval:", "brief-perspective:")
@@ -423,7 +424,7 @@ def _resolution_problems(parsed, feature_dir, root):
         try:
             problem = _resolve(pointer, match, feature_dir, root)
         except (ValueError, OSError, UnicodeError, harness_yaml.YamlParseError,
-                artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+                artifact_accessors.ArtifactAccessError, record_read.FeatureJsonError,
                 artifact_accessors.FleetError, KeyError, TypeError, AttributeError) as exc:
             problem = _message(
                 f"Authority pointer {pointer!r} resolver failed closed "

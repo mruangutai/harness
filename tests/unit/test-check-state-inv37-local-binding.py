@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check_state.board.inv_37 grades a bound feature locally when gh is offline (#2190).
 
-These tests run in-process against the public `inv_37(ctx)`. They use the real feature_schema receipt and provenance predicates and the real local fleet loader and `repo_entry`. The two remote boundaries are recorded: `feature_schema.resolve_binding` and `factory_config.product_config`. Each case asserts what INV-37 reported and which remote boundary it reached, so neither the local validation nor the receipt checks can be skipped unnoticed.
+These tests run in-process against the public `inv_37(ctx)`. They use the real feature_record.binding receipt and provenance predicates and the real local fleet loader and `repo_entry`. The two remote boundaries are recorded: `feature_record.binding.resolve_binding` and `factory_config.product_config`. Each case asserts what INV-37 reported and which remote boundary it reached, so neither the local validation nor the receipt checks can be skipped unnoticed.
 
     ./test-check-state-inv37-local-binding.py    -> exit 0 all pass, 1 otherwise
 """
@@ -17,7 +17,7 @@ import tempfile
 
 import artifact_accessors  # noqa: E402
 import factory_config  # noqa: E402
-import feature_schema  # noqa: E402
+from feature_record import binding as record_binding  # noqa: E402
 from check_state import board  # noqa: E402
 
 FAILURES = []
@@ -63,7 +63,7 @@ def _bound(github, repo="org/prod", factory=None):
 def _run(docs, online, remote_ok=True, owner_sync=True):
     """(findings, remote log) with the remote boundaries recorded and restored."""
     log = {"resolve": 0, "product_config": 0}
-    real_resolve, real_product = feature_schema.resolve_binding, factory_config.product_config
+    real_resolve, real_product = record_binding.resolve_binding, factory_config.product_config
 
     def resolve(doc, root):
         log["resolve"] += 1
@@ -83,12 +83,12 @@ def _run(docs, online, remote_ok=True, owner_sync=True):
                     f"    default_branch: main\nworkspace_root: {root}\n")
         ctx = _Ctx(root, docs, online, owner_sync)
         write_config(os.path.join(ctx.H, "harness.json"), ctx.cj)
-        feature_schema.resolve_binding, factory_config.product_config = resolve, product_config
+        record_binding.resolve_binding, factory_config.product_config = resolve, product_config
         factory_config.clear_product_config_memo()
         try:
             bad, _warn = board.inv_37(ctx)
         finally:
-            feature_schema.resolve_binding, factory_config.product_config = real_resolve, real_product
+            record_binding.resolve_binding, factory_config.product_config = real_resolve, real_product
             factory_config.clear_product_config_memo()
     return bad, log
 

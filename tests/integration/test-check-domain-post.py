@@ -496,9 +496,9 @@ def run_runs_agent_write_path():
 
     THE MUTANT RUNS FROM A COPY OF THE WHOLE BIN DIRECTORY, and that is forced rather
     than chosen. check-domain.py puts its OWN directory first on PYTHONPATH (`:96`), so
-    an external PYTHONPATH cannot shadow feature_schema.py — the trick run_t12 uses for
+    an external PYTHONPATH cannot shadow feature_record/schema.py — the trick run_t12 uses for
     a module that is not in bin/ does not work here. Overwriting the real
-    bin/feature_schema.py and restoring it in a finally was the alternative, and it
+    bin/feature_record/schema.py and restoring it in a finally was the alternative, and it
     leaves the enforcement layer broken if the process dies between the two. Copying
     bin/ into a tmpdir touches nothing real: `_derived` is only a fallback for
     HARNESS_PROJECT_DIR, which every call here sets explicitly through `_env`.
@@ -568,11 +568,11 @@ teams:
 
     # RED PROOF — an exit status is never the proof (D-08). Counts on both sides.
     bin_dir = os.path.dirname(os.path.realpath(HOOK))
-    src = open(os.path.join(bin_dir, "feature_schema.py")).read()
+    src = open(os.path.join(bin_dir, "feature_record", "schema.py")).read()
     needle = "    problems.extend(_runs_agent_problems(doc, display))\n"
     if needle not in src:
         t("SC-07 write path RED: the rule's call site was found", False,
-          "feature_schema.py does not contain the call site")
+          "feature_record/schema.py does not contain the call site")
     else:
         mutant_text = src.replace(needle, "")
         if mutant_text == src:
@@ -585,7 +585,7 @@ teams:
                 shutil.copytree(bin_dir, mbin)
                 shutil.copytree(os.path.join(os.path.dirname(bin_dir), "schemas"),
                                 os.path.join(mtmp, "schemas"))
-                with open(os.path.join(mbin, "feature_schema.py"), "w") as f:
+                with open(os.path.join(mbin, "feature_record", "schema.py"), "w") as f:
                     f.write(mutant_text)
                 mhook = os.path.join(mbin, os.path.basename(HOOK))
                 r_mut = fire_json(mhook, root, doc_bad)

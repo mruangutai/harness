@@ -1,0 +1,10 @@
+{
+  "bug:plan verify blocks: a multi-line verify reports only its last line's exit status, so an earlier assertion failure is masked (FEAT-2581 T-03 printed an AssertionError and exited 0); run verify blocks under set -e or require && joins": {
+    "number": 2636,
+    "typed": true
+  },
+  "chore:receipt verifies comparing saved git diff output depend on git's automatic hash abbreviation (8 to 9 chars past 65,536 objects); use --full-index or pin core.abbrev in receipt generators and verifies": {
+    "number": 2637,
+    "typed": true
+  }
+}

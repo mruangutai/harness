@@ -12,11 +12,12 @@ repository's default branch through `harness-add-repo` step 1.
    - `0`: provisioned or already correct.
    - `2`: the declaration is unusable; the message names the key and **nothing was written**.
    - `3`: a NEW project was created, linked, AND its Status field made to carry every declared
-     station — one run, not two. Write its number into that project's `harness.json`
+     station — one run, not two — or the one existing `<repo> board` linked to the repository
+     was adopted. Write its number into that project's `harness.json`
      `github.board.number` **before anything else runs**.
    - `4`: a project was created but a follow-up write FAILED — either the link, or the Status
-     field after a successful link. **The project exists.** Record the number the message names
-     **before retrying or doing other work**, or the retry creates a second board.
+     field after a successful link. **The project exists.** Record the number the message names;
+     a retry adopts the existing linked board (exit `3`) rather than creating a second.
 2. Respect the new/existing-board distinction: on a NEW board, `provision` replaces the
    declared `station_field`'s options with exactly your stations and prints what it removed.
    With `station_field: "Status"` (every board here), these are GitHub's default

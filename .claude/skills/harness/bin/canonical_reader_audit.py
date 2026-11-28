@@ -25,7 +25,7 @@ READER_CALL_CATEGORIES = {
     "harness_yaml.load_plan": "load_plan",
     "factory_config.load_fleet": "load_fleet",
     "harness_yaml.manifest_domains": "manifest_domains",
-    "feature_json_write.load_feature_json": "load_feature_json",
+    "feature_record.read.load_feature_json": "load_feature_json",
 }
 CANONICAL_ACCESSOR_NAMES = {
     "load_feature_json", "load_harness_json", "load_plan", "load_fleet",
@@ -57,7 +57,7 @@ READER_CATEGORY_REMEDIES = {
     "load_plan": "artifact_accessors.load_plan",
     "load_fleet": "artifact_accessors.load_fleet",
     "manifest_domains": "artifact_accessors.manifest_domains",
-    "load_feature_json": "artifact_accessors.load_feature_json",
+    "load_feature_json": "feature_record.read.load_feature_json",
 }
 T07_TERMINAL_REMEDIES = {
     ".claude/skills/harness/bin/bash-write-guard.py::<module>::manifest_domains#1":
@@ -74,8 +74,8 @@ T07_TERMINAL_REMEDIES = {
         "artifact_accessors.load_plan",
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
         "artifact_accessors.load_fleet",
-    ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
-        "artifact_accessors.load_feature_json",
+    ".claude/skills/harness/bin/feature_record/read.py::load_feature_json::json_string#1":
+        "feature_record.read.load_feature_json",
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
         "artifact_accessors.load_plan",
     ".claude/skills/harness/bin/harness_yaml.py::manifest_domains::harness_yaml_file#1":
@@ -84,7 +84,7 @@ T07_TERMINAL_REMEDIES = {
 T07_RELOCATED_IMPLEMENTATIONS = {
     ".claude/skills/harness/bin/factory_config.py::load_fleet::harness_yaml_file#1":
         (".claude/skills/harness/bin/artifact_accessors.py", "load_fleet", "harness_yaml_file", "harness_yaml.load_file"),
-    ".claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1":
+    ".claude/skills/harness/bin/feature_record/read.py::load_feature_json::json_string#1":
         (".claude/skills/harness/bin/artifact_accessors.py", "strict_json_loads", "json_string", "json.loads"),
     ".claude/skills/harness/bin/harness_yaml.py::load_plan::harness_yaml_file#1":
         (".claude/skills/harness/bin/artifact_accessors.py", "load_plan", "harness_yaml_file", "harness_yaml.load_file"),

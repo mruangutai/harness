@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Canonical artifact readers and their public read errors.
 
-This module owns feature.json, plan.yaml, manifest-domain, fleet.yaml, frontmatter,
-OMP-config, hook-payload, GitHub-JSON, and harness.json reads.
+This module owns plan.yaml, manifest-domain, fleet.yaml, frontmatter, OMP-config,
+hook-payload, GitHub-JSON, and harness.json reads; feature.json's is feature_record.read.
 
 Sanctioned routes are write_feature_json, write_harness_json, plan-merge.py verbs,
 main-session-owned files, and the sole state.yaml reader trip-wire.
@@ -39,7 +39,7 @@ def strict_json_loads(text):
     """THE ONE strict JSON decode (FEAT-61 T-01): a key repeated at any nesting depth and the
     non-standard NaN/Infinity spellings both raise ValueError, the same coverage
     harness_yaml.DuplicateKeyError gives every YAML reader. Every strict reader in this tree —
-    harness.json, feature.json, gh payloads, feature_json_write.parse_doc — decodes through
+    harness.json, feature.json, gh payloads, feature_record.read.parse_doc — decodes through
     here and translates the ValueError into its own public error, so a tightening lands in one
     place rather than in whichever hand-copied hook pair happened to be edited. Returns any
     JSON value; callers that need a mapping check the shape themselves."""
@@ -97,120 +97,12 @@ def load_harness_json(path=None, *, text=None, context=None):
     return harness_config.validated(document, label)
 
 
-class FeatureJsonError(Exception):
-    """A feature.json read failed with an actionable next step."""
-
-    def __init__(self, what, value, next_step):
-        import factory_cli
-        self.next_step = next_step
-        super().__init__(factory_cli.body(what, value, next_step))
-
-
-def _feature_json_source(path, text, context):
-    label = context or ("feature.json" if path is None else str(path))
-    if (path is None) == (text is None):
-        raise FeatureJsonError(
-            "feature.json invalid", label, "supply exactly one source")
-    source_context = context or (
-        "in-memory feature.json" if text is not None else str(path))
-    if text is not None:
-        return text, source_context
-    if not os.path.exists(path):
-        return None, source_context
-    return _read_feature_json_text(path, source_context), source_context
-
-
-def load_feature_json(path=None, *, text=None, context=None):
-    """Load a feature mapping from exactly one path or in-memory JSON text source."""
-    source_text, source_context = _feature_json_source(path, text, context)
-    if source_text is None:
-        return None
-    doc = _parse_feature_json_text(source_text, source_context)
-    _validate_recorded_blocks(doc, source_context)
-    return doc
-
-
-def _read_feature_json_text(path, context):
-    try:
-        with open(path, "rb") as source:
-            return source.read().decode("utf-8")
-    except (OSError, UnicodeDecodeError) as error:
-        raise FeatureJsonError(
-            "feature.json unreadable", context, f"could not be read: {error}"
-        ) from error
-
-
-def _parse_feature_json_text(text, context):
-    try:
-        doc = strict_json_loads(text)
-    except (TypeError, ValueError, RecursionError) as error:
-        raise FeatureJsonError(
-            "feature.json invalid", context, f"does not parse: {error}"
-        ) from error
-    if not isinstance(doc, dict):
-        raise FeatureJsonError(
-            "feature.json invalid", context,
-            f"parsed but is not a JSON mapping (got {type(doc).__name__})",
-        )
-    return doc
-
-
-def _positive_issue_number(value):
-    import feature_json_write
-    try:
-        number = feature_json_write.opt_int(value)
-    except ValueError:  # an `isdigit` string int() cannot parse, e.g. "²" (FEAT-2206)
-        return None
-    return number if number is not None and number >= 1 else None
-
-
-def _validate_recorded_parent(block, path, block_name):
-    if "parent" not in block or block["parent"] is None:
-        return
-    if _positive_issue_number(block["parent"]) is not None:
-        return
-    raise FeatureJsonError(
-        "feature.json invalid", path,
-        f"has a {block_name}.parent that is not a recorded issue number",
-    )
-
-
-def _validate_recorded_issues(block, path, block_name):
-    if "issues" not in block:
-        return
-    issues = block["issues"]
-    if not isinstance(issues, dict):
-        raise FeatureJsonError(
-            "feature.json invalid", path,
-            f"has a {block_name}.issues key that is not a JSON object",
-        )
-    for key, value in issues.items():
-        if _positive_issue_number(value) is None:
-            raise FeatureJsonError(
-                "feature.json invalid", path,
-                f"has a {block_name}.issues[{key!r}] value that is not a recorded issue number",
-            )
-
-
-def _validate_recorded_block(doc, path, block_name):
-    """Refuse malformed recorded issue fields in a present GitHub-style block."""
-    block = doc.get(block_name)
-    if not isinstance(block, dict):
-        return
-    _validate_recorded_parent(block, path, block_name)
-    _validate_recorded_issues(block, path, block_name)
-
-
-def _validate_recorded_blocks(doc, path):
-    """Validate recorded GitHub and factory issue fields at the shared read boundary."""
-    for block_name in ("github", "factory"):
-        _validate_recorded_block(doc, path, block_name)
-
-
 def load_plan(path):
     """Load a plan through strict YAML parsing and the canonical plan validator."""
     import harness_yaml
-    return harness_yaml.validate_plan_doc(harness_yaml.load_file(path), path)
+    doc = harness_yaml.validate_plan_doc(harness_yaml.load_file(path), path)
+    harness_yaml.refuse_folded_verify(doc, path)
+    return doc
 
 
 class FleetError(Exception):

@@ -144,7 +144,7 @@ def _inv24_issue_number(n):
     # TOTAL (FEAT-2206): str.isdigit() also accepts strings int() refuses -- "²", or more
     # digits than int()'s conversion limit -- and those read as unusable (None) rather than
     # crashing INV-24. Digits int() does read, "٣" among them, keep their value.
-    # Not feature_json_write.opt_int: that one raises on them by contract (#2151 reads the
+    # Not feature_record.read.opt_int: that one raises on them by contract (#2151 reads the
     # raise as "unreadable record").
     if isinstance(n, bool):
         return None
@@ -276,13 +276,16 @@ def inv_24(ctx):
 # provenance are graded against it; there is never an owner fallback.
 def _inv37_import():
     bad = []
+    _fs37 = _rs37 = None
     try:
-        _fs37 = harness_boundary.load_repo_module("feature_schema")
+        _fs37 = harness_boundary.load_repo_module("feature_record.binding")
+        _rs37 = harness_boundary.load_repo_module("feature_record.schema")
     except harness_boundary.RepoModuleError as _fs37e:
+        failed = "feature_record/binding.py" if _fs37 is None else "feature_record/schema.py"
         _fs37, _fs37e = None, _fs37e.cause
-        bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
-                   "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
-    return bad, _fs37
+        bad.append("INV-37 CANNOT RUN: %s did not import (%s: %s), so a missing "
+                   "Build-entry receipt would go unreported." % (failed, type(_fs37e).__name__, _fs37e))
+    return bad, _fs37, _rs37
 
 def _inv37_local_repo(ctx, _fs37, doc):
     """The bound target's local checks only, in resolve_binding's own FleetError wording."""
@@ -305,12 +308,12 @@ def _inv37_repo(ctx, _fs37, doc, bound):
 
 
 
-def _inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail):
+def _inv37_finding(_rs37, _feat37, _fp37, doc, repo, detail):
     return (f"INV-37 {_feat37}: github.sync is enabled but the feature has no usable "
             f"Build-entry receipt ({detail}) - "
-            f"{_fs37.recovery_command_line(_fp37, doc, repo)}.")
+            f"{_rs37.recovery_command_line(_fp37, doc, repo)}.")
 
-def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
+def _inv37_feature(ctx, _fs37, _rs37, plan_docs, _feat37):
     bad = []
     _fp37 = ctx.feature_dir(_feat37)
     if _feat37 not in plan_docs:
@@ -329,20 +332,20 @@ def _inv37_feature(ctx, _fs37, plan_docs, _feat37):
     if not provenance and (not enabled or _fs37.receipt_allows_merge(doc, repo)):
         return bad
     detail = provenance or "receipt absent or incomplete"
-    bad.append(_inv37_finding(_fs37, _feat37, _fp37, doc, repo, detail))
+    bad.append(_inv37_finding(_rs37, _feat37, _fp37, doc, repo, detail))
     return bad
 
 def inv_37(ctx):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
     plan_docs = ctx.plan_docs
-    _import_bad37, _fs37 = _inv37_import()
+    _import_bad37, _fs37, _rs37 = _inv37_import()
     bad.extend(_import_bad37)
 
     if _fs37 is None:
         return bad, warn
     for _feat37 in ctx.features:
-        bad.extend(_inv37_feature(ctx, _fs37, plan_docs, _feat37))
+        bad.extend(_inv37_feature(ctx, _fs37, _rs37, plan_docs, _feat37))
     return bad, warn
 
 # --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
@@ -358,7 +361,7 @@ def inv_37(ctx):
 # a warning is the same silence in a quieter font.
 #
 # THE IMPORTS ARE A VIOLATION WHEN THEY FAIL — INV-25's precedent, and for its reason: gh_board
-# and feature_schema ship with the repository, so being unimportable is a defect in the tree,
+# and feature_record ship with the repository, so being unimportable is a defect in the tree,
 # never a property of the environment. An offline, unauthenticated or unconfigured environment
 # records NOTHING and never becomes a red gate; a board read that was ATTEMPTED and failed is a
 # different fact — the answer came back wrong — and is CANNOT VERIFY for its features (#2180).
@@ -375,12 +378,12 @@ def _inv26_import():
                    "repository — restore .agents/skills/harness/bin/gh_board.py."
                    % (type(_gbe).__name__, _gbe))
     try:
-        # feature_schema resolves a bound feature's own repository and board — INV-37's resolver,
-        # so the two invariants can never disagree about where a feature's mirror lives.
-        _fs = harness_boundary.load_repo_module("feature_schema")
+        # feature_record.binding resolves a bound feature's own repository and board — INV-37's
+        # resolver, so the two invariants can never disagree about where a feature's mirror lives.
+        _fs = harness_boundary.load_repo_module("feature_record.binding")
     except harness_boundary.RepoModuleError as _fse:
         _fs, _fse = None, _fse.cause
-        bad.append("INV-26 CANNOT RUN: feature_schema.py did not import (%s: %s), so no "
+        bad.append("INV-26 CANNOT RUN: feature_record/binding.py did not import (%s: %s), so no "
                    "feature's board binding can be resolved." % (type(_fse).__name__, _fse))
     return bad, _gb, _fs
 
@@ -635,7 +638,7 @@ def _inv26_binding(ctx, _fs, _feat, _owner):
     """`((repo, board), None)` naming the board `_feat`'s cards live on, `(None, None)` when
     no board applies, or `(None, finding)` when its binding does not resolve.
 
-    A BOUND FEATURE RESOLVES ITS OWN BINDING (#2180) — feature_schema.resolve_binding, as
+    A BOUND FEATURE RESOLVES ITS OWN BINDING (#2180) — feature_record.binding.resolve_binding, as
     INV-37 does — and NEVER falls back to the owner board: its numbers are another
     repository's, and the owner repository answering for them was the live crash. An unbound
     feature keeps the owner declaration, so it is checked exactly where it always was."""

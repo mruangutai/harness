@@ -1,0 +1,8 @@
+# FEAT-2581 · design reread · Mode A
+
+**The high finding is closed. The new byte format is exact, but the plan does not guarantee a readable disclosure for the operator.**
+
+- **Closed · high · substance — D-02’s operator-facing disclosure was not bound to the measured output.** Worktree `plan.yaml:341,376` now requires the committed `build-divergences.md` measured IDs and complete entry bodies to match the recomputed, root-normalized measurement pairs; missing, duplicate, stale, extra or altered blocks fail. Unreached D-02 IDs have separate source-only blocks, checked for coverage and required fields, not treated as measured output. `plan.yaml:346,374` derives the displayed count pair from one matching line in each committed audit stdout, in baseline/pin order, and requires exactly that receipt line.
+- **New · medium · substance — the operator can receive byte literals with no readable account of the change.** `plan.yaml:376` says where explanation goes, but does not require any. Short ASCII diagnostics remain legible; a multiline or non-ASCII diagnostic becomes one escaped line per side, and a long shared prefix can bury the changed text. A standalone Python example confirmed round-trip fidelity and the loss of visible line breaks and Unicode. Require a short, ID-linked account of what changed outside the delimiters for each item put to the operator; keep the verified literals intact and authoritative. This does not call for a new proof or change who rules.
+
+No other newly broken behavior found in the routed text. No gates executed. Visual layout, focus, and theme are not applicable to this source-level review; rendered Markdown legibility was not verified. D-02 authorization and the bun-leg rulings remain with the operator.

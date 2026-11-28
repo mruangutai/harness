@@ -626,9 +626,9 @@ def test_exactly_one_guarded_import_in_the_tree():
     # Assertion 2 — the generalised anti-fallback rule: one guarded import per
     # required dependency, each living in the module whose job IS that
     # dependency's policy. FEAT-14 (D-04) added jsonschema as a second
-    # required dependency, so feature_schema.py is now allowed alongside
+    # required dependency, so feature_record/schema.py is now allowed alongside
     # harness_yaml.py. check-domain.py is T-06's tight try around
-    # `import feature_schema` — T-06 is main-session-direct and lands AFTER
+    # `import feature_record.schema` — T-06 is main-session-direct and lands AFTER
     # this fix, so it holds zero occurrences of the needle right now. This
     # MUST be a subset (`<=`), never `==`: an equality assertion sized to all
     # three fails immediately (check-domain.py is empty today), and one sized
@@ -649,7 +649,7 @@ def test_exactly_one_guarded_import_in_the_tree():
     # raises adds no fallback path, it names one that already existed. Same category as
     # check-domain.py and feature-worktree.py: first-party siblings, never a third-party
     # dependency.
-    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.py",
+    allowed = {"harness_yaml.py", "schema.py", "check-domain.py",
                "feature-worktree.py", "bash-write-guard.py", "dispatch-guard.py",
                "inject-expertise.py", "validate-digest.py"}
     assert set(guarded_hits) <= allowed, (
@@ -1008,6 +1008,37 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
                 raise AssertionError(f"ACCEPTED what it must reject ({label}): {verify_line!r}")
 
 
+def test_load_plan_refuses_a_folded_verify_while_pending():
+    """#2618: a folded `verify: >` scalar loads as a different string than the plan text (its
+    newlines collapse), so the lead's verbatim copy and the member's cross-check disagree and a
+    correct task returns BLOCKED. While a plan is pending, load_plan refuses every folded
+    indicator, naming the task and the literal `|` fix. Every verify line below passes the
+    row-86 shape check on its own, so a refusal can only come from the style rule."""
+    import harness_yaml as hy
+
+    def plan(indicator, status="pending"):
+        return _pending_plan("python3 tests/unit/test-thing.py", status).replace(
+            "verify: |", f"verify: {indicator}")
+
+    for indicator in (">", ">-", ">+"):
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                artifact_accessors.load_plan(_plan(tmp, plan(indicator)))
+            except hy.PlanSchemaError as e:
+                msg = str(e)
+                assert "T-01" in msg, f"{indicator}: message does not name the task: {msg}"
+                assert "folded" in msg and "'|'" in msg, f"{indicator}: no fix named: {msg}"
+            else:
+                raise AssertionError(f"ACCEPTED a folded verify: {indicator!r} on a pending plan")
+
+    # Controls: the same text as a literal block loads while pending, and a folded block on an
+    # approved plan still loads (signed text is carried verbatim, never re-checked).
+    for indicator, status in (("|", "pending"), ("|-", "pending"), (">", "approved")):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = artifact_accessors.load_plan(_plan(tmp, plan(indicator, status)))
+            assert doc["tasks"][0]["verify"].startswith("python3 "), doc
+
+
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
@@ -1201,6 +1232,7 @@ TESTS = [
     test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
     test_load_plan_accepts_a_station_only_record_and_only_with_a_station,
     test_load_plan_verify_shape_gated_on_pending_approval,
+    test_load_plan_refuses_a_folded_verify_while_pending,
     test_feat64_load_str_boundary_is_typed,
     test_feat64_require_or_die_cleanup_boundary_is_typed,
 ]

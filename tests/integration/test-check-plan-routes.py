@@ -449,6 +449,8 @@ def case_19():
         for module in ("harness_boundary.py", "run_identity.py", "artifact_accessors.py",
                        "feature_corpus.py", "canonical_reader_audit.py", "structure_audit.py"):
             shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
+        shutil.copytree(os.path.join(BIN_DIR, "feature_record"), os.path.join(fake_bin, "feature_record"),
+                        ignore=shutil.ignore_patterns("__pycache__"))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
               f"exit {r.returncode} stdout={r.stdout[:200]!r} stderr={r.stderr[:200]!r}")
@@ -1767,7 +1769,7 @@ import yaml as y
 import harness_yaml as hy
 from harness_yaml import load_file as yaml_file, load_plan as plan
 from factory_config import load_fleet as fleet
-from feature_json_write import load_feature_json as feature
+from feature_record.read import load_feature_json as feature
 
 HELPER = "json.loads(payload)"
 
@@ -2065,7 +2067,7 @@ def case_canonical_reader_unclassified_remedies():
 import yaml as y
 import harness_yaml as hy
 import factory_config as fc
-import feature_json_write as fw
+from feature_record import read as fw
 
 def raw(stream, text, path):
     j.load(stream)
@@ -2095,7 +2097,7 @@ def raw(stream, text, path):
         "load_plan": "artifact_accessors.load_plan",
         "load_fleet": "artifact_accessors.load_fleet",
         "manifest_domains": "artifact_accessors.manifest_domains",
-        "load_feature_json": "artifact_accessors.load_feature_json",
+        "load_feature_json": "feature_record.read.load_feature_json",
     }
     for category, remedy in remedies.items():
         check(

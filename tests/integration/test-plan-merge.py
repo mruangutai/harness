@@ -4015,7 +4015,7 @@ def case_1675_revoke_approval_refuses_nothing_to_revoke_and_governed_agents():
 def case_f59_sign_approval_rework_writes_feature_json():
     """SC-15 / C1: at signature the operator records ONE rework ruling. `sign-approval
     --rework rounds=N,minutes=M --decision PATH` sets `rework` on the sibling feature.json
-    through feature_json_write, THEN writes approval (review F4: a ruling without a signature
+    through feature_record.write, THEN writes approval (review F4: a ruling without a signature
     is harmless; a signature without its ruling is the half-state SC-15 exists to prevent). An
     absent feature.json is refused (exit 2, naming the path) BEFORE anything is written;
     --rework without --decision is exit 2."""
@@ -4144,7 +4144,7 @@ def case_f59_review_f4_rework_is_recorded_before_the_signature():
         write(fj, "{not json\n")
         r = run_verb("sign-approval", "--file", plan, "--by", "X", "--date", "2026-09-11",
                      "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
-        check("f4: a feature.json refusal propagates feature_json_write's exit 11",
+        check("f4: a feature.json refusal propagates feature_record.write's exit 11",
               r.returncode == 11, f"rc={r.returncode} {r.stderr!r}")
         check("f4: and leaves approval pending — the plan is byte-identical",
               read(plan) == before and _approval_of(plan).get("status") == "pending", read(plan))
@@ -4547,7 +4547,7 @@ def case_b1716_record_amendments_keeps_the_ledger_valid_and_signed():
         check("b1716/285: signed_task_hashes are not revised by the amendment",
               fdoc.get("signed_task_hashes") == expected, repr(fdoc.get("signed_task_hashes")))
         check("b1716/285: the ledger still validates",
-              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
+              not __import__("feature_record.schema", fromlist=["schema"]).problems_for_text(read(fj), fj), read(fj))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -4974,15 +4974,15 @@ def _call(fn, *args):
     return None
 
 
-def _feature_json_write_converges(label, plan_side, fj_side):
+def _record_write_converges(label, plan_side, fj_side):
     """A feature.json-only write on record-amendments torn at (plan_side, fj_side): it rolls
     the journal forward before its own transform reads the ledger, so the judgement lands once
     and the writer's change lands on top; then (F-2r) a further record-amendments re-run exits
     6 and changes neither file."""
     root, plan, fj, _, sha = _torn("record-amendments", plan_side, fj_side, label)
     try:
-        import feature_json_write
-        error = _call(feature_json_write.write_feature_json, fj, _bump_cycles)
+        from feature_record import write as record_write
+        error = _call(record_write.write_feature_json, fj, _bump_cycles)
         check(f"{label}: write_feature_json returns", error is None, repr(error))
         check(f"{label}: cycles_used equals 1", _json.loads(read(fj)).get("cycles_used") == 1,
               read(fj))
@@ -4994,7 +4994,7 @@ def _feature_json_write_converges(label, plan_side, fj_side):
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_2488_a_feature_json_write_completes_the_pair_first():
+def case_2488_a_record_write_completes_the_pair_first():
     """SC-01 (e): with record-amendments torn, the next feature.json write — a feature.json-only
     writer such as gh-sync, which never takes the plan lock — completes the pair first. From
     torn (a) plan amended, ledger not; from (b) ledger landed, plan not (validate c1 G-b); and
@@ -5002,7 +5002,7 @@ def case_2488_a_feature_json_write_completes_the_pair_first():
     both files byte-identical (pm F-2r)."""
     for label, plan_side, fj_side in (("2488/e", _AFTER, _BEFORE), ("2488/e/b", _BEFORE, _AFTER),
                                       ("2488/e/c", _AFTER, _AFTER)):
-        _feature_json_write_converges(label, plan_side, fj_side)
+        _record_write_converges(label, plan_side, fj_side)
 
 
 def case_2488_a_diverged_member_refuses_and_changes_nothing():
@@ -5644,7 +5644,7 @@ def case_feat70_record_amendments_after_a_block_scalar_splice():
               [j["decision"] for j in js if j["kind"] == "amendment"] == ["T-01.verify", "T-03.intent"],
               repr(js))
         check("feat70/sc03: the ledger still validates",
-              not __import__("feature_schema").problems_for_text(read(fj), fj), read(fj))
+              not __import__("feature_record.schema", fromlist=["schema"]).problems_for_text(read(fj), fj), read(fj))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -6129,7 +6129,7 @@ CASES = (
     case_2488_plan_amended_ledger_not_converges,
     case_2488_ledger_landed_plan_not_converges,
     case_2488_both_landed_journal_left_converges,
-    case_2488_a_feature_json_write_completes_the_pair_first,
+    case_2488_a_record_write_completes_the_pair_first,
     case_2488_a_diverged_member_refuses_and_changes_nothing,
     case_2488_amend_stdout_is_unchanged,
     case_2488_feedback_failure_after_the_commit_is_advisory,
