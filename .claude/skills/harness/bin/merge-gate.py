@@ -260,16 +260,16 @@ def _print_unverified(branch, failure):
         print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
 
 
-def _enforce_receipt(record_binding, record_schema, github, feat_dir, document, root):
+def _enforce_receipt(record_binding, record_schema, gh_config, feat_dir, document, root):
     """The receipt policy's refusal for one unambiguous feature owner, or None when it allows."""
     feat = os.path.basename(feat_dir)
     bound = record_binding.has_repository_binding(document)
-    if not bound and not github.get("sync"):
-        problem = record_binding.mirror_provenance_problem(document, github.get("repo"))
+    if not bound and not gh_config.get("sync"):
+        problem = record_binding.mirror_provenance_problem(document, gh_config.get("repo"))
         if not problem:
             return None
         return (f"merge-gate: {feat}: {problem}. To recover, "
-                f"{record_schema.recovery_command_line(feat_dir, document, github.get('repo'))}")
+                f"{record_schema.recovery_command_line(feat_dir, document, gh_config.get('repo'))}")
     try:
         repo, _board, _types = record_binding.resolve_binding(document, root)
     except artifact_accessors.FleetError as error:
@@ -281,7 +281,7 @@ def _enforce_receipt(record_binding, record_schema, github, feat_dir, document, 
             f"({detail}). To recover, {record_schema.recovery_command_line(feat_dir, document, repo)}")
 
 
-def _handle_owners(record_binding, record_schema, github, branch, owners, root):
+def _handle_owners(record_binding, record_schema, gh_config, branch, owners, root):
     """The refusal for zero, duplicate or single-owner merge outcomes, or None when it allows."""
     if not owners:
         return None
@@ -291,7 +291,7 @@ def _handle_owners(record_binding, record_schema, github, branch, owners, root):
     feat_dir, document = owners[0]
     # No local catch (FEAT-65): the receipt policy reads records already validated at the
     # load boundary; a defect in it reaches hook_guard's CLOSED form, which still denies.
-    return _enforce_receipt(record_binding, record_schema, github, feat_dir, document, root)
+    return _enforce_receipt(record_binding, record_schema, gh_config, feat_dir, document, root)
 
 
 # ---- distill candidates (FEAT-2225 T-04) ----------------------------------------------------
@@ -344,11 +344,11 @@ def _distill_command(kind, value, owners):
     return DISTILL_COMMAND.format(root="<feature-worktree>", feature=feature, pr=pr)
 
 
-def _distill_refusal(kind, value, github, owners):
+def _distill_refusal(kind, value, gh_config, owners):
     """The raw-merge refusal for a distill candidate, or None for an ordinary merge."""
     command = _distill_command(kind, value, owners)
     try:
-        changed = expertise_paths(candidate_paths(kind, value, github.get("repo") or "", os.getcwd()))
+        changed = expertise_paths(candidate_paths(kind, value, gh_config.get("repo") or "", os.getcwd()))
     except DistillRefusal as exc:
         return (f"merge-gate: the changed paths of this {kind} merge could not be read ({exc}), so it "
                 f"is denied rather than guessed to be an ordinary merge; a merge that changes "
@@ -360,20 +360,20 @@ def _distill_refusal(kind, value, github, owners):
             f"Run: {command}")
 
 
-def _evaluate_merge(command, github):
+def _evaluate_merge(command, gh_config):
     """Resolve the merge owner, then route its receipt and distill-candidate outcome."""
     from feature_record import binding as record_binding, schema as record_schema
     kind, value = merge_ref(command)
     branch, failure = head_branch(
-        command, os.getcwd(), github.get("repo") or "")
+        command, os.getcwd(), gh_config.get("repo") or "")
     try:
         owners = feature_for(branch, ROOT)
     except feature_corpus.CorpusError as exc:
         deny(f"merge-gate: cannot establish which feature owns {branch}, so this merge is "
              f"denied rather than attributed to a guess: {exc}")
         return
-    reason = (_handle_owners(record_binding, record_schema, github, branch, owners, ROOT)
-              or _distill_refusal(kind, value, github, owners))
+    reason = (_handle_owners(record_binding, record_schema, gh_config, branch, owners, ROOT)
+              or _distill_refusal(kind, value, gh_config, owners))
     if reason:
         deny(reason)
         return
@@ -477,7 +477,7 @@ def _check_expertise(root, changed):
         raise DistillRefusal(f"check-expertise failed (exit {proc.returncode}): {detail}")
 
 
-def _require_owner(root, feature, branch, github):
+def _require_owner(root, feature, branch, gh_config):
     """DEC-220 for distills: one owner, the requested feature, and the hook's receipt policy."""
     from feature_record import binding as record_binding, schema as record_schema
     try:
@@ -489,7 +489,7 @@ def _require_owner(root, feature, branch, github):
         raise DistillRefusal(f"no feature record claims {branch}, so this PR cannot be attributed to {feature}")
     if len(names) == 1 and names != [feature]:
         raise DistillRefusal(f"{branch} is owned by {names[0]}, not {feature}")
-    refusal = _handle_owners(record_binding, record_schema, github, branch, owners, root)
+    refusal = _handle_owners(record_binding, record_schema, gh_config, branch, owners, root)
     if refusal:
         raise DistillRefusal(refusal)
 
@@ -508,10 +508,10 @@ def _recheck(root, base, main, number, repo, head):
 
 def _verified_merge(root, feature, number):
     try:
-        github = _github_config(root)
+        gh_config = _github_config(root)
     except artifact_accessors.ArtifactAccessError as error:
         raise DistillRefusal(f"harness.json could not be read: {error}") from error
-    repo = github.get("repo") or ""
+    repo = gh_config.get("repo") or ""
     head, branch, base = _pr_metadata(number, repo)
     main = _fetch_main(root, base)
     _require_checkout(root, head, main)
@@ -519,7 +519,7 @@ def _verified_merge(root, feature, number):
     report = _replay_check(root, feature, main)
     files = _committed_replay(root, head, changed, report)
     _check_expertise(root, changed)
-    _require_owner(root, feature, branch, github)
+    _require_owner(root, feature, branch, gh_config)
     _recheck(root, base, main, number, repo, head)
     _gh(repo, "pr", "merge", number, "--squash", "--match-head-commit", head)
     return {"merged": True, "feature": feature, "pr": number, "branch": branch, "head": head,
@@ -571,14 +571,14 @@ def main():
     if command is None or not merge_ref(command):
         return
     try:
-        github = _github_config(ROOT)
+        gh_config = _github_config(ROOT)
     except artifact_accessors.ArtifactAccessError as error:
         deny(f"merge-gate: harness.json could not be read, so this merge is denied: {error}. "
              f"Repair it (python3 .claude/skills/harness/bin/upgrade-config.py <project-root>) "
              f"and re-run the merge.")
         return
     try:
-        _evaluate_merge(command, github)
+        _evaluate_merge(command, gh_config)
     except (ImportError, OSError):
         # feature_record missing, or git itself failing to run (FEAT-65). Any other failure
         # is a defect and reaches hook_guard's CLOSED form below, which also denies.

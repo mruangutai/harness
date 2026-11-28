@@ -128,14 +128,14 @@ def _github(root):
     # config is refused with its diagnosis (FEAT-2297) — never "nothing written".
     harness_json_path = os.path.join(root, ".harness", "harness.json")
     try:
-        github = artifact_accessors.load_harness_json(harness_json_path)["github"]
+        gh_config = artifact_accessors.load_harness_json(harness_json_path)["github"]
     except artifact_accessors.ArtifactAccessError as exc:
         err(f"harness.json could not be read — nothing written: {exc}")
         return None, 2
-    if not github["sync"]:
+    if not gh_config["sync"]:
         out("github.sync is not enabled — nothing written")
         return None, 0
-    return github, None
+    return gh_config, None
 
 
 def _board(root):
@@ -228,16 +228,16 @@ def main(argv):
     if root is None:
         out("no harness root found above the current directory — nothing written")
         return 0
-    github, code = _github(root)
-    if github is None:
+    gh_config, code = _github(root)
+    if gh_config is None:
         return code
     board, code = _board(root)
     if board is None:
         return code
-    code = _refusal(board, github["repo"], issue_number, station)
+    code = _refusal(board, gh_config["repo"], issue_number, station)
     if code is not None:
         return code
-    return _write(board, github["repo"], issue_number, station)
+    return _write(board, gh_config["repo"], issue_number, station)
 
 
 if __name__ == "__main__":

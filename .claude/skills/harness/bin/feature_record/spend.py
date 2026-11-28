@@ -106,8 +106,8 @@ def spend_for(doc):
     first_validate = next((i for i, entry in enumerate(runs)
                            if VALIDATE_RUN.search(str(entry.get("id", "")))), None)
     window = _rework_window(runs, first_validate)
-    github = doc.get("github")
-    has_build_entry = isinstance(github, dict) and "build_entry" in github
+    gh_record = doc.get("github")
+    has_build_entry = isinstance(gh_record, dict) and "build_entry" in gh_record
     return {"runs": len(runs), "wall_clock_minutes": seconds // 60, "tokens": _tokens(runs),
             "phase": "build" if has_build_entry else "plan",
             "rework_minutes": _elapsed_seconds(window) // 60,

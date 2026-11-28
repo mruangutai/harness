@@ -160,10 +160,10 @@ def _github_config():
     rather than letting it through unchecked (FEAT-2274 V1, FEAT-2297)."""
     config_path = _bootstrap_os.path.join(root, ".harness", "harness.json")
     try:
-        github = _artifact_accessors.load_harness_json(config_path)["github"]
+        gh_config = _artifact_accessors.load_harness_json(config_path)["github"]
     except _artifact_accessors.ArtifactAccessError as error:
         raise SystemExit(_unrunnable(f"harness.json could not be read: {error}"))
-    return str(github["sync"]).lower(), github["repo"] or "-"
+    return str(gh_config["sync"]).lower(), gh_config["repo"] or "-"
 
 
 SYNC, REPO = _github_config()
