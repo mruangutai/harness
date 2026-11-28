@@ -1,0 +1,46 @@
+{
+  "bug:gen-agent-output.py: a recursive YAML alias in frontmatter crashes (exit 1) instead of an exit-2 refusal": {
+    "number": 2606,
+    "typed": true
+  },
+  "enhancement:gen-agent-output.py: allow a block scalar that ends the frontmatter (currently refused)": {
+    "number": 2607,
+    "typed": true
+  },
+  "bug:gen-agent-output.py: invalid UTF-8 in an agent file crashes (exit 1) before the refusal handler": {
+    "number": 2608,
+    "typed": true
+  },
+  "bug:gen-agent-output.py: a write failure part-way through can leave agents inconsistent across personas": {
+    "number": 2609,
+    "typed": true
+  },
+  "enhancement:gen-agent-output.py: regenerate a multiline flow output closed by a column-0 brace": {
+    "number": 2610,
+    "typed": true
+  },
+  "chore:test-digest-projection.py: refused() should assert the refusal cause": {
+    "number": 2611,
+    "typed": true
+  },
+  "chore:test-digest-projection.py: lift grade-2 test functions walk, case_generator, case_generator_edges": {
+    "number": 2612,
+    "typed": true
+  },
+  "chore:harness-hooks.ts: bound and redact validator diagnostics shown to a child": {
+    "number": 2613,
+    "typed": true
+  },
+  "chore:SPEC.md section 8.3: replace stale line-number citations with symbols": {
+    "number": 2614,
+    "typed": true
+  },
+  "bug:validator-lead digest schema forces findings[].scope and readers[].reason to n/a": {
+    "number": 2615,
+    "typed": true
+  },
+  "chore:BUG-2565 coverage gaps: digest_projection symlink-escape fixture; SC-06 test names .omp/config.yml": {
+    "number": 2616,
+    "typed": true
+  }
+}
