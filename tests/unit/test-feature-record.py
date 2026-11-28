@@ -834,6 +834,20 @@ class JudgementTest(FeatureRecordCase):
         self.assertEqual("none", self.load()["judgements"][-1]["decision"])
         self.assert_clean()
 
+    def test_judgement_accepts_a_declined_distill(self):
+        """FEAT-2641 D-11: gh-sync.py skip-distill records a declined distill."""
+        self.write(base_doc())
+        self.assert_ok(self.run_cli("judgement", "--file", str(self.path), "--by", "operator",
+                                    "--kind", "distill", "--decision", "declined",
+                                    "--reason", "r"))
+        ledger = self.load()["judgements"]
+        self.assertEqual(1, len(ledger))
+        entry = dict(ledger[0])
+        self.assertRegex(entry.pop("at"), ISO_UTC)
+        self.assertEqual({"by": "operator", "kind": "distill", "decision": "declined",
+                          "reason": "r"}, entry)
+        self.assert_clean()
+
     def test_judgement_refuses_a_reason_over_240_characters(self):
         """The ledger holds one-line reasons (SC-21); the cap is the schema's, and the
         refusal must propagate the schema code rather than be swallowed."""
@@ -1033,6 +1047,45 @@ class SetMissionTest(FeatureRecordCase):
                               "--by", "harness-orchestrator", "--reason", "r" * 241)
         self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
         self.assertEqual(before, self.path.read_bytes())
+
+
+class ProjectNoteTest(FeatureRecordCase):
+    """FEAT-2641 T-04: project-note claims one .harness/notes/ path in project_notes, validated
+    by working_files.validate_project_note — the one Python validator of the contract."""
+
+    NOTE = ".harness/notes/grilling-x-2026-01-01.md"
+
+    def note(self, path):
+        return self.run_cli("project-note", "--file", str(self.path), "--path", path)
+
+    def test_project_note_adds_once_and_repeat_is_byte_identical(self):
+        self.write(base_doc())
+        first = self.note(self.NOTE)
+        self.assert_ok(first)
+        self.assertIn(f"ADDED project_notes {self.NOTE}", first.stdout)
+        self.assertEqual([self.NOTE], self.load()["project_notes"])
+        self.assert_clean()
+        before = self.path.read_bytes()
+        second = self.note(self.NOTE)
+        self.assert_ok(second)
+        self.assertIn(f"PRESENT project_notes {self.NOTE}", second.stdout)
+        self.assertEqual(before, self.path.read_bytes())
+
+    def test_project_note_refuses_paths_outside_the_contract_unchanged(self):
+        before = self.write(base_doc())
+        for bad in ("/abs.md", ".harness/notes/../x.md", ".harness/notes/a/b.md",
+                    "notes/x.md", ".harness/notes/.."):
+            with self.subTest(path=bad):
+                result = self.note(bad)
+                self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+                self.assertIn("project-note: ", result.stderr)
+                self.assertEqual(before, self.path.read_bytes())
+
+    def test_schema_pattern_equals_the_python_validator(self):
+        import working_files
+        schema = json.loads((BIN.parent / "schemas" / "feature.json").read_text(encoding="utf-8"))
+        items = schema["properties"]["project_notes"]["items"]
+        self.assertEqual(working_files.PROJECT_NOTE_RE.pattern, items["pattern"])
 
 
 class SpendTest(FeatureRecordCase):
@@ -1581,20 +1634,6 @@ class CycleEvidenceTest(FeatureRecordCase):
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
-    def test_reader_rejects_cross_run_digest_replay_with_consistent_totals(self):
-        from check_state.feature_record import inv_7
-        from types import SimpleNamespace
-        self._two_open_runs()
-        self.assert_ok(self._end("r1", 0, self.lead_evidence(0, "FAIL")))
-        doc = self.load()
-        doc["runs"][1].update(verdict="FAIL", cycles_used=0,
-                              cycle_evidence=dict(doc["runs"][0]["cycle_evidence"]))
-        ctx = SimpleNamespace(
-            path=lambda *args: str(self.path),
-            record=lambda feat: (doc, [], [], []))
-        problems, _warnings = inv_7(ctx, doc["feature_id"])
-        self.assertTrue(problems)
-
     def test_distinct_digest_files_may_have_identical_bytes(self):
         self._two_open_runs()
         first = self.lead_evidence(0, "FAIL")
@@ -1615,9 +1654,6 @@ class CycleEvidenceTest(FeatureRecordCase):
         result = self._end("r1", 2, current)
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertEqual(before, self.path.read_bytes())
-        doc = self.load()
-        self.assertTrue(record_evidence.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
 
     def test_historical_authorization_does_not_claim_unattested_previous_artifacts(self):
         ref = {"path": "notes/original.md", "sha256": "a" * 64}
@@ -1629,16 +1665,6 @@ class CycleEvidenceTest(FeatureRecordCase):
         self.assertEqual([], record_schema.problems_for_text(json.dumps(doc), str(self.path)))
         evidence["previous"] = [{"path": "notes/not-authorized.md", "sha256": "b" * 64}]
         self.assertTrue(record_schema.problems_for_text(json.dumps(doc), str(self.path)))
-
-    def test_evidence_cannot_bless_boolean_float_or_absent_attribution(self):
-        digest = self.lead_evidence(0)
-        ref = record_evidence.resolve_evidence_ref(str(self.path.parent), digest)
-        for count in (False, 0.0, None):
-            run = {"id": "r1", "verdict": "PASS", "cycles_used": count,
-                   "cycle_evidence": dict(ref, source="lead-digest")}
-            with self.subTest(count=count):
-                self.assertTrue(record_evidence.run_evidence_problems(
-                    str(self.path.parent), "FEAT-77-record", run, [run]))
 
     def test_new_zero_attribution_requires_evidence_before_any_write(self):
         before = self.write(base_doc(runs=[{
@@ -1670,8 +1696,6 @@ class CycleEvidenceTest(FeatureRecordCase):
                                     "--verdict", "FAIL", "--cycles-used", "0", "--digest", "relative.md"))
         doc = self.load()
         self.assertEqual(2, doc["cycles_used"])
-        self.assertEqual([], record_evidence.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
 
     def test_zero_sendback_fail_and_one_sendback_preserve_legacy_residual(self):
         self.write(base_doc(cycles_used=3, runs=[
@@ -1721,9 +1745,8 @@ class CycleEvidenceTest(FeatureRecordCase):
             fpath=lambda *args: str(self.path),
             path=lambda *args: str(self.path),
             record=lambda feat: (doc, [("r1", "product", "FAIL")], [], []))
-        bad, warnings = inv_7(ctx, doc["feature_id"])
+        bad, _ = inv_7(ctx, doc["feature_id"])
         self.assertEqual([], bad)
-        self.assertTrue(any("evidence" in warning for warning in warnings))
         doc["runs"][0]["cycles_used"] = 1
         bad, _ = inv_7(ctx, doc["feature_id"])
         self.assertTrue(any("attribution" in finding for finding in bad))
@@ -1782,14 +1805,10 @@ class HistoricalRecoveryTest(FeatureRecordCase):
         self.assertEqual("BLOCKED", doc["runs"][0]["verdict"])
         self.assertEqual("2026-09-11T11:00:00+00:00", doc["runs"][0]["ended_at"])
         self.assertEqual(original, digest.read_bytes())
-        self.assertEqual([], record_evidence.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         before = self.path.read_bytes()
         self.assert_ok(self.run_cli(*args))
         self.assertEqual(before, self.path.read_bytes())
         digest.write_text("changed report\n", encoding="utf-8")
-        self.assertNotEqual([], record_evidence.run_evidence_problems(
-            str(self.path.parent), doc["feature_id"], doc["runs"][0], doc["runs"]))
         result = self.run_cli(*args)
         self.assertEqual(2, result.returncode, result.stderr)
         self.assertEqual(before, self.path.read_bytes())

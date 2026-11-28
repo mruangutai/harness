@@ -186,6 +186,12 @@
       "enum": ["patch", "plan"],
       "description": "The harness's own proportionality judgement for this feature, written by feature-record.py set-mission after grilling and read by check-state.py, which refuses a mission change with no matching `judgements[]` entry (SC-01, SC-21) and exempts a `patch` plan from INV-32's panel demand. `patch` writes a one-task plan.yaml in the intake run and then runs build → validate → ship with no pre-build panel; `plan` runs the one-run plan phase first. ABSENCE MEANS THE FEATURE PREDATES FEAT-59, or has not been graded yet; /harness-plan and /harness-patch refuse to start on it."
     },
+    "project_notes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^\\.harness/notes/(?!\\.\\.?$)[^/]+$" },
+      "description": "The .harness/notes/ paths this feature claims, written only by feature-record.py project-note. The working-file cleanup deletes only these project notes, never another feature's or an unclaimed one (DEC-260)."
+    },
     "judgements": {
       "type": "array",
       "description": "The append-only ledger of every autonomous judgement the harness made on this feature, written by feature-record.py judgement and read by check-state.py (which refuses a mission change, re-gate or succession with no matching entry) and by the operator, who audits it after the fact instead of ruling in-flight (SC-21). ABSENCE MEANS NO JUDGEMENT HAS BEEN RECORDED, which for a feature run under FEAT-59 is itself what check-state.py flags.",
@@ -196,7 +202,7 @@
         "properties": {
           "at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$", "description": "ISO-8601 UTC instant the judgement was recorded." },
           "by": { "type": "string", "description": "The persona that judged, e.g. harness-orchestrator or harness-validator-lead." },
-          "kind": { "type": "string", "enum": ["mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject"], "description": "Which class of judgement this is: the five SC-21 names plus BUG-1716's amendment (an engineering lead's in-build change to a signed task's intent, files or verify — DEC-229) and FEAT-1714's reject (the orchestrator's first-run refusal of a wrong or superseded ticket, decision = superseding issue number or none), closed so an unrecognised class fails rather than slips past the operator's audit." },
+          "kind": { "type": "string", "enum": ["mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject", "distill"], "description": "Which class of judgement this is: the five SC-21 names plus BUG-1716's amendment (an engineering lead's in-build change to a signed task's intent, files or verify — DEC-229), FEAT-1714's reject (the orchestrator's first-run refusal of a wrong or superseded ticket, decision = superseding issue number or none) and FEAT-2641's distill (a declined distill, decision = declined, written by gh-sync.py skip-distill), closed so an unrecognised class fails rather than slips past the operator's audit." },
           "decision": { "type": "string", "description": "What was decided, in the vocabulary of its kind: patch|plan, substance|form|proportionality, the task ids re-gated, continue|downgrade|stop, or for an amendment the amended field as T-NN.intent|files|verify (D-05)." },
           "reason": { "type": "string", "maxLength": 240, "description": "The one-line reason; capped so the ledger stays a ledger (DEC-150) and a reason that needs a paragraph goes in the run's digest instead." },
           "overruled": { "const": true, "description": "Set by feature-record.py overrule-amendment when the operator rejects an amendment at ship (DEC-230). Only `true`, and only on a kind amendment entry: absent means the amendment stands; an overruled amendment is never removed, because the ledger is append-only." }

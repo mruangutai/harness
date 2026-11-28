@@ -1,5 +1,5 @@
 """feature_record/budget.py — the operator's rulings and the review pin: set-rework,
-raise-cycles, set-mission, pin-review and propose-rework.
+raise-cycles, set-mission, pin-review, propose-rework and project-note.
 """
 import json
 import os
@@ -12,6 +12,7 @@ from harness_boundary import root_above
 from feature_record.judgements import _append_judgement, _judgement, now_iso
 from feature_record.read import _read_doc
 from feature_record.write import REFUSAL_CODE, _apply, _exit_refused, _refuse
+from working_files import WorkingFilesError, validate_project_note
 
 
 MISSIONS = ("patch", "plan")
@@ -87,6 +88,28 @@ def cmd_set_mission(args):
     print(f"SET mission = {args.mission}")
     print(f"RECORDED judgement mission: {args.mission}")
     print(f"APPLIED {args.file}")
+    sys.exit(0)
+
+
+def cmd_project_note(args):
+    """Claim one `.harness/notes/<name>` path in project_notes (DEC-260); the working-file
+    cleanup deletes only the notes listed there. A repeat claim leaves the bytes unchanged."""
+    try:
+        path = validate_project_note(args.path)
+    except WorkingFilesError as error:
+        print(f"project-note: {error}", file=sys.stderr)
+        sys.exit(2)
+    state = {}
+
+    def mutate(doc):
+        notes = doc.setdefault("project_notes", [])
+        state["present"] = path in notes
+        if not state["present"]:
+            notes.append(path)
+        return doc
+
+    _apply(args.file, mutate)
+    print(f"{'PRESENT' if state['present'] else 'ADDED'} project_notes {path}")
     sys.exit(0)
 
 

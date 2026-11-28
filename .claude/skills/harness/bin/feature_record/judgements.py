@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from feature_record.write import _apply, _refuse
 
 
-JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment", "reject")
+JUDGEMENT_KINDS = ("mission", "finding_kind", "regate", "continue", "succession", "amendment",
+                   "reject", "distill")
 
 
 def now_iso():

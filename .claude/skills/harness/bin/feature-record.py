@@ -33,6 +33,9 @@ VERBS
   set-mission   write mission: patch | plan (SC-01) AND append the `kind: mission` judgement
                 deciding it, from --by / --reason, in the same locked write — so a mission
                 never exists without the entry check-state.py INV-40 demands (SC-21).
+  project-note  record a .harness/notes/<name> path this feature owns in project_notes; the
+                working-file cleanup deletes only those (DEC-260). Refuses (exit 2), writing
+                nothing, any other path; a repeat call prints PRESENT and changes no byte.
   pin-review    write review_sha as the full id of --sha (default HEAD), resolved in the
                 feature's repository; refuses (exit 2), writing nothing, a sha that is not a
                 commit (#2167).
@@ -75,8 +78,8 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from feature_record.budget import (  # noqa: E402  (local import, after sys.path fix-up)
-    MISSIONS, cmd_pin_review, cmd_propose_rework, cmd_raise_cycles, cmd_set_mission,
-    cmd_set_rework)
+    MISSIONS, cmd_pin_review, cmd_project_note, cmd_propose_rework, cmd_raise_cycles,
+    cmd_set_mission, cmd_set_rework)
 from feature_record.judgements import (  # noqa: E402
     JUDGEMENT_KINDS, cmd_judgement, cmd_overrule_amendment)
 from feature_record.runs import (  # noqa: E402
@@ -208,6 +211,11 @@ def _register_mission_and_pin(sub):
                                   help="pin review_sha to a commit (default HEAD) as a full id"))
     p.add_argument("--sha", default="HEAD", help="the commit the readers diff; default HEAD")
     p.set_defaults(func=cmd_pin_review)
+
+    p = _with_file(sub.add_parser("project-note",
+                                  help="record a .harness/notes/ path this feature owns"))
+    p.add_argument("--path", required=True, help="the .harness/notes/<name> path to claim")
+    p.set_defaults(func=cmd_project_note)
 
 
 def _register_spend(sub):
