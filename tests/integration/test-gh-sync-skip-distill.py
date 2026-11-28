@@ -25,12 +25,12 @@ import sys
 import tempfile
 
 import working_files
-from gh_sync_support import (BIN_DIR, SYNC, check, load_gh_sync, report, stage_working_files,
+from gh_sync_support import (HERE, SYNC, check, load_gh_sync, report, stage_working_files,
                              working_dirs_present)
 from harness_config_support import write_config
 from git_support import checked_git, git, init_repo  # tests/ is on sys.path via gh_sync_support
 
-FEATURE_WORKTREE = os.path.join(BIN_DIR, "feature-worktree.py")
+FEATURE_WORKTREE = os.path.join(HERE, "feature-worktree.py")
 REASON = "the observations repeat expertise   already merged;\n nothing new to distill"
 REASON_NORMAL = "the observations repeat expertise already merged; nothing new to distill"
 IGNORES = ("/.harness/*/features/*/notes/\n/.harness/*/features/*/runs/\n"

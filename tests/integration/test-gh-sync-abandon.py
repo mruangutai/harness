@@ -18,7 +18,7 @@ import tempfile
 import yaml
 
 from gh_sync_support import (
-    FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, BIN_DIR, add_plan_station, calls, check, edits_to,
+    FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, HERE, add_plan_station, calls, check, edits_to,
     install_gh, label_create_fails, read_feature_json, read_plan_station, report, run, ship_env,
     stage, stage_ship, stage_station, stage_working_files, working_dirs_present,
     write_feature_json, write_validate_handoff)
@@ -1383,7 +1383,7 @@ def main():
                   and "feature-worktree.py" not in r.stdout + r.stderr, r.stdout + r.stderr)
             if yesW:
                 pm = subprocess.run(
-                    [sys.executable, os.path.join(BIN_DIR, "plan-merge.py"), "set-feature-station",
+                    [sys.executable, os.path.join(HERE, "plan-merge.py"), "set-feature-station",
                      "--file", os.path.join(featW7, "plan.yaml"), "--station", "rejected"],
                     capture_output=True, text=True)
                 check("DEC-262: a following plan-merge.py set-feature-station --station rejected "
