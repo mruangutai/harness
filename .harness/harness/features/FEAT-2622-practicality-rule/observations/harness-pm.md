@@ -1,0 +1,9 @@
+# Observations — harness-pm — FEAT-2622-practicality-rule
+
+- 2026-11-28: plan-merge apply silently truncated an unquoted decision `because:` at " #2622" (YAML comment rule); only the post-write check-state INV-35 line revealed it. Avoid "#NNN" in plain scalars of a proposal, or quote them.
+- 2026-11-28: must_fix is a free string list with no link to findings objects, so any rule "a finding X may not be in must_fix" needs an explicit linkage design (here: normalized-summary or PF-id-prefix containment).
+- 2026-11-28: integration durations (test-validate-digest 36.6s, test-plan-merge 27.5s) forced splitting one gate change into two tasks to keep each verify under 60s; read integration-durations.json before sizing verifies.
+- 2026-11-28: bash-write-guard blocks python open() writes to /tmp from a pm shell; proposal files must be written with the Write tool.
+- 2026-11-28: Capping a finding's severity is not enough: severity_max and VERDICT are unbound to findings in validate-digest (_review_policy_errors only refuses PASS), and the plan carve-out relieves only resolved rows, so a severity-cap rule needs a verdict-side check too. Red-first proofs moved to a regex over -refused/-relieved/-carried case names with an exact count to fit the 50-line machine-field budget.
+- 2026-11-27: Adding a key to a closed-shape schema object (additionalProperties false): any base-red proof whose refusal predicate is "some error names the new key" is green at base, because base refuses the key as unexpected with an error naming it. Discriminate on the new-schema error form (exclude "was unexpected").
+- 2026-11-27: A red-first schema refusal predicate keyed on the field name is satisfied at base whenever the base object schema has additionalProperties false: the unknown-key error names the new field too. Exclude the unknown-key text, and confirm on both base and a patched schema before writing.
