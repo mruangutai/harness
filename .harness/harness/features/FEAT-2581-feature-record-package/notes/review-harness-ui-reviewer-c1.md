@@ -1,0 +1,7 @@
+# UI review — FEAT-2581, cycle 1
+
+**PASS — Mode B, out of scope.** The pinned diff changes no rendered or interactive UI and introduces no terminal styling change. No findings or open questions.
+
+- **Path census:** `git diff --no-renames --name-only e12381fde910eb05728004476a10d741d6918010..62da450182282b05b25a127528f9223ac90fc6c8` returned 135 paths: 74 Python, 42 Markdown, 11 JSON, 5 YAML, 2 gzip receipts, and 1 JavaScript. Zero matched UI/frontend/theme/style/template directories or visual extensions (including HTML, CSS, JSX, TSX, SVG, and image/font assets). The sole JavaScript file is `notes/receipt-scripts/feat2581-bun-preload.js`, a test process recorder preload, not UI. A direct pinned object check and feature tree listing found no `DESIGN.md`.
+- **CLI census:** Inspected added and removed runtime lines for terminal presentation (ANSI escapes, color/style APIs and environment flags, TTY detection, wrapping and width helpers) and reviewed changed print/stream statements. `check_state/table.py` changes the evidence-reader path displayed by `--list`, not the column format; `worktree_terminal.py` changes its record loader and exception import, not its output. Diagnostic text and stream differences are covered by D-02 / SC-08 and are not UI styling findings.
+- **Coverage:** Accessibility, focus, rendered layout, and dark/light parity are not applicable, not passed visual checks. Executed only read-only Git object and diff inspections; no tests, enforcement scripts, or rendered checks ran.
