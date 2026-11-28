@@ -1,14 +1,11 @@
 schema: plan/1
 feature: FEAT-2641-local-working-files
 approval:
-  date: '2026-11-27'
+  date: '2026-11-28'
   approved_by: operator
-  status: pending
-  reset_at: '2026-11-28T13:24:59+00:00'
-  reset_reason: add-tasks T-11
-  resume_station: building
+  status: approved
 drafted_at: '2026-11-28T02:57:10Z'
-status: plan
+status: building
 source_issues: [2641]
 
 panel:
