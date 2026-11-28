@@ -1,0 +1,10 @@
+{
+  "enhancement:Reader-return provenance: DEC-123 open-row relief and member must_fix rest only on lead-authored ratings (SEC-03, VAL-OQ-03)": {
+    "number": 2678,
+    "typed": true
+  },
+  "chore:Self-hosted features that change the digest yield schema must close runs with the control-plane feature-record.py; document it and make close-run say so": {
+    "number": 2679,
+    "typed": true
+  }
+}
