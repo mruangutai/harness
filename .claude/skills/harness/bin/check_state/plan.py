@@ -644,6 +644,9 @@ def _inv32_graded(ctx, feat):
 # A STATION-ONLY PLAN SATISFIES IT. The check is that the record EXISTS, not that it carries
 # tasks: a feature that predates the format, or a bug fix opened without a plan, honestly has no
 # tasks to record and inventing some to pass a schema would be fabrication.
+#
+# BUG-2582: the record is no dead end. A later `apply` or `add-tasks` that adds tasks converts it
+# into the plan (plan_merge/union.py `_convert_station_only`), and the remedy below says so.
 def inv_34(ctx, feat):
     bad, warn = [], []
     H, root, fpath = ctx.H, ctx.root, ctx.fpath
@@ -657,7 +660,12 @@ def inv_34(ctx, feat):
                    f"`status` key). Create a station-only record: `schema: plan/1`, `feature:`, "
                    f"`status: <station>`, `station_only: true`, `tasks: []`, written through "
                    f"plan-merge.py apply. The marker is REQUIRED and is not inferred from an "
-                   f"empty `tasks:` — an emptied plan is not a station-only record.\n"
+                   f"empty `tasks:` — an emptied plan is not a station-only record. Written "
+                   f"through apply, the record carries a pending approval, so the first plan "
+                   f"run can start on it; a later plan-merge.py apply or add-tasks whose "
+                   f"proposal carries tasks converts this record into the plan: it drops "
+                   f"`station_only`, and seeds a pending approval and stamps `drafted_at` where "
+                   f"either is absent.\n"
                    f"    FIRST CHECK WHETHER A REAL PLAN WAS DELETED: `git log --diff-filter=D "
                    f"-- {os.path.join(os.path.relpath(_fdir, root), 'plan.yaml')}`. If this "
                    f"feature HAD tasks, restore that plan instead — a station-only stub would "

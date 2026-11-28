@@ -5,7 +5,7 @@ approval:
   approved_by: operator
   status: approved
 drafted_at: '2026-11-28T01:51:07Z'
-status: ready
+status: building
 source_issues: [2582]
 
 panel:
@@ -152,6 +152,7 @@ decisions_affected:
 
 tasks:
   - id: T-01
+    status: done
     title: Convert a station-only record on apply and name the conversion in INV-34's remedy
     traces: [SC-01, SC-02, SC-03, SC-04, SC-09]
     change_type: bugfix

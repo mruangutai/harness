@@ -3,6 +3,7 @@ import datetime
 import sys
 import yaml
 
+import factory_config
 import harness_merge
 import harness_yaml
 from plan_merge.stations import APPROVAL_RESET_LINE, FEATURE_LINE_RE, _maybe_reset_approval
@@ -233,7 +234,7 @@ class MergeResult:
     proposal `status` that was NOT written (review F7). reset: approval was voided."""
 
     def __init__(self, out_bytes, added, preserved, ignored_approval, replaced=(), reset=False,
-                 ignored=()):
+                 ignored=(), converted=False):
         self.out_bytes = out_bytes
         self.added = added
         self.preserved = preserved
@@ -241,6 +242,7 @@ class MergeResult:
         self.replaced = list(replaced)
         self.reset = reset
         self.ignored = list(ignored)
+        self.converted = converted
 
 
 def apply_merge(base_bytes, proposal_text, verb="apply"):
@@ -261,10 +263,52 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
     ignored_approval = _refuse_approval_conflict(base_doc, prop_doc)
     out_order, out_text, added_ids, preserved_ids, replaced, changed_tasks, ignored = _merge_keys(
         base_text, proposal_text, base_doc, prop_doc)
+    out_text, converted = _convert_station_only(out_text, base_doc, prop_doc, changed_tasks)
     spliced_text, reset = _maybe_reset_approval(out_text, base_doc, verb, changed_tasks)
     changes = _replaced_fields(replaced)
-    out_bytes = _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced)
-    return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval, changes, reset, ignored)
+    out_bytes = _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced,
+                             converted)
+    return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval, changes, reset, ignored,
+                       converted)
+
+
+# BUG-2582 (D-01): A STATION-ONLY RECORD BECOMES A PLAN WHEN A PROPOSAL ADDS TASKS TO IT.
+# check-state INV-34 tells the operator to write `station_only: true` with `tasks: []` through
+# `apply`, and before this nothing could take that record any further: the loader refuses the
+# marker beside tasks, and no verb dropped it. The WRITER converts because the loader pair
+# (FEAT-41 MF-3 and HIGH-1) must never relax: the marker stays unclaimable beside tasks and
+# required on an empty plan. Seeding `approval: {status: pending}` and stamping `drafted_at` where
+# either is absent makes the result the same record `_seed_new_plan` would have created, so INV-3
+# sees a pending plan and DEC-254's era check applies to it. A record at a finished station is
+# never converted, because INV-44 and the reject path own that shape; the schema check then
+# refuses the merge exactly as before.
+def _convert_station_only(text, base_doc, prop_doc, added_task_ids):
+    """(text, converted): `text` with the station-only marker dropped and a pending approval and
+    creation stamp seeded where absent, when this merge turns a station-only record into a plan."""
+    if not (base_doc.get("station_only") is True and not base_doc.get("tasks")
+            and "station_only" not in prop_doc and added_task_ids
+            and str(base_doc.get("status") or "").strip()
+            not in factory_config.FINISHED_STATIONS):
+        return text, False
+    lines, _order, ranges, _preamble = _index_top_keys(text)
+    if "station_only" not in ranges:
+        return text, False
+    start, end = ranges["station_only"]
+    stop = start + 1
+    # The key's own continuation lines only; a blank or comment line before the next key stays.
+    while stop < end and lines[stop].strip() and lines[stop][:1] in " \t":
+        stop += 1
+    del lines[start:stop]
+    seeded = []
+    if "approval" not in base_doc:
+        seeded += ["approval:\n", "  status: pending\n"]
+    if DRAFTED_AT not in base_doc:
+        seeded.append(f"{DRAFTED_AT}: '{_creation_instant()}'\n")
+    for index, line in enumerate(lines):
+        if FEATURE_LINE_RE.match(line):
+            lines[index + 1:index + 1] = seeded
+            return "".join(lines), True
+    return text, False
 
 
 def _merge_keys(base_text, proposal_text, base_doc, prop_doc):
@@ -298,7 +342,8 @@ def _fold_merge_rows(rows):
     return chunks, added, preserved, replaced, changed_tasks, ignored
 
 
-def _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced):
+def _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced,
+                 converted=False):
     """The bytes to write: the verified splice, or the safe_dump rendering when preservation is off."""
     spliced_bytes = spliced_text.encode("utf-8")
     if PRESERVE_BASE_BYTES:
@@ -318,7 +363,7 @@ def _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replace
     # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged
     # document through yaml.safe_dump instead of splicing. Comments and quoting do not survive
     # this path; that is exactly the property the red proof grades.
-    return _dump_merged(base_doc, prop_doc, out_order)
+    return _dump_merged(base_doc, prop_doc, out_order, converted)
 
 
 def _seed_new_plan(proposal_text):
@@ -618,7 +663,7 @@ def _merge_plain_key(key, base, prop):
     return []
 
 
-def _dump_merged(base_doc, prop_doc, out_order):
+def _dump_merged(base_doc, prop_doc, out_order, converted=False):
     """The PRESERVE_BASE_BYTES-off rendering: the merged document through yaml.safe_dump."""
     merged_doc = dict(base_doc)
     for key in (k for k in UNION_KEYS if k in out_order):
@@ -628,6 +673,10 @@ def _dump_merged(base_doc, prop_doc, out_order):
     _carry_plain_keys(merged_doc, prop_doc)
     if "approval" in base_doc:
         merged_doc["approval"] = base_doc.get("approval")
+    if converted:
+        merged_doc.pop("station_only", None)
+        merged_doc.setdefault("approval", {"status": "pending"})
+        merged_doc.setdefault(DRAFTED_AT, _creation_instant())
     dumped = yaml.safe_dump(merged_doc, sort_keys=False, allow_unicode=True).encode("utf-8")
     return dumped
 
@@ -687,6 +736,9 @@ def _print_apply_receipt(merged):
     for eid in merged.preserved:
         print(f"PRESERVED {eid}")
     _print_field_rows(merged)
+    if merged.converted:
+        print("CONVERTED station-only record: station_only dropped, approval pending seeded "
+              "when absent, drafted_at stamped when absent")
     if merged.reset:
         print(APPROVAL_RESET_LINE)
     if merged.ignored_approval:
