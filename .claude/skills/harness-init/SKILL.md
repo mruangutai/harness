@@ -117,7 +117,7 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 
 ```bash
 python3 .agents/skills/harness/bin/check-state.py                 # this harness checkout
-python3 .agents/skills/harness/bin/check-omp-port.py              # OMP hook wiring and roster
+python3 .agents/skills/harness/bin/check-omp-port.py              # OMP config, agent policy and doors
 python3 .agents/skills/harness/bin/factory_config.py --check-product-configs
 ```
 

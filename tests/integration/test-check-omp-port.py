@@ -7,7 +7,6 @@ from integration_support import ROOT, BIN
 
 import contextlib
 import json
-import re
 import shutil
 import subprocess
 import sys
@@ -38,18 +37,6 @@ def fixture():
             shutil.copytree(ROOT / rel, dst / rel, symlinks=True, ignore=skip_worktrees)
         shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
         yield dst
-
-
-def case_symlink_topology():
-    claude_skills = ROOT / ".claude" / "skills"
-    canonical_link = ROOT / ".agents" / "skills"
-    return [
-        (
-            "Agent Skills path links to the authored skills tree",
-            canonical_link.is_symlink() and canonical_link.resolve() == claude_skills.resolve(),
-            "",
-        ),
-    ]
 
 
 # FEAT-2397 (SC-06): native `task.perCallModel` is the sole per-call model authority, Main
@@ -245,56 +232,6 @@ def case_agent_output_drift():
     return rows
 
 
-def case_missing_lifecycle_wiring_fails():
-    with fixture() as root:
-        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-        extension.write_text(extension.read_text().replace("task:subagent:lifecycle", "task:lifecycle"))
-        result = run(root)
-        return [
-            ("missing OMP child lifecycle wiring fails", result.returncode == 1, ""),
-            ("lifecycle wiring gap is named", "task:subagent:lifecycle" in result.stderr, ""),
-        ]
-
-
-LIFECYCLE_REGISTRATION = re.compile(
-    r"""\bpi(?:\.events)?\.on\(\s*(["'])task:subagent:lifecycle\1""")
-
-
-def case_lifecycle_on_the_wrong_bus_fails():
-    """BUG-1898 defect D: OMP publishes task:subagent:lifecycle on the session EventBus
-    (`pi.events`), never on the extension hook dispatcher (`pi.on`). A registration on
-    `pi.on` still carries the marker string, so a presence check passed while terminal
-    children were never released. The mutant rewrites the registration to the wrong bus."""
-    with fixture() as root:
-        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-        mutated = LIFECYCLE_REGISTRATION.sub('pi.on("task:subagent:lifecycle"',
-                                             extension.read_text())
-        extension.write_text(mutated)
-        result = run(root)
-        return [
-            ("wrong-bus mutant still carries the marker string",
-             "task:subagent:lifecycle" in mutated, ""),
-            ("a lifecycle handler registered on pi.on fails", result.returncode == 1,
-             result.stderr.strip()[-300:]),
-            ("the wrong-bus gap is named", "pi.events" in result.stderr, result.stderr[-300:]),
-        ]
-
-
-def case_missing_sign_gate_wiring_fails():
-    """BUG-1132: plan-sign-gate.py (REQ-05/DEC-120) was silently absent from
-    harness-hooks.ts's own bash gate list until this fix — invisible to this checker because
-    the script was never in `required_wiring`. This proves the checker would now catch that
-    class of gap recurring for ANY gate script, not just this one instance."""
-    with fixture() as root:
-        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-        extension.write_text(extension.read_text().replace("plan-sign-gate.py", "plan-sign-gate-REMOVED.sh"))
-        result = run(root)
-        return [
-            ("missing plan-sign-gate.py wiring fails", result.returncode == 1, ""),
-            ("sign-gate wiring gap is named", "plan-sign-gate.py" in result.stderr, ""),
-        ]
-
-
 def case_nonblocking_nested_agent_fails():
     with fixture() as root:
         agent = root / ".omp" / "agents" / "harness-backend-dev.md"
@@ -304,6 +241,20 @@ def case_nonblocking_nested_agent_fails():
             ("nonblocking nested Harness agent fails", result.returncode == 1, ""),
             ("nested supervision contract is named", "blocking: true" in result.stderr, ""),
         ]
+
+def case_no_agent_files_fails():
+    """#2696: the roster check moved to the suites that load every agent, so an empty
+    .omp/agents must still fail here rather than pass every per-agent check vacuously."""
+    with fixture() as root:
+        for agent in (root / ".omp" / "agents").glob("harness-*.md"):
+            agent.unlink()
+        result = run(root)
+        return [
+            ("no harness agent files fails", result.returncode == 1, result.stderr),
+            ("the empty agent directory is named", "no harness-*.md agent files" in result.stderr,
+             result.stderr),
+        ]
+
 
 def case_missing_command_door_fails():
     with fixture() as root:
@@ -350,7 +301,6 @@ def case_feat64_unrelated_defect_escapes():
 
 CASES = (
     case_feat64_unrelated_defect_escapes,
-    case_symlink_topology,
     case_per_call_model_pinned_off,
     case_live_tree_passes,
     case_missing_agents_md_fails,
@@ -360,10 +310,8 @@ CASES = (
     case_task_wall_clock_limit_fails,
     case_task_structured_off,
     case_agent_output_drift,
-    case_missing_lifecycle_wiring_fails,
-    case_lifecycle_on_the_wrong_bus_fails,
-    case_missing_sign_gate_wiring_fails,
     case_nonblocking_nested_agent_fails,
+    case_no_agent_files_fails,
     case_missing_command_door_fails,
     case_absent_canonical_command_root_fails,
 )
