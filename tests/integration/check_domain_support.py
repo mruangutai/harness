@@ -18,7 +18,7 @@ calling module's namespace so each file still DISCOVERS its own module-level run
 rather than hand-maintaining a list.
 """
 from integration_support import ROOT as _ROOT, BIN as _BIN, TESTS as _TESTS
-import contextlib, json, os, subprocess, sys, tempfile
+import atexit, contextlib, json, os, shutil, subprocess, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
 
 TESTS_DIR = str(_TESTS / "integration")
@@ -67,7 +67,9 @@ def _write_manifest(root, manifest_text):
 
 
 def fixture(manifest_text):
+    """A temp root carrying `manifest_text` as its team-config; deleted at interpreter exit."""
     d = tempfile.mkdtemp()
+    atexit.register(shutil.rmtree, d, ignore_errors=True)
     _write_manifest(d, manifest_text)
     return d
 
@@ -106,24 +108,29 @@ def make_linked_worktree(root, wt_path, wt_id):
     return wt_path
 
 
-def _invoke(root, payload, argv=(HOOK,)):
-    """Run the hook once: `payload` as JSON on stdin, the fixture env for `root`."""
+def _invoke(root, payload, argv=(HOOK,), env=None, cwd=None):
+    """Run the hook once: `payload` as JSON on stdin, the fixture env for `root` plus any
+    `env` overrides, from `cwd` (the runner's own cwd when None)."""
     return subprocess.run(list(argv), input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+                          text=True, env=_env(root, **(env or {})), cwd=cwd)
 
 
-def fire(root, path, content="x", agent="harness-documentor", hook=HOOK):
+def fire(root, path, content="x", agent="harness-documentor", hook=HOOK, extra=None,
+         env=None, cwd=None):
+    """An agent's Write of `path` under `root`; `extra` adds top-level payload keys
+    (session_id, harness_feature, ...)."""
     payload = {"agent_type": agent, "tool_name": "Write",
-               "tool_input": {"file_path": os.path.join(root, path), "content": content}}
-    return _invoke(root, payload, [hook])
+               "tool_input": {"file_path": os.path.join(root, path), "content": content},
+               **(extra or {})}
+    return _invoke(root, payload, [hook], env=env, cwd=cwd)
 
 
-def fire_write_payload(root, path, content, *flags, hook=HOOK):
+def fire_write_payload(root, path, content, *flags, hook=HOOK, extra=None):
     """A Write payload with NO agent_type key, `path` passed through as given. Agentless is
     the point: `fire` always names an agent, which routes the hook through a different
-    domain phase than the one these callers exercise."""
+    domain phase than the one these callers exercise. `extra` adds top-level payload keys."""
     payload = {"tool_name": "Write",
-               "tool_input": {"file_path": path, "content": content}}
+               "tool_input": {"file_path": path, "content": content}, **(extra or {})}
     return _invoke(root, payload, [hook, *flags])
 
 

@@ -9,9 +9,8 @@
    cited skill lacks, a name that is neither skill nor agent, and the `.claude/skills/`
    spelling in instruction prose. Every planted defect names its file.
 """
-from unit_support import ROOT, BIN
+from unit_support import ROOT, load_script
 
-import importlib.util
 import os
 import shutil
 import sys
@@ -21,9 +20,7 @@ from pathlib import Path
 import feature_corpus  # noqa: E402
 from check_support import Checks
 
-spec = importlib.util.spec_from_file_location("check_skill_refs", BIN / "check-skill-refs.py")
-refs = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(refs)
+refs = load_script("check-skill-refs.py")
 
 C = Checks()
 check = C.check

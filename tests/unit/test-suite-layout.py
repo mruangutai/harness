@@ -12,7 +12,7 @@ import tempfile
 from unittest import mock
 
 from check_support import Checks
-from git_support import checked_git, commit_all, init_repo
+from git_support import checked_git, commit_all, init_repo, write_files
 import suite_layout
 import code_grade
 
@@ -31,9 +31,7 @@ check("real layout is valid", real_violations == [], repr(real_violations))
 
 
 def plant(root, rel, text="pass\n"):
-    path = root / rel
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text)
+    write_files(root, {rel: text})
 
 
 def violations_with(root, exceptions):

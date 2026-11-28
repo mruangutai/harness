@@ -17,24 +17,20 @@ writer, below the CLI subprocess the integration case drives.
 """
 import argparse
 import contextlib
-import importlib.util
 import io
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-from unit_support import BIN
+from unit_support import BIN, load_script
 
 from check_support import Checks  # noqa: E402
 
 import plan_merge  # noqa: E402,F401  the package must be importable before its stations module
 
 _STATIONS = os.environ.get("PLAN_MERGE_STATIONS") or str(BIN / "plan_merge" / "stations.py")
-_spec = importlib.util.spec_from_file_location("plan_merge.stations", _STATIONS)
-stations = importlib.util.module_from_spec(_spec)
-sys.modules["plan_merge.stations"] = stations
-_spec.loader.exec_module(stations)
+stations = load_script("stations.py", path=_STATIONS, module_name="plan_merge.stations", register=True)
 
 C = Checks()
 check = C.check

@@ -12,7 +12,6 @@ python3 stdlib only. In-process load of the hyphenated gh-sync.py
     ./test-gh-sync-build-entry.py    -> exit 0 all pass, 1 otherwise
 """
 import contextlib
-import importlib.util
 import io
 import itertools
 import json
@@ -22,14 +21,12 @@ import sys
 import tempfile
 from unittest import mock
 
-from unit_support import BIN
+from unit_support import load_script
 from check_support import Checks
 from feature_record import binding as record_binding, evidence as record_evidence
 from feature_record import schema as record_schema
 
-_spec = importlib.util.spec_from_file_location("_ghs_t11_build_entry", str(BIN / "gh-sync.py"))
-gh_sync = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(gh_sync)
+gh_sync = load_script("gh-sync.py")
 
 C = Checks()
 check = C.check

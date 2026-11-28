@@ -7,13 +7,13 @@ Covers MARKER and the three resolver functions:
   root_above         -- the only one of the three permitted to see a cwd, walking up from it.
 
 Fixtures are written under tempfile.mkdtemp() so no repo state is touched. Loaded via
-importlib from BIN, honouring HARNESS_BOUNDARY_BIN so mutation testing can point this
+unit_support.load_script from BIN, honouring HARNESS_BOUNDARY_BIN so mutation testing can point this
 suite at a different copy than the one it's run alongside (see test-check-plan-routes.py
 cpr()).
 
 Runnable directly with python3, no pytest.
 """
-from unit_support import ROOT as _ROOT, BIN as _BIN
+from unit_support import ROOT as _ROOT, BIN as _BIN, load_script
 import contextlib
 import io
 import json
@@ -42,11 +42,7 @@ def hb():
     SCRIPT honours HARNESS_BOUNDARY_BIN so mutation testing can point this suite at a
     mutant copy distinct from the file sitting beside it.
     """
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("_hb_under_test", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    return load_script("harness_boundary.py", path=SCRIPT, module_name="_hb_under_test")
 
 
 def write_marker(root):

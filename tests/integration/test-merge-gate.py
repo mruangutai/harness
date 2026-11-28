@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Contract coverage for the Build-entry merge gate."""
 from integration_support import ROOT, BIN  # first: puts bin/ and tests/ on sys.path
+import functools
+import hashlib
 import json
 import os
 import shutil
@@ -9,8 +11,13 @@ import sys
 import tempfile
 
 from check_support import Checks
-from git_support import checked_git, git, git_out, init_repo
+import git_support
+from git_support import checked_git, init_repo
 from harness_config_support import build_config, write_config
+
+# The 30 s hang guard this file's own git runner carried before it moved onto git_support.
+git = functools.partial(git_support.git, timeout=30)
+git_out = functools.partial(git_support.git_out, timeout=30)
 
 ROOT, BIN = str(ROOT), str(BIN)
 GATE = os.path.join(BIN, "merge-gate.py")
@@ -511,10 +518,7 @@ def refused_before_merge(name, fx, result, *needles):
 
 
 def blob_sha(fx, rel):
-    import hashlib
-    data = subprocess.run(["git", "-C", fx["wt"], "cat-file", "blob", f"HEAD:{rel}"],
-                          capture_output=True, check=True, timeout=30).stdout
-    return hashlib.sha256(data).hexdigest()
+    return hashlib.sha256(git(fx["wt"], "cat-file", "blob", f"HEAD:{rel}", text=False).stdout).hexdigest()
 
 
 def json_or_empty(text):

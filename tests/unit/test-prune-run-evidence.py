@@ -530,9 +530,11 @@ def refusal_cases(root):
     refused = tool(other, "--feature", "FEAT-9-thing")
     untouched = (nopin / "runs" / "build-eng" / "ui").exists()
     check("refuses the placeholder review_sha 'none' — nothing shipped, nothing pruned", refused.returncode == 2 and untouched, refused.stderr)
+    checkout(root / "empty")
     empty = feature(root / "empty", [("build-eng", "PASS", "b" * 40)], review_sha="")
     refused_empty = tool(root / "empty", "--feature", "FEAT-9-thing")
-    check("refuses an empty review_sha", refused_empty.returncode == 2 and (empty / "runs" / "build-eng" / "ui").exists(), refused_empty.stderr)
+    check("refuses an empty review_sha", refused_empty.returncode == 2 and "has no review_sha" in refused_empty.stderr
+          and (empty / "runs" / "build-eng" / "ui").exists(), refused_empty.stderr)
     lookup_refusal_cases(root)
     duplicate_key_case(root)
 

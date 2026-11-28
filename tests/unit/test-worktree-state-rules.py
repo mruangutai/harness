@@ -6,15 +6,12 @@ checks what it derives. The cone derivation is the rule a wrong answer from whic
 directory every dispatch needs while git reports success (FEAT-58 D-08), so every part of it has
 a case that would catch that.
 """
-import importlib.util
 import unittest
 
-from unit_support import BIN
+from unit_support import load_script
 import feature_corpus as fc
 
-_spec = importlib.util.spec_from_file_location("worktree_state", BIN / "worktree-state.py")
-ws = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(ws)
+ws = load_script("worktree-state.py")
 
 DIRS = [
     ".agents", ".agents/skills", ".claude", ".claude/skills", "src",

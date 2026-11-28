@@ -17,8 +17,10 @@ the module-level `check` and `report` (`C` is the instance). An importer ends wi
 otherwise.
 
 The gh-sync launcher and its log:
-    run(args, tmp, env_extra=None, log="calls.log")   gh-sync.py <args> confined to tmp/gh,
-        the fake writing its argv lines to tmp/<log>; the default-binary sentinel must stay unused.
+    run(args, tmp, env_extra=None, log="calls.log", cwd=None, argv0=None)
+        gh-sync.py <args> confined to tmp/gh, the fake writing its argv lines to tmp/<log>; the
+        default-binary sentinel must stay unused. cwd runs it from another directory (a relative
+        feature dir); argv0, a list, replaces [SYNC] as the command prefix (a patching shim).
     calls(tmp, log="calls.log", strip=False)          those argv lines, one per gh call. Each
         line ends in the \\x01 the fake's `tr` made of echo's newline; strip=True removes it,
         for a caller that matches a line's last argument (a regex like `--label (\\S+)`).
@@ -253,15 +255,17 @@ def _fleet_factory(args):
             return None
 
 
-def run(args, tmp, env_extra=None, log="calls.log"):
-    """Run gh-sync confined to the tmp fake: FACTORY_GH only, the default-binary sentinel unused."""
+def run(args, tmp, env_extra=None, log="calls.log", cwd=None, argv0=None):
+    """Run gh-sync confined to the tmp fake: FACTORY_GH only, the default-binary sentinel unused.
+    CWD and ARGV0 (a list standing in for [SYNC]) default to the caller's cwd and gh-sync.py."""
     binary = os.path.join(tmp, "gh")
     env, sentinel_log = offline_gh_env(binary, tmp)
     env["FAKE_LOG"] = os.path.join(tmp, log)
     if _fleet_factory(args) and (env_extra or {}).get("FACTORY_GH", binary) != binary:
         raise ValueError("fleet tests must bind FACTORY_GH to the shared fake")
     env.update(env_extra or {})
-    result = subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    result = subprocess.run((argv0 or [SYNC]) + args, capture_output=True, text=True, env=env,
+                            cwd=cwd)
     assert_sentinel_unused(sentinel_log)
     return result
 

@@ -8,9 +8,8 @@ things must hold or the index drifts from the rules it points at:
 3. Every leaf lands in at least one seat's section and every cited path exists — an index
    line pointing at a missing leaf is the drift this test exists to catch.
 """
-from unit_support import ROOT, BIN
+from unit_support import ROOT, BIN, load_script
 
-import importlib.util
 import os
 import subprocess
 import sys
@@ -18,9 +17,7 @@ import sys
 from check_support import Checks
 
 GEN_PATH = BIN / "gen-craft-index.py"
-spec = importlib.util.spec_from_file_location("gen_craft_index", GEN_PATH)
-gen = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(gen)
+gen = load_script("gen-craft-index.py")
 
 C = Checks()
 check = C.check
