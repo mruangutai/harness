@@ -69,5 +69,68 @@
       "reason": "answers applied and the one authorized re-read ran; its 5 substance findings were applied and are unread (LEAD-02); no second re-read is authorized so the plan returns pending for signature"
     }
   ],
-  "mission": "plan"
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 180,
+    "decision": ".harness/harness/features/FEAT-2641-local-working-files/notes/answers-signature-2026-11-27.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "164c12b18b7260faa1d0447e33c160335e90d4bf74e7b302fd1f5567eddbc67c",
+    "T-02": "8dbcf4efc1a80dd085eb1316eced105000902378cf54a7f8bdee4b13ee2305ad",
+    "T-03": "b81b2cae689c744be19088a45fd7f4dfbf2c78964cc9154b409154b96d08f776",
+    "T-04": "a027d116ba133adf0f23b39bb9b73e09a2299c936e07cb4e86d18820f537a030",
+    "T-05": "7ad4f74b1371b661e9542f726ceac922dc30755c89863e85582192bb1f56a216",
+    "T-06": "28728accef0260cb71dcc415758044b6b69e3db9a934305a208a2a4487a7be5e",
+    "T-07": "b7e39ee4099df78cf7b8439ee3881b81aaaceb57dc9c185d2d7a83fa6653b1f8",
+    "T-08": "b0ff88cabad8fe82b065c5a320ca6a72f481981f1404fa5417e2a9aefc83418b",
+    "T-09": "f189b097236ce51add193bf11e46539876405db59ecb40085cc2fc9deabb7a7e",
+    "T-10": "b6f6340b9073b80c477ed995f81c6e96b14941cec363a3e95a62723b02a2ad39"
+  },
+  "github": {
+    "milestone": 148,
+    "parent": 2655,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 2656,
+      "T-02": 2657,
+      "T-03": 2658,
+      "T-04": 2659,
+      "T-05": 2660,
+      "T-06": 2661,
+      "T-07": 2662,
+      "T-08": 2663,
+      "T-09": 2664,
+      "T-10": 2665
+    },
+    "source_issues": [
+      2641
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "T-07": true,
+      "T-08": true,
+      "T-09": true,
+      "T-10": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
 }
