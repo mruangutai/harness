@@ -1,0 +1,551 @@
+schema: plan/1
+feature: FEAT-2581-feature-record-package
+approval:
+  date: '2026-11-27'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-7999938a71e04c7860729d303f2b261f
+      who: operator
+      date: '2026-11-27'
+      reason: D-02 authorized by the operator (PL-01); measured records ruled after build
+    - finding: PF-d35d903d6c203003e66e3318fb098185
+      who: operator
+      date: '2026-11-27'
+      reason: operator keeps the bun-spawned class (PL-04)
+    - finding: PF-502d3541ddcee716cab0352ee9cd74cd
+      who: operator
+      date: '2026-11-27'
+      reason: operator keeps the bun-spawned class (PL-04)
+    - finding: PF-15af830698dd3f01b0b8ae282b52d78b
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-40325938c65b7df545d14241497b98f0
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-db2ae14a85c1a4e340b15bfecd4220f1
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-eec01ba2a60d3e9448d0c0a40c6a9b3b
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-5f54f524a721755e1a97984b4409881d
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-2528cfa8fb25dfde07a5cd4afc8c742e
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-a688e503b02a740a0aa1056852fe3e93
+      who: operator
+      date: '2026-11-27'
+      reason: build-time amendment of T-03 per operator signature (notes/answers-2026-11-27-signature.md)
+    - finding: PF-42a75f8f0b1fd63654040cd3baf0c0da
+      who: operator
+      date: '2026-11-27'
+      reason: stale wording fixed at build per operator signature
+drafted_at: '2026-11-27T16:23:46Z'
+status: review
+source_issues: [2581, 2569]
+panel:
+  last_run: repanel3-product
+  cycle: 4
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: 'cycle-4 single read FAIL: closes PF-96cdf9f1, PF-3882d444, PF-cf9cf710;
+      3 med + 1 low substance and 1 low form new (notes/review-harness-code-reviewer-plan-c4.md)'
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: 'status skipped: not dispatched this cycle because the operator''s ruling
+      PL-11 (a) names the scope and design readers only; it did not run and is not recorded
+      as finding nothing'
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: 'Mode A in scope (text-only operator disclosure); cycle-4 single read FAIL:
+      closes PF-a37e5b40; 3 med substance new (notes/review-harness-ui-reviewer-plan-c4.md)'
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: ran once at plan exit in run plan-product; not re-run in cycles 2-4 (SC-09);
+      cycle-4 dated addendum at notes/research-FEAT-2581-feature-record-package-goalcheck-plan.md:315-348
+  findings:
+  - id: PF-ccd4ca984cd58a26db2174b21ac8a384
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-03 excludes a real copied-bin CLI invocation from SC-05.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-e7dd0045f7836b8c7d0465a94e94391b
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-03 accepts PASS text without binding measured evidence to the review pin.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-d91cba6cd760e38b9a8a80e1ab868bfa
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01 leaves INV-40’s registration observer on the old load seam.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-7999938a71e04c7860729d303f2b261f
+    severity: high
+    reader: scope
+    kind: substance
+    summary: "D-02\u2019s diagnostic exception is not operator-authorized or exhaustive."
+    disposition: open
+  - id: PF-aaf45b29407b27fded324957d72ca2c7
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-01’s directed module map omits spend_for’s dependency on _runs.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-2782df099d9cf3d222e2460a0c40bc54
+    severity: med
+    reader: scope
+    kind: form
+    summary: T-01’s verify block is a smoke check, not a structural or corpus proof.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-dc97f9a28c305c6fa729fc346c189828
+    severity: med
+    reader: scope
+    kind: form
+    summary: decisions_affected omits rules governing the checker, schema, and signed-hash surfaces.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-d35d903d6c203003e66e3318fb098185
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-03's bun leg (omp-hooks.test.ts run plus a --preload patching node
+      mkdtempSync) adds near-zero discriminating power and should be dropped from
+      the CLI ledger.
+    disposition: open
+    scope: task
+  - id: PF-b3de0ad185180c766a32ad1bc4de2a5f
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The second normalization token (fixture root alongside checkout root) should not exist; use one shared fixed fixture root on both sides, as FEAT-70 did.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-14c27514e2b6867bcfb13c6fc5e48234
+    severity: high
+    reader: scope
+    kind: substance
+    summary: PF-e7dd0045 — T-03 still accepts CLI and replay PASS markers without measured evidence bound to the review pin.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-c36ed89c5d60906308d92ab5d60eb0a7
+    severity: high
+    reader: scope
+    kind: substance
+    summary: PF-7999938a — D-02 still does not bound the rendered-output delta; authorization remains with the operator.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-c82fdafb108996c2b8e421d7e3e9f1ef
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01’s pre-commit gate rejects the mutation output SC-03 requires it to preserve.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-390fdc3e437034275ce76d0b728ac620
+    severity: med
+    reader: scope
+    kind: substance
+    summary: RG-A2 — T-03 does not bound baseline_failing to the measured set.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-502d3541ddcee716cab0352ee9cd74cd
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: 'PF-d35d903d''s facts changed: the bun run now stays for SC-10 regardless, so the open operator decision covers only the bun-spawned ledger class and feat2581-bun-preload.js, not the run itself.'
+    disposition: open
+    scope: task
+  - id: PF-0ab2a54115f601adc844b6ff906f5564
+    severity: high
+    reader: scope
+    kind: substance
+    summary: 'PF-14c27514 not closed: T-03 accepts CLI and replay records missing required measurement streams.'
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-74107187b30075ff469855f63e753993
+    severity: med
+    reader: scope
+    kind: substance
+    summary: 'New: T-03 accepts an audit-count disclosure that disagrees with the committed raw audit.'
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-f8e3277e88a9a8d53e8fc85c312ba652
+    severity: high
+    reader: design
+    kind: substance
+    summary: D-02’s operator-facing disclosure is not bound to the measured output.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-b045e378e3a26989ec460a400717b923
+    severity: med
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-03's committed raw-measurement store (notes/measurements/{baseline,pin}.jsonl.gz), recorder/sitecustomize.py interception of every Python process, and the divergence-recomputing verify together exceed Settled Q3(a)'s stated bar — 'reusing FEAT-70's receipt-script structure with no new proof framework' — and the plan nowhere discloses that exceedance to the signer.
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+  - id: PF-2ddbc1410bd086da4924c7a25bf1ab96
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: The divergence set is computed by two independent implementations — feat2581-cleanpin.py writes the receipt's divergence lines, and T-03's verify recomputes them with its own root-token/base64 logic and hard-asserts mv==D — so any drift between the two implementations, not any real behaviour difference, voids the receipt.
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+  - id: PF-96cdf9f10890ac070da480030c481192
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03 accepts invalid base64 as a captured stream.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-3882d444d53e5048aab5db3565f24435
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03 accepts unrelated source templates for unreached D-02 items.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-cf9cf710f71b769e92a542d62f352636
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03 can pass without the `divergence:` records SC-08 requires in build-divergences.md.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-a37e5b4054c542a0b7b80de309c1f9ca
+    severity: med
+    reader: design
+    kind: substance
+    summary: 'New: T-03 permits an operator-facing disclosure made up only of escaped byte literals.'
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-15af830698dd3f01b0b8ae282b52d78b
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03 reports SAME when a one-summary file's non-marker stdout changes.
+    disposition: open
+  - id: PF-40325938c65b7df545d14241497b98f0
+    severity: med
+    reader: scope
+    kind: substance
+    summary: A suite record's claimed file is not bound to its argv or checkout cwd.
+    disposition: open
+  - id: PF-db2ae14a85c1a4e340b15bfecd4220f1
+    severity: med
+    reader: scope
+    kind: substance
+    summary: Replacing the checkout root before JUnit parsing can invalidate otherwise valid Bun evidence.
+    disposition: open
+  - id: PF-5f54f524a721755e1a97984b4409881d
+    severity: low
+    reader: scope
+    kind: substance
+    summary: The new test_change check compares text-translated patches, not exact patch bytes.
+    disposition: open
+  - id: PF-42a75f8f0b1fd63654040cd3baf0c0da
+    severity: low
+    reader: scope
+    kind: form
+    summary: 'OQ-C4-1: T-01 and the BRIEF retain stale only-language beside the explicit D-01 exception.'
+    disposition: open
+  - id: PF-2528cfa8fb25dfde07a5cd4afc8c742e
+    severity: med
+    reader: design
+    kind: substance
+    summary: The mandatory account can obscure whitespace-only and long binary changes.
+    disposition: open
+  - id: PF-eec01ba2a60d3e9448d0c0a40c6a9b3b
+    severity: med
+    reader: design
+    kind: substance
+    summary: The newly verified test_change diff is not byte-exact for line-ending changes.
+    disposition: open
+  - id: PF-a688e503b02a740a0aa1056852fe3e93
+    severity: med
+    reader: design
+    kind: substance
+    summary: The BRIEF discloses growth beyond PL-09 but understates what the new suite records retain.
+    disposition: open
+lanes:
+  resolved_at: e12381fde910eb05728004476a10d741d6918010
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 assigns feature-record.py, the gate scripts that import the feature.json domain and their package directly to the main session.
+    - surface: .claude/skills/harness/schemas/feature.json
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY; an ungranted surface is a declared main-session step (DEC-179).
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps each gate's owning tests and the canonical-reader classification with the direct change they grade.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: granted to harness-documentor, but the decision-record amendments describe the enforcement change itself and land with it under DEC-174, as in FEAT-2557.
+    - surface: .harness/README.md
+      lane: main-session-direct
+      reason: granted to harness-documentor; its one sentence naming the deleted writer module changes inside the direct T-01 change under DEC-174.
+    - surface: .harness/harness/features/FEAT-2581-feature-record-package/notes/**
+      lane: main-session-direct
+      reason: the immutable-pin receipt scripts and evidence are inseparable from the direct enforcement-layer change they grade (FEAT-70 precedent).
+decisions:
+  - id: D-01
+    choice: The canonical feature.json read moves with its loader to feature_record/read.py, and every canonical-reader remedy, category key and T07 relocation key that named artifact_accessors.load_feature_json or feature_json_write names feature_record.read.load_feature_json or its feature_record owner.
+    because: canonical_reader_audit matches a canonical row only when a call's resolved callee equals the row's remedy, so keeping the old remedy on the 24 rows that carry artifact_accessors.load_feature_json (23 caller rows and the moved loader's own row) would turn every one into a missing-accessor finding. The grilling's Settled rule that classification rows change only file and id therefore does not hold for those rows; the operator accepted the correction at PL-03 on 2026-11-27, with canonical_reader_audit's category, remedy and T07 keys and the two test expectations T-01 names changing with them.
+    dec: DEC-259
+  - id: D-02
+    choice: 'Each diagnostic literal that names the module that failed to import or crashed names the module actually loaded instead of feature_schema or plan-merge.py: check-domain''s not-importable, CRASHED and whole-file line-budget texts and check_state INV-23, INV-26, INV-37 and INV-40. No output change is exempted in advance: these, the RepoModuleError renderings that embed the loaded module''s name by themselves (INV-7, check_state/run_state''s refusal-evidence check, harness_config''s harness.json validation), the check-state --list reads column, every traceback frame the move relocates, any other byte of a check-state or check-domain output stream the existing tests capture, and the canonical-reader audit''s scanned Python file count are measured from the processes the existing tests start (the audit from both clean checkouts), compared as raw bytes, and recorded with exact old and new bytes in notes/build-divergences.md; an item no existing test reaches is recorded as unreached with its old and new source template, never given a new test; and each such record stays red until the operator rules on it.'
+    because: Keeping the old literals would send a reader to a deleted file, so the direction is signed here; Settled Q3 (a) keeps every measured byte difference red until the operator rules on it, so this signature authorizes the source change, never its output bytes in advance.
+    dec: none
+  - id: D-03
+    choice: check_state/ctx.py loads signed_task_hash by module name from plan_merge.approval through harness_boundary.load_repo_module, and plan-merge.py re-exports nothing.
+    because: the path load of plan-merge.py from the checked bin directory was the only reason for the re-export DEC-259 names as its one exception; check-state.py already puts its own directory first on sys.path, so the name import resolves the same checkout's package.
+    dec: DEC-259
+decisions_affected:
+- dec: DEC-259
+  disposition: amend
+  clause: "with one exception\n  this rule now names as a finding:"
+  successor: D-03
+  reason: The plan-merge.py signed_task_hash re-export is removed with its loader migrated (#2569), so DEC-259 records no exception.
+- dec: DEC-220
+  disposition: amend
+  clause: treats non-null
+  successor: D-01
+  reason: The binding predicate and effective_recorded_repo move from feature_schema to feature_record.binding; the entry's present-tense module names are repointed.
+- dec: DEC-150
+  disposition: amend
+  clause: 300 lines since FEAT-14,
+  successor: D-01
+  reason: The feature.json line budget constant moves from feature_schema.py to feature_record/schema.py; the holder named in the entry is repointed.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: Every task is main-session-direct; the harness plans this enforcement-layer change but does not execute it.
+- dec: DEC-205
+  disposition: keep
+  clause: An entry states current truth directly.
+  successor: none
+  reason: The three amendments rewrite present-tense pointers in place rather than appending amendment notes.
+- dec: DEC-211
+  disposition: keep
+  clause: In measurement, 5,105 of 1,032,849 polls
+  successor: none
+  reason: The entry's feature_schema.py mention describes a past incident that stays true after the move.
+- dec: DEC-180
+  disposition: keep
+  clause: it binds whoever writes the file
+  successor: none
+  reason: check-domain's feature.json shape check (line budget and schema problems) now imports feature_record.schema; the shape phase keeps running for every author and route.
+- dec: DEC-190
+  disposition: keep
+  clause: and never a quieter mode that validates less
+  successor: none
+  reason: The one jsonschema guard and UNAVAILABLE_MESSAGE move byte for byte into feature_record/schema.py; a missing import stays a loud error naming the install command.
+- dec: DEC-191
+  disposition: keep
+  clause: the schema records the reader by name in each key's
+  successor: none
+  reason: schemas/feature.json keeps naming each key's reader; the runs agent description is repointed to feature_record/schema.py, the closed key set is unchanged.
+- dec: DEC-229
+  disposition: keep
+  clause: and no later verb revises them
+  successor: none
+  reason: signed_task_hash keeps its bytes and its plan_merge.approval owner; only check-state's INV-40 load seam changes (D-03), so signed hashes and their grading are unchanged.
+- dec: DEC-230
+  disposition: keep
+  clause: every autonomous judgement the harness makes on a feature is appended to
+  successor: none
+  reason: feature-record.py judgement keeps its path, arguments and written bytes; its implementation moves to feature_record/judgements.py.
+tasks:
+  - id: T-01
+    title: Move the feature.json domain into feature_record/ and migrate every caller
+    traces: [SC-01, SC-03, SC-04, SC-07, SC-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 assigns feature-record.py, the importing gate scripts, their owning tests and the reader classification directly to the main session.
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/feature[-_]record*
+      - .claude/skills/harness/bin/*.py
+      - .claude/skills/harness/bin/check_state/*.py
+      - .claude/skills/harness/bin/plan_merge/*.py
+      - .claude/skills/harness/bin/LAYOUT.md
+      - {path: .claude/skills/harness/schemas/feature.json, quote: _runs_agent_problems}
+      - {path: .harness/README.md, quote: feature_json_write}
+      - tests/unit/*.py
+      - tests/integration/*.py
+      - tests/integration/canonical-reader-classification.json
+      - tests/integration/integration-durations.json
+    verify: |
+      python3 -c 'import ast,importlib.util,json,os,pathlib,re,sys
+      os.environ.pop("HARNESS_AGENT_TYPE",None)
+      r=pathlib.Path("."); b=r/".claude/skills/harness/bin"; p=b/"feature_record"
+      want={"__init__.py","read.py","write.py","schema.py","evidence.py","binding.py","runs.py","judgements.py","budget.py","spend.py"}
+      assert {x.name for x in p.glob("*.py")}==want, sorted(x.name for x in p.glob("*.py")); assert (p/"__init__.py").read_text()==""
+      gone=[b/"feature_schema.py",b/"feature_json_write.py",b/"feature-json-merge.py",r/"tests/integration/test-feature-json-merge.py"]; assert not [str(x) for x in gone if x.exists()]
+      moved={"load_feature_json","FeatureJsonError","_feature_json_source","_read_feature_json_text","_parse_feature_json_text","_positive_issue_number","_validate_recorded_parent","_validate_recorded_issues","_validate_recorded_block","_validate_recorded_blocks"}
+      left={n.name for n in ast.parse((b/"artifact_accessors.py").read_text()).body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}; assert not left&moved, left&moved
+      entry=ast.parse((b/"feature-record.py").read_text()); assert not [n.name for n in entry.body if isinstance(n,ast.FunctionDef) and n.name.startswith("cmd_")]
+      imp={a.asname or a.name:n.module for n in ast.walk(entry) if isinstance(n,ast.ImportFrom) and n.module for a in n.names}
+      fn={k.value.id for n in ast.walk(entry) if isinstance(n,ast.Call) and getattr(n.func,"attr","")=="set_defaults" for k in n.keywords if k.arg=="func" and isinstance(k.value,ast.Name)}
+      assert len(fn)==13 and all(imp.get(x,"").startswith("feature_record.") for x in fn), (sorted(fn),imp)
+      assert "signed_task_hash" not in (b/"plan-merge.py").read_text() and "plan_merge.approval" in (b/"check_state/ctx.py").read_text() and "feature_record/" in (b/"LAYOUT.md").read_text()
+      pat=re.compile(r"\bfeature_schema\b|\bfeature_json_write\b|feature-json-merge|artifact_accessors\.(load_feature_json|FeatureJsonError)")
+      acc=lambda n: (isinstance(n,ast.ImportFrom) and n.module=="artifact_accessors" and bool({a.name for a in n.names}&moved)) or (isinstance(n,ast.Attribute) and isinstance(n.value,ast.Name) and n.value.id=="artifact_accessors" and n.attr in moved)
+      hits=[str(f) for d in (b,r/"tests") for f in d.rglob("*.py") if "__pycache__" not in f.parts and (pat.search(f.read_text()) or any(acc(n) for n in ast.walk(ast.parse(f.read_text()))))]; assert not hits, hits
+      rows=json.loads((r/"tests/integration/canonical-reader-classification.json").read_text())["rows"]
+      stale=[x["id"] for x in rows if x["remedy"]=="artifact_accessors.load_feature_json" or re.search(r"feature_schema|feature_json_write|feature-json-merge|bin/feature-record\.py",x["file"])]; assert not stale, stale
+      s=importlib.util.spec_from_file_location("feat2581_grade",b/"code_grade.py"); m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m)
+      bad=[(str(x),q.qualname,q.grade) for x in [b/"feature-record.py",*sorted(p.glob("*.py"))] for q in m.grade_source(x.read_text(),str(x)) if q.grade<4]; assert not bad, bad
+      sys.path.insert(0,str(r/"tests/integration")); s=importlib.util.spec_from_file_location("feat2581_f59",r/"tests/integration/test-check-state-feat59.py"); f59=importlib.util.module_from_spec(s); s.loader.exec_module(f59)
+      o=f59._plain(f59._isolated({"plan_merge/approval.py":"raise RuntimeError(%r)\n"%"feat2581 observer reached"}))[1]
+      assert [l for l in o.splitlines() if "INV-40 CANNOT RUN" in l and "plan_merge/approval.py did not import (RuntimeError: feat2581 observer reached)" in l], o[:600]
+      print("T-01 structure and smoke PASS; the baseline-passing corpus is graded in T-03")'
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-feature-record.py && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-feature-json.py && env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    intent: |
+      Product checkout: the FEAT-2581 worktree .claude/worktrees/harness/FEAT-2581-feature-record-package of the Harness repository itself, baseline e12381fde910eb05728004476a10d741d6918010. Edit only inside that worktree, through its .claude paths (.agents is a symlink to .claude). Its docs/spec.md, docs/decisions.md and docs/architecture.md do not exist; the governing record is .harness/harness/docs/DECISIONS.md (DEC-259, DEC-174, DEC-232) and .claude/skills/harness/bin/LAYOUT.md, read before editing. The measured facts and the placement reasons are in this feature's notes/research-feature-record-package.md.
+
+      Create .claude/skills/harness/bin/feature_record/ with an empty __init__.py and exactly nine modules. Move code byte for byte with its comments and banners; rename nothing except package-qualified references and the grade decompositions below. read.py: FeatureJsonError, _feature_json_source, load_feature_json, _read_feature_json_text, _parse_feature_json_text, _positive_issue_number and the four _validate_recorded_ functions from artifact_accessors.py; SCHEMA_REFUSAL_CODE, parse_doc and opt_int from feature_json_write.py; _read_doc and _runs from feature-record.py (_runs reads the runs list out of a parsed record, and spend_for needs it as much as the run verbs do). read.py imports strict_json_loads from artifact_accessors and _positive_issue_number calls the local opt_int with no lazy import. artifact_accessors.py keeps every other loader and imports nothing from feature_record. write.py: FEATURE_JSON_TAIL, _WHAT, _HINT_LINES, schema_checked_transform and write_feature_json, plus REFUSAL_CODE, _refuse, _exit_refused and _apply from feature-record.py. schema.py: feature_schema.py from its imports through problems_for_file (the jsonschema guard, JSONSCHEMA_AVAILABLE, SCHEMA_ERRORS, BIN_DIR, SCHEMA_PATH, UNAVAILABLE_MESSAGE, _REDIRECT, SCHEMA_REL, schema_path_for, load_schema, _missing_keys, _undeclared_keys, _pointer, recovery_command_for, recovery_command_line, _runs_agent_problems, _problems_for_doc, FEATURE_JSON_LINE_BUDGET, the runs-span scanners, journal_lines, problems_for_text, problems_for_file). evidence.py: resolve_evidence_ref, verify_evidence_ref, verify_historical_cycle_count, _run_digest_paths, verify_run_digest_owner, _verify_lead_cycle_evidence, run_evidence_problems. binding.py: _REPOSITORY, has_repository_binding, resolve_binding, _bound_mirror_binding, _owner_mirror_binding, effective_recorded_repo, mirror_provenance_problem, receipt_allows_merge. judgements.py: JUDGEMENT_KINDS, now_iso, _judgements_of, _kind_count, _judgement, _append_judgement, cmd_judgement, _sole_judgement_at, _refuse_unless_live_amendment, _select_amendment, cmd_overrule_amendment. runs.py: _find_run, _cycle_count, _attributed_cycles, _owed_regate, _handoff_seq, _owed_succession, _reconcile_owed, cmd_run_start, _history_evidence, cmd_record_history, _run_end_digest, _is_refused, _replay_refused, _record_run_end, cmd_run_end, _open_runs, cmd_stamp_tokens, _parse_judgement, _stage, _close_run_options, _close_run_preflight, _resolve_close_digest, _close_run_stages, _close_refused_run, cmd_close_run. budget.py: MISSIONS, _require_decision_file, cmd_set_rework, cmd_raise_cycles, cmd_set_mission, _commit_id, cmd_pin_review, _budgets_for, DEFAULT_REWORK_ROUND_MINUTES, TASKS_PER_ROUND, propose_rework, cmd_propose_rework. spend.py: _parse_iso, _run_interval, _elapsed_seconds, VALIDATE_RUN, FIX_RUN, DISTILL_RUN, _regate_stamps, _not_before, _window_opened, _regate_rounds, spend_for, cmd_spend. Imports run one way: write imports read and schema; schema imports binding, because recovery_command_line calls mirror_provenance_problem; evidence imports flat modules, read or schema; binding imports flat modules or read and never schema; judgements imports write; runs, budget and spend import judgements, write and read, and spend imports _runs from read, never anything from runs; nothing imports the entry.
+
+      Keep every path the moved code derives from its own location. In schema.py BIN_DIR is the parent of the package directory, its sys.path insertion is kept, and SCHEMA_PATH still resolves to .claude/skills/harness/schemas/feature.json. In runs.py the close-run stages still spawn the entry at bin/feature-record.py where the entry previously passed its own __file__, and validate-digest.py and plan-merge.py beside it, with argv bytes identical to the baseline.
+
+      feature-record.py keeps its path, executable mode, shebang, docstring (repoint its mentions of feature-json-merge.py and feature_json_write to the package modules) and bootstrap that puts its own directory first on sys.path; it imports every cmd_ function plus JUDGEMENT_KINDS and MISSIONS from the package, keeps _int_at_least, and splits main into one argument registrar per module family plus main, producing the identical argparse tree: prog, verb order, help strings, arguments, defaults, choices, required flags and error output.
+
+      Raise each baseline below-bar function to code grade 4 or better in its new owner by extracting helpers inside that module: main, _close_refused_run.mutate, cmd_record_history.mutate, _run_end_digest, _record_run_end.mutate, spend_for, recovery_command_for, verify_evidence_ref, run_evidence_problems, mirror_provenance_problem, _runs_agent_problems, _problems_for_doc. Every new helper reaches grade 4. Preserve every return value, refusal line, exit code, printed byte and written byte; T-03's ledgers hold this.
+
+      Delete feature_schema.py, feature_json_write.py, feature-json-merge.py, tests/integration/test-feature-json-merge.py and that test's entry in tests/integration/integration-durations.json.
+
+      Migrate every importer in the same change, with no shim, re-export or alias module: artifact_accessors (docstrings), board_lifecycle, canonical_reader_audit, check-domain, check_state/board, check_state/ctx, check_state/feature_record, check_state/run_state, check_state/table (_EVIDENCE_READER path), digest_destination, dispatch-guard, factory_claim, factory_decompose, feature_corpus (its import only), gh-sync, handoff_done_when, harness_boundary (comments), harness_config, merge-gate (including its feature_schema parameter names), plan_merge/amend, plan_merge/amendments, plan_merge/approval, post-merge-sweep, prune-run-evidence, validate-digest, validate-feature-json and worktree_terminal. harness_boundary.load_repo_module calls that name feature_schema name the owning module (feature_record.schema, feature_record.evidence or feature_record.binding). plan_merge/approval.py replaces _feature_record_module, which loads feature-record.py by path as module feature_record, with an import of _require_decision_file from feature_record.budget. Import package modules as from feature_record import module, from feature_record.module import name, or an aliased import; never a bare import feature_record.module without as, which canonical_reader_audit's alias collector resolves to the wrong name. Alias where a local name already uses the module name (check_state/ctx defines read). Lazy imports stay lazy. Afterwards no identifier, comment or string under bin or tests spells feature_schema, feature_json_write or feature-json-merge, except the frozen tests/integration/fixtures/prior-check-domain.fixture, which is not edited.
+
+      D-02 changes source only; T-03 exempts none of its output. In check-domain.py, feature_schema is not importable becomes feature_record.schema is not importable, Expected at .agents/skills/harness/bin/feature_schema.py becomes Expected at .agents/skills/harness/bin/feature_record/schema.py, feature_schema CRASHED becomes feature_record.schema CRASHED, and whole file — feature_schema was not importable becomes whole file — feature_record.schema was not importable. In check_state/feature_record.py INV-23, feature_schema.py did not import becomes feature_record/schema.py did not import. In check_state/board.py INV-26, feature_schema.py did not import becomes feature_record/binding.py did not import. INV-37 reads recovery_command_line as well as the binding functions, so _inv37_import loads feature_record.binding and then feature_record.schema through harness_boundary.load_repo_module and its message names the file whose load failed, feature_record/binding.py or feature_record/schema.py, in place of feature_schema.py. In check_state/ctx.py INV-40, plan-merge.py did not import becomes plan_merge/approval.py did not import. Every other byte of those messages is unchanged. The RepoModuleError renderings in check_state/feature_record.py inv_7, check_state/run_state.py's refusal-evidence check and harness_config._jsonschema keep their source text; the module name they embed changes because the loaded module does. D-03: Ctx._load_hash_module obtains signed_task_hash from harness_boundary.load_repo_module("plan_merge.approval") and keeps its RepoModuleError branch; remove plan-merge.py's signed_task_hash import and the docstring sentence naming it as INV-40's import surface.
+
+      D-01, in canonical_reader_audit.py: replace the READER_CALL_CATEGORIES key feature_json_write.load_feature_json with feature_record.read.load_feature_json; set READER_CATEGORY_REMEDIES load_feature_json to feature_record.read.load_feature_json; re-key the T07_TERMINAL_REMEDIES and T07_RELOCATED_IMPLEMENTATIONS entries keyed on .claude/skills/harness/bin/feature_json_write.py::load_feature_json::json_string#1 to .claude/skills/harness/bin/feature_record/read.py::load_feature_json::json_string#1, the terminal remedy becoming feature_record.read.load_feature_json and the relocation tuple unchanged. In tests/integration/canonical-reader-classification.json: re-key the nine rows whose file is feature-record.py (2), feature_schema.py (6) or feature_json_write.py (1) to their feature_record owner, changing file and id, and (D-01) the remedy below; set every remedy artifact_accessors.load_feature_json to feature_record.read.load_feature_json; remove the feature-json-merge.py row; leave the four artifact_accessors.py rows unchanged; make scanned_files equal the live tree.
+
+      Tests change only imports and copy or patch targets, never an expected value except a diagnostic in D-02's inventory (the literals above and the wrapped RepoModuleError renderings) and D-01's two expectations below. In test-check-state-feat59.py case_feat61_module_loading, the _isolated replacement keyed plan-merge.py becomes keyed plan_merge/approval.py with _REGISTRATION_OBSERVER unchanged, and (61.b)'s plan-merge.py did not import becomes plan_merge/approval.py did not import; the verify below proves that observer seam is live. Point private loads (spec loads of feature-record.py in test-feature-record.py, _module calls in test-harness-config-readers.py, __import__ of feature_schema in test-plan-merge.py) at the owning package module. Point mutants and crash injections that rewrote or appended to feature_schema.py (test-check-domain-grant, test-check-domain-post, test-check-state-feat59, test-merge-gate, test-validate-feature-json, test-check-state-entry) at the owning module inside a copied full bin. Selective copies whose copied modules now import feature_record also copy the feature_record directory without __pycache__: test-check-plan-routes.py's fake_bin module list and its case_21 copy of top-level files. Census, allow and patch lists that name a moved file (test-checker-structure-locks, test-broad-catch-census, test-harness-yaml, test-harness-boundary, test-check-state-inv26-routing, test-check-state-inv37-local-binding and the remaining unit tests that import the moved modules) name the file that now holds each site. Repoint test-factory-decompose.py's comment naming test-feature-json-merge.py. Add no copy_executable_package delegate: no test copies feature-record.py into a bin by itself.
+      D-01 also changes two test expectations: in test-check-plan-routes.py case_canonical_reader_unclassified_remedies the fixture's aliased import of feature_json_write becomes an aliased import of feature_record.read with the same fw.load_feature_json call, and its expected load_feature_json remedy becomes feature_record.read.load_feature_json; test-worktree-terminal.py raises FeatureJsonError from its feature_record.read owner. These and the D-02 inventory are the only expected values any test changes.
+
+      Add the row feature-record.py | feature_record/ to the LAYOUT.md table. In .harness/README.md replace feature_json_write with feature_record.write. In schemas/feature.json repoint the runs agent description from feature_schema.py's _runs_agent_problems to feature_record/schema.py's _runs_agent_problems.
+
+      Before committing, from the worktree root with HARNESS_AGENT_TYPE unset, run the prescribed suite gate: .agents/skills/harness/bin/run-unit-tests.py --kind unit, .agents/skills/harness/bin/run-unit-tests.py --kind integration and .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit. Its pass condition is the baseline's own result, never zero FAIL lines. The unit run exits 0, every per-file status line run_pool prints is PASS, and the only other lines whose first token begins with FAIL are the four that tests/unit/test-factory-claim-mutation.py's deliberate mutants print at exit 0, the same four lines it prints at e12381fd (run_pool relays a passing file's output, then prints PASS for it). The integration run prints PASS for every file except tests/integration/test-typescript-typecheck.py where node_modules/.bin/tsc is not installed: there that one file fails exactly as at the baseline, with its FAIL no installed compiler line, and the run exits non-zero for that reason alone; with the compiler installed it passes and the run exits 0. The audit exits 0. This gate is the committer's check of the working tree; it is not the graded comparison, which T-03 makes from clean baseline and pin checkouts, file by file, against each file's own baseline exit status and FAIL lines. The verify below is a structural and smoke gate and makes no claim about INV-42: its observer probe shows only that the INV-40 load seam is live. Commit T-01 by itself.
+  - id: T-02
+    title: Repoint DEC-150, DEC-220 and DEC-259 and regenerate the index
+    traces: [SC-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The amendments record the DEC-174 enforcement-layer change and land with it in the main session, as FEAT-2557 landed DEC-259.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 -c 'import pathlib
+      t=pathlib.Path(".harness/harness/docs/DECISIONS.md").read_text()
+      sec=lambda n: t.split("\n## "+n+" ")[1].split("\n## DEC-")[0]
+      s=sec("DEC-259"); assert "with one exception" not in s and "still re-exports" not in s and "feature_record/" in s, "DEC-259"
+      s=sec("DEC-220"); assert "feature_schema" not in s and "feature_record.binding.resolve_binding" in s and "feature_record.binding.effective_recorded_repo" in s, "DEC-220"
+      s=sec("DEC-150"); assert "feature_schema" not in s and "feature_record/schema.py" in s, "DEC-150"
+      print("T-02 decisions PASS")'
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Product checkout: the FEAT-2581 worktree of the Harness repository; the decision record is .harness/harness/docs/DECISIONS.md, governed by DEC-205 (current truth, no amendment notes) and DEC-188 (amend softer changes in place). Run after T-01 is committed.
+
+      In DEC-259's Because list, the first bullet ends its first sentence after the words in this shape, then states that FEAT-2581 (#2581) moved the feature.json domain into feature_record/ and removed the last re-export, plan-merge.py's signed_task_hash, by loading plan_merge.approval by name in check_state/ctx.py _load_hash_module (#2569). Delete the old text from with one exception through Removing it means migrating that loader first. Format code names in backticks as the surrounding entry does; change nothing else in DEC-259.
+
+      In DEC-220's One binding and receipt predicate paragraph, replace feature_schema.resolve_binding with feature_record.binding.resolve_binding and feature_schema.effective_recorded_repo with feature_record.binding.effective_recorded_repo, keeping the backticks. In DEC-150, replace the parenthetical feature_schema.py after 300 lines since FEAT-14 with feature_record/schema.py, keeping the backticks. Leave DEC-211's past-tense feature_schema.py incident untouched.
+
+      Then run python3 .claude/skills/harness/bin/gen-decisions-index.py from the worktree root to rewrite DECISIONS-INDEX.md, and confirm gen-decisions-index.py --stdout matches it byte for byte. Commit T-02 by itself.
+  - id: T-03
+    title: Pin the implementation and commit reproducible baseline-versus-pin identity receipts
+    traces: [SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable pin of the enforcement-layer change with the direct main-session work.
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/**
+    verify: |
+      python3 -c 'import ast,base64,difflib,functools,gzip,hashlib,json,os,re,subprocess,sys,xml.etree.ElementTree as ET
+      os.environ.pop("HARNESS_AGENT_TYPE",None); own=".harness/harness/features/FEAT-2581-feature-record-package"; n=own+"/notes/"; rel=n+"clean-pin-byte-receipts.generated.md"; base="e12381fde910eb05728004476a10d741d6918010"; tt="tests/integration/test-typescript-typecheck.py"; omp="tests/unit/omp-hooks.test.ts"; bn=".claude/skills/harness/bin/"
+      g=lambda *a: subprocess.run(["git",*a],capture_output=True,text=True); gr=lambda ref,p: subprocess.run(["git","show",ref+":"+p],capture_output=True).stdout; gb=lambda p: gr(R,p)
+      rs=str(json.loads(open(own+"/feature.json").read()).get("review_sha") or ""); R=rs if re.fullmatch(r"[0-9a-f]{40}",rs) else g("rev-parse","HEAD").stdout.strip(); print("verifying at",R,"(review_sha)" if R==rs else "(HEAD; review_sha not pinned)")
+      c=g("log","-1","--format=%H",R,"--",rel).stdout.strip(); assert c,"receipt commit not found"; t=gb(rel).decode("utf-8"); p=re.findall(r"(?m)^implementation_pin: ([0-9a-f]{40})$",t); assert len(p)==1,p; pin=p[0]; assert pin!=c and re.search(r"(?m)^baseline: "+base+"$",t), "pin or baseline line"
+      for a,d in ((base,pin),(pin,c),(c,R),(R,"HEAD")): assert g("merge-base","--is-ancestor",a,d).returncode==0,(a,d)
+      assert g("diff","--quiet",base,pin,"--",".claude/skills/harness/bin").returncode==1, "pin carries no implementation"; assert all(g("diff","--quiet",pin,a,"--",".",":(exclude)"+own).returncode==0 for a in (R,"HEAD")), "a measured input changed after the pin"
+      six=sorted(n+"receipt-scripts/"+x for x in ("feat2581-cleanpin.py","feat2581-grade-assert.py","feat2581-ledger-driver.py","recorder/sitecustomize.py","feat2581-bun-preload.js","feat2581-replay.py")); sc=re.findall(r"(?m)^script_sha256: (\S+) ([0-9a-f]{64})$",t); assert len(sc)==6 and sorted(x for x,h in sc)==six and all(hashlib.sha256(gb(x)).hexdigest()==h for x,h in sc), sc
+      rl=lambda k: sorted(re.findall(r"(?m)^"+k+r": .*$",t)); chk=lambda k,w: rl(k)==sorted(k+": "+x for x in w); ru={x["record"]:x for x in json.loads(gb(n+"divergence-rulings.json").decode("utf-8") or "[]")}; RD=lambda i: i in ru and all(str(ru[i].get(k,"")).strip() for k in ("by","date","reason")); rt=dict(re.findall(r"(?m)^checkout_root: (baseline|pin) (/\S+)$",t)); assert set(rt)=={"baseline","pin"} and rt["baseline"]!=rt["pin"] and len(rl("checkout_root"))==2, rt
+      cz=lambda v: isinstance(v,str) and re.fullmatch(r"(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?",v) is not None and base64.b64encode(base64.b64decode(v,validate=True)).decode("ascii")==v; M={s:[json.loads(x.decode("utf-8")) for x in gzip.decompress(gb(n+"measurements/"+s+".jsonl.gz")).splitlines()] for s in rt}; assert all(len({r["id"] for r in M[s]})==len(M[s])>0 for s in M), "a side has no records or repeats an id"; M={s:{r["id"]:r for r in M[s]} for s in M}
+      RK={"suite":{"argv","cwd","exit","stdout","stderr","cases"},"cli":{"argv","cwd","exit","stdout","stderr","file_before","file_after"},"gate":{"argv","cwd","exit","stdout","stderr"},"replay":{"argv","exit","stdout","stderr","before","after"},"audit":{"exit","stdout","stderr"}}; bad=[(s,i) for s in M for i,r in M[s].items() if r.get("kind") not in RK or not isinstance(r.get("streams"),dict) or set(r["streams"])!=RK[r["kind"]] or (r["kind"]=="cli")!=(r.get("class") in ("checkout","copied","bun")) or (r["kind"]=="suite")!=i.startswith("suite#") or any(not cz(v) and not (v is None and k in ("file_before","file_after")) for k,v in r["streams"].items()) or not re.fullmatch(rb"-?[0-9]+",base64.b64decode(r["streams"]["exit"],validate=True))]+[("both",i) for i in set(M["baseline"])&set(M["pin"]) if M["baseline"][i]["kind"]!=M["pin"][i]["kind"]]; assert not bad, ("a record has a kind, class or stream-key set its kind does not allow, or a stream that is not strict canonical base64 (an undecodable stream never equals an empty capture)",sorted(bad)[:10])
+      nz=lambda s,v: None if v is None else base64.b64decode(v,validate=True).replace(rt[s].encode(),b"<checkout>"); st=lambda s,i,k: nz(s,M[s][i]["streams"][k]); ki=lambda s,k: [r for r in M[s].values() if r["kind"]==k]; D={x for i in {i for s in M for i,r in M[s].items() if r["kind"]!="suite"} for a,b in [(M["baseline"].get(i),M["pin"].get(i))] for x in ([i+":unaligned"] if not (a and b) else [i+":"+k for k in a["streams"] if st("baseline",i,k)!=st("pin",i,k)])}
+      es=lambda ch: "\\\\" if ch=="\\" else "\\b{%02x}"%(ord(ch)-0xdc00) if 0xdc80<=ord(ch)<=0xdcff else ch if ch.isprintable() else "\\x{%x}"%ord(ch); tk=lambda l: [es(ch) for ch in l.rstrip(" ")]+["\\x{20}"]*(len(l)-len(l.rstrip(" "))); vl=lambda b: ["\\absent"] if b is None else [("\\c " if i else "")+"".join(t[i:i+64]) for l in b.decode("utf-8","surrogateescape").split("\n") for t in [tk(l)] for i in range(0,max(len(t),1),64)]; ev=lambda x: "absent" if x is None else repr(x); L=lambda *xs: "".join(x+"\n" for x in xs); ac=lambda a,b: ["| "+x for x in difflib.unified_diff(vl(a),vl(b),"old","new",n=2,lineterm="")]; B2=lambda a,b: L("old: "+ev(a),"new: "+ev(b),"account:",*ac(a,b)); U=lambda sd,S: L("side: "+sd,*["stream %s: %s"%(k,ev(S[k])) for k in sorted(S)],"account:",*[y for k in sorted(S) for y in ["| stream %s:"%k]+["|   "+x for x in vl(S[k])]])
+      E={x:(U(sd,{k:st(sd,i,k) for k in M[sd][i]["streams"]}) if k=="unaligned" else B2(st("baseline",i,k),st("pin",i,k))) for x in D for i,k in [x.rsplit(":",1)] for sd in ["baseline" if i in M["baseline"] else "pin"]}; SU={s:{i[6:]:r for i,r in M[s].items() if r["kind"]=="suite"} for s in M}; py={x for x in g("ls-tree","-r","--name-only",base,"tests/unit","tests/integration").stdout.split() if re.fullmatch(r"tests/(unit|integration)/test[-_][^/]*\.py",x)}; want=(py-{"tests/integration/test-feature-json-merge.py"})|{omp}; assert set(SU["baseline"])==want==set(SU["pin"]) and all(nz(s,SU[s][f]["streams"]["cwd"])==b"<checkout>" and base64.b64decode(SU[s][f]["streams"]["argv"],validate=True).split(b"\0")[-1]==f.encode() for s in SU for f in SU[s]), ("suite records are not exactly one per run file per side, each run from its own checkout with the file as its last argument",sorted((set(SU["baseline"])|set(SU["pin"]))^want)[:20])
+      sv=lambda s,f,k: nz(s,SU[s][f]["streams"][k]); xc=lambda s,f: int(sv(s,f,"exit")); fl=lambda s,f: [l for k in ("stdout","stderr") for l in sv(s,f,k).split(b"\n") if l.split()[:1] and l.split()[0].startswith(b"FAIL")]; bf={f for f in want if xc("baseline",f)}; ng=sorted(f for f in want-bf if xc("pin",f) or fl("pin",f)!=fl("baseline",f)); assert not ng, ("a file passing at the baseline fails or changes its FAIL lines at the pin",ng)
+      mkr=lambda s,f: [l for l in sv(s,f,"stdout").split(b"\n") if l.split()[:1] and l.split()[0] in (b"ok",b"ok:",b"PASS",b"PASS:")]; uts=lambda s,f: [l for l in sv(s,f,"cases").split(b"\n") if l]; en=lambda s,f: [("%s %s %s"%(next((y.tag for y in e if y.tag in ("failure","error","skipped")),"passed"),e.get("classname"),e.get("name"))).encode().replace(rt[s].encode(),b"<checkout>") for e in ET.fromstring(base64.b64decode(SU[s][f]["streams"]["cases"],validate=True)).iter("testcase")] if f==omp else mkr(s,f)+uts(s,f); md=lambda f: "bun-junit" if f==omp else ["unnamed","marker","unittest","marker+unittest"][bool(mkr("baseline",f))+2*bool(uts("baseline",f))]; idb=lambda s,f: sv(s,f,"stdout") if md(f)=="unnamed" or (f!=omp and len(en("baseline",f))<2) else b"".join(e+b"\n" for e in en(s,f)); cw=sorted(want-bf)
+      assert chk("case_set",{"%s %s %d %d %s"%(f,md(f),len(en("baseline",f)),len(en("pin",f)),"SAME" if idb("baseline",f)==idb("pin",f) else "DIFFERENT") for f in cw}) and chk("baseline_failing",{"%s %d %d"%(f,xc("baseline",f),len(fl("baseline",f))) for f in bf}), "case_set or baseline_failing lines are not recomputed from the suite records"; ch=[f for f in cw if len(en("baseline",f))<2 and g("diff","--quiet",base,pin,"--",f).returncode]; assert not ch and en("baseline",omp), ("a file under two baseline cases changed between baseline and pin, or bun named no case",ch)
+      mk=dict(enumerate(["is not importable, so this file CANNOT be checked","CRASHED while checking this file","was not importable) — budget is","INV-23 CANNOT RUN for","INV-37 CANNOT RUN","INV-26 CANNOT RUN","INV-40 CANNOT RUN","INV-7 CANNOT RUN for","refusal evidence CANNOT be checked","harness.json cannot be validated"],1)); hl=lambda i,r,b: [l for l in b.split(b"\n") if (i==11 and b"--list" in base64.b64decode(r["streams"]["argv"],validate=True).split(b"\0") and l.split()[:1] in ([b"INV-7"],[b"INV-15"],[b"INV-46"],[b"INV-37"])) or (i<11 and mk[i].encode() in l and not (i==6 and b"gh_board.py" in l))]; cnt=lambda i,s: sum(len(hl(i,r,nz(s,r["streams"][k]))) for r in ki(s,"gate") for k in ("stdout","stderr")); DR={(i,x) for x in D if x.startswith("gate#") for j,k in [x.rsplit(":",1)] if k in ("stdout","stderr") for i in range(1,12) if any(hl(i,M[s][j],st(s,j,k)) for s in M)}; ms={i for i in range(1,12) if cnt(i,"baseline")+cnt(i,"pin")}
+      assert chk("d02_item",{"%d MEASURED %d %d"%(i,cnt(i,"baseline"),cnt(i,"pin")) if i in ms else "%d UNREACHED"%i for i in range(1,12)}|{"residual %d"%len({x for x in D if x.startswith("gate#")}-{x for i,x in DR})}) and chk("d02_item_record",{"%d %s"%y for y in DR}) and all(any(i==j for j,x in DR) for i in ms), "d02_item or d02_item_record lines are not recomputed from the gate records, or a MEASURED item has no differing stream"
+      TB={1:("check-domain.py","_feature_json_schema_problems"),2:("check-domain.py","_feature_json_schema_problems"),3:("check-domain.py","_feature_json_budget"),4:("check_state/feature_record.py","_inv23_feature_json"),5:("check_state/board.py","_inv37_import"),6:("check_state/board.py","_inv26_import"),7:("check_state/ctx.py","Ctx._load_hash_module"),8:("check_state/feature_record.py","inv_7"),9:("check_state/run_state.py","_refusal_completion"),10:("harness_config.py","_jsonschema"),11:("check_state/table.py","_EVIDENCE_READER")}; sg=lambda ref,f,q: (lambda s: ast.get_source_segment(s,functools.reduce(lambda nd,part: next(x for x in nd.body if getattr(x,"name",None)==part or (isinstance(x,ast.Assign) and part in [getattr(y,"id",None) for y in x.targets])),q.split("."),ast.parse(s)),padded=True).encode("utf-8"))(gr(ref,bn+f).decode("utf-8")); SO=lambda f,q,o,w: L("source_only: source text read through git show at the baseline and the pin, never captured output","file: "+bn+f,"symbol: "+q,"old_source: "+ev(o),"new_source: "+ev(w),"account:",*ac(o,w))
+      BODY={**E,**{"baseline#"+f:U("baseline",{k:sv("baseline",f,k) for k in ("exit","stdout","stderr")}) for f in bf-{tt}},**{"cases#"+f:B2(idb("baseline",f),idb("pin",f)) for f in cw if idb("baseline",f)!=idb("pin",f)},**{"d02#%d:unreached"%i:SO(*TB[i],sg(base,*TB[i]),sg(pin,*TB[i])) for i in range(1,12) if i not in ms}}; dl=re.findall(r"(?m)^divergence: (\S+) (RULED|UNRULED)$",t); dv=dict(dl); assert len(dl)==len(dv)==len(rl("divergence")) and set(dv)==set(BODY), ("receipt divergence lines are not exactly the recomputed differences",sorted(set(dv)^set(BODY))[:20]); un=sorted(i for i in BODY if dv[i]!="RULED" or not RD(i)); assert not un, ("a divergence is UNRULED or lacks the operator ruling with by, date and reason",un[:20])
+      bm=gb(n+"build-divergences.md").decode("utf-8"); bl=re.findall(r"(?ms)^divergence: (\S+)\n(.*?)^end_divergence$",bm); bd=dict(bl); assert len(bl)==len(bd)==len(re.findall(r"(?m)^divergence: ",bm)) and bd==BODY and all("\naccount:\n| " in v for v in bd.values()), ("build-divergences.md divergence: records are not exactly the recomputed records with derived payloads, source fields and readable accounts",sorted(x for x in set(bd)|set(BODY) if bd.get(x)!=BODY.get(x))[:20])
+      TC={f.encode():subprocess.run(["git","-c","diff.suppressBlankEmpty=false","diff","--no-color","--no-ext-diff","--no-textconv","--no-renames","--diff-algorithm=myers","--indent-heuristic","--inter-hunk-context=0","--src-prefix=a/","--dst-prefix=b/","-U3",base,pin,"--",f],capture_output=True).stdout for f in g("diff","--name-only","--no-renames",base,pin,"--","tests").stdout.split()}; bb=gb(n+"build-divergences.md"); tc=re.findall(rb"(?ms)^test_change: (\S+)\n(.*?)^end_test_change$",bb); assert TC and len(tc)==len(dict(tc))==len(re.findall(rb"(?m)^test_change: ",bb)) and dict(tc)==TC, ("build-divergences.md test_change records are not the baseline-to-pin diff of every changed test path",sorted(x for x in set(dict(tc))|set(TC) if dict(tc).get(x)!=TC.get(x))[:20])
+      assert all(sum(r.get("class")==k for r in ki(s,"cli")) for s in M for k in ("checkout","copied","bun")), "a CLI spawning class has zero records"; fj=[x for x in g("ls-tree","-r","--name-only",pin).stdout.split() if re.fullmatch(r"\.harness/[^/]+/features/[^/]+/feature\.json",x) and not x.startswith(own+"/")]; ex={"replay#%d:%s:%d"%(i,f,k) for i,f in enumerate(fj,1) for k in range(1,10)}; assert fj and all({r["id"] for r in ki(s,"replay")}==ex for s in M), "replay records do not cover every tracked feature.json record"
+      assert all(base64.b64decode(M[s]["gate#calibration#1"]["streams"]["stdout"],validate=True)==b"feat2581 raw\r\nline\rend\xe2\x80\x94\n" for s in M), "gate capture is not raw bytes"; assert min(len(ki(s,"gate")) for s in M)>1 and chk("gate_captures",{"%d %d"%tuple(len(ki(s,"gate"))-1 for s in ("baseline","pin"))}), "gate_captures is not the committed gate record count pair, or a side captured none"
+      au=[re.findall(rb"(?m)^([0-9]+) unresolved reader site\(s\) across ([0-9]+) Python file\(s\)$",nz(s,M[s]["audit"]["streams"]["stdout"])) for s in ("baseline","pin")]; assert all(len(ki(s,"audit"))==1 for s in M) and all(len(x)==1 for x in au) and nz("pin",M["pin"]["audit"]["streams"]["exit"])==b"0" and au[1][0][0]==b"0" and chk("audit_scanned_files",{(au[0][0][1]+b" "+au[1][0][1]).decode()}), ("audit not captured once per side, the pin audit is not exit 0 with zero unresolved sites, or audit_scanned_files is not the committed count pair",au)
+      assert all(chk(k,{"PASS"}) for k in ("grade_bar","unit_files","integration_files","case_identity","cli_identity","replay_identity","d02_inventory","canonical_reader_audit","overall")), "a verdict line is not exactly one PASS"
+      gs=gb(n+"receipt-scripts/feat2581-grade-assert.py"); ga=subprocess.run([sys.executable,"-","--ref",pin],input=gs,capture_output=True); red=subprocess.run([sys.executable,"-","--ref",base],input=gs,capture_output=True); assert ga.returncode==0, "grade bar red at the pin"
+      twelve={"main","_close_refused_run.mutate","cmd_record_history.mutate","_run_end_digest","_record_run_end.mutate","spend_for","recovery_command_for","verify_evidence_ref","run_evidence_problems","mirror_provenance_problem","_runs_agent_problems","_problems_for_doc"}
+      assert red.returncode==1 and set(re.findall(r"(?m)^below_bar: (\S+) \d$",red.stdout.decode()))==twelve, red.stdout; print("T-03 receipts PASS at",R)'
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+    intent: |
+      Product checkout: the FEAT-2581 worktree of the Harness repository; baseline e12381fde910eb05728004476a10d741d6918010. Adapt FEAT-70's receipt-script structure (git show a98451c5:.harness/harness/features/FEAT-70-long-file-plan-merge-package/notes/receipt-scripts/ and that feature's notes/divergence-rulings.json); the committed measurement store, the recorder and the recomputing verify below go beyond Settled Q3 (a)'s no-new-proof-framework bar, an exceedance the operator accepted as disclosed in the BRIEF (PL-10). After T-01 and T-02 are committed and green, record HEAD's full SHA as the immutable implementation pin before creating any receipt script or receipt file. Write under this feature's notes/receipt-scripts exactly feat2581-cleanpin.py (orchestrates both sides and writes the generated receipt and build-divergences.md), feat2581-grade-assert.py, feat2581-ledger-driver.py, recorder/sitecustomize.py, feat2581-bun-preload.js and feat2581-replay.py. The scripts create clean detached baseline and pin checkouts under .claude/worktrees/harness, assert the checked-out SHA and empty status before measuring, never fetch or call GitHub, never edit either checkout, and delete no pre-existing worktree. Run every measurement with HARNESS_AGENT_TYPE unset, once per side, the two sides one after the other, deriving every reported byte, hash and verdict from that one execution; feat2581-cleanpin.py --reuse rereads the same per-side measurement, as FEAT-70's did, so a ruling recorded later never forces a second execution. The suites, case identity, CLI ledger and gate capture below come from one run of each test file per side with PYTHONPATH naming notes/receipt-scripts/recorder; everything the recorder writes goes to the side's ledger directory outside both checkouts, and it changes no byte or value any test receives or prints.
+
+      The verify guarantees four things, and every rule below serves one of them. (1) Every captured stream decodes strictly: a value that is not canonical base64 is a failure, never decoded leniently into something that can equal an empty capture. (2) Every disclosed field is derived from the two refs, never accepted from the file being checked: each receipt line other than the verdicts, each divergence record body including each d02# source-only record's file, symbol and source, and each test_change record is recomputed from the committed measurement files read at the review ref and from git show at the baseline and the pin, and must equal what the receipt and build-divergences.md say. (3) Every record SC-08 requires is present: one divergence: record in build-divergences.md per divergence of every kind, the test_change records, the d02_item lines and both audit records. (4) Every ruled id carries a human-readable account: each divergence: record ends with a derived account rendered as readable text, so escaped byte literals are never the only form the operator sees.
+
+      Measurement files (the evidence every verdict and disclosed field is recomputed from): each side's suite, CLI, gate, replay and audit records are written, raw and before any root replacement, to notes/measurements/baseline.jsonl.gz and notes/measurements/pin.jsonl.gz: gzip with mtime 0 over UTF-8 JSON Lines, one object per record with keys id (unique within the file), kind (suite, cli, gate, replay or audit), class (cli records only: checkout, copied or bun) and streams, a mapping from stream name to the canonical standard base64 of that stream's exact bytes: the RFC 4648 alphabet with = padding and no other character, such that base64-encoding the decoded bytes reproduces the string exactly. exit is the decimal ASCII exit status, argv the arguments joined by NUL bytes, cwd its path bytes. Every record carries exactly the stream keys its kind requires, no more and no fewer: suite argv, cwd, exit, stdout, stderr and cases; cli argv, cwd, exit, stdout, stderr, file_before and file_after; gate argv, cwd, exit, stdout and stderr; replay argv, exit, stdout, stderr, before and after; audit exit, stdout and stderr. A suite record's id is suite#<test file>, and no record of another kind has an id beginning suite#. A captured stream that is empty is the empty string, the base64 of zero bytes, never omitted. The only value that is not a base64 string is JSON null in file_before or file_after, written only when the invocation names no --file argument or the named file does not exist at that moment. A recorder that cannot capture a required stream writes no record for that process and makes feat2581-cleanpin.py exit non-zero without writing a receipt, never a record with the key missing, so a missing capture is never confused with an empty or absent value. Before it recomputes anything, the verify refuses a record whose kind is not one of the five, whose stream keys are not exactly its kind's set, or whose stream value is neither a canonical base64 string nor that permitted null; it decodes every stream with validation, so stderr !!!! on one side is a failure and never compares equal to an empty stderr on the other. It also refuses an exit that does not decode to a decimal integer, a cli record whose class is not checkout, copied or bun, a record of another kind carrying one of those classes, a suite id rule broken in either direction, and an id whose kind differs between the two sides. streams {} on both sides, or stderr missing on both sides, therefore fails. The receipt scripts write these files from the one execution; nothing edits them afterwards.
+
+      Grade (SC-02): feat2581-grade-assert.py --ref <sha> reads feature-record.py and every feature_record/*.py at that ref, and the baseline's feature-record.py and feature_schema.py, through git show, never from a checkout, and grades them with the current tree's code_grade.py. It finds the repository from its working directory (git rev-parse --show-toplevel), never from its own file path, so the committed bytes run unchanged when piped to python3 - on stdin, which is how the verify runs them. At a ref holding feature_record/ it exits 0 only when every function is at grade 4 or better, the twelve baseline below-bar functions (main, _close_refused_run.mutate, cmd_record_history.mutate, _run_end_digest, _record_run_end.mutate, spend_for, recovery_command_for, verify_evidence_ref, run_evidence_problems, mirror_provenance_problem, _runs_agent_problems, _problems_for_doc) are present at their owners at grade 4 or better, and every other moved function keeps its baseline qualified name and grade; it lists each new function separately. At a ref without feature_record/ it prints one line below_bar: <qualname> <grade> per function below grade 4 and exits 1. The receipt records both runs: the pin exits 0, the baseline exits 1 with exactly the twelve below_bar lines.
+
+      Suites (SC-03, SC-04): in each checkout run every file directly under tests/unit and tests/integration named test-*.py or test_*.py at the baseline, except tests/integration/test-feature-json-merge.py, which T-01 deletes and neither side runs, plus tests/unit/omp-hooks.test.ts under bun, one file at a time. Each run is one suite measurement record: id suite#<file>, streams argv, cwd, exit, stdout and stderr (the runner's exact bytes) and cases (see Case identity). A FAIL line is a line of stdout or stderr, after root replacement and split at LF, whose first whitespace-delimited token begins with FAIL. A file exiting non-zero at the baseline is written as one line baseline_failing: <file> <exit> <FAIL line count> and is not compared. The measured set is tests/integration/test-typescript-typecheck.py alone, exit 1, because node_modules/.bin/tsc is not installed (measured at e12381fd in this worktree, files run in parallel). Any other baseline_failing file also gets a divergence record baseline#<file>, carrying its exit status and full output in build-divergences.md, and stays red until ruled: the exempt set is never enlarged silently. Every other run file must exit 0 at the pin with a FAIL-line list identical to the baseline's; tests/unit/test-factory-claim-mutation.py prints four FAIL lines from its deliberate mutants at exit 0, and every other file prints none. unit_files and integration_files are PASS only when that holds for every file of their directory, omp-hooks.test.ts counting under tests/unit. Never run a baseline test file against the pin. The verify requires exactly one suite record per run file on each side, each bound to its invocation: its cwd is that side's checkout root and its argv's last argument is the file (PF-40325938), and recomputes every baseline_failing line, exit status and FAIL-line list from those records.
+
+      Case identity (SC-10), FEAT-70's b_cases == pre_existing per file: a file's case identity is the ordered list of its suite stdout lines (after root replacement, split at LF) whose first whitespace-delimited token is ok, ok:, PASS or PASS:, byte for byte, followed by the non-empty lines of its cases stream. For a Python file the cases stream holds one line <outcome> <test id>, LF-terminated, per unittest result in result order, and is empty when there is none: recorder/sitecustomize.py writes it by wrapping unittest.TestResult addSuccess (success), addSkip (skip), addFailure (failure), addError (error), addExpectedFailure (expected_failure), addUnexpectedSuccess (unexpected_success) and addSubTest when its outcome is not None (subtest_failure), each calling the original. The method is marker, unittest or marker+unittest by which of the two sources named an entry at the baseline; a file naming no entry at the baseline is unnamed and its identity is its whole stdout. For tests/unit/omp-hooks.test.ts the bun run also passes --reporter=junit --reporter-outfile=<side ledger directory>/omp-hooks.junit.xml, its cases stream is that file's exact bytes, parsed as raw XML before any root replacement, which applies to each derived entry instead (PF-db2ae14a), and its identity is one entry <outcome> <classname> <name> per testcase element in file order, the outcome being the tag of its first failure, error or skipped child, else passed; its method is bun-junit. This junit run serves SC-10. The operator's answer to PL-04 keeps the CLI ledger's bun-spawned class, its zero-records gate and feat2581-bun-preload.js; panel findings PF-d35d903d and PF-502d3541 are disposed of at signature, not here. Measured at e12381fd: 131 files name cases by marker lines, 26 by unittest only, 3 by both; test-code-grade.py, test-code-grade-cli.py and test-suite-claim-preservation.py print one summary marker line only; test-harness-config-fixtures.py, test-factory-claim-mutation.py and test-omp-hooks.py print none and use no unittest; bun reports 247 testcases. Compare each compared file's identity bytes (each entry followed by LF, concatenated; an unnamed file's whole stdout) between sides after root replacement only, and write one line case_set: <file> <method> <baseline entries> <pin entries> SAME or DIFFERENT for each compared file and omp-hooks.test.ts. A DIFFERENT file gets one divergence record cases#<file> whose build-divergences.md record holds both identities; a dropped, added, renamed, reordered or newly skipped case is a difference. A list with fewer than two baseline entries cannot show a dropped case, so such a file must also be byte-identical between baseline and pin (git diff --quiet <baseline> <pin> -- <file>), and its identity is its whole stdout after root replacement, so a changed summary or any other output line is a cases# difference (PF-15af8306); T-01 edits none of the six measured above. case_identity is PASS only when every compared file and omp-hooks.test.ts has exactly one case_set line, every DIFFERENT one is RULED and every file under two baseline entries is unchanged. The verify recomputes every case_set line and every cases# record from the suite records.
+
+      CLI ledger (SC-05): during the same run, plus tests/unit/omp-hooks.test.ts under bun, recorder/sitecustomize.py acts in every Python process whose argv[0] has the basename feature-record.py, wherever that file lives: the checkout's bin, a bin a test copied (tests/unit/test-feature-record.py test_an_unexpected_defect_stays_loud_and_nonzero runs mbin/feature-record.py from a mutated copy), or a process a hook or another tool spawned. It runs the identical command once as a child with the same argv, stdin, cwd and environment plus a recursion marker, records the child's real exit status, its exact stdout and stderr bytes, the --file bytes before and after and sha256 of each, relays stdout and stderr byte for byte, and exits with the child's status. Each invocation is one measurement record: kind cli, id <test file>#<ordinal> (the per-test-file invocation ordinal), class checkout, copied or bun, streams argv, cwd, exit, stdout, stderr, file_before and file_after. In the child it binds every datetime name in the entry and the modules it imports for feature.json (feature_record/* at the pin, feature_schema and feature_json_write at the baseline) to one fixed clock. Make fixture directories deterministic where they are created, never in the output: the recorder replaces tempfile directory and file naming in every test process with a per-test-file counter under one fixed absolute root, /tmp/feat2581-fixtures, identical on both sides and cleared before each side's execution, and feat2581-bun-preload.js, passed to bun with --preload, does the same for node mkdtempSync under the same root. Record tracebacks raw. The receipt gives, per side, the record count for each spawning class; cli_identity is FAIL while any class has zero records on either side.
+
+      Replay (SC-06): for every feature.json record tracked at the pin, the paths .harness/<segment>/features/<feature>/feature.json, except FEAT-2581's, in git ls-files order, build an independent scratch tree per side at one fixed absolute path, /tmp/feat2581-replay, identical on both sides and cleared before each side's execution, holding the record at its own .harness relative path with that checkout's .harness/harness.json and .harness/team-config.yaml and the sibling plan.yaml when tracked, then run nine steps: 1 validate-feature-json.py on it, then feature-record.py 2 spend, 3 propose-rework, 4 run-start --id feat2581-replay --squad product --agent harness-product-lead, 5 stamp-tokens --tokens 1, 6 run-end --id feat2581-replay --verdict PASS --cycles-used 0, 7 judgement --by harness-orchestrator --kind continue --decision replay --reason replay, 8 spend, and 9 validate-feature-json.py again, under the recorder's clock. Each step is one measurement record: kind replay, id replay#<index>:<feature.json path>:<step>, index counting records from 1 in that order and step 1 to 9, streams argv, exit, stdout, stderr, before and after (the record's bytes).
+
+      Gate capture and D-02 inventory, measured (SC-08): recorder/sitecustomize.py also records, in every test process, each child whose script (argv[0], or argv[1] when argv[0] is a Python interpreter) has the basename check-state.py or check-domain.py, wherever it lives, and whose output the test captures through communicate (subprocess.run included): one measurement record of kind gate, id gate#<test file>#<ordinal>, streams argv, cwd, exit, stdout and stderr. stdout and stderr are the exact bytes the child wrote to its pipes, taken before any decoding or newline translation in the test process, while the test still receives exactly the str or bytes value it received before; a gate run in-process or without captured output is not seen. Prove the raw capture on each side before the corpus: a Python process loaded with the recorder runs subprocess.run on /tmp/feat2581-fixtures/calibration/check-state.py with capture_output=True and text=True, that script writing exactly the bytes b"feat2581 raw\r\nline\rend\xe2\x80\x94\n" to stdout; its record is gate#calibration#1 and must hold those bytes. The receipt writes one line gate_captures: <baseline count> <pin count>, counting gate records other than the calibration. Every gate record is compared whole: each stream of each aligned record is compared as raw bytes after root replacement only, with no line filter, decoding or module-name selection, so a changed traceback frame, line ending or any other byte is a difference. Then classify the differences against the inventory (research note section 8, items 1 to 11), each marker below being the exact substring between the double quotes, matched in the stream bytes after root replacement: item 1, "is not importable, so this file CANNOT be checked"; item 2, "CRASHED while checking this file"; item 3, "was not importable) — budget is"; item 4, "INV-23 CANNOT RUN for"; item 5, "INV-37 CANNOT RUN"; item 6, "INV-26 CANNOT RUN" in a line not containing "gh_board.py"; item 7, "INV-40 CANNOT RUN"; item 8, "INV-7 CANNOT RUN for"; item 9, "refusal evidence CANNOT be checked"; item 10, "harness.json cannot be validated"; item 11, in a gate record whose argv holds --list, each line whose first token is INV-7, INV-15, INV-46 or INV-37 (the rows reading check_state/table.py _EVIDENCE_READER). An item's line count on a side is the number of LF-split stdout and stderr lines of that side's gate records that match it. An item counted on either side is d02_item: <item> MEASURED <baseline lines> <pin lines>, with one line d02_item_record: <item> <gate record id>:<stream> for each gate stdout or stderr divergence holding a matching line on either side. An item 1 to 11 counted on neither side is d02_item: <item> UNREACHED with exactly one divergence record d02#<item>:unreached, whose build-divergences.md record is the source-only body under Compare, derived from this fixed table and the two refs, never accepted from build-divergences.md: items 1 and 2, check-domain.py _feature_json_schema_problems; 3, check-domain.py _feature_json_budget; 4, check_state/feature_record.py _inv23_feature_json; 5, check_state/board.py _inv37_import; 6, check_state/board.py _inv26_import; 7, check_state/ctx.py Ctx._load_hash_module; 8, check_state/feature_record.py inv_7; 9, check_state/run_state.py _refusal_completion; 10, harness_config.py _jsonschema; 11, check_state/table.py's module-level _EVIDENCE_READER assignment; each path under .claude/skills/harness/bin. T-01 keeps each named symbol at its path; a symbol missing at either ref fails the verify, and because D-02 changes every item, a source segment identical at both refs yields no account line and fails too. Never write a test to reach an item. The residual is every gate divergence no d02_item_record names (an argv, cwd or exit stream, an unaligned gate record, or an output stream holding no inventory line), written d02_item: residual <count>; each is a divergence like every other gate difference. Expected from a static read at e12381fd, not gated: items 2 (test-check-domain-grant.py _schema_crash_cases), 10 (test-check-state-feat59.py case_feat63_inv23_import_boundary) and 11 (the --list runs in test-check-state-table.py, test-check-state-corpus.py and test-check-state-shipped.py) are reached; 1 and 3 to 9 are not, because the only feature_schema failure injection makes harness.json validation fail first and the INV-40 observer never raises. d02_inventory is PASS only when items 1 to 11 and residual each have exactly one d02_item line, every MEASURED item 1 to 11 has at least one d02_item_record (D-02 changes each one, so a MEASURED item with no differing stream means the capture missed its branch), gate_captures is non-zero on both sides, the calibration record holds its bytes on both sides, and every gate and d02# record is RULED. The verify recomputes every d02_item, d02_item_record and gate_captures line. Also write to build-divergences.md one test_change record for every path under tests/ that git diff --name-only --no-renames <baseline> <pin> -- tests lists: a line test_change: <path>, then the exact output of git -c diff.suppressBlankEmpty=false diff --no-color --no-ext-diff --no-textconv --no-renames --diff-algorithm=myers --indent-heuristic --inter-hunk-context=0 --src-prefix=a/ --dst-prefix=b/ -U3 <baseline> <pin> -- <path>, then a line end_test_change; the verify compares those diffs as exact bytes, never decoded or newline-translated (PF-eec01ba2, PF-5f54f524). Those diffs show every test expectation T-01 changed, with its old and new bytes and the enclosing case in each hunk header; the verify recomputes them.
+
+      Audit (SC-07, SC-08): run .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit in each clean checkout, the baseline as well as the pin, as one measurement record per side: kind audit, id audit, streams exit, stdout and stderr. Write exactly one line audit_scanned_files: <baseline count> <pin count>, each count being the N of the one line in that side's audit stdout of the form <M> unresolved reader site(s) across N Python file(s). The verify derives the same pair from the two committed audit records and refuses the receipt when its single audit_scanned_files line differs, or when either side's stdout holds no such line or more than one. T-01 adds ten package files and deletes three flat Python files, so the count and audit:stdout differ; that record is a divergence like every other and stays red until ruled. canonical_reader_audit is PASS only when the pin's audit exits 0 with zero unresolved sites; the verify reads both, the exit stream and that line's M, from the pin's committed audit record.
+
+      Compare baseline and pin after replacing only each checkout's absolute root bytes with one common token; fixture and replay paths are already the same bytes on both sides and are never rewritten. Apply no other normalization, filtering or sorting, traceback frames included. Align the cli, gate, replay and audit records by id: every stream that differs is a divergence record <id>:<stream> (for example tests/unit/test-feature-record.py#3:stderr, gate#tests/integration/test-check-domain-grant.py#2:stdout, replay#4:<path>:6:after, audit:stdout), and a record present on one side only is <id>:unaligned; record ids contain no space. Suite records are not compared whole (their output carries timings); they are graded through the FAIL lines, baseline# and cases# records above. Write every divergence of every kind (measured, baseline#, cases# and d02#) to notes/build-divergences.md as exactly one divergence record: a line divergence: <record id>, its body, and a line end_divergence. That divergence: line is the record SC-08 requires in build-divergences.md. Bodies: for <id>:<stream>, a line old: <payload>, a line new: <payload>, then the account; for <id>:unaligned, a line side: baseline or side: pin naming the side that holds the record, one line stream <name>: <payload> per stream of that record in sorted name order, then the account; for baseline#<file>, the unaligned form with side: baseline over that file's suite streams exit, stdout and stderr; for cases#<file>, old: and new: payloads of the baseline and pin identity bytes, then the account; for d02#<item>:unreached, a line source_only: source text read through git show at the baseline and the pin, never captured output, a line file: <path under .claude/skills/harness/bin>, a line symbol: <symbol>, lines old_source: <payload> and new_source: <payload> holding that symbol's source segment (ast.get_source_segment with padded=True, UTF-8) at the baseline and at the pin, then the account. A payload is the Python repr of the bytes after root replacement (a b-prefixed bytes literal on one line, exact and reversible with ast.literal_eval), or the word absent for a null file_before or file_after. The account is a line account: followed by the readable rendering, each rendered line prefixed with a vertical bar and a space so that no rendered line can be read as a delimiter. Rendering a byte string: decode it as UTF-8 with surrogateescape and split it at LF into lines; in each line write a backslash as two backslashes, an undecodable byte as \b{hh}, any character that is not printable, tab included, as \x{h}, and each trailing space as \x{20}; a rendered line longer than 64 characters continues on further lines, each prefixed with \c and a space, so a long or binary delta is localised (PF-2528cfa8); a null renders as the single line \absent. For old/new and source-only bodies the account is the unified diff of the two rendered line lists (Python difflib.unified_diff, fromfile old, tofile new, two context lines, empty line terminator); for unaligned and baseline# bodies it is, per stream in sorted name order, a line stream <name>: followed by each rendered line indented by two more spaces. The rendering is injective, so a byte difference always yields at least one account line; line breaks stay line breaks and non-ASCII text stays readable, while the payload literals remain authoritative. Nothing else goes between the delimiter lines; prose for the operator may go outside the records but never replaces an account. The verify recomputes every divergence record and test_change record from the two committed measurement files and the two refs and requires build-divergences.md to hold exactly those, ids and bodies alike, so a missing, extra, stale or altered record, payload, source field or account fails. Nothing is exempted in advance, D-02 diagnostics included: a difference is RULED only when notes/divergence-rulings.json, a JSON list the main session writes after measurement from the operator's own ruling as FEAT-70 did, holds an entry whose record is that exact id with non-empty by, date and reason; otherwise it is UNRULED. The operator rules every measured divergence personally, all of them presented together at the ship review; no ruling is delegated (PL-05). The receipt's divergence lines must be exactly the divergences recomputed from the committed measurement files and the two refs. cli_identity and replay_identity are PASS only when the records align and every difference is RULED. This comparison paragraph, together with the stream keys and encoding under Measurement files, the suite-derived lines under Suites and Case identity, the item table and line counts under Gate capture, the audit_scanned_files derivation under Audit and the build-divergences.md record format above, is normative for both feat2581-cleanpin.py and the T-03 verify. Where the two compute a different divergence set, payload, source field, account or derived line from the same committed measurement files and refs, the one that departs from this text has a bug: fix it and regenerate the receipt and build-divergences.md from the same measurements with feat2581-cleanpin.py --reuse. Such a drift is never a divergence record, never put to the operator for a ruling, and never a reason to re-measure at a new pin.
+
+      Commit notes/receipt-scripts, notes/measurements, clean-pin-byte-receipts.generated.md, clean-pin-byte-receipts.md, build-divergences.md and divergence-rulings.json only after the pin exists. The generated receipt holds exactly one implementation_pin line with the full SHA; one line baseline: e12381fde910eb05728004476a10d741d6918010; one line checkout_root: baseline <absolute path> and one checkout_root: pin <absolute path>, the bytes the comparison replaced; one line script_sha256: <repository-relative path> <sha256> for each of the six receipt scripts, six distinct paths; the baseline_failing, case_set, gate_captures, d02_item, d02_item_record and audit_scanned_files lines above; one line divergence: <record id> RULED or divergence: <record id> UNRULED per difference of every kind (baseline#, cases#, d02#, cli, gate, replay and audit); and the lines grade_bar, unit_files, integration_files, case_identity, cli_identity, replay_identity, d02_inventory, canonical_reader_audit and overall, each PASS or FAIL, overall PASS only when every other line is PASS. The verify recomputes every one of those lines except the verdicts and refuses a receipt whose lines differ in any way; each verdict line must appear once and read PASS. Every receipt names both SHAs, detached checkout paths and clean status, exact commands, timestamps and raw and normalized hashes.
+
+      Binding to the review: the verify reads every receipt, measurement file, ruling file and receipt script through git show at feature.json review_sha once pin-review has written a full SHA there, else at HEAD, and requires baseline, implementation pin, receipt commit, that ref and HEAD to be in ancestor order with no path outside this feature's directory changed between the implementation pin and either the ref or HEAD. The reviewer reads the receipt, build-divergences.md and the measurements the same way, git show <review_sha>:<path>. Any later commit that changes a path outside this feature's directory invalidates the receipts: re-measure at a new pin.
+needs_approval: true

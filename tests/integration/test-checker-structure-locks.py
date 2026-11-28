@@ -465,7 +465,7 @@ def case_feat63_broad_catch_census():
     _feat65_hook_ceiling_checks()
 
 
-_FEAT64_ZEROED = ("factory_decompose.py", "feature_schema.py", "gh_cost_log.py", "handoff_done_when.py",
+_FEAT64_ZEROED = ("factory_decompose.py", "feature_record/schema.py", "gh_cost_log.py", "handoff_done_when.py",
                   "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                   "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
                   "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py")

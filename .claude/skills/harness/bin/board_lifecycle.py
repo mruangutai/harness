@@ -159,7 +159,7 @@ REQUESTED BOARD RESOLUTION, for both repositories:
   - --repo naming neither: exit 2, naming the repo and both sources tried.
 
 Active-feature projection independently resolves each feature's authoritative binding with
-`feature_schema.resolve_binding`. A bound feature uses its declared fleet member's remote config,
+`feature_record.binding.resolve_binding`. A bound feature uses its declared fleet member's remote config,
 not the ancestor's mirror flags. Only matching board/repository provenance yields actionable cards;
 factory issue claims and unproven legacy numbers are diagnostics, never projection authority.
 
@@ -258,8 +258,7 @@ import artifact_accessors
 import factory_cli
 import factory_config
 import feature_corpus
-import feature_schema
-import feature_json_write
+from feature_record import binding as record_binding, read as record_read, schema as record_schema
 import factory_gh
 import gh_board
 import harness_boundary
@@ -518,9 +517,9 @@ def _status_findings(root, board, stations, repo_name):
                                    f"feature corpus could not be read: {exc}")]
     for feat_dir in feat_dirs:
         try:
-            feature_doc = artifact_accessors.load_feature_json(
+            feature_doc = record_read.load_feature_json(
                 os.path.join(feat_dir, "feature.json"))
-        except artifact_accessors.FeatureJsonError as exc:
+        except record_read.FeatureJsonError as exc:
             findings.append(_finding("STATUS", f"STATUS: {feat_dir}'s card cannot be audited: {exc}"))
             continue
         except artifact_accessors.ArtifactAccessError as error:
@@ -530,7 +529,7 @@ def _status_findings(root, board, stations, repo_name):
         if plan is None and invalid is None:
             continue
         try:
-            bound_repo, bound_board, _types = feature_schema.resolve_binding(feature_doc, root)
+            bound_repo, bound_board, _types = record_binding.resolve_binding(feature_doc, root)
         except artifact_accessors.FleetError as error:
             findings.append(_finding("STATUS", f"STATUS: invalid feature binding at {feat_dir}: {error}"))
             continue
@@ -540,10 +539,10 @@ def _status_findings(root, board, stations, repo_name):
                                   for key in ("owner", "number", "station_field")):
             findings.append(_finding("STATUS", f"STATUS: feature {feat_dir} targets a different board; no projection is safe"))
             continue
-        provenance = feature_schema.mirror_provenance_problem(feature_doc, repo_name)
+        provenance = record_binding.mirror_provenance_problem(feature_doc, repo_name)
         if provenance:
             findings.append(_finding("STATUS", f"STATUS: mirror provenance for {feat_dir}: {provenance}. To recover, "
-                                     f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo_name)}"))
+                                     f"{record_schema.recovery_command_line(feat_dir, feature_doc, repo_name)}"))
             continue
         if invalid is not None:
             findings.append(invalid)
@@ -1021,8 +1020,8 @@ def _label_owned_numbers(root, feat_dir, repo_name):
     """(numbers, problem): the tickets one record proves it owns in `repo_name`. A record bound
     to another repository owns nothing here and is not a problem."""
     try:
-        doc = artifact_accessors.load_feature_json(os.path.join(feat_dir, "feature.json"))
-    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError) as exc:
+        doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json"))
+    except (artifact_accessors.ArtifactAccessError, record_read.FeatureJsonError) as exc:
         return set(), f"unreadable record: {exc}"
     recorded = _github_numbers(doc) if isinstance(doc, dict) else None
     if recorded is None:
@@ -1039,12 +1038,12 @@ def _label_record_owner(root, feat_dir, doc, repo_name):
     if isinstance(factory, dict) and factory.get("repo") not in (None, repo_name):
         return False, None
     try:
-        bound_repo = feature_schema.resolve_binding(doc, root)[0]
+        bound_repo = record_binding.resolve_binding(doc, root)[0]
     except artifact_accessors.FleetError as error:
         return False, f"invalid feature binding: {error}"
     if bound_repo != repo_name:
         return False, None
-    problem = feature_schema.mirror_provenance_problem(doc, repo_name)
+    problem = record_binding.mirror_provenance_problem(doc, repo_name)
     return not problem, problem
 
 
@@ -1061,7 +1060,7 @@ def _github_numbers(doc):
         return None
     values = [github.get("parent"), *sources, *issues.values()]
     try:
-        return {n for n in map(feature_json_write.opt_int, values) if n is not None}
+        return {n for n in map(record_read.opt_int, values) if n is not None}
     except ValueError:  # an `isdigit` string int() cannot parse, e.g. "²"
         return None
 

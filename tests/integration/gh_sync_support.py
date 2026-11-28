@@ -183,9 +183,9 @@ def write_feature_json(path, **fields):
 def nested_feature_dir(feat_name="FEAT-77-test"):
     """A fresh tempdir's feature directory nested under a realistic
     .harness/features/<feat_name>/ shape (matching `stage()`'s own convention and
-    feature_json_write.FEATURE_JSON_TAIL) — required for any fixture that reaches
+    feature_record.write.FEATURE_JSON_TAIL) — required for any fixture that reaches
     save_recorded/_record_status/_record_pr now that they route through the locked,
-    destination-checked feature_json_write.write_feature_json (stale-anchor-write-hazard
+    destination-checked feature_record.write.write_feature_json (stale-anchor-write-hazard
     cycle 2). A bare tempdir passed a feature.json worked only because those write sites
     carried no destination check at all before this feature."""
     base = tempfile.mkdtemp()

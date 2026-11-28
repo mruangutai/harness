@@ -57,12 +57,13 @@ sys.path.insert(0, BIN_DIR)
 import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
 import artifact_accessors    # noqa: E402
-# The hardened path served the first-party imports above. feature_schema holds jsonschema's one
-# guard, and the validated harness.json read needs it, so it imports on the interpreter's own path
-# (user site included), as in branch-create-gate and gh-close-gate. BIN_DIR stays first, so
-# feature_schema itself still loads from bin; only third-party resolution widens.
+from feature_record import read as record_read  # noqa: E402
+# The hardened path served the first-party imports above. feature_record.schema holds jsonschema's
+# one guard, and the validated harness.json read needs it, so it imports on the interpreter's own
+# path (user site included), as in branch-create-gate and gh-close-gate. BIN_DIR stays first, so
+# feature_record itself still loads from bin; only third-party resolution widens.
 sys.path[:] = [BIN_DIR] + [entry for entry in _bootstrap_original_path if entry != BIN_DIR]
-import feature_schema       # noqa: E402
+from feature_record import binding as record_binding, schema as record_schema  # noqa: E402
 
 
 # THE REPOSITORY ROOT COMES FROM harness_boundary.root_from_script(BIN_DIR), and main() below
@@ -212,9 +213,9 @@ def _ship_allows_removal(path, feat_dir):
 
 def _read_build_receipt(main_checkout_root, feat_dir):
     """Return mirror enablement and the feature receipt document."""
-    feature_doc = artifact_accessors.load_feature_json(
+    feature_doc = record_read.load_feature_json(
         os.path.join(feat_dir, "feature.json"))
-    if feature_schema.has_repository_binding(feature_doc):
+    if record_binding.has_repository_binding(feature_doc):
         return True, feature_doc
     config_path = os.path.join(main_checkout_root, ".harness", "harness.json")
     sync_enabled = bool((
@@ -227,18 +228,18 @@ def _receipt_allows_removal(path, main_checkout_root, feat_dir, feature_id):
     try:
         sync_enabled, feature_doc = _read_build_receipt(
             main_checkout_root, feat_dir)
-        repo, _board, _types = feature_schema.resolve_binding(feature_doc, main_checkout_root)
-        provenance = feature_schema.mirror_provenance_problem(feature_doc, repo)
-    except (artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+        repo, _board, _types = record_binding.resolve_binding(feature_doc, main_checkout_root)
+        provenance = record_binding.mirror_provenance_problem(feature_doc, repo)
+    except (artifact_accessors.ArtifactAccessError, record_read.FeatureJsonError,
             artifact_accessors.FleetError) as exc:
         print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
         return False
-    receipt_missing = sync_enabled and not feature_schema.receipt_allows_merge(feature_doc, repo)
+    receipt_missing = sync_enabled and not record_binding.receipt_allows_merge(feature_doc, repo)
     if provenance or receipt_missing:
         detail = provenance or "Build-entry receipt absent or incomplete"
         print(f"post-merge-sweep: SKIP removal of {path} — {feature_id}: {detail}. "
               f"The worktree stays until recovery and ship succeed. To recover, "
-              f"{feature_schema.recovery_command_line(feat_dir, feature_doc, repo)}")
+              f"{record_schema.recovery_command_line(feat_dir, feature_doc, repo)}")
         return False
     return True
 

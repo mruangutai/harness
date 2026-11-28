@@ -196,12 +196,12 @@ check("T-05 path-prefixed gh is still detected", d == "deny")
 r, d, _, _ = denial("bash -c 'git merge feature/test'")
 check("T-05 bash -c wrapped merge is still detected", d == "deny")
 # FEAT-71: the receipt rule is uniform. An absent or recovery-required build_entry denies for
-# EVERY feature id: synthetic ones plus feature_id_probe_support.held_feature_ids(feature_schema).
+# EVERY feature id: synthetic ones plus feature_id_probe_support.held_feature_ids(record_schema).
 sys.path.insert(0, BIN)
-import feature_schema  # noqa: E402
+from feature_record import schema as record_schema  # noqa: E402
 from feature_id_probe_support import held_feature_ids  # noqa: E402
 allowed = []
-for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(feature_schema):
+for feature in ["BUG-9-x", "PR-9-fixture"] + held_feature_ids(record_schema):
     for entry in (None, "recovery-required"):
         root, _ = fixture(feature=feature, entry=entry)
         r, d, reason = gate("git merge feature/test", root)
@@ -391,15 +391,15 @@ def _feat65_fire(root, sibling, override):
 
 root, _ = fixture()
 sig = "def recovery_command_for(feat_dir, feature_doc=None):\n"
-r = _feat65_fire(root, "feature_schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
+r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
 check("FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named",
       r.returncode == 2 and r.stdout == "" and "RuntimeError: FEAT-65 injected" in r.stderr,
       f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-r = _feat65_fire(root, "feature_schema.py", sig + "    raise KeyboardInterrupt()\n")
+r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise KeyboardInterrupt()\n")
 check("FEAT-65: KeyboardInterrupt escapes the guard",
       r.returncode != 0 and "KeyboardInterrupt" in r.stderr and "failed internally" not in r.stderr,
       f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
-r = _feat65_fire(root, "feature_schema.py", sig + "    raise SystemExit(7)\n")
+r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise SystemExit(7)\n")
 check("FEAT-65: a deliberate SystemExit keeps its own exit code",
       r.returncode == 7 and "failed internally" not in r.stderr,
       f"rc={r.returncode} stderr={r.stderr[-200:]!r}")

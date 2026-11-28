@@ -1,0 +1,1 @@
+PASS — Mode A is out of scope: `plan.yaml` (T-01–T-03) covers a Python CLI refactor, decision records, and verification receipts; the planned terminal text updates do not change a visual UI or require a `DESIGN.md` contract.

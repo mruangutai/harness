@@ -1065,18 +1065,18 @@ def _schema_crash_control(root, rel, illegal, copied_hook):
 
 
 def _schema_crash_cases(root, rel, illegal):
-    live_fs = os.path.join(HERE, "feature_schema.py")
+    live_fs = os.path.join(HERE, "feature_record", "schema.py")
     live_before = open(live_fs, "rb").read()
     live_mtime = os.stat(live_fs).st_mtime_ns
     iso = isolated_bin(root)
     copied_hook = os.path.join(iso, "check-domain.py")
     fails = _schema_copy_control(root, rel, illegal, copied_hook)
-    _inject_schema_crash(os.path.join(iso, "feature_schema.py"))
+    _inject_schema_crash(os.path.join(iso, "feature_record", "schema.py"))
     fails += _schema_crash_control(root, rel, illegal, copied_hook)
     unchanged = (open(live_fs, "rb").read() == live_before
                  and os.stat(live_fs).st_mtime_ns == live_mtime)
     fails += _schema_case(
-        "the live feature_schema.py was never written (bytes and mtime unchanged)",
+        "the live feature_record/schema.py was never written (bytes and mtime unchanged)",
         unchanged, True)
     return fails
 

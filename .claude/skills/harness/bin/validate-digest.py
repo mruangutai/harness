@@ -34,6 +34,7 @@ import artifact_accessors
 import amendment_contract
 import digest_record
 import digest_schema
+from feature_record import read as record_read
 from code_grade import classify, commit_oid, gated_set, _git_show
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 from check_state.brief import SC_LINE_RE, brief_scs_with_lines
@@ -421,14 +422,14 @@ def _qa_policy(feature_dir, review_pin):
     if not feature_dir:
         return _qa_policy_refusal("no trusted feature directory names the review pin")
     try:
-        record = artifact_accessors.load_feature_json(os.path.join(feature_dir, "feature.json"))
+        record = record_read.load_feature_json(os.path.join(feature_dir, "feature.json"))
         code_root, repository, why = _qa_code_repository(record, feature_dir)
         if not why:
             commit, why = _qa_review_commit(code_root, repository, record, review_pin)
         if why:
             return _qa_policy_refusal(why)
         return _qa_pinned_policy(code_root, repository, commit)
-    except artifact_accessors.FeatureJsonError as error:
+    except record_read.FeatureJsonError as error:
         return _qa_policy_refusal(f"{feature_dir}/feature.json could not be read ({error})")
     except (OSError, subprocess.SubprocessError) as error:
         return _qa_policy_refusal(f"git could not be run ({type(error).__name__}: {error})")
@@ -438,9 +439,9 @@ def _qa_code_repository(record, feature_dir):
     """`(root, name, None)` of the repository whose pin governs QA, or `(None, None, why)`: a
     bound feature's fleet checkout (a malformed binding is bound too, never the owner's), else
     the repository holding the feature."""
-    import feature_schema
+    from feature_record import binding as record_binding
     planning_root = _repo_root_for_feature(feature_dir)
-    if not feature_schema.has_repository_binding(record):
+    if not record_binding.has_repository_binding(record):
         return planning_root, planning_root, None
     factory = record.get("factory")
     repo = factory.get("repo") if isinstance(factory, dict) else None
@@ -978,8 +979,8 @@ def _read_review_sha(feature_dir):
     unpinned (DEC-121/INV-6 placeholder vocabulary)."""
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        doc = artifact_accessors.load_feature_json(fj_path)
-    except artifact_accessors.FeatureJsonError as e:
+        doc = record_read.load_feature_json(fj_path)
+    except record_read.FeatureJsonError as e:
         return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
                        f"could not be read ({e}), so the claim is not trusted.")
     sha = doc.get("review_sha") if isinstance(doc, dict) else None
@@ -1043,8 +1044,8 @@ def _read_feature_branch(feature_dir):
     """
     fj_path = os.path.join(feature_dir, "feature.json")
     try:
-        doc = artifact_accessors.load_feature_json(fj_path)
-    except artifact_accessors.FeatureJsonError:
+        doc = record_read.load_feature_json(fj_path)
+    except record_read.FeatureJsonError:
         return None
     branch = doc.get("branch") if isinstance(doc, dict) else None
     if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
@@ -1150,8 +1151,8 @@ def _pinned_feature_review_error(feature_dir):
     if not os.path.exists(feature_json):
         return None
     try:
-        feature = artifact_accessors.load_feature_json(feature_json)
-    except artifact_accessors.FeatureJsonError as exc:
+        feature = record_read.load_feature_json(feature_json)
+    except record_read.FeatureJsonError as exc:
         return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
     review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
     if not isinstance(review_sha, str) \
@@ -2279,7 +2280,7 @@ def _evidence_failures():
     import inflight_registry
     return (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError,
             harness_boundary.RepoModuleError, harness_boundary.AmbiguousWorktree,
-            artifact_accessors.ArtifactAccessError, artifact_accessors.FeatureJsonError,
+            artifact_accessors.ArtifactAccessError, record_read.FeatureJsonError,
             artifact_accessors.FleetError, harness_yaml.YamlParseError,
             inflight_registry.UnreadableRegistry, harness_merge.MergeRefusal)
 

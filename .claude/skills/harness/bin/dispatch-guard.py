@@ -155,6 +155,7 @@ def _unavailable(reason):
 
 
 import artifact_accessors
+from feature_record import read as record_read
 try:
     d = artifact_accessors.read_hook_payload(
         sys.stdin.read(), "dispatch-guard hook payload")
@@ -366,7 +367,7 @@ def _repository_identity(feature_root, control_root):
             harness_dir, segment, "features", declared, "feature.json")
         if not os.path.isfile(feature_path):
             continue
-        feature_doc = artifact_accessors.load_feature_json(feature_path)
+        feature_doc = record_read.load_feature_json(feature_path)
         if not isinstance(feature_doc, dict):
             raise ValueError("repository-tier feature artifact is not a mapping")
         factory = feature_doc.get("factory")
@@ -408,7 +409,7 @@ def _repository_identity(feature_root, control_root):
 
 try:
     repository = _repository_identity(root, owner_root)
-except (ValueError, OSError, artifact_accessors.FeatureJsonError,
+except (ValueError, OSError, record_read.FeatureJsonError,
         artifact_accessors.FleetError) as exc:
     print(
         "dispatch-guard: BLOCKED — repository dispatch identity is invalid (%s)."
@@ -580,7 +581,7 @@ def _destinations():
                 "establishes its registered run, is unavailable (%s)." % (dispatched, declared, exc))
     return digest_destination, (OSError, ValueError, TypeError, harness_yaml.YamlParseError,
                                 artifact_accessors.ArtifactAccessError,
-                                artifact_accessors.FeatureJsonError)
+                                record_read.FeatureJsonError)
 
 
 def _feature_record(destinations, errors):

@@ -1,0 +1,110 @@
+schema_version: 2
+run_id: repanel3-product
+run_uid: 1433af6295de49b8bc68754f5b3ac708
+feature: FEAT-2581-feature-record-package
+squad: product
+host: harness-product-lead
+team: plan
+status: failed
+verdict: FAIL
+severity_max: high
+digest: .harness/harness/features/FEAT-2581-feature-record-package/runs/repanel3-product/digest.md
+steps:
+  - id: apply1
+    persona: harness-pm
+    task: T-03
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/plan.yaml
+      - .harness/harness/features/FEAT-2581-feature-record-package/BRIEF.md
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/runs/repanel3-product/apply1-changes.md
+    note: T-03 verify+intent, D-01.because, BRIEF SC-08/gaps/disclosure changed; new suite record kind; 3 non-blocking OQs
+    evidence:
+      approval_status: pending
+      approval_reset: false
+      open_questions: [OQ-C4-1, OQ-C4-2, OQ-C4-3]
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [apply1]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-plan-c4.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-code-reviewer-plan-c4.md
+    note: closes 3 named findings; 3 med + 1 low substance + 1 low form new, unapplied
+    evidence:
+      closed: [PF-96cdf9f1, PF-3882d444, PF-cf9cf710]
+      new_substance: 4
+      new_form: 1
+      severity_max: med
+  - id: design
+    persona: harness-ui-reviewer
+    seq: 2
+    depends_on: [apply1]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-plan-c4.md
+    mutates_repo: false
+    on_fail: continue
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2581-feature-record-package/notes/review-harness-ui-reviewer-plan-c4.md
+    note: closes PF-a37e5b40; 3 med substance new, unapplied
+    evidence:
+      closed: [PF-a37e5b40]
+      new_substance: 3
+      severity_max: med
+  - id: should-not-exist
+    persona: fable-advisor
+    seq: 2
+    depends_on: [apply1]
+    outputs: []
+    mutates_repo: false
+    status: skipped
+    note: not dispatched this cycle; operator ruling PL-11(a) names the scope and design readers only
+  - id: record
+    persona: harness-pm
+    seq: 3
+    depends_on: [scope, design]
+    outputs:
+      - .harness/harness/features/FEAT-2581-feature-record-package/plan.yaml
+    mutates_repo: true
+    on_fail: halt
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    note: record-panel c4, set-panel 4 resolved, check 0 failures; all exit 0; approval pending
+    evidence:
+      record_panel_exit: 0
+      set_panel_exit: 0
+      plan_merge_check_exit: 0
+      approval_status: pending
+      panel_cycle: 4
+      resolved: [PF-96cdf9f1, PF-3882d444, PF-cf9cf710, PF-a37e5b40]
+      open: [PF-15af8306, PF-40325938, PF-db2ae14a, PF-5f54f524, PF-42a75f8f, PF-2528cfa8, PF-eec01ba2, PF-a688e503, PF-7999938a, PF-d35d903d, PF-502d3541]

@@ -22,7 +22,7 @@ import sys
 import tempfile
 
 import artifact_accessors
-import feature_schema
+from feature_record import schema as record_schema
 import harness_yaml
 
 from gh_sync_support import (
@@ -491,7 +491,7 @@ def main():
         write_feature_json(os.path.join(recovery, "feature.json"),
                            feature_id=recovery_document["feature_id"],
                            github=recovery_document["github"])
-        expected_command = feature_schema.recovery_command_for(recovery)
+        expected_command = record_schema.recovery_command_for(recovery)
         result = run(["start-task", recovery, "T-01"], tmpT04,
                      {"FACTORY_GH": os.path.join(tmpT04, "gh")})
         check("T-04 recovery-required recover-terminal horn names the derived command",

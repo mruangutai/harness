@@ -30,7 +30,7 @@ import yaml
 import factory_decompose as fd
 import factory_gh
 import factory_config as fc
-import feature_json_write
+from feature_record import schema as record_schema, write as record_write
 import harness_merge
 
 FAILS = 0
@@ -304,9 +304,9 @@ def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=G
                   feat=FEAT):
     """Build a temporary feature directory: plan.yaml, BRIEF.md, feature.json, fleet.yaml.
     Returns (feat_dir, fleet_path). Nested under .harness/features/<feat>/ (matching
-    test-gh-sync.py's nested_feature_dir and feature_json_write.FEATURE_JSON_TAIL) —
+    test-gh-sync.py's nested_feature_dir and feature_record.write.FEATURE_JSON_TAIL) —
     required now that write_factory routes through the destination-checked
-    feature_json_write.write_feature_json (stale-anchor-write-hazard cycle 3): a bare
+    feature_record.write.write_feature_json (stale-anchor-write-hazard cycle 3): a bare
     tempdir passed a feature.json worked only because write_factory carried no
     destination check at all before this feature."""
     feat_dir = os.path.join(td, ".harness", "features", feat)
@@ -1340,13 +1340,13 @@ with tempfile.TemporaryDirectory() as td:
 # C3 REGRESSION GUARDS (stale-anchor-write-hazard cycle 3). write_factory used to carry
 # its own private tempfile.mkstemp/fsync/os.replace primitive, unlocked and unvalidated —
 # these three pin the properties gained by routing it through
-# feature_json_write.write_feature_json instead (DEC-199).
+# feature_record.write.write_feature_json instead (DEC-199).
 # ============================================================================
 
 # --- C3-1: write_factory and an independent whole-document writer over the SAME
 #     feature.json, interleaved so each reads the base before either writes, must not let
 #     one clobber the other's key — the lost-update shape DEC-199 rules out. Modeled on
-#     test-feature-json-merge.py's case_2_concurrent_writer_blocks_not_clobbers (same
+#     the deleted feature-json merge CLI test's case_2_concurrent_writer_blocks_not_clobbers (same
 #     os.fork technique): one side (the "other" writer) sleeps mid-transform, WHILE
 #     HOLDING THE LOCK, to widen the overlap window against write_factory's own
 #     read-modify-write.
@@ -1372,7 +1372,7 @@ with tempfile.TemporaryDirectory() as td:
             time.sleep(0.05)  # widen the overlap window, matching case_2's technique
             doc["max_total_runs"] = 20
             return json.dumps(doc, indent=2) + "\n"
-        feature_json_write.write_feature_json(fj_path, transform)
+        record_write.write_feature_json(fj_path, transform)
 
     _pid1 = os.fork()
     if _pid1 == 0:
@@ -1434,7 +1434,7 @@ with tempfile.TemporaryDirectory() as td:
 #     at a bare tmp dir (:635-636, :708-709). Path shape is caller policy (stale-anchor-write-
 #     hazard T-c4): factory_decompose is a general CLI tool pointed at an arbitrary directory,
 #     never constrained to the canonical harness features tree the way gh-sync.py's callers
-#     are, so write_factory passes feature_json_write.write_feature_json a laxer tail_regex.
+#     are, so write_factory passes feature_record.write.write_feature_json a laxer tail_regex.
 with tempfile.TemporaryDirectory() as td:
     _bare_feat_dir = os.path.join(td, "not-nested-under-harness")
     os.makedirs(_bare_feat_dir)
@@ -1448,7 +1448,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(C4-1) created document carries the given feature_id",
           _created.get("feature_id") == "FEAT-99-created", _created)
     check("(C4-1) created document carries every schema-required key",
-          set(feature_json_write.feature_schema.load_schema()["required"]) <= set(_created),
+          set(record_schema.load_schema()["required"]) <= set(_created),
           _created)
     check("(C4-1) created document's factory.repo carries the given repo",
           (_created.get("factory") or {}).get("repo") == REPO, _created)

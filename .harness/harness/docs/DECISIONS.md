@@ -3515,7 +3515,7 @@ taught the opposite: step 5 said "APPEND the per-member roll-up to STATE.md."
 
 Three changes. **A shape gate in check-domain.py** (stage two, after the domain check): a `Write`
 to `.harness/features/*/feature.json` over its line budget (200 lines or 20 comment lines while it
-was `feature.yaml`; 300 lines since FEAT-14, `feature_schema.py`), or to `STATE.md` over
+was `feature.yaml`; 300 lines since FEAT-14, `feature_record/schema.py`), or to `STATE.md` over
 120 lines or carrying any section besides the two legal ones, is DENIED with the routing table as
 the reason — current truth replaces `## Current`, per-run findings go to that run's digest,
 rationale to notes/. Accretion is impossible: the governed writers hold Write not Edit, so every
@@ -7331,7 +7331,7 @@ creating a mirror. Compatible absence or partial creation goes to main-owned `op
 wrong-repository mapping refuses and is corrected by hand. Invalid provenance
 refuses before station changes or remote mutation, even if its old marker says `opened`.
 
-**One binding and receipt predicate.** `feature_schema.resolve_binding` treats non-null
+**One binding and receipt predicate.** `feature_record.binding.resolve_binding` treats non-null
 `factory.repo` as authoritative and requires a valid declared fleet entry plus the target's
 default-branch `product_config`/`board_for`, with no ancestor/disk fallback. A bound target must
 enable sync and declare the matching repository and valid board; failure never routes to Harness.
@@ -7339,7 +7339,7 @@ Unbound sync-off/null-board semantics remain legal. Active object numbers need m
 `github.repo`; `factory.claims` is not active provenance. An unbound feature's
 pre-provenance mapping with absent `github.repo` is proven by construction: the owner binding that
 created it is the one that resolves it, with no second destination, so
-`feature_schema.effective_recorded_repo` reads that absence as the owner repository. A bound
+`feature_record.binding.effective_recorded_repo` reads that absence as the owner repository. A bound
 feature's absence stays unproven, and an explicit mismatch is refused everywhere. Writers persist
 `github.repo`; nothing backfills history. INV-37, merge,
 sweep and lifecycle projection share this proof and the recovery command formatter. Legal
@@ -8795,10 +8795,10 @@ The rule has three homes:
 
 **Because:**
 - FEAT-69 (`d8b139de`, #1981) split `check-state.py` into `check_state/`, and FEAT-70
-  (`a98451c5`, #1990) split `plan-merge.py` into `plan_merge/`, in this shape, with one exception
-  this rule now names as a finding: `plan-merge.py` still re-exports
-  `plan_merge.approval.signed_task_hash`, because `check_state/ctx.py` `_load_hash_module` loads
-  the entry by path for INV-40. Removing it means migrating that loader first.
+  (`a98451c5`, #1990) split `plan-merge.py` into `plan_merge/`, in this shape. FEAT-2581 (#2581)
+  moved the `feature.json` domain into `feature_record/` and removed the last re-export,
+  `plan-merge.py`'s `signed_task_hash`, by loading `plan_merge.approval` by name in
+  `check_state/ctx.py` `_load_hash_module` (#2569).
 - The convention's only full record was the FEAT-69 grilling note
   (`.harness/notes/grilling-long-file-check-state-package-2026-09-28.md`, readable with
   `git show d8b139de:<path>`). FEAT-71 (`a41f7cfc`) removed it, which left delete-first's one

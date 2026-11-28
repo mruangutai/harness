@@ -1,0 +1,16 @@
+# FEAT-2581 — scope re-panel, cycle 3
+
+**FAIL.** Three of the four cycle-2 findings close. T-03 now binds the evidence files to the review SHA, but it still accepts CLI and replay records that do not contain the measurements SC-05/06 require. The new audit-count summary is also not checked against its source. This is a source review of the pending plan; no gate was run. All plan and BRIEF pointers below resolve in the feature worktree.
+
+| Finding | Verdict | Worktree source and rationale |
+|---|---|---|
+| PF-14c27514 | **not closed** | `plan.yaml:329–343,360,368–370,380`; `BRIEF.md:41,43`. The review-SHA read, six script identities, and divergence recomputation close the ref-binding gap. But the verifier checks CLI class presence and replay IDs, not the required streams. Keep all IDs/classes and omit `stderr` from both sides: the key union never sees stderr, so an actual stderr change cannot enter the recomputed divergence set and both PASS markers can still pass. Even `streams: {}` on both sides passes those CLI/replay checks. Validate each kind's required stream keys before comparing, distinguishing a missing capture from a legitimate empty or absent value. |
+| PF-c36ed89c | **closed** | `plan.yaml` D-02.choice (`:152`), T-03 `intent` (`:372–376`); `BRIEF.md:47,98–102`. Calibration distinguishes raw bytes from decoded/newline-translated text. Comparison covers whole captured gate streams after root replacement only; marker classification happens afterward, with a residual for every unmatched changed stream. The whole audit stdout is retained and compared on both sides, so the scanned-file-count delta enters `audit:stdout` rather than disappearing. This closes inventory bounds, not authorization or the accuracy of the separate count summary. |
+| PF-c82fdafb | **closed** | T-01 `intent` (`plan.yaml:286`); SC-03 (`BRIEF.md:35`). The pre-commit gate now accepts exactly the four deliberate FAIL lines from the passing mutation file; it separately accounts for the missing compiler and leaves the file-by-file comparison to T-03. |
+| PF-390fdc3e | **closed** | T-03 `verify` (`plan.yaml:335–336,347–349`), `intent` (`:364`); SC-10 (`BRIEF.md:51`). Every baseline exclusion beyond `test-typescript-typecheck.py` needs its own `baseline#<file>` divergence marked RULED and backed by a ruling; it cannot silently reduce the expected case set. |
+
+## Newly broken in the cycle-2 apply
+
+- **Substance · med — The audit-count disclosure can disagree with the committed raw audit.** T-03 `verify` (`plan.yaml:346`) only matches two decimal strings; `intent` (`:374`) requires the two actual counts. Replacing the disclosure with `audit_scanned_files: 0 0` leaves the verifier green even when the two raw audit summaries report different nonzero counts. Derive the count pair from both committed `audit:stdout` streams and require exactly one matching receipt line. This does not erase the underlying `audit:stdout` divergence.
+
+No other new contradiction, verify-versus-delete dependency, or file-scope overlap found in the scoped changes. T-03 reads deleted code/tests only at the baseline or excludes them at the pin; it owns the feature notes, not T-01’s implementation/test paths or T-02’s decision docs. D-02 authorization and the bun-leg rulings remain with the operator; no new operator question.

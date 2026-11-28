@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""feature_schema.py — the schema-checking module for a feature's execution
+"""feature_record/schema.py — the schema-checking module for a feature's execution
 state (feature.json), FEAT-14 D-03.
 
 Imported IN PROCESS by check-domain.py (T-06) and by validate-feature-json.py
@@ -31,8 +30,8 @@ import json
 import os
 import re
 import sys
-import hashlib
-import stat
+from feature_record.binding import mirror_provenance_problem
+
 
 try:
     import jsonschema
@@ -47,7 +46,7 @@ except ImportError:
 # dependency is absent: the caller's ImportError branch is then the one that fires.
 SCHEMA_ERRORS = (jsonschema.exceptions.SchemaError,) if jsonschema is not None else ()
 
-BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+BIN_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
@@ -148,6 +147,21 @@ def _pointer(path):
     return "/" + "/".join(str(p) for p in path)
 
 
+def _code_run_recorded(feature_doc):
+    # A run that graded a specification and no code (`code_grade: n_a`) — the plan-flow SIMPLIFY
+    # pass an engineering lead hosts before signature (DEC-195) — is not started work.
+    return feature_doc is not None and any(
+        isinstance(run, dict) and run.get("code_grade") != "n_a"
+        and (run.get("squad") == "engineering" or run.get("code_reviewing"))
+        for run in feature_doc.get("runs") or [])
+
+
+def _task_started(plan, feature_doc):
+    started = {"building", "done"} if feature_doc is not None else {"done"}
+    return any(task.get("status") in started
+               for task in plan.get("tasks") or [] if isinstance(task, dict))
+
+
 def recovery_command_for(feat_dir, feature_doc=None):
     """Select the receipt recovery command, sharing work-started rules."""
     import artifact_accessors
@@ -156,17 +170,8 @@ def recovery_command_for(feat_dir, feature_doc=None):
         plan = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml"))
     except harness_yaml.YamlParseError:
         return "recover-terminal"
-    if plan.get("status") in {"review", "done"}:
-        return "recover-terminal"
-    # A run that graded a specification and no code (`code_grade: n_a`) — the plan-flow SIMPLIFY
-    # pass an engineering lead hosts before signature (DEC-195) — is not started work.
-    if feature_doc is not None and any(
-            isinstance(run, dict) and run.get("code_grade") != "n_a"
-            and (run.get("squad") == "engineering" or run.get("code_reviewing"))
-            for run in feature_doc.get("runs") or []):
-        return "recover-terminal"
-    if any(task.get("status") in ({"building", "done"} if feature_doc is not None else {"done"})
-           for task in plan.get("tasks") or [] if isinstance(task, dict)):
+    if (plan.get("status") in {"review", "done"} or _code_run_recorded(feature_doc)
+            or _task_started(plan, feature_doc)):
         return "recover-terminal"
     return "open"
 
@@ -197,15 +202,17 @@ def _runs_agent_problems(doc, display):
     runs = doc.get("runs")
     if not isinstance(runs, list):
         return []
-    problems = []
-    for i, entry in enumerate(runs):
-        agent = entry.get("agent") if isinstance(entry, dict) else None
-        if not isinstance(agent, str) or not agent.strip():
-            problems.append(
-                f"{display}: runs[{i}] is missing a non-empty 'agent' — every run entry "
-                f"must name the agent that executed it (SC-07)."
-            )
-    return problems
+    return [_missing_agent(i, display) for i, entry in enumerate(runs) if not _names_agent(entry)]
+
+
+def _names_agent(entry):
+    agent = entry.get("agent") if isinstance(entry, dict) else None
+    return isinstance(agent, str) and bool(agent.strip())
+
+
+def _missing_agent(i, display):
+    return (f"{display}: runs[{i}] is missing a non-empty 'agent' — every run entry "
+            f"must name the agent that executed it (SC-07).")
 
 
 def _problems_for_doc(doc, display, for_path=None):
@@ -213,22 +220,23 @@ def _problems_for_doc(doc, display, for_path=None):
     validator = jsonschema.Draft202012Validator(schema)
     problems = []
     for error in sorted(validator.iter_errors(doc), key=lambda e: [str(p) for p in e.absolute_path]):
-        pointer = _pointer(error.absolute_path)
-        if error.validator == "additionalProperties":
-            for key in _undeclared_keys(error):
-                problems.append(f"{display}: undeclared key {key!r} at {pointer}. {_REDIRECT}")
-        elif error.validator == "unevaluatedProperties":
-            problems.append(f"{display}: {pointer}: {error.message}. {_REDIRECT}")
-        elif error.validator == "required":
-            for key in _missing_keys(error):
-                problems.append(
-                    f"{display}: missing required key {key!r} at {pointer} "
-                    f"(required by SPEC 11.3)."
-                )
-        else:
-            problems.append(f"{display}: {pointer}: {error.message}")
+        problems.extend(_error_problems(error, display))
     problems.extend(_runs_agent_problems(doc, display))
     return problems
+
+
+def _error_problems(error, display):
+    """The problem lines one jsonschema error renders as."""
+    pointer = _pointer(error.absolute_path)
+    if error.validator == "additionalProperties":
+        return [f"{display}: undeclared key {key!r} at {pointer}. {_REDIRECT}"
+                for key in _undeclared_keys(error)]
+    if error.validator == "unevaluatedProperties":
+        return [f"{display}: {pointer}: {error.message}. {_REDIRECT}"]
+    if error.validator == "required":
+        return [f"{display}: missing required key {key!r} at {pointer} "
+                f"(required by SPEC 11.3)." for key in _missing_keys(error)]
+    return [f"{display}: {pointer}: {error.message}"]
 
 
 # ---------------------------------------------------------------------------
@@ -364,218 +372,3 @@ def problems_for_file(path):
     except harness_yaml.YamlParseError as e:
         return [f"{path}: not valid YAML: {e}"]
     return _problems_for_doc(doc, path, for_path=path)
-
-
-def resolve_evidence_ref(feature_dir, operand):
-    """Normalize a regular, feature-local immutable artifact to its hash-bound reference."""
-    root = os.path.realpath(feature_dir)
-    raw = os.fspath(operand)
-    if ".." in raw.replace("\\", "/").split("/"):
-        raise ValueError("evidence must not contain parent traversal")
-    path = os.path.abspath(os.path.join(root, raw))
-    resolved = os.path.realpath(path)
-    if os.path.commonpath((root, resolved)) != root or resolved == root:
-        raise ValueError("evidence must stay inside the target feature")
-    if not stat.S_ISREG(os.stat(resolved).st_mode):
-        raise ValueError("evidence must be a regular file")
-    with open(resolved, "rb") as source:
-        digest = hashlib.file_digest(source, "sha256").hexdigest()
-    return {"path": os.path.relpath(resolved, root), "sha256": digest}
-
-
-def verify_evidence_ref(feature_dir, ref, subject=None):
-    """Verify bytes and, for operator notes, the explicitly authorized subject/effect."""
-    if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
-        raise ValueError("evidence reference requires only path and sha256")
-    actual = resolve_evidence_ref(feature_dir, ref["path"])
-    if actual != ref:
-        raise ValueError("evidence hash does not match the recorded artifact")
-    path = os.path.join(feature_dir, actual["path"])
-    if subject is None:
-        return path
-    from artifact_accessors import strict_json_loads
-    with open(path, encoding="utf-8") as source:
-        note = strict_json_loads(source.read())
-    if not isinstance(note, dict) or note.get("feature_id") != subject.get("feature_id"):
-        raise ValueError("authorization evidence has a different feature identity")
-    effects = note.get("effects")
-    matches = [effect for effect in effects if isinstance(effect, dict) and all(
-        type(effect.get(key)) is type(value) and effect.get(key) == value
-        for key, value in subject.items() if key != "feature_id")
-    ] if isinstance(effects, list) else []
-    if len(matches) != 1:
-        raise ValueError("authorization evidence requires one exact subject/effect")
-    return matches[0]
-
-
-def verify_historical_cycle_count(path, count):
-    """An operator note may support missing history, but cannot contradict an explicit count."""
-    import digest_record
-    try:
-        record = digest_record.load_record(path)
-    except digest_record.DigestRecordError:
-        return
-    digest = record.get("DIGEST")
-    reported = digest.get("cycles_used") if isinstance(digest, dict) else None
-    if type(reported) is int and reported >= 0 and reported != count:
-        raise ValueError("historical cycle attribution contradicts the authentic digest count")
-
-
-def _run_digest_paths(run):
-    evidence = run.get("cycle_evidence")
-    if evidence:
-        yield evidence["path"]
-        for previous in evidence.get("previous", []):
-            yield previous["path"]
-    if run.get("refusal"):
-        yield run["refusal"]["digest"]["path"]
-
-
-def verify_run_digest_owner(run_id, path, runs):
-    """A normalized artifact retains its run owner even after attribution correction."""
-    parts = path.split(os.sep)
-    owner = next((other for other in runs if other["id"] != run_id and
-                  (len(parts) > 2 and parts[:2] == ["runs", other["id"]]
-                   or path in _run_digest_paths(other))), None)
-    if owner:
-        raise ValueError(f"digest evidence belongs to run {owner['id']!r}, not {run_id!r}")
-
-
-def _verify_lead_cycle_evidence(feature_dir, run, runs, path):
-    import digest_record
-    evidence = run["cycle_evidence"]
-    verify_run_digest_owner(run["id"], evidence["path"], runs)
-    for previous in evidence.get("previous", []):
-        verify_evidence_ref(feature_dir, previous)
-        verify_run_digest_owner(run["id"], previous["path"], runs)
-    record = digest_record.load_record(path)
-    digest = record.get("DIGEST")
-    count = digest.get("cycles_used") if isinstance(digest, dict) else None
-    if type(count) is not int or count != run.get("cycles_used"):
-        raise ValueError("cycle attribution disagrees with digest evidence")
-
-
-def run_evidence_problems(feature_dir, feature_id, run, runs):
-    """Historical evidence is never a live persona return or inferred from its verdict."""
-    import digest_record
-    problems = []
-    try:
-        evidence = run.get("cycle_evidence")
-        if evidence:
-            if type(run.get("cycles_used")) is not int or run["cycles_used"] < 0:
-                raise ValueError("cycle evidence requires a nonnegative integer attribution")
-            path = verify_evidence_ref(feature_dir, {
-                "path": evidence["path"], "sha256": evidence["sha256"]})
-            if evidence["source"] == "lead-digest":
-                _verify_lead_cycle_evidence(feature_dir, run, runs, path)
-            else:
-                verify_evidence_ref(feature_dir, evidence["authorization"], {
-                    "feature_id": feature_id, "run_id": run["id"],
-                    "digest": {"path": evidence["path"], "sha256": evidence["sha256"]},
-                    "cycles_used": run.get("cycles_used"), "effect": "record-cycle-evidence"})
-                verify_historical_cycle_count(path, run.get("cycles_used"))
-        refusal = run.get("refusal")
-        if refusal:
-            if run.get("verdict") != "BLOCKED" or refusal["run_id"] != run["id"]:
-                raise ValueError("refusal requires the same BLOCKED run")
-            verify_evidence_ref(feature_dir, refusal["digest"])
-            if refusal["source"] == "operator-history":
-                verify_evidence_ref(feature_dir, refusal["authorization"], {
-                    "feature_id": feature_id, "run_id": run["id"],
-                    "digest": refusal["digest"], "effect": "record-refusal"})
-    except (OSError, ValueError, TypeError, KeyError, digest_record.DigestRecordError) as error:
-        problems.append(str(error))
-    return problems
-
-
-_REPOSITORY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*/(?!\.{1,2}$)[A-Za-z0-9_.-]+")
-
-
-def has_repository_binding(feature_doc):
-    """Invalid factory shapes are bound too: no consumer may fall back to the owner."""
-    factory = feature_doc.get("factory")
-    return factory is not None and (not isinstance(factory, dict) or factory.get("repo") is not None)
-
-
-def resolve_binding(feature_doc, root):
-    """Resolve one feature's repository, board and issue types without owner fallback."""
-    import artifact_accessors
-    factory = feature_doc.get("factory")
-    if factory is not None and not isinstance(factory, dict):
-        raise artifact_accessors.FleetError("invalid feature binding", "factory", "expected a mapping")
-    bound = factory.get("repo") if factory else None
-    if bound is not None:
-        return _bound_mirror_binding(bound, root)
-    return _owner_mirror_binding(root)
-
-
-def _bound_mirror_binding(bound, root):
-    import artifact_accessors
-    import factory_config
-    import gh_issue_types
-    if not isinstance(bound, str) or not _REPOSITORY.fullmatch(bound):
-        raise artifact_accessors.FleetError("invalid feature binding", "factory.repo",
-                                          "expected a declared owner/name")
-    fleet = artifact_accessors.load_fleet(os.path.join(root, ".harness", "factory", "fleet.yaml"))
-    factory_config.repo_entry(fleet, bound)
-    config = factory_config.product_config(fleet, bound)
-    github = config["github"]
-    if github["repo"] != bound or not github["sync"]:
-        raise artifact_accessors.FleetError("invalid product mirror", bound,
-                                          "github.sync must be enabled and github.repo must match factory.repo")
-    return bound, factory_config.board_for(fleet, bound), gh_issue_types.overrides_from_config(config)
-
-
-def _owner_mirror_binding(root):
-    import artifact_accessors
-    import factory_config
-    import gh_issue_types
-    path = os.path.join(root, ".harness", "harness.json")
-    try:
-        config = artifact_accessors.load_harness_json(path)
-    except artifact_accessors.ArtifactAccessError as error:
-        raise artifact_accessors.FleetError("owner config unreadable", path, str(error)) from error
-    github = config["github"]
-    board = github["board"] if github["sync"] else None
-    return (github["repo"], None if board is None else factory_config.validate_board(board),
-            gh_issue_types.overrides_from_config(config))
-
-
-def effective_recorded_repo(doc, bound_repo):
-    """The repository a mapping is proven to live in. An UNBOUND feature's pre-provenance
-    mapping was created by the owner binding that still resolves it — there was never a second
-    destination — so its absent `github.repo` reads as that owner repository. A bound feature's
-    absence stays unproven: its old numbers may have come from an ancestor default (DEC-221)."""
-    recorded = (doc.get("github") or {}).get("repo")
-    if recorded is None and bound_repo and not has_repository_binding(doc):
-        return bound_repo
-    return recorded
-
-
-def mirror_provenance_problem(doc, bound_repo):
-    """A readable legacy mapping is not permission to reuse its unproven numbers."""
-    github = doc.get("github") or {}
-    recorded_repo = github.get("repo")
-    active = any(github.get(key) for key in ("milestone", "parent", "issues", "attached", "typed"))
-    if recorded_repo is not None and recorded_repo != bound_repo and (
-            bound_repo is not None or active or github.get("build_entry") in {"opened", "recovered-terminal"}
-            or (doc.get("factory") or {}).get("repo") is not None):
-        return f"recorded github.repo {recorded_repo!r} conflicts with bound repository {bound_repo!r}"
-    if active and (not bound_repo or effective_recorded_repo(doc, bound_repo) != bound_repo):
-        return "nonempty mirror has no matching github.repo provenance"
-    return None
-
-
-def receipt_allows_merge(doc, bound_repo):
-    """Shared provenance gate: only a recorded, provenanced Build-entry receipt allows."""
-    if mirror_provenance_problem(doc, bound_repo):
-        return False
-    github = doc.get("github") or {}
-    entry = github.get("build_entry")
-    if entry == "not-applicable":
-        return not has_repository_binding(doc)
-    if entry in {"opened", "recovered-terminal"}:
-        return bool(bound_repo) and effective_recorded_repo(doc, bound_repo) == bound_repo
-    return False
-
-

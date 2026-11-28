@@ -9,7 +9,7 @@
     "https://github.com/mruangutai/harness/actions/runs/37407705092"
   ],
   "aggregation": "per-file median across source_runs",
-  "default_seconds": 5.32,
+  "default_seconds": 5.515000000000001,
   "weights": {
     "tests/integration/test-bash-write-guard.py": 26.39,
     "tests/integration/test-board-lifecycle.py": 10.41,
@@ -52,7 +52,6 @@
     "tests/integration/test-factory-issue-types.py": 4.06,
     "tests/integration/test-feature-corpus-census.py": 3.1,
     "tests/integration/test-feature-corpus.py": 11.68,
-    "tests/integration/test-feature-json-merge.py": 1.53,
     "tests/integration/test-feature-worktree.py": 6.75,
     "tests/integration/test-gen-decisions-index.py": 2.66,
     "tests/integration/test-gh-backlog-issue-types.py": 2.55,

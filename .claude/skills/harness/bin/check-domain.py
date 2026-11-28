@@ -1437,11 +1437,11 @@ def _run_state_boundary_errors():
     check-state.py's INV-16 names): jsonschema absent (ImportError), the step contract
     unreadable (ArtifactAccessError) or without its declared members (KeyError — the two
     schema-contract cases keep it natural), its evidence-name pattern not a pattern
-    (re.error), or a contract jsonschema itself rejects (named by feature_schema, the module
-    that owns that dependency). Every one is CANNOT be checked, none is a pass."""
-    import feature_schema
+    (re.error), or a contract jsonschema itself rejects (named by feature_record.schema, the
+    module that owns that dependency). Every one is CANNOT be checked, none is a pass."""
+    from feature_record import schema as record_schema
     return ((ImportError, KeyError, re.error, _artifact_accessors.ArtifactAccessError)
-            + feature_schema.SCHEMA_ERRORS)
+            + record_schema.SCHEMA_ERRORS)
 
 
 def _done_when_problems(rel, content, checkout_root):
@@ -1724,7 +1724,7 @@ def _plan_yaml_bad_task_stations(_tasks, _legal):
 # ran, not anyone's prose. Measured on FEAT-54's own record: 336 lines, 294 of them
 # the 48-entry array. Counting it fired the cap on the only legitimately unbounded
 # part of the file, and both remedies were wrong: delete real history, or raise a
-# number that is wrong again at 60 runs. `journal_lines` lives in feature_schema so
+# number that is wrong again at 60 runs. `journal_lines` lives in feature_record.schema so
 # this gate and check-state.py's INV-23 cannot drift on the definition.
 def _rule_feature_json(rel, content, lines, shown, absolute_path):
     out = []
@@ -1739,7 +1739,7 @@ def _rule_feature_json(rel, content, lines, shown, absolute_path):
     # so a POST sweep over many candidates pays it ONCE per invocation, not per file.
     # This file already defers harness_yaml for the same reason (see :139).
     #
-    # THE TIGHT try IS FOR feature_schema ITSELF being unimportable — PYTHONPATH not
+    # THE TIGHT try IS FOR feature_record.schema ITSELF being unimportable — PYTHONPATH not
     # exported, a syntax error, the file missing. It must APPEND to problems, never
     # raise: a raise escaping the per-file loop exits 1, and :14 says exit 1 is
     # NON-BLOCKING, so the bad write would land — fail open in the case the checker
@@ -1788,7 +1788,7 @@ def _rule_feature_json(rel, content, lines, shown, absolute_path):
 def _feature_json_budget(content, lines):
     problems = []
     try:
-        import feature_schema as _fs_budget
+        from feature_record import schema as _fs_budget
         _budget = _fs_budget.FEATURE_JSON_LINE_BUDGET
         # `content`, NEVER "\n".join(lines): joining drops trailing blank lines, because
         # splitlines does not create an entry for a final newline. Measured — a 301-line
@@ -1801,7 +1801,7 @@ def _feature_json_budget(content, lines):
         # for a shape gate to be wrong.
         _budget = 300
         _counted = len(lines)
-        _basis = "whole file — feature_schema was not importable"
+        _basis = "whole file — feature_record.schema was not importable"
     if _counted > _budget:
         problems.append(f"feature.json is {_counted} lines ({_basis}) — budget is "
                         f"{_budget}. It is data a script parses, not a journal.")
@@ -1810,10 +1810,10 @@ def _feature_json_budget(content, lines):
 
 def _feature_json_schema_problems(rel, content, shown):
     try:
-        import feature_schema
+        from feature_record import schema as record_schema
         # ISSUE #749 — THE SCHEMA COMES FROM THE TREE THE FILE LIVES IN. `rel` already
         # carries the worktree prefix when the target is inside one, so joining it with
-        # `root` gives the real absolute path and feature_schema walks UP from there for
+        # `root` gives the real absolute path and feature_record.schema walks UP from there for
         # that checkout's own schemas/feature.json.
         #
         # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
@@ -1824,14 +1824,14 @@ def _feature_json_schema_problems(rel, content, shown):
         #
         # It falls back to the module's own schema when no checkout schema is above the
         # path, so a target outside any checkout is checked exactly as before.
-        return feature_schema.problems_for_text(
+        return record_schema.problems_for_text(
             content, shown,
             for_path=os.path.join(root, rel) if root else rel)
     except ImportError:
-        return ["feature_schema is not importable, so this file CANNOT be checked. "
-               "Expected at .agents/skills/harness/bin/feature_schema.py, reachable on "
+        return ["feature_record.schema is not importable, so this file CANNOT be checked. "
+               "Expected at .agents/skills/harness/bin/feature_record/schema.py, reachable on "
                "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
-    except (OSError, ValueError) + feature_schema.SCHEMA_ERRORS as _se:
+    except (OSError, ValueError) + record_schema.SCHEMA_ERRORS as _se:
         # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
         # inject any other exception into problems_for_text and an ILLEGAL document
         # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
@@ -1842,7 +1842,7 @@ def _feature_json_schema_problems(rel, content, shown):
         #
         # THOSE ARE THE CLASSES CAUGHT, BY NAME (FEAT-65): the schema file unreadable
         # (OSError), not JSON (JSONDecodeError, a ValueError), or rejected by jsonschema
-        # itself (feature_schema.SCHEMA_ERRORS, the module that owns that dependency).
+        # itself (feature_record.schema.SCHEMA_ERRORS, the module that owns that dependency).
         # A checker that raises anything else is a defect and reaches the hook's one
         # guard, which passes through at exit 0 and names it — never exit 1.
         #
@@ -1850,7 +1850,7 @@ def _feature_json_schema_problems(rel, content, shown):
         # importable" when the module imported fine and then crashed sends the reader
         # to check PYTHONPATH for a fault that is not there — an unattributable
         # finding, the defect DEC-180 fixed twice in this file.
-        return ["feature_schema CRASHED while checking this file, so it CANNOT be "
+        return ["feature_record.schema CRASHED while checking this file, so it CANNOT be "
                "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
                "in .agents/skills/harness/schemas/feature.json, not a missing "
                "dependency. The write is DENIED rather than allowed through, because "

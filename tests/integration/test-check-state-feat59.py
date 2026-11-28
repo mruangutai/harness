@@ -610,7 +610,7 @@ def case_feat61_module_loading():
     """load_repo_module behind INV-42 and INV-40: the finding names the original exception
     and a failed exec leaves no registration behind."""
     _, out, err = _plain(_isolated({"check-skill-weight.py": _RAISING_MODULE,
-                                   "plan-merge.py": _REGISTRATION_OBSERVER}))
+                                   "plan_merge/approval.py": _REGISTRATION_OBSERVER}))
     v42 = _violations(out, "INV-42")
     return [
         ("(61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it",
@@ -618,7 +618,7 @@ def case_feat61_module_loading():
          "exec failure)" in v42[0] and "restore .claude/skills/harness/bin/"
          "check-skill-weight.py" in v42[0] and "Traceback" not in err, out[:600]),
         ("(61.b) the failed exec leaves no check_skill_weight entry in sys.modules",
-         not [l for l in _lines(out, "INV-40") if "plan-merge.py did not import" in l],
+         not [l for l in _lines(out, "INV-40") if "plan_merge/approval.py did not import" in l],
          out[:600]),
     ]
 
@@ -1134,7 +1134,7 @@ def case_inv44():
 
 
 # ------------------------------------------------------------------- FEAT-63 T-02 ---
-# INV-23 graded against a HARD-CODED 300-line budget when feature_schema could not be
+# INV-23 graded against a HARD-CODED 300-line budget when feature_record.schema could not be
 # imported -- a silent fallback that kept grading with a number nobody maintained. The ruling
 # (grilling 2026-09-21) makes it CANNOT RUN like every other import boundary in this gate.
 
@@ -1148,25 +1148,25 @@ def _feat63_oversized_record(tmp):
 
 
 def _diagnosed_import_failure(out, err):
-    """Exactly one config violation, naming feature_schema and its error; no INV-23 row; no crash."""
+    """Exactly one config violation, naming feature_record.schema and its error; no INV-23 row; no crash."""
     config = [l for l in out.splitlines() if "VIOLATION" in l and "harness.json is invalid" in l]
-    return (len(config) == 1 and "feature_schema" in config[0]
+    return (len(config) == 1 and "feature_record.schema" in config[0]
             and "RuntimeError: FEAT-61 T-03 injected exec failure" in config[0]
             and not _lines(out, "INV-23") and "Traceback" not in err)
 
 
 def case_feat63_inv23_import_boundary():
-    """A feature_schema that fails to import is never a crash and never a 300-line guess. Since
+    """A feature_record.schema that fails to import is never a crash and never a 300-line guess. Since
     FEAT-2297 the config loader itself depends on it (jsonschema's one guard lives there), so the
     failure is the single diagnosed config violation naming the module and its error, and no
     config-dependent invariant — INV-23 included — grades anything on top of it."""
-    iso = _isolated({"feature_schema.py": _RAISING_MODULE})
+    iso = _isolated({"feature_record/schema.py": _RAISING_MODULE})
     with tempfile.TemporaryDirectory() as tmp:
         _fixture(tmp, _in_era(), BRIEF_NEW)
         _feat63_oversized_record(tmp)
         _code, out, err = _run_from(iso, tmp)
     return [
-        ("(63.a) an unimportable feature_schema is the diagnosed config violation naming the failure",
+        ("(63.a) an unimportable feature_record.schema is the diagnosed config violation naming the failure",
          _diagnosed_import_failure(out, err), out[:800] + err[-400:]),
         ("(63.b) the 300-line fallback is gone — nothing is graded against a guessed budget",
          not [l for l in out.splitlines() if "INV-23" in l and "budget is 300" in l], out[:800]),

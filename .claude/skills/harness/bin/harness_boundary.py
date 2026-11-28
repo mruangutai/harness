@@ -434,7 +434,7 @@ def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):
 # `--changed` is the edit-loop verb (grilling artefact, SC-06): it exists so an agent sees the
 # invariants its write just touched WITHOUT knowing the flag exists. The primary path is
 # therefore not a rule an agent must remember but this adapter, run by the two canonical
-# writers -- plan-merge.py after each successful mutating plan write, feature_json_write
+# writers -- plan-merge.py after each successful mutating plan write, feature_record.write
 # after each successful feature.json write -- once the write's own lock has been released.
 #
 # THE CHECKOUT IS DERIVED FROM THE WRITTEN PATH ALONE. `resolve_root` reads the environment
@@ -458,7 +458,7 @@ def feature_artifact_checkout_mismatch(owner_root, raw_rel, target_path):
 # derived from the path: the checker then resolves its root from its own location, which IS
 # the derived checkout, and a stale session override cannot redirect the feedback.
 _CHANGED_FEEDBACK_ENV = "HARNESS_CHANGED_FEEDBACK"
-# The union of plan-merge.py's PLAN_TAIL and feature_json_write's FEATURE_JSON_TAIL, anchored
+# The union of plan-merge.py's PLAN_TAIL and feature_record.write's FEATURE_JSON_TAIL, anchored
 # at the checkout: the tree segment is optional, exactly as the writers accept it.
 RE_CANONICAL_STRUCTURED_WRITE = re.compile(
     r"^(?P<root>.*?)/\.harness/(?:[^/]+/)?features/(?:FEAT|BUG)-[^/]+/(?:plan\.yaml|feature\.json)$")

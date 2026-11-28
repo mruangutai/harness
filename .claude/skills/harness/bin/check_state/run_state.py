@@ -132,10 +132,10 @@ def _inv16_boundary_errors():
     """What the step sweep can raise at its boundaries: jsonschema absent (ImportError), the
     step contract unreadable (ArtifactAccessError) or without its declared members (KeyError
     -- cases 61.f/g keep it natural), a contract jsonschema itself rejects (named by
-    feature_schema, the module that owns that dependency). Every one is CANNOT be checked,
-    none is a pass."""
+    feature_record.schema, the module that owns that dependency). Every one is CANNOT be
+    checked, none is a pass."""
     return ((ImportError, KeyError, artifact_accessors.ArtifactAccessError)
-            + harness_boundary.load_repo_module("feature_schema").SCHEMA_ERRORS)
+            + harness_boundary.load_repo_module("feature_record.schema").SCHEMA_ERRORS)
 
 def _inv16_run(rel, sdoc):
     bad = _inv16_unknown_keys(rel, sdoc)
@@ -288,7 +288,7 @@ def _refusal_completion(ctx, feat, rundir, sdoc):
     if not any(entry.get("refusal") for entry in entries):
         return _refused_closed_run(_unique_recorded_runs(doc), rundir, sdoc), []
     try:
-        feature_schema = harness_boundary.load_repo_module("feature_schema")
+        record_evidence = harness_boundary.load_repo_module("feature_record.evidence")
     except harness_boundary.RepoModuleError as error:
         return False, [f"{feat} refusal evidence CANNOT be checked: {error}"]
     problems = []
@@ -297,10 +297,10 @@ def _refusal_completion(ctx, feat, rundir, sdoc):
     else:
         directory = os.path.dirname(ctx.path(feat, "feature.json"))
         entry = entries[0]
-        problems.extend(feature_schema.run_evidence_problems(
+        problems.extend(record_evidence.run_evidence_problems(
             directory, doc["feature_id"], entry, doc.get("runs", [])))
         try:
-            path = feature_schema.verify_evidence_ref(directory, entry["refusal"]["digest"])
+            path = record_evidence.verify_evidence_ref(directory, entry["refusal"]["digest"])
             if os.path.realpath(path) != os.path.realpath(os.path.join(rundir, "digest.md")):
                 problems.append("refusal evidence names a different run digest")
         except (OSError, ValueError, KeyError, TypeError) as error:

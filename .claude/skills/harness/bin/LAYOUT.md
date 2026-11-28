@@ -7,6 +7,7 @@ harness-codebase-design skill, which this file does not restate.
 | Entry | Package |
 |---|---|
 | `check-state.py` | `check_state/` |
+| `feature-record.py` | `feature_record/` |
 | `plan-merge.py` | `plan_merge/` |
 
 - **Naming.** The entry keeps its hyphenated name and path, because callers, hooks and tests invoke

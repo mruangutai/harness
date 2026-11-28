@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for feature_schema.py and validate-feature-json.py (FEAT-14 T-01).
+"""Tests for feature_record/schema.py and validate-feature-json.py (FEAT-14 T-01).
 
 Plain assert, python3, stdlib only, shaped after test-check-plan-routes.py's
 check()/main()-returns-0/1 convention. Every fixture is a tempfile — nothing
@@ -33,7 +33,7 @@ REPO_ROOT = os.environ.get("HARNESS_PROJECT_DIR") or os.path.abspath(
 
 VALIDATE_CLI = os.path.join(BIN_DIR, "validate-feature-json.py")
 
-import feature_schema  # noqa: E402  (after sys.path fixup, house convention)
+from feature_record import schema as record_schema  # noqa: E402  (after sys.path fixup, house convention)
 
 failures = []
 
@@ -122,7 +122,7 @@ def required_doc():
 
 
 def clean(doc, display="sample.json"):
-    return feature_schema.problems_for_text(json.dumps(doc), display)
+    return record_schema.problems_for_text(json.dumps(doc), display)
 
 
 def write_file(tmpdir, name, text):
@@ -141,8 +141,8 @@ REQUIRED_KEYS = (
     "cycles_used", "max_total_cycles", "runs",
 )
 OPTIONAL_KEYS = ("max_total_runs", "github", "factory")
-# Spelled out independently rather than imported from feature_schema — importing
-# feature_schema._REDIRECT and asserting it appears in feature_schema's own output
+# Spelled out independently rather than imported from feature_record.schema — importing
+# its _REDIRECT and asserting it appears in that module's own output
 # would be tautological. This is the literal sentence T-01's intent gives, verbatim.
 REDIRECT_SENTENCE = (
     "This file holds execution state only. An operator ruling goes in that feature's "
@@ -175,7 +175,7 @@ def case_rejected_omitting_one_required_key():
         doc = required_doc()
         del doc[key]
         problems = clean(doc)
-        # The quoted form, matching feature_schema's f"missing required key {key!r}"
+        # The quoted form, matching feature_record.schema's f"missing required key {key!r}"
         # rendering — a bare substring match cannot tell "names the right key" from
         # "names some key that happens to contain this key's letters".
         named = any(f"'{key}'" in p for p in problems)
@@ -359,8 +359,8 @@ def case_json_extension_rejects_yaml_content_yaml_extension_accepts_it():
         json_path = write_file(td, "sample.json", yaml_text)
         yaml_path = write_file(td, "sample.yaml", yaml_text)
 
-        json_problems = feature_schema.problems_for_file(json_path)
-        yaml_problems = feature_schema.problems_for_file(yaml_path)
+        json_problems = record_schema.problems_for_file(json_path)
+        yaml_problems = record_schema.problems_for_file(yaml_path)
 
     named = any("JSON" in p or "json" in p for p in json_problems)
     check("json_extension_rejects_yaml_content", json_problems != [] and named,
@@ -373,19 +373,19 @@ def case_problems_for_text_names_real_display_path_in_every_line():
     doc = required_doc()
     del doc["branch"]
     del doc["pr"]
-    problems = feature_schema.problems_for_text(json.dumps(doc), display)
+    problems = record_schema.problems_for_text(json.dumps(doc), display)
     check("problems_for_text_at_least_two_problems", len(problems) >= 2, problems)
     check("problems_for_text_display_path_in_every_line",
           problems != [] and all(display in p for p in problems), problems)
 
 
 def case_problems_for_text_jsonschema_forced_unavailable():
-    original = feature_schema.JSONSCHEMA_AVAILABLE
+    original = record_schema.JSONSCHEMA_AVAILABLE
     try:
-        feature_schema.JSONSCHEMA_AVAILABLE = False
-        problems = feature_schema.problems_for_text(json.dumps(full_doc()), "sample.json")
+        record_schema.JSONSCHEMA_AVAILABLE = False
+        problems = record_schema.problems_for_text(json.dumps(full_doc()), "sample.json")
     finally:
-        feature_schema.JSONSCHEMA_AVAILABLE = original
+        record_schema.JSONSCHEMA_AVAILABLE = original
     check("forced_unavailable_returns_non_empty", problems != [], problems)
     check("forced_unavailable_single_line", len(problems) == 1, problems)
     check("forced_unavailable_names_required", "REQUIRED" in problems[0], problems)
@@ -622,17 +622,17 @@ def _t15_doc(entries):
 
 def _t15_probe_displays():
     """Synthetic display paths PLUS one per feature_id_probe_support.held_feature_ids(
-    feature_schema), so a reintroduced per-feature exemption table is probed without this
+    feature_record.schema), so a reintroduced per-feature exemption table is probed without this
     file naming any real feature."""
     from feature_id_probe_support import held_feature_ids
-    names = [T15_FEATURE, "BUG-9-x"] + held_feature_ids(feature_schema)
+    names = [T15_FEATURE, "BUG-9-x"] + held_feature_ids(record_schema)
     return [_t15_display(n) for n in names] + ["/tmp/x/no-features-segment/feature.json"]
 
 
 def case_t15_refused_without_agent():
     """CASE A, REFUSED. An index-0 entry without `agent` is refused. The TEXT is asserted,
     not merely the count: an unrelated problem would otherwise satisfy this case."""
-    probs = feature_schema.problems_for_text(
+    probs = record_schema.problems_for_text(
         _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}]),
         _t15_display(T15_FEATURE))
     hit = [p for p in probs if "runs[0]" in p and "'agent'" in p]
@@ -648,7 +648,7 @@ def case_t15_uniform_for_every_feature_and_index():
     doc = _t15_doc([{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)])
     exempted = []
     for display in _t15_probe_displays():
-        probs = feature_schema.problems_for_text(doc, display)
+        probs = record_schema.problems_for_text(doc, display)
         named = [i for i in range(n) if any(f"runs[{i}]" in p and "'agent'" in p for p in probs)]
         if len(probs) != n or named != list(range(n)):
             exempted.append((display, len(probs)))
@@ -664,24 +664,24 @@ def case_t15_accepted_with_the_field():
     ok_doc = _t15_doc([first, {"id": "new", "squad": "eng", "verdict": "PASS",
                                "agent": "harness-backend-dev"}])
     check("t15_d_a_new_entry_naming_its_agent_validates",
-          feature_schema.problems_for_text(ok_doc, _t15_display(T15_FEATURE)) == [],
+          record_schema.problems_for_text(ok_doc, _t15_display(T15_FEATURE)) == [],
           "a populated agent was still refused")
 
     empty_doc = _t15_doc([first, {"id": "new", "squad": "eng", "verdict": "PASS",
                                   "agent": ""}])
-    probs = feature_schema.problems_for_text(empty_doc, _t15_display(T15_FEATURE))
+    probs = record_schema.problems_for_text(empty_doc, _t15_display(T15_FEATURE))
     check("t15_d_an_empty_agent_string_is_refused_so_the_check_is_on_the_value",
           len(probs) == 1 and "runs[1]" in probs[0], f"{probs}")
 
 def case_t15_red():
     """CASE E, RED PROOF. An exit status is never the proof (D-08). Copy
-    feature_schema.py with the agent rule's call site removed, assert the text
+    feature_record/schema.py with the agent rule's call site removed, assert the text
     DIFFERS before running anything, and compare COUNTS on case A's fixture: original
     at least 1, mutant 0. Equal counts are INCONCLUSIVE and exit non-zero.
 
     THE MUTANT NEEDS THE ORIGINAL'S SCHEMA_PATH, and finding that out is the point.
     The first version of this proof reasoned that a tmpdir copy was safe because
-    feature_schema imports only json, os and jsonschema, none of them relative. True
+    the schema module imports only json, os and jsonschema, none of them relative. True
     of the IMPORTS and false of the module: SCHEMA_PATH is derived from
     os.path.dirname(os.path.abspath(__file__)), so the copy looked for
     feature-schema.json beside itself and raised FileNotFoundError. That is the third
@@ -689,7 +689,7 @@ def case_t15_red():
     FEAT-30's Q3, the behind-gate proof, and this. Overriding SCHEMA_PATH does not
     weaken the comparison, it is what makes it fair: both sides now validate against
     the identical schema, so the ONLY difference between them is the removed rule."""
-    src_path = os.path.join(BIN_DIR, "feature_schema.py")
+    src_path = os.path.join(BIN_DIR, "feature_record", "schema.py")
     src = open(src_path).read()
     needle = "    problems.extend(_runs_agent_problems(doc, display))\n"
     if needle not in src:
@@ -702,17 +702,17 @@ def case_t15_red():
 
     import importlib.util
     with tempfile.TemporaryDirectory() as tmp:
-        mpath = os.path.join(tmp, "mutant_feature_schema.py")
+        mpath = os.path.join(tmp, "mutant_record_schema.py")
         with open(mpath, "w") as f:
             f.write(mutant_text)
-        spec = importlib.util.spec_from_file_location("mutant_feature_schema", mpath)
+        spec = importlib.util.spec_from_file_location("mutant_record_schema", mpath)
         mutant = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mutant)
-        mutant.SCHEMA_PATH = feature_schema.SCHEMA_PATH
+        mutant.SCHEMA_PATH = record_schema.SCHEMA_PATH
 
         doc = _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}])
         display = _t15_display(T15_FEATURE)
-        n_real = len(feature_schema.problems_for_text(doc, display))
+        n_real = len(record_schema.problems_for_text(doc, display))
         n_mut = len(mutant.problems_for_text(doc, display))
     check("t15_e_the_agent_rule_is_load_bearing",
           n_real >= 1 and n_mut == 0,
@@ -724,7 +724,7 @@ def _tree_with_schema(root, extra_github_key=None):
     .claude/skills/harness/schemas/, optionally declaring one extra key under `github`."""
     binp = os.path.join(root, ".claude", "skills", "harness", "schemas")
     os.makedirs(binp, exist_ok=True)
-    sch = json.loads(open(feature_schema.SCHEMA_PATH, encoding="utf-8").read())
+    sch = json.loads(open(record_schema.SCHEMA_PATH, encoding="utf-8").read())
     if extra_github_key:
         sch["$defs"]["github"]["properties"][extra_github_key] = {
             "type": "array", "items": {"type": "integer"}}
@@ -756,7 +756,7 @@ def case_749_schema_comes_from_the_written_tree():
         doc = full_doc()
         doc["github"]["fixture_receipts"] = [492]
         text = json.dumps(doc)
-        probs = feature_schema.problems_for_text(text, "feature.json", for_path=target)
+        probs = record_schema.problems_for_text(text, "feature.json", for_path=target)
         check("case_749a: a key declared in the WRITTEN tree's schema is accepted",
               probs == [] and clean(doc) != [], repr(probs[:2]))
 
@@ -770,7 +770,7 @@ def case_749_guard_still_rejects_a_truly_undeclared_key():
         target = _tree_with_schema(tmp)          # no extra key declared
         doc = full_doc()
         doc["github"]["invented_key"] = [1]
-        probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
+        probs = record_schema.problems_for_text(json.dumps(doc), "feature.json",
                                                  for_path=target)
         check("case_749b: an UNDECLARED key is still rejected against the written tree",
               any("invented_key" in p for p in probs), repr(probs[:2]))
@@ -789,7 +789,7 @@ def case_749_falls_back_when_no_tree_schema_exists():
         target = os.path.join(tmp, "feature.json")
         doc = full_doc()
         doc["github"]["never_declared_anywhere"] = [492]
-        probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
+        probs = record_schema.problems_for_text(json.dumps(doc), "feature.json",
                                                  for_path=target)
         check("case_749c: with no tree schema, the module's own schema still governs",
               any("never_declared_anywhere" in p for p in probs), repr(probs[:2]))
