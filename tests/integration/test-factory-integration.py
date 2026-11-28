@@ -15,11 +15,11 @@ except the live-git smoke check at the bottom, which points FACTORY_GIT at the r
 against a fully local (bare-repo) fixture — no network, no github.com, no mutation of this
 checkout. Every fixture lives under tempfile.TemporaryDirectory.
 
-THE SEAM: FACTORY_GH and FACTORY_GIT are read at call time by factory_gh.py / factory_workspace.py
+THE SEAM: FACTORY_GH and FACTORY_GIT are read at call time by github/transport.py / factory_workspace.py
 (never cached at import), so a stub executable at an arbitrary path is honoured. The stub `gh`
 here (`_FAKE_GH_SRC`) is a small stateful Python script driven by a JSON state file (env var
-GH_STATE) that every case pre-seeds; it implements exactly the gh argv surface factory_gh.py and
-gh_issues.py emit — read from those two files directly, not guessed. The stub `git`
+GH_STATE) that every case pre-seeds; it implements exactly the gh argv surface github/transport.py and
+github/issue_args.py emit — read from those two files directly, not guessed. The stub `git`
 (`_FAKE_GIT_OK_SRC`) always exits 0 with empty output; T-06's own real argv forms are unit-tested
 by recorder in test-factory-workspace.py, and are exercised for REAL only in the bottom section.
 
@@ -36,7 +36,7 @@ would mean the override missed and resolve_root() silently fell back to this che
 which would make the case's HARNESS_PROJECT_DIR redirect a no-op without ever failing loudly.
 
 TWO OF THE FIVE TOOLS NEVER CALL gh AT ALL (grep-verified: factory_config.py and
-factory_workspace.py import neither factory_gh nor gh_issues), so the SC-10 "bad-auth exits 2"
+factory_workspace.py import no github module), so the SC-10 "bad-auth exits 2"
 case is authored only for factory_decompose.py, factory_claim.py and factory_land.py. This is
 reported explicitly rather than silently narrowing "every one of the five" from the intent text.
 """
@@ -75,7 +75,7 @@ check = C.check
 
 _FAKE_GH_SRC = r'''#!/usr/bin/env python3
 """A stateful fake `gh`, driven by env var GH_STATE (a JSON file) and argv matching against
-the exact surface factory_gh.py / gh_issues.py emit. Never touches the network."""
+the exact surface github/transport.py / github/issue_args.py emit. Never touches the network."""
 import base64
 import json
 import os
@@ -224,7 +224,7 @@ def main():
                 query_text = argv[i + 1][len("query="):]
 
         if "projectItems" in query_text:
-            # FEAT-13's targeted single-issue lookup (factory_gh.issue_board_item_id), keyed on
+            # FEAT-13's targeted single-issue lookup (github.projects.issue_board_item_id), keyed on
             # the query TEXT (never argv order) since this dispatch sits ahead of the older
             # field-resolve query below and both hit ["api", "graphql"]. Read the real argv the
             # tool emits rather than guessing it.
@@ -254,7 +254,7 @@ def main():
             }}}}}))
 
         # T-03 (FEAT-33) additions below — the six new board-lifecycle primitives in
-        # factory_gh.py. Each is dispatched on distinctive TEXT within query_text, never on argv
+        # github/transport.py. Each is dispatched on distinctive TEXT within query_text, never on argv
         # order, because every one of these calls ["api", "graphql"] the same way
         # _project_field_resolve's query does. Ordered from most to least specific so no shorter
         # substring shadows a longer one (createProjectV2Field before createProjectV2().
@@ -309,7 +309,7 @@ def main():
             ok(json.dumps({"data": {"repository": {"id": "R_FAKE"}}}))
 
         if "fieldValueByName" in query_text:
-            # gh_board.board_stations -> factory_gh.project_item_stations's own query
+            # github.board.board_stations -> github.projects.project_item_stations's own query
             # (board_lifecycle.py audit's STATION finding class, T-05 FEAT-33). Built from the
             # same state["items"] the "project item-add" and "project item-edit" branches above
             # already maintain, so a case that moved a card with those calls is seen here too.
@@ -353,7 +353,7 @@ def main():
 
         if "ProjectV2IterationField" in query_text:
             # board_lifecycle.py's own _field_probe query (T-04, FEAT-33) — not one of
-            # factory_gh.py's named primitives; see board_lifecycle.py's module docstring
+            # github/transport.py's named primitives; see board_lifecycle.py's module docstring
             # (FIELD-ID GAP) for why it exists. Matched on a marker no other query in this tree
             # sends, so it cannot shadow (or be shadowed by) any branch above or below it.
             # Answered as "field exists, is single-select" — the complete-board shape this
@@ -365,7 +365,7 @@ def main():
                 "field": {"__typename": "ProjectV2SingleSelectField", "id": "FIELD_STATUS"},
             }}}}))
 
-        # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
+        # The single GraphQL query github.projects._project_field_resolve sends (D-01). Answered
         # unconditionally, without inspecting the query= text — that guard lives once, in
         # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it
         # this would still work by accident, since "graphql" matches none of the REST regexes.
@@ -1270,9 +1270,9 @@ with tempfile.TemporaryDirectory() as td:
 
 
 # ============================================================================
-# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive factory_gh.py gains in this
-# task (D-12). factory_gh.py is a LIBRARY with no __main__ (its own module docstring says so), so
-# "forking a real process" here means a real `python3 -c` subprocess that imports factory_gh and
+# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive factory_gh.py (now
+# github/projects.py) gained in this task (D-12). github/transport.py is a LIBRARY with no __main__ (its own module docstring says so), so
+# "forking a real process" here means a real `python3 -c` subprocess that imports a github module and
 # calls the primitive — the discriminating property is that the GraphQL call round-trips through
 # a genuinely forked `gh` binary reading GH_STATE from disk, which an in-process
 # subprocess.run-monkeypatch (test-factory-gh.py, unit-side) cannot exercise. Each case asserts
@@ -1280,7 +1280,7 @@ with tempfile.TemporaryDirectory() as td:
 # never the return value alone, per the plan's "assert on argv and variables" instruction.
 # ============================================================================
 def run_forked(td, argv, gh_state=None, root=None):
-    """Fork `python3 <argv>` from cwd=BIN_DIR (which puts factory_gh on sys.path[0]) with
+    """Fork `python3 <argv>` from cwd=BIN_DIR (which puts the github package on sys.path[0]) with
     FACTORY_GH pointed at the stub, GH_CALL_LOG recording every argv the stub receives, and
     HARNESS_PROJECT_DIR set to `root` when one is given. Returns (CompletedProcess, [argv, ...])."""
     gh = os.path.join(td, "fake_gh.py")
@@ -1292,7 +1292,6 @@ def run_forked(td, argv, gh_state=None, root=None):
         env["HARNESS_PROJECT_DIR"] = root
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
     r = subprocess.run(
         [sys.executable] + argv, cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
@@ -1301,7 +1300,7 @@ def run_forked(td, argv, gh_state=None, root=None):
     return r, read_lines(call_log, json.loads)
 
 
-def run_factory_gh_call(td, script, gh_state=None):
+def run_github_call(td, script, gh_state=None):
     """Fork `python3 -c <script>` through run_forked."""
     return run_forked(td, ["-c", script], gh_state)
 
@@ -1315,9 +1314,9 @@ def lifecycle_root(td):
 
 
 with tempfile.TemporaryDirectory() as td:
-    r, calls = run_factory_gh_call(td, (
-        "import json, factory_gh as fgh\n"
-        "print(json.dumps(fgh.project_create('acmeowner', 'sample-product board')))\n"
+    r, calls = run_github_call(td, (
+        "import json, github.projects\n"
+        "print(json.dumps(github.projects.project_create('acmeowner', 'sample-product board')))\n"
     ))
     check("(I) project_create: forked process exits 0",
           r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
@@ -1330,9 +1329,9 @@ with tempfile.TemporaryDirectory() as td:
           any("title=sample-product board" in a for c in calls for a in c), calls)
 
 with tempfile.TemporaryDirectory() as td:
-    r, calls = run_factory_gh_call(td, (
-        "import json, factory_gh as fgh\n"
-        "print(json.dumps(fgh.project_link_repository('PVT_kwFAKE', 'acme/widget')))\n"
+    r, calls = run_github_call(td, (
+        "import json, github.projects\n"
+        "print(json.dumps(github.projects.project_link_repository('PVT_kwFAKE', 'acme/widget')))\n"
     ))
     check("(I) project_link_repository: forked process exits 0",
           r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
@@ -1345,9 +1344,9 @@ with tempfile.TemporaryDirectory() as td:
           any("name=widget" in a for c in calls for a in c), calls)
 
 with tempfile.TemporaryDirectory() as td:
-    r, calls = run_factory_gh_call(td, (
-        "import json, factory_gh as fgh\n"
-        "print(json.dumps(fgh.project_single_select_create("
+    r, calls = run_github_call(td, (
+        "import json, github.projects\n"
+        "print(json.dumps(github.projects.project_single_select_create("
         "'PVT_kwFAKE', 'Status', ['Backlog','Plan','Ready','Building','Review','Done'])))\n"
     ))
     check("(I) project_single_select_create: forked process exits 0",
@@ -1359,9 +1358,9 @@ with tempfile.TemporaryDirectory() as td:
           and sent.count('description: ""') == 6, sent)
 
 with tempfile.TemporaryDirectory() as td:
-    r, calls = run_factory_gh_call(td, (
-        "import json, factory_gh as fgh\n"
-        "print(json.dumps(fgh.project_single_select_extend("
+    r, calls = run_github_call(td, (
+        "import json, github.projects\n"
+        "print(json.dumps(github.projects.project_single_select_extend("
         "'PVT_kwFAKE', 'FIELD_STATUS', "
         "['Backlog','Plan','Ready','Building','Review','Done'])))\n"
     ))

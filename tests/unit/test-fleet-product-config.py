@@ -9,7 +9,7 @@ order, catches only FleetError, and that the CLI flag turns an unreachable membe
 (factory_cli.EXIT_REFUSED) while an all-reachable fleet exits 0.
 
 Mirrors tests/unit/test-factory-config.py's conventions: the shared unit_support/check_support
-seams, the same memo-clearing check() wrapper, and fc.factory_gh.file_at_ref swapped on the
+seams, the same memo-clearing check() wrapper, and github.refs.file_at_ref swapped on the
 imported module object. This file is UNIT: no subprocess, no gh, no network, and no case calls
 load_fleet() with no argument — FLEET_PATH binds at import to the LIVE repository's fleet.yaml,
 so an omitted path would pass for the wrong reason.
@@ -23,6 +23,8 @@ from unittest import mock
 import artifact_accessors
 
 import factory_config as fc
+import github.refs
+import github.transport
 from check_support import Checks
 from factory_support import invoke, write_fleet
 from harness_config_support import build_config  # noqa: E402
@@ -43,9 +45,9 @@ def check(name, cond, detail=""):
 
 
 def patched_file_at_ref(func):
-    """Swap factory_gh.file_at_ref on the imported module object — never gh, never a network
+    """Swap github.refs.file_at_ref on the imported module object — never gh, never a network
     call — for the life of the `with` block."""
-    return mock.patch.object(fc.factory_gh, "file_at_ref", func)
+    return mock.patch.object(github.refs, "file_at_ref", func)
 
 
 # Two declared repos, in DECLARATION ORDER, so product_config_report's ordering claim and case
@@ -94,10 +96,10 @@ def stub_all_ok(repo, path, ref):
 
 
 def stub_first_gherror_second_ok(repo, path, ref):
-    """Raises factory_gh.GhError for the FIRST declared name, returns valid JSON for the
+    """Raises github.transport.GhError for the FIRST declared name, returns valid JSON for the
     second — case (b)'s exact shape."""
     if repo == _FIRST_NAME:
-        raise fc.factory_gh.GhError(
+        raise github.transport.GhError(
             ["gh", "api", f"repos/{repo}/contents/.harness/harness.json"],
             1, "", "404", "gh call failed", repo, "check gh auth and the ref",
         )
@@ -105,7 +107,7 @@ def stub_first_gherror_second_ok(repo, path, ref):
 
 
 def stub_first_unexpected_second_ok(repo, path, ref):
-    """Raises a bare RuntimeError — neither FleetError nor factory_gh.GhError — for the FIRST
+    """Raises a bare RuntimeError — neither FleetError nor github.transport.GhError — for the FIRST
     declared name, returns valid JSON for the second. V-2: product_config_report's except
     clause must stay narrowed to FleetError; a widened `except Exception` would swallow this."""
     if repo == _FIRST_NAME:
@@ -151,7 +153,7 @@ check("(b)/(d) len(report) equals len(fleet['repos'])",
 # --- (f) V-2: stub raises a bare RuntimeError (neither FleetError nor GhError) for the FIRST -
 # name -> product_config_report must PROPAGATE it, never fold it into an ok:False entry. This
 # distinguishes `except FleetError` from a widened `except Exception`: every stub above only
-# ever raises factory_gh.GhError, which product_config already converts to FleetError before
+# ever raises github.transport.GhError, which product_config already converts to FleetError before
 # product_config_report's except clause sees it, so none of them exercise its narrowness.
 fleet = artifact_accessors.load_fleet(FLEET_PATH)
 with patched_file_at_ref(stub_first_unexpected_second_ok):

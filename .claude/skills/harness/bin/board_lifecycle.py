@@ -59,12 +59,12 @@ no-milestone tickets, which are decided-not-attempted and never fail the run.
 
 RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the SAME detection
 `audit` runs, never re-derived) and fixes exactly the classes a write CAN fix, per finding:
-  - STATION: `gh_board.set_station` moves the card to the declared done station.
+  - STATION: `github.board.set_station` moves the card to the declared done station.
   - REASON: PATCHes `repos/<repo>/issues/<n>` to state=closed. An issue carrying the
     `abandoned` label gets state_reason=not_planned; every other REASON finding (by
     definition already null) gets state_reason=completed.
-  - LABEL: creates the `abandoned` label through `factory_gh.try_gh` (never
-    `factory_gh.ensure_labels` — see below), then `gh issue edit <n> --add-label abandoned`.
+  - LABEL: creates the `abandoned` label through `github.transport.try_gh` (never
+    `github.issues.ensure_labels` — see below), then `gh issue edit <n> --add-label abandoned`.
   - STATUS, for active features at plan, ready, building, or review: moves every unique source,
     parent, and non-abandoned task card to the feature's recorded plan station. `plan.yaml` is
     the authority (DEC-138); this never rewrites a Harness artifact. Done remains ship-only,
@@ -75,17 +75,17 @@ API can enable a workflow (D-09).
 RECONCILE SHARES STATUS's SCOPING (#783's fix): it runs `_audit_findings`, the SAME detection
 function `audit` calls, so a `--repo` naming anything but this checkout's own repo never
 produces a STATUS finding for reconcile to attempt either -- before the fix this meant
-`reconcile --apply` against a served repo could call `gh_board.set_station` on THAT repo's card
+`reconcile --apply` against a served repo could call `github.board.set_station` on THAT repo's card
 using a station computed from THIS checkout's own, unrelated feature.json. The fix lives once,
 in detection, so both callers inherit it without a second check.
 
-THE LABEL CREATE IS ITS OWN `factory_gh.try_gh` CALL, never a label helper: `gh-sync.py` is
+THE LABEL CREATE IS ITS OWN `github.transport.try_gh` CALL, never a label helper: `gh-sync.py` is
 HYPHENATED, so its own `ensure_labels` is not an importable module function; and the only
-importable one, `factory_gh.ensure_labels`, passes `--force` with its own single `_LABEL_COLOR`,
+importable one, `github.issues.ensure_labels`, passes `--force` with its own single `_LABEL_COLOR`,
 which would repaint `abandoned` harness-purple over gh-sync.py's `b60205` on every run this
 module makes (D-04's three-implementations collision). The literal `b60205` here matches
 gh-sync.py's own colour for the same label, and the create never passes `--force`. Like every
-other call in this module it reaches gh through factory_gh, so `FACTORY_GH` is the one binary
+other call in this module it reaches gh through github.transport, so `FACTORY_GH` is the one binary
 override. Only gh's existing-label answer is idempotent (the same matcher gh-sync.py's
 `ensure_labels` pins); any other failure, a launch failure included, raises `GhError` into the
 per-card catch, so no label is attached after a failed create (FEAT-2452).
@@ -112,11 +112,11 @@ AUDIT (T-05) — read-only, exits 0/1/4, never 2 or 3 (those are provision's own
 caller/declaration error and the new-project race). It performs EXACTLY FOUR network calls, one
 answering each bullet below, and this count is the one a later reader is told to trust — if a
 future change adds a fifth call, name it here rather than silently letting this figure go stale:
-  1. `factory_gh.project_field_options` — the board's Status field option names (DECLARATION).
+  1. `github.projects.project_field_options` — the board's Status field option names (DECLARATION).
   2. `gh issue list --repo <repo> --state closed --json number,stateReason,labels --limit 1000`
      — every closed issue's number, close reason and labels (REASON, LABEL, and feeds STATION).
-  3. `gh_board.board_stations` — the targeted, cost-1 station read (STATION).
-  4. `factory_gh.project_workflows` — the three named automation workflows (WORKFLOW).
+  3. `github.board.board_stations` — the targeted, cost-1 station read (STATION).
+  4. `github.projects.project_workflows` — the three named automation workflows (WORKFLOW).
 STATUS (T-15, below) adds a SIXTH finding class but no fifth network call: it reads every
 feature's `feature.json` off disk and reuses call 3's already-fetched station map. STATUS runs
 ONLY when the audited repo is THIS checkout's own declared repo (#783's fix, below) — it
@@ -149,9 +149,9 @@ never be mistaken for an audit that found nothing.
 
 REQUESTED BOARD RESOLUTION, for both repositories:
   - no --repo, or --repo naming THIS checkout's own harness.json `github.repo`: the board comes
-    from `gh_board.load_board(harness_boundary.resolve_root(_BIN_DIR))`. `resolve_root` is the
+    from `github.board.load_board(harness_boundary.resolve_root(_BIN_DIR))`. `resolve_root` is the
     one shared root resolver (harness_boundary.py, already reused by factory_config.py,
-    factory_claim.py, feature-worktree.py and gh_cost_log.py) — never a hand-rolled walk-up.
+    factory_claim.py and feature-worktree.py) — never a hand-rolled walk-up.
     board-station.py made a THIRD walk-up for a different purpose already; this is not a fourth.
   - --repo naming a fleet member: `factory_config.board_for(fleet, repo)`, which reads that
     repository's own `.harness/harness.json` REMOTELY at its default_branch — this tool never
@@ -164,8 +164,8 @@ not the ancestor's mirror flags. Only matching board/repository provenance yield
 factory issue claims and unproven legacy numbers are diagnostics, never projection authority.
 
 provision is idempotent, and NEVER infers "there is no project" from a field-resolution failure
-(see `factory_gh.project_resolve`'s own docstring for the disaster that produces — a duplicate
-Projects v2 board on the operator's account). `factory_gh.project_resolve` is the ONLY signal
+(see `github.projects.project_resolve`'s own docstring for the disaster that produces — a duplicate
+Projects v2 board on the operator's account). `github.projects.project_resolve` is the ONLY signal
 this module trusts to decide "call project_create"; every other GhError from that first read
 propagates unhandled and mutates nothing.
 
@@ -190,12 +190,12 @@ ONCE A PROJECT EXISTS, 2 IS UNREACHABLE FROM ANY FAILURE THIS MODULE CATCHES —
 exception class, not asserted (fix cycle c4). Both post-create blocks (the link, and
 `_fresh_board_station_field`'s field work) catch BaseException, re-raising only SystemExit so a
 deliberate exit 4 passes through. c3 stated this outcome while catching GhError alone, which was
-false: `factory_gh.run_gh`'s bare `json.loads(r.stdout)` (factory_gh.py:170) raises ValueError on
+false: `github.transport.run_gh`'s bare `json.loads(r.stdout)` (github/transport.py) raises ValueError on
 an unparseable success body, and `_project_field_resolve`'s unguarded `field_obj["id"]` /
-`o["name"]` (factory_gh.py:459-462) raise KeyError or TypeError — each escaped to
+`o["name"]` (github/projects.py) raise KeyError or TypeError — each escaped to
 `factory_cli.run`'s `except BaseException` (factory_cli.py:88) and exited 2, the code that means
 nothing was written, with a board already created and linked.
-ONE WINDOW REMAINS, and it is named rather than papered over: `factory_gh.project_create` itself
+ONE WINDOW REMAINS, and it is named rather than papered over: `github.projects.project_create` itself
 is not wrapped, because a failure there has no created number to report. Every GhError it raises
 is a genuine zero-mutation failure (the owner-id read failed, or the mutation was rejected and
 returned null), so 2 is correct for those. A non-GhError inside it — a `json.loads` ValueError on
@@ -217,7 +217,7 @@ Todo and In Progress. That exact replace is confined to a project the SAME run c
 item exists to lose a column; see `_fresh_board_station_field` and `_extend_to_union`.
 
 THE LINKAGE GUARD (fix cycle c1, MUST-FIX 1) — read this before changing step 2.5's dispatch.
-`factory_gh.project_resolve` confirms only that a project NUMBER exists under `owner` — its query
+`github.projects.project_resolve` confirms only that a project NUMBER exists under `owner` — its query
 carries no repository linkage at all. Projects v2 numbers are per-OWNER, not per-repo (that is why
 `linkProjectV2ToRepository` exists as a separate mutation), so a SERVED repo's own remote
 harness.json can legitimately name a project that is not linked to it — including this checkout's
@@ -226,22 +226,22 @@ extend it) are UNGUARDED against that: `project_single_select_extend`'s mutation
 option set, so landing on the wrong board there deletes its columns. `_project_linked_repos`,
 below, is the read side T-03 never built (T-03 built the write, `project_link_repository`, but no
 read of the same connection) — one paginated, read-only GraphQL query over the project's own
-`repositories` connection, sent through `factory_gh.run_gh` like `_field_probe`. `provision` refuses
+`repositories` connection, sent through `github.transport.run_gh` like `_field_probe`. `provision` refuses
 (exit 2, zero mutations) whenever `repo_name` is absent from it, before either field-schema branch
 runs.
 
-THE FIELD-ID GAP — read this before changing step 3's dispatch. factory_gh.py exposes six
+THE FIELD-ID GAP — read this before changing step 3's dispatch. github/projects.py exposes six
 primitives for board provisioning (T-03) plus the pre-existing `project_field_options`, and NONE
 of the seven returns an EXISTING field's node id or its actual GraphQL type name:
-`project_field_options` (factory_gh.py:465-467) discards both, returning option NAMES only, and
+`project_field_options` (github/projects.py) discards both, returning option NAMES only, and
 `_project_field_resolve` — the one function that has them — is private, and deliberately
 collapses "field absent" with "field exists but is not single-select" into one GhError
-(factory_gh.py:451-457, a documented prior decision, D-04). Both `project_single_select_extend`
+(github/projects.py, a documented prior decision, D-04). Both `project_single_select_extend`
 (needs the EXISTING field's id) and this module's own disaster guard (must tell "absent" from
 "wrong type" apart so it never calls `createProjectV2Field` for a name already taken — the plan
 forbids that outright) are unreachable through the seven given primitives alone. `_field_probe`
-below is the minimal fix: ONE read-only GraphQL query, sent through `factory_gh.run_gh` — the
-same FACTORY_GH-indirected, cost-logged, rate-limit-aware seam every primitive in factory_gh.py
+below is the minimal fix: ONE read-only GraphQL query, sent through `github.transport.run_gh` — the
+same FACTORY_GH-indirected, rate-limit-aware seam every primitive in github/projects.py
 itself goes through, so it is exactly as fake-testable as the rest of this module — asking only
 for the field's `__typename` and node id. It mutates nothing. It is reported here, and in this
 task's receipt, as a plan gap rather than folded in silently: T-04's dispatch named exactly seven
@@ -259,8 +259,9 @@ import factory_cli
 import factory_config
 import feature_corpus
 from feature_record import binding as record_binding, read as record_read, schema as record_schema
-import factory_gh
-import gh_board
+import github.projects
+import github.transport
+import github.board
 import harness_boundary
 import harness_yaml
 
@@ -285,7 +286,7 @@ def _out(line):
 
 def _own_repo(root):
     """`harness.json`'s `github.repo` (None when unpinned), read through the validated loader
-    beside `gh_board.load_board`, which returns only the board. A missing or invalid config is a
+    beside `github.board.load_board`, which returns only the board. A missing or invalid config is a
     FleetError — the same refusal load_board raises for this checkout — never "no repo"."""
     path = os.path.join(root, ".harness", "harness.json")
     try:
@@ -300,7 +301,7 @@ def _resolve_board(root, repo_arg):
     never for an unresolved repository, which refuses instead (factory_cli.refuse, exit 2)."""
     own_repo = _own_repo(root)
     if repo_arg is None or repo_arg == own_repo:
-        return (own_repo or repo_arg), gh_board.load_board(root)
+        return (own_repo or repo_arg), github.board.load_board(root)
     fleet = artifact_accessors.load_fleet(factory_config.FLEET_PATH)
     names = [e.get("name") for e in fleet.get("repos", []) if isinstance(e, dict)]
     if repo_arg not in names:
@@ -345,19 +346,19 @@ def _field_probe(owner, number, field):
     there)."""
     argv = ["api", "graphql", "-f", "query=" + _FIELD_PROBE_QUERY,
             "-f", "owner=" + owner, "-F", "number=" + str(number), "-f", "field=" + field]
-    env = factory_gh.run_gh(argv, json_out=True)
+    env = github.transport.run_gh(argv, json_out=True)
     data = env.get("data") or {}
     repo_owner = data.get("repositoryOwner")
     if repo_owner is None:
-        raise factory_gh.GhError(argv, None, "", "",
+        raise github.transport.GhError(argv, None, "", "",
                                   "project owner not found", owner, "check the owner login")
     if repo_owner.get("__typename") != "User":
-        raise factory_gh.GhError(argv, None, "", "",
+        raise github.transport.GhError(argv, None, "", "",
                                   "organization-owned board not supported", owner,
                                   "run against a user-owned board")
     project = repo_owner.get("projectV2")
     if project is None:
-        raise factory_gh.GhError(argv, None, "", "",
+        raise github.transport.GhError(argv, None, "", "",
                                   "project not found", f"{owner} project {number}",
                                   "check the board number")
     field_obj = project.get("field")
@@ -393,7 +394,7 @@ def _project_linked_repos(owner, number):
     """Every `owner/name` string `owner`'s project `number` is linked to, read-only, via
     `_LINKED_REPOS_QUERY` paginated through `repositories(first: 100, after:)`. Mutates nothing.
 
-    Raises `factory_gh.GhError` if the connection exceeds `_LINKED_REPOS_PAGE_CAP` pages rather
+    Raises `github.transport.GhError` if the connection exceeds `_LINKED_REPOS_PAGE_CAP` pages rather
     than returning a partial list a caller could mistake for the complete linkage set -- the same
     posture retitle's own `--limit`-truncation refusal takes for its enumeration.
     """
@@ -404,7 +405,7 @@ def _project_linked_repos(owner, number):
                 "-f", "owner=" + owner, "-F", "number=" + str(number)]
         if after is not None:
             argv += ["-f", "after=" + after]
-        env = factory_gh.run_gh(argv, json_out=True)
+        env = github.transport.run_gh(argv, json_out=True)
         data = env.get("data") or {}
         repo_owner = data.get("repositoryOwner") or {}
         project = repo_owner.get("projectV2") or {}
@@ -417,7 +418,7 @@ def _project_linked_repos(owner, number):
         if not page.get("hasNextPage"):
             return names
         after = page.get("endCursor")
-    raise factory_gh.GhError(
+    raise github.transport.GhError(
         [], None, "", "", "linked-repository list exceeds the page cap",
         f"{owner} project {number} ({_LINKED_REPOS_PAGE_CAP * 100}+ linked repos)",
         "raise _LINKED_REPOS_PAGE_CAP or confirm the linkage manually before provisioning",
@@ -445,7 +446,7 @@ def _declared_stations(board):
 
 
 # Load the feature plan once: STATUS needs both its top-level phase and the task statuses consumed
-# by gh_board.project. An absent, malformed, or non-mapping plan has no lifecycle projection.
+# by github.board.project. An absent, malformed, or non-mapping plan has no lifecycle projection.
 def _plan_doc(feat_dir):
     try:
         doc = artifact_accessors.load_plan(os.path.join(feat_dir, "plan.yaml")) or {}
@@ -547,9 +548,9 @@ def _status_findings(root, board, stations, repo_name):
         if invalid is not None:
             findings.append(invalid)
             continue
-        github = feature_doc.get("github") or {}
+        recorded = feature_doc.get("github") or {}
         findings.extend(_projection_findings(
-            feat_dir, board, stations, gh_board.project(plan, github)))
+            feat_dir, board, stations, github.board.project(plan, recorded)))
     return findings
 
 
@@ -594,7 +595,7 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
     a type, so a future caller could hand-build a dict with those keys and reach the exact
     replace against an established board. Accepted rather than closed: the only other
     project-record shape in this module is `project_resolve`'s `{"id", "title"}`
-    (factory_gh.py:544), which has no `number` key and so raises KeyError before any mutation --
+    (github/projects.py), which has no `number` key and so raises KeyError before any mutation --
     a real barrier, not a comment. Moving `project_create` inside this helper would close it
     fully, but that would reorder the "created project N" print which fix cycle c1's MUST-FIX 2
     established must come BEFORE anything that can still fail, and that ordering is load-bearing.
@@ -615,7 +616,7 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
     try:
         field_id, typename = _field_probe(owner, created["number"], field)
         if field_id is None:
-            factory_gh.project_single_select_create(created["id"], field, declared)
+            github.projects.project_single_select_create(created["id"], field, declared)
             _out(f"created field {field!r} with {len(declared)} option(s): "
                  f"{', '.join(declared)}")
             return
@@ -627,9 +628,9 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
             _bail(f"field {field!r} already exists on it as {typename}, not a single-select",
                   "board_lifecycle never converts an existing field's type -- convert or rename "
                   "that field by hand, then re-run provision against the recorded number")
-        existing = factory_gh.project_field_options(owner, created["number"], field)
-        factory_gh.project_single_select_extend(created["id"], field_id, declared)
-    except factory_gh.GhError as exc:
+        existing = github.projects.project_field_options(owner, created["number"], field)
+        github.projects.project_single_select_extend(created["id"], field_id, declared)
+    except github.transport.GhError as exc:
         _bail(f"failed to put field {field!r} on it", str(exc))
     except SystemExit:
         # `_bail` itself raises this from inside the try (the wrong-field-type branch above).
@@ -638,9 +639,9 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
         raise
     except BaseException as exc:
         # Fix cycle c4, finding 1. A GhError-only catch here was a REAL exit-code defect, not a
-        # hypothetical: `factory_gh.run_gh`'s bare `json.loads(r.stdout)` (factory_gh.py:170)
+        # hypothetical: `github.transport.run_gh`'s bare `json.loads(r.stdout)` (github/transport.py)
         # raises ValueError on an unparseable success body, and `_project_field_resolve`'s
-        # unguarded `field_obj["id"]` / `o["name"]` (factory_gh.py:459-462) raise KeyError or
+        # unguarded `field_obj["id"]` / `o["name"]` (github/projects.py) raise KeyError or
         # TypeError on a shape it did not expect -- both inside this try, neither a GhError.
         # Each escaped to `factory_cli.run`'s `except BaseException` (factory_cli.py:88), which
         # exits EXIT_REFUSED = 2, and 2 means "nothing was written". A project has been created
@@ -674,12 +675,12 @@ def _extend_to_union(project_id, field_id, owner, number, field, declared):
     The exact-replace behaviour exists in exactly one other place,
     `_fresh_board_station_field`, and is reachable only from a project the same run created.
     """
-    existing = factory_gh.project_field_options(owner, number, field)
+    existing = github.projects.project_field_options(owner, number, field)
     missing = _missing_options(declared, existing)
     if not missing:
         _out("nothing to do")
         return
-    factory_gh.project_single_select_extend(project_id, field_id, existing + missing)
+    github.projects.project_single_select_extend(project_id, field_id, existing + missing)
     _out(f"added {len(missing)} option(s) to {field!r}: {', '.join(missing)}")
 
 
@@ -703,7 +704,7 @@ def cmd_provision(repo_arg):
     # Step 2: the ONLY signal this module trusts to decide "create a project". Any other
     # GhError from this call (owner unresolvable, org-owned board) propagates unhandled and
     # mutates nothing.
-    resolved = factory_gh.project_resolve(owner, number)
+    resolved = github.projects.project_resolve(owner, number)
     adopted = None
     if resolved is None:
         if not repo_name:
@@ -742,10 +743,10 @@ def _titled_boards(owner, title):
     Raises GhError rather than return a partial list past one page."""
     argv = ["api", "graphql", "-f", "query=" + _TITLED_BOARDS_QUERY,
             "-f", "owner=" + owner, "-f", "title=" + title]
-    data = factory_gh.run_gh(argv, json_out=True).get("data") or {}
+    data = github.transport.run_gh(argv, json_out=True).get("data") or {}
     conn = (data.get("user") or {}).get("projectsV2") or {}
     if (conn.get("pageInfo") or {}).get("hasNextPage"):
-        raise factory_gh.GhError(argv, None, "", "", "titled-project search exceeds one page",
+        raise github.transport.GhError(argv, None, "", "", "titled-project search exceeds one page",
                                  f"{owner}: {title}", "find the board by hand and record its number")
     return [n for n in conn.get("nodes", []) if n.get("title") == title]
 
@@ -778,23 +779,23 @@ def _create_board(owner, number, repo_name, field, declared):
     # must never read like "nothing mutated" (exit 2, this module's OWN caller/declaration
     # code), and a naive retry that saw exit 2 here would re-enter this branch and create a
     # SECOND duplicate board, the exact disaster `project_resolve`'s own docstring names.
-    created = factory_gh.project_create(owner, f"{repo_name} board")
+    created = github.projects.project_create(owner, f"{repo_name} board")
     _out(f"no project {number} on {owner} -- created project {created['number']}; record "
          f"number {created['number']} in {repo_name}'s harness.json")
     try:
-        factory_gh.project_link_repository(created["id"], repo_name)
+        github.projects.project_link_repository(created["id"], repo_name)
     except SystemExit:
         raise
     except BaseException as exc:
         # Fix cycle c4, finding 1, SECOND instance: this catch was GhError-only too, and
         # `project_link_repository` sends TWO `run_gh(json_out=True)` calls
-        # (factory_gh.py:613, 622) whose `json.loads` raises ValueError, plus an unguarded
+        # (github/projects.py) whose `json.loads` raises ValueError, plus an unguarded
         # `repository["id"]`. A project already exists at this point, so the same reasoning
         # applies verbatim -- exit 2 here would claim nothing was written and a retry would
         # duplicate the board. Broadened alongside `_fresh_board_station_field`'s, because
         # leaving it would keep the module docstring's "4 is never conflated with 2" false
         # for a different line.
-        if not isinstance(exc, factory_gh.GhError):
+        if not isinstance(exc, github.transport.GhError):
             exc = f"unexpected {type(exc).__name__}: {exc}"
         print(
             f"factory: {_TOOL}: created project {created['number']} on {owner} but "
@@ -845,12 +846,12 @@ def _provision_existing(owner, number, project_id, repo_name, field, declared):
         )
 
     # Step 3: discriminate "field absent" from "field exists but is not single-select" via
-    # _field_probe, never via a message substring on factory_gh's collapsed GhError (see the
+    # _field_probe, never via a message substring on github.transport's collapsed GhError (see the
     # module docstring's FIELD-ID GAP section for why the given primitives alone cannot do this).
     field_id, typename = _field_probe(owner, number, field)
 
     if field_id is None:
-        factory_gh.project_single_select_create(project_id, field, declared)
+        github.projects.project_single_select_create(project_id, field, declared)
         _out(f"created field {field!r} with {len(declared)} option(s): {', '.join(declared)}")
         return
 
@@ -893,7 +894,7 @@ def _audit_findings(root, board, repo_name):
     `_status_findings`'s docstring for the ruling).
     """
     owner, number, field = board["owner"], board["number"], board["station_field"]
-    # LOWERCASE, because class 2 compares against gh_board.board_stations' lowercased values.
+    # LOWERCASE, because class 2 compares against github.board.board_stations' lowercased values.
     done_station = "done"
     findings = []
     # T-04: this function PRINTS NOTHING. Lines it used to emit are collected here and printed
@@ -907,14 +908,14 @@ def _audit_findings(root, board, repo_name):
     findings.extend(_declaration_findings(board, owner, number, field))
 
     # The closed-issue read feeding classes 2, 3 and 4. Call 2/4.
-    issues = factory_gh.run_gh(
+    issues = github.transport.run_gh(
         ["issue", "list", "--repo", repo_name, "--state", "closed",
          "--json", "number,stateReason,labels", "--limit", "1000"],
         json_out=True,
     )
 
     # Class 2 -- STATION. Call 3/4.
-    stations = gh_board.board_stations(board, repo_name)
+    stations = github.board.board_stations(board, repo_name)
     findings.extend(_station_findings(issues, stations, done_station))
     # Class 3 -- REASON.
     findings.extend(_reason_findings(issues))
@@ -933,7 +934,7 @@ def _audit_findings(root, board, repo_name):
 
 def _declaration_findings(board, owner, number, field):
     declared = _declared_stations(board)
-    options = factory_gh.project_field_options(owner, number, field)
+    options = github.projects.project_field_options(owner, number, field)
     # NO value_to_key INVERSION (FEAT-41 T-02): a lowercase station IS its own key, so the
     # station name is recovered from the column by asking the declaration in the same order
     # rather than by inverting a mapping that no longer exists.
@@ -1091,7 +1092,7 @@ def _label_findings(issues, recorded=None):
 
 
 def _workflow_findings(owner, number):
-    workflows = factory_gh.project_workflows(owner, number)
+    workflows = github.projects.project_workflows(owner, number)
     by_name = {w["name"]: w for w in workflows}
     findings = []
     for name in _REQUIRED_WORKFLOWS:
@@ -1118,14 +1119,14 @@ def audit_findings(repo_arg=None):
       escaping from in here would be unprefixed and unfindable in a merge's output;
     - it does not EXIT. Ship has already written every card by the time this runs; an audit
       that cannot run must not take the ship down with it;
-    - it does not turn a failed read into an exit code. `factory_gh.GhError` propagates, and
+    - it does not turn a failed read into an exit code. `github.transport.GhError` propagates, and
       the caller decides -- `cmd_audit` makes it exit 4, ship prints one stderr line and
       carries on.
 
     Returns `[]` when no board is declared, matching `cmd_audit`'s own `github.board: null`
     branch: an explicit null is a declaration, not a misconfiguration (D-07).
 
-    Raises `factory_gh.GhError` when `github.repo` is not declared. `cmd_audit` refuses there
+    Raises `github.transport.GhError` when `github.repo` is not declared. `cmd_audit` refuses there
     instead, and that refusal stays inside the subcommand -- a library call that exits is the
     thing this function exists not to be.
     """
@@ -1137,7 +1138,7 @@ def audit_findings(repo_arg=None):
         # #1897: built the way every other raise in this module is. The one-positional form
         # was a TypeError at raise time, which ship's (then broad) audit catch reported as
         # "the board audit could not run: GhError.__init__() missing 6 required …".
-        raise factory_gh.GhError(
+        raise github.transport.GhError(
             [], None, "", "", "github.repo is not declared", "github.repo",
             "pin it in harness.json before auditing")
     findings, _notes = _audit_findings(root, board, repo_name)
@@ -1163,7 +1164,7 @@ def cmd_audit(repo_arg):
     # generic expected-exception trap (which would exit 2, provision's own caller-error code).
     try:
         findings, notes = _audit_findings(root, board, repo_name)
-    except factory_gh.GhError as exc:
+    except github.transport.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
 
@@ -1199,11 +1200,11 @@ def _fixable(finding):
 
 
 def _ensure_abandoned_label(repo_name):
-    """Create the `abandoned` label through factory_gh.try_gh -- never
-    `factory_gh.ensure_labels`, never a helper imported from gh-sync.py (see the module
+    """Create the `abandoned` label through github.transport.try_gh -- never
+    `github.issues.ensure_labels`, never a helper imported from gh-sync.py (see the module
     docstring's RECONCILE section). gh's existing-label answer is the idempotent case; any other
     failure raises GhError before the dependent `issue edit --add-label` call."""
-    result = factory_gh.try_gh(
+    result = github.transport.try_gh(
         ["label", "create", "abandoned", "--repo", repo_name,
          "--color", _ABANDONED_LABEL_COLOR, "--description", "created by harness gh-sync"])
     text = f"{result.stdout}{result.stderr}".lower()
@@ -1214,27 +1215,27 @@ def _ensure_abandoned_label(repo_name):
 
 
 def _apply_fix(finding, board, repo_name):
-    """Perform the ONE write this finding calls for. Raises `gh_board.BoardError` or
-    `factory_gh.GhError` on failure -- the caller catches, prints, and moves on to the next
+    """Perform the ONE write this finding calls for. Raises `github.board.BoardError` or
+    `github.transport.GhError` on failure -- the caller catches, prints, and moves on to the next
     finding rather than stopping the whole run (a bulk fix that stops at the first error leaves
     the board half migrated with a zero exit)."""
     if finding.kind == "STATION":
-        gh_board.set_station(
+        github.board.set_station(
             board, repo_name, finding.data["issue_number"], finding.data["expected"])
     elif finding.kind == "STATUS":
-        gh_board.set_station(
+        github.board.set_station(
             board, repo_name, finding.data["issue_number"], finding.data["expected"])
     elif finding.kind == "REASON":
         num = finding.data["issue_number"]
         reason = "not_planned" if finding.data["abandoned"] else "completed"
-        factory_gh.run_gh([
+        github.transport.run_gh([
             "api", "-X", "PATCH", f"repos/{repo_name}/issues/{num}",
             "-f", "state=closed", "-f", f"state_reason={reason}",
         ])
     elif finding.kind == "LABEL":
         num = finding.data["issue_number"]
         _ensure_abandoned_label(repo_name)
-        factory_gh.run_gh([
+        github.transport.run_gh([
             "issue", "edit", str(num), "--repo", repo_name, "--add-label", "abandoned",
         ])
 
@@ -1242,7 +1243,7 @@ def _apply_fix(finding, board, repo_name):
 def _detect_reconcile_findings(root, board, repo_name):
     try:
         return _audit_findings(root, board, repo_name)
-    except factory_gh.GhError as exc:
+    except github.transport.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
 
@@ -1266,7 +1267,7 @@ def _apply_reconcile_findings(findings, board, repo_name):
             continue
         try:
             _apply_fix(finding, board, repo_name)
-        except (gh_board.BoardError, factory_gh.GhError) as exc:
+        except (github.board.BoardError, github.transport.GhError) as exc:
             print(f"factory: {_TOOL}: fix failed -- {exc}", file=sys.stderr)
             residual.append(finding)
     return residual
@@ -1335,12 +1336,12 @@ def cmd_retitle(repo_arg, apply):
         )
 
     try:
-        issues = factory_gh.run_gh(
+        issues = github.transport.run_gh(
             ["issue", "list", "--repo", repo_name, "--state", "all",
              "--limit", str(_RETITLE_LIMIT), "--json", "number,title,milestone"],
             json_out=True,
         )
-    except factory_gh.GhError as exc:
+    except github.transport.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
 
@@ -1384,8 +1385,8 @@ def cmd_retitle(repo_arg, apply):
         return
 
     # MUST-FIX 3: each rename is caught PER-TICKET, mirroring `reconcile`'s own apply loop
-    # (`cmd_reconcile`'s `for f in findings: ... except (gh_board.BoardError,
-    # factory_gh.GhError)`) -- a failed write for one ticket is printed and counted, and the
+    # (`cmd_reconcile`'s `for f in findings: ... except (github.board.BoardError,
+    # github.transport.GhError)`) -- a failed write for one ticket is printed and counted, and the
     # run continues to the rest, rather than a `GhError` propagating past this loop into
     # `factory_cli.run`'s generic trap, which would exit 2 and leave every already-renamed
     # ticket unreported behind a caller/declaration exit code on a run that partially succeeded.
@@ -1393,8 +1394,8 @@ def cmd_retitle(repo_arg, apply):
     failed = 0
     for num, old, new in to_rename:
         try:
-            factory_gh.run_gh(["issue", "edit", str(num), "--repo", repo_name, "--title", new])
-        except factory_gh.GhError as exc:
+            github.transport.run_gh(["issue", "edit", str(num), "--repo", repo_name, "--title", new])
+        except github.transport.GhError as exc:
             failed += 1
             print(f"factory: {_TOOL}: rename failed for #{num} -- {exc}", file=sys.stderr)
             continue
@@ -1435,4 +1436,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(_TOOL, _main, expected=(factory_gh.GhError, artifact_accessors.FleetError))
+    factory_cli.run(_TOOL, _main, expected=(github.transport.GhError, artifact_accessors.FleetError))

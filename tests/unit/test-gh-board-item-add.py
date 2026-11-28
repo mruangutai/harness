@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""gh_board.set_station adds an absent issue to the board before setting its station (#2181).
+"""github.board.set_station adds an absent issue to the board before setting its station (#2181).
 
-Every call to `factory_gh` is recorded, so the tests can check:
+Every call to the `github` package is recorded, so the tests can check:
 - the order: lookup, then an add only when the item is absent, then the field set;
 - the exact arguments, including the canonical issue URL and the board's owner and number;
 - that the returned or existing item id reaches the field write;
@@ -14,8 +14,9 @@ from unittest import mock
 
 import unit_support  # noqa: F401 — puts bin/ and tests/ on sys.path
 from check_support import Checks
-import factory_gh
-import gh_board
+import github.transport
+import github.board
+import github.projects
 
 C = Checks()
 check = C.check
@@ -25,7 +26,7 @@ URL = "https://github.com/acme/widgets/issues/17"
 
 
 def _error():
-    return factory_gh.GhError([], 1, "", "boom", "simulated failure", REPO, "fake")
+    return github.transport.GhError([], 1, "", "boom", "simulated failure", REPO, "fake")
 
 
 def _run(existing=None, fail_at=None):
@@ -52,10 +53,10 @@ def _run(existing=None, fail_at=None):
             raise _error()
 
     raised = None
-    with mock.patch.multiple(gh_board.factory_gh, issue_board_item_id=lookup,
+    with mock.patch.multiple(github.projects, issue_board_item_id=lookup,
                              project_item_add=add, project_field_set=field_set):
         try:
-            gh_board.set_station(BOARD, REPO, 17, "ready")
+            github.board.set_station(BOARD, REPO, 17, "ready")
         except Exception as exc:  # noqa: BLE001 — the type is asserted by the caller
             raised = exc
     return log, raised
@@ -89,7 +90,7 @@ def case_each_failure_is_a_board_error():
         text = str(raised)
         check(f"u.3 a GhError at {step} (existing={existing!r}) is a BoardError naming the "
               "issue and the lowercase station, with no later call",
-              isinstance(raised, gh_board.BoardError) and "#17" in text and "ready" in text
+              isinstance(raised, github.board.BoardError) and "#17" in text and "ready" in text
               and "Ready" not in text and [entry[0] for entry in log] == calls,
               f"raised={raised!r} log={log}")
 

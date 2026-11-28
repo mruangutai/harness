@@ -30,7 +30,7 @@ def resolve_binding(feature_doc, root):
 def _bound_mirror_binding(bound, root):
     import artifact_accessors
     import factory_config
-    import gh_issue_types
+    from github import issue_types
     if not isinstance(bound, str) or not _REPOSITORY.fullmatch(bound):
         raise artifact_accessors.FleetError("invalid feature binding", "factory.repo",
                                           "expected a declared owner/name")
@@ -41,13 +41,13 @@ def _bound_mirror_binding(bound, root):
     if github["repo"] != bound or not github["sync"]:
         raise artifact_accessors.FleetError("invalid product mirror", bound,
                                           "github.sync must be enabled and github.repo must match factory.repo")
-    return bound, factory_config.board_for(fleet, bound), gh_issue_types.overrides_from_config(config)
+    return bound, factory_config.board_for(fleet, bound), issue_types.overrides_from_config(config)
 
 
 def _owner_mirror_binding(root):
     import artifact_accessors
     import factory_config
-    import gh_issue_types
+    from github import issue_types
     path = os.path.join(root, ".harness", "harness.json")
     try:
         config = artifact_accessors.load_harness_json(path)
@@ -56,7 +56,7 @@ def _owner_mirror_binding(root):
     github = config["github"]
     board = github["board"] if github["sync"] else None
     return (github["repo"], None if board is None else factory_config.validate_board(board),
-            gh_issue_types.overrides_from_config(config))
+            issue_types.overrides_from_config(config))
 
 
 def effective_recorded_repo(doc, bound_repo):

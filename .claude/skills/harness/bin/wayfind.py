@@ -27,7 +27,7 @@ Repo comes from .harness/harness.json `github.repo`, pinned at init and never
 re-inferred (DEC-138). github.sync false, or gh missing/unauthenticated -> exit 1
 with the markdown-fallback instruction; wayfinding then runs in files-only mode.
 
-Every gh call goes through factory_gh (FACTORY_GH is the one binary override). Reads
+Every gh call goes through github.transport (FACTORY_GH is the one binary override). Reads
 fail CLOSED: a failed or unparseable read raises GhError, caught once in cli(), so an
 outage can never make a blocked ticket eligible or let resolve write after an
 unverified parent. Only blockers and parent_of treat a genuine HTTP 404 as absence.
@@ -38,8 +38,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import artifact_accessors
-import factory_gh
-import gh_issues as ghi
+import github.issues
+import github.transport
+from github import issue_args as ghi
 import harness_boundary
 
 TYPES = ("research", "prototype", "grilling", "task")
@@ -71,7 +72,7 @@ def cfg():
 
 def gh_json(args):
     """The strict-JSON value of a gh read; GhError on any launch, exit or JSON failure."""
-    return factory_gh.run_gh(args, json_out=True)
+    return github.transport.run_gh(args, json_out=True)
 
 
 # gh exits 1 for EVERY HTTP error; its explicit not-found marker is the only absence signal.
@@ -86,7 +87,7 @@ def gh_json_or_absent(args):
     non-zero status — None is a launch failure) whose captured stderr carries "(HTTP 404)".
     Exit 1 alone, other 404 digits and any status-zero result (even malformed JSON with a 404
     in stderr) raise GhError. Local on purpose: only blockers and parent_of may read absence."""
-    result = factory_gh.try_gh(args, json_out=True)
+    result = github.transport.try_gh(args, json_out=True)
     if result.ok:
         return result.value
     if isinstance(result.status, int) and result.status != 0 and _HTTP_404 in result.stderr:
@@ -96,7 +97,7 @@ def gh_json_or_absent(args):
 
 def unusable(args, value, want):
     """GhError for a successful read whose payload is not the shape the caller needs."""
-    return factory_gh.GhError(args, 0, json.dumps(value), "",
+    return github.transport.GhError(args, 0, json.dumps(value), "",
                               f"gh {' '.join(args[:2])} returned an unusable payload",
                               args[1] if len(args) > 1 else "gh",
                               f"expected {want}; only a confirmed HTTP 404 means absence")
@@ -151,7 +152,7 @@ def do(cmds, apply):
         if not apply:
             print("  would run: gh " + " ".join(c))
             continue
-        out = factory_gh.run_gh(c)
+        out = github.transport.run_gh(c)
         if out:
             print(f"  {out.splitlines()[-1]}")
     if not apply:
@@ -264,7 +265,7 @@ def append_gist(repo, mapnum, line, apply):
     if not apply:
         print(f"  would append to map #{mapnum} '## Decisions so far':\n    {line}")
         return
-    factory_gh.run_gh(["issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"], input=new_body)
+    github.transport.run_gh(["issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"], input=new_body)
     print(f"  gisted on map #{mapnum}")
 
 
@@ -356,7 +357,7 @@ def main():
             return 0
         create = ["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
                   "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"]
-        num = str(factory_gh.issue_number_from_url(create, factory_gh.run_gh(create)))
+        num = str(github.issues.issue_number_from_url(create, github.transport.run_gh(create)))
         # THE TRAP, and it has TWO layers. sub_issues takes the child's internal id,
         # never its number -- and `gh issue view --json id` returns the GraphQL NODE
         # id (`I_kwDO...`), not the REST integer the endpoint wants. The node id is
@@ -416,7 +417,7 @@ def cli():
     diagnostic and exit 1, never a traceback; the functions above stay typed for tests."""
     try:
         return main()
-    except factory_gh.GhError as error:
+    except github.transport.GhError as error:
         die(f"gh {' '.join(error.argv[:3])}… failed: {error}")
 
 

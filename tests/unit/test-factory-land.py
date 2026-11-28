@@ -3,7 +3,7 @@
 REQ-05).
 
 Nothing here spawns a subprocess, touches a real repository, or makes a real gh/git call.
-`factory_workspace.run_git` and `factory_gh`'s public functions are monkeypatched over a single
+`factory_workspace.run_git` and the `github` package's public functions are monkeypatched over a single
 `Recorder`, whose ordered `.git_calls` / `.gh_calls` lists are the evidence every assertion below
 is a projection of.
 """
@@ -18,7 +18,9 @@ from unittest import mock
 import artifact_accessors
 import factory_cli
 import factory_config as fc
-import factory_gh
+import github.issues
+import github.projects
+import github.transport
 import factory_land as land
 import factory_workspace as fw
 from check_support import Checks
@@ -80,7 +82,7 @@ def pushes(rec):
 
 
 # --------------------------------------------------------------------------
-# Recorder — a single ordered call log over run_git and factory_gh's public surface.
+# Recorder — a single ordered call log over run_git and the github package's public surface.
 # --------------------------------------------------------------------------
 
 class Recorder:
@@ -99,7 +101,7 @@ class Recorder:
         self.git_calls.append((tuple(args), cwd))
         return ""
 
-    # --- factory_gh's public surface used by factory_land ---
+    # --- the github package's public surface used by factory_land ---
     def preflight(self):
         self.gh_calls.append(("preflight", ()))
     def issue_view(self, repo, number, fields):
@@ -136,8 +138,9 @@ class Recorder:
 
 
 PATCHED_GH = (
-    "preflight", "issue_view", "run_gh", "project_items", "issue_board_item_id",
-    "project_field_set",
+    (github.transport, "preflight"), (github.issues, "issue_view"), (github.transport, "run_gh"),
+    (github.projects, "project_items"), (github.projects, "issue_board_item_id"),
+    (github.projects, "project_field_set"),
 )
 
 
@@ -154,14 +157,14 @@ def run_main(rec, extra_args=LAND_ARGS, fleet_dict=None):
     # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
     # is monkeypatched rather than faking a `gh` call.
     with contextlib.ExitStack() as stack:
-        stack.enter_context(mock.patch.multiple(
-            factory_gh, **{name: getattr(rec, name) for name in PATCHED_GH}))
+        for module, name in PATCHED_GH:
+            stack.enter_context(mock.patch.object(module, name, getattr(rec, name)))
         stack.enter_context(mock.patch.object(fw, "run_git", rec.run_git))
         stack.enter_context(mock.patch.object(fc, "product_config", board_stub(boards_by_repo)))
         result = invoke(
             lambda: factory_cli.run(
                 "land", land._main,
-                expected=(artifact_accessors.FleetError, factory_gh.GhError),
+                expected=(artifact_accessors.FleetError, github.transport.GhError),
             ),
             argv=["factory_land.py", "--fleet", fleet_path] + list(extra_args),
         )
@@ -233,7 +236,7 @@ check("(M1-json) stdout is a single json.loads-able stream", parsed_ok, out)
 
 # (M2) a pull request already open for the head is NOT a failure.
 rec = Recorder()
-rec.pr_create_raises = factory_gh.GhError(
+rec.pr_create_raises = github.transport.GhError(
     ["pr", "create"], 1, "",
     f'a pull request for branch "{BRANCH}" into branch "{DEFAULT_BRANCH}" already exists:\n'
     f"{PR_URL}",
@@ -251,7 +254,7 @@ check("(M2) stderr mentions the url", PR_URL in err, err)
 # decompose.py's case (21) precedent: an unrelated GhError must not be swallowed as "already
 # open", and the station must not advance on a pull request that was never created).
 rec = Recorder()
-rec.pr_create_raises = factory_gh.GhError(
+rec.pr_create_raises = github.transport.GhError(
     ["pr", "create"], 1, "", "authentication failed, run gh auth login",
     "gh pr create failed", REPO, "run gh auth login",
 )

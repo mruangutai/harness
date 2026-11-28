@@ -5,12 +5,12 @@ Two consumers follow: `gh-sync.py` writes stations, `check-state.py`'s INV-26 co
 Two copies of this logic is precisely the drift this feature exists to remove, so everything
 about "which station is this at, and what should it be" lives here and nowhere else.
 
-**ONE BINARY OVERRIDE: `FACTORY_GH`.** Every call this module makes goes through `factory_gh`,
+**ONE BINARY OVERRIDE: `FACTORY_GH`.** Every call this module makes goes through `github.transport`,
 which reads `FACTORY_GH` at call time to find the `gh` binary; `gh-sync.py` uses the same
 transport. A test that exercises this module sets only `FACTORY_GH` to its fake, confined with
 `tests/offline_gh_support.offline_gh_env`, so no call reaches the real `gh`.
 
-**This module raises; it never prints and never exits.** `factory_gh.preflight()` is never called
+**This module raises; it never prints and never exits.** `transport.preflight()` is never called
 from here: its callers exit non-zero, and this module's callers must not (D-02 — a station failure
 is loud on stderr and the run continues).
 """
@@ -19,7 +19,7 @@ import os
 
 import artifact_accessors
 import factory_config
-import factory_gh
+from github import projects, transport
 
 
 class BoardError(Exception):
@@ -264,8 +264,8 @@ def _repo_item_station(item, repo):
 def board_stations(board, repo):
     """Every `repo` issue on the board, as {int issue number: station or None}.
 
-    ONE call to `factory_gh.project_item_stations` (FEAT-29 T-02) — the targeted, cost-1 GraphQL
-    query, never `factory_gh.project_items`'s whole-board `item-list` scan. That call already
+    ONE call to `projects.project_item_stations` (FEAT-29 T-02) — the targeted, cost-1 GraphQL
+    query, never `projects.project_items`'s whole-board `item-list` scan. That call already
     refuses a truncated or unreadable page, raising `GhError` rather than reporting an empty
     column; nothing here catches it, so it propagates unchanged.
 
@@ -280,7 +280,7 @@ def board_stations(board, repo):
     lowercase and the only capitals live on GitHub. None stays None — an absent station is not
     the string "none".
     """
-    items = factory_gh.project_item_stations(
+    items = projects.project_item_stations(
         board["owner"], board["number"], board["station_field"],
     )
     out = {}
@@ -308,7 +308,7 @@ def board_stations_for(board, repo, numbers):
     the requests are actually issued, and NOT a second time here: a duplicate was written, and
     deleting it changed no test, which is how it was found. One guard, at the loop it protects.
     """
-    raw = factory_gh.issue_stations(
+    raw = projects.issue_stations(
         repo, board["number"], board["station_field"], numbers,
     )
     return {num: (station.lower() if isinstance(station, str) else station)
@@ -354,18 +354,18 @@ def set_station(board, repo, issue_number, station):
     Mirroring therefore no longer depends on the project's "Auto-add to project" workflow. The
     guarded add is `factory_decompose`'s own pattern.
 
-    `factory_gh.preflight()` is deliberately NOT called — its callers exit non-zero and this
+    `transport.preflight()` is deliberately NOT called — its callers exit non-zero and this
     module's callers must not.
     """
     column = factory_config.station_column(station)
     try:
-        item_id = factory_gh.issue_board_item_id(repo, issue_number, board["number"])
+        item_id = projects.issue_board_item_id(repo, issue_number, board["number"])
         if item_id is None:
-            item_id = factory_gh.project_item_add(
+            item_id = projects.project_item_add(
                 board["owner"], board["number"], f"https://github.com/{repo}/issues/{issue_number}",
             )
-        factory_gh.project_field_set(
+        projects.project_field_set(
             board["owner"], board["number"], item_id, board["station_field"], column,
         )
-    except factory_gh.GhError as exc:
+    except transport.GhError as exc:
         raise BoardError(repo, issue_number, station, str(exc)) from exc

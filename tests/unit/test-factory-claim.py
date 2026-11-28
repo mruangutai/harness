@@ -2,7 +2,7 @@
 """Tests for factory_claim.py — the polling and claiming tool (T-05, D-05, REQ-03).
 
 Nothing here spawns a subprocess and nothing touches a real board, repository, or this
-repository's own `.harness/harness/features/`. Every call `factory_claim` makes into `factory_gh`'s
+repository's own `.harness/harness/features/`. Every call `factory_claim` makes into the `github` package's
 public functions is monkeypatched over a single `Recorder`, whose ordered `.calls` list is the
 evidence every assertion below is a projection of. The features root is now resolved per
 candidate through a monkeypatched `factory_config.features_root`, built once by this file — `build_features_root()` — holding two fixture
@@ -28,7 +28,10 @@ import artifact_accessors
 import factory_claim as claim
 import factory_cli
 import factory_config as fc
-import factory_gh
+import github.issues
+import github.projects
+import github.refs
+import github.transport
 import harness_boundary as hb
 import harness_yaml
 from check_support import Checks
@@ -74,7 +77,7 @@ MUTATING_NAMES = ("add_label", "assign", "project_field_set")
 
 
 # --------------------------------------------------------------------------
-# Recorder — a single ordered call log over every factory_gh public function T-05 calls.
+# Recorder — a single ordered call log over every github package function T-05 calls.
 # --------------------------------------------------------------------------
 
 class Recorder:
@@ -106,7 +109,7 @@ class Recorder:
     def create_ref_calls(self):
         return self.calls_named("create_ref")
 
-    # --- factory_gh's public surface used by factory_claim ---
+    # --- the github package's public surface used by factory_claim ---
     def preflight(self):
         self.calls.append(("preflight", ()))
         if self.preflight_raises is not None:
@@ -169,8 +172,10 @@ class Recorder:
 
 
 PATCHED = (
-    "preflight", "project_field_options", "project_items", "issue_board_item_id", "issue_view",
-    "default_branch_sha", "create_ref", "add_label", "assign", "project_field_set",
+    (github.transport, "preflight"), (github.projects, "project_field_options"),
+    (github.projects, "project_items"), (github.projects, "issue_board_item_id"),
+    (github.issues, "issue_view"), (github.refs, "default_branch_sha"), (github.refs, "create_ref"),
+    (github.issues, "add_label"), (github.issues, "assign"), (github.projects, "project_field_set"),
 )
 
 
@@ -388,8 +393,8 @@ def run_main(rec, extra_args, fleet_dict=None, features_root_fn=None):
     clean_fleet, boards_by_repo = split_boards(raw_fleet)
     fleet_path = write_yaml(os.path.join(tmpdir("claim-fleet-"), "fleet.yaml"), clean_fleet)
     with contextlib.ExitStack() as stack:
-        for name in PATCHED:
-            stack.enter_context(mock.patch.object(factory_gh, name, getattr(rec, name)))
+        for module, name in PATCHED:
+            stack.enter_context(mock.patch.object(module, name, getattr(rec, name)))
         stack.enter_context(mock.patch.object(
             fc, "features_root", features_root_fn or fixture_features_root))
         # The board is resolved through factory_config.product_config, never from fleet.yaml
@@ -399,7 +404,7 @@ def run_main(rec, extra_args, fleet_dict=None, features_root_fn=None):
         result = invoke(
             lambda: factory_cli.run(
                 "claim", claim._main,
-                expected=(artifact_accessors.FleetError, factory_gh.GhError),
+                expected=(artifact_accessors.FleetError, github.transport.GhError),
             ),
             argv=["factory_claim.py", "--fleet", fleet_path] + extra_args,
         )
@@ -509,7 +514,7 @@ check("(C2) issue_view's requested fields include \"state\"",
 
 # C3. a monkeypatched preflight raising GhError exits 2, not 1, stdout empty, one stderr line.
 rec = Recorder()
-rec.preflight_raises = factory_gh.GhError(
+rec.preflight_raises = github.transport.GhError(
     ["auth", "status"], 1, "", "", "gh auth status failed", "gh", "run `gh auth login`",
 )
 code, out, err = run_main(rec, ["--as", AS_LOGIN])
@@ -632,7 +637,7 @@ rec = Recorder()
 rec.items = [board_item("i1", 65, REPO), board_item("i2", 66, REPO)]
 rec.issue_data[65] = issue_data(65, "issue 65", labels=["harness"])
 rec.issue_data[66] = issue_data(66, "issue 66", labels=["harness"])
-rec.create_ref_results[65] = factory_gh.GhError(
+rec.create_ref_results[65] = github.transport.GhError(
     ["api"], 1, "", "", "gh api failed", REPO, "check auth",
 )
 code, out, err = run_main(rec, ["--as", AS_LOGIN])
@@ -699,7 +704,7 @@ check("(R8) poll mode never calls issue_board_item_id",
       not any(c[0] == "issue_board_item_id" for c in rec.calls), rec.calls)
 
 
-# D-02. factory_claim.py:355 calls factory_gh.default_branch_sha(repo_name,
+# D-02. factory_claim.py:355 calls github.refs.default_branch_sha(repo_name,
 # entry["default_branch"]) with no checkout in existence — default_branch is read from the fleet
 # ENTRY, not the product config, and it deliberately does not move (D-02). The branch asserted is
 # read from the fleet fixture itself, not respelled as a literal.
@@ -927,7 +932,7 @@ except Exception as exc:
 # (Da) THE DIAGNOSIS. Drive the blocker gate directly, exactly as the candidate loop does at
 # factory_claim.py:380-382, over a candidate resolving to the dangling fixture. No issue_view
 # call is reachable here — a dangling plan fails before any depends_on entry is walked — so
-# factory_gh needs no patching for this case.
+# github.transport needs no patching for this case.
 with mock.patch.object(fc, "features_root", fixture_features_root):
     _gate_a = claim._blocker_gate(claim._BlockerCache(), REPO, FEAT_DANGLING, "T-02")
     _reason_a = claim._blocker_reason_text(_gate_a, 780)
@@ -942,7 +947,7 @@ check("(Da) blocker-gate reason no longer carries the missing-or-unparseable wor
 # asserts (gate is None -> the candidate is claimed) — so a change that broke correct plans
 # reddens here.
 with mock.patch.object(fc, "features_root", fixture_features_root), \
-        mock.patch.object(factory_gh, "issue_view", lambda repo, num, fields: {"state": "CLOSED"}):
+        mock.patch.object(github.issues, "issue_view", lambda repo, num, fields: {"state": "CLOSED"}):
     _gate_b = claim._blocker_gate(claim._BlockerCache(), REPO, FEAT_DANGLING_LEGAL, "T-02")
 check("(Db) blocker-gate over the legal fixture is CLEAR, exactly (B3)'s verdict",
       _gate_b is None, _gate_b)

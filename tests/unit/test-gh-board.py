@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gh_board.py must get these right — offline, against a fake gh.
+"""github/board.py must get these right — offline, against a fake gh.
 
 Every case asserts a VALUE, never that a call happened: a test that counts calls passes just as
 well when the value is wrong, which is the vacuous shape this feature exists to remove.
@@ -25,13 +25,14 @@ from harness_config_support import write_config  # noqa: E402
 from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 
 import artifact_accessors  # noqa: E402
-import gh_board  # noqa: E402
+import github.board  # noqa: E402
+import github.projects  # noqa: E402
 import factory_config  # noqa: E402
 
 C = Checks()
 check = C.check
 
-# The one board every gh-touching case reads; gh_board only reads it, never mutates it.
+# The one board every gh-touching case reads; github.board only reads it, never mutates it.
 BOARD = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
 
 
@@ -96,11 +97,11 @@ def full_board(**overrides):
 with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "o/r", "board": None})
     check("load_board: an explicit null board is accepted and returns None",
-          gh_board.load_board(tmp) is None)
+          github.board.load_board(tmp) is None)
 
 with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"repo": "o/r", "board": full_board(number=" 7 ")})
-    b = gh_board.load_board(tmp)
+    b = github.board.load_board(tmp)
     check("load_board: a padded digit string is normalised to an int and stations to a tuple",
           b["number"] == 7 and isinstance(b["number"], int) and b["stations"] == FULL_STATIONS,
           repr(b))
@@ -119,15 +120,15 @@ def plan(*statuses, top=None):
 # below, because a stray second argument would otherwise be silently accepted by a **kwargs-ish
 # signature and the "plan.yaml is the sole input" claim would rot unnoticed.
 check("derive_station: one building among three -> building",
-      gh_board.derive_station(plan("done", "building", "done")) == "building")
+      github.board.derive_station(plan("done", "building", "done")) == "building")
 check("derive_station: three of three done -> review",
-      gh_board.derive_station(plan("done", "done", "done")) == "review")
+      github.board.derive_station(plan("done", "done", "done")) == "review")
 check("derive_station: two done one not-started -> None",
-      gh_board.derive_station(plan("done", "done", "ready")) is None)
+      github.board.derive_station(plan("done", "done", "ready")) is None)
 check("derive_station: empty task list -> None",
-      gh_board.derive_station({"tasks": []}) is None)
+      github.board.derive_station({"tasks": []}) is None)
 check("derive_station: task with NO status key counts as not-started -> None",
-      gh_board.derive_station(
+      github.board.derive_station(
           {"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}) is None)
 
 # THE RETURN IS A STATION, NEVER A COLUMN. This is what the two deleted LOOKUP_BOARD cases
@@ -137,20 +138,20 @@ check("derive_station: task with NO status key counts as not-started -> None",
 # well-meaning re-introduction of .capitalize() here.
 for _statuses, _want in ((("done", "building", "done"), "building"),
                          (("done", "done", "done"), "review")):
-    _got = gh_board.derive_station(plan(*_statuses))
+    _got = github.board.derive_station(plan(*_statuses))
     check(f"derive_station returns the lowercase station {_want!r}, not its board column",
           _got == _want and _got != factory_config.station_column(_want), _got)
 
 # The board parameter is GONE, not merely unused: a two-argument call must fail loudly rather
 # than be tolerated, or check-state.py and board_lifecycle could keep passing a board forever.
 try:
-    gh_board.derive_station(plan("done"), full_board())
+    github.board.derive_station(plan("done"), full_board())
     check("derive_station rejects a second board argument", False, "accepted two arguments")
 except TypeError:
     check("derive_station rejects a second board argument", True)
 
 # ---------------- board_stations ----------------
-# `board_stations` now calls `factory_gh.project_item_stations`, a GraphQL call whose fake
+# `board_stations` now calls `github.projects.project_item_stations`, a GraphQL call whose fake
 # payload is the `{"data": {"user": {"projectV2": {"items": {...}}}}}` envelope, never the flat
 # `{"totalCount", "items"}` shape `project_items` used. `pageInfo.hasNextPage` is always False
 # here — True would make `fake_gh`'s "same page for any argv" answer loop `project_item_stations`
@@ -177,7 +178,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
             ],
         }}}}
     })):
-    st = _call(gh_board.board_stations, BOARD, "mruangutai/harness")
+    st = _call(github.board.board_stations, BOARD, "mruangutai/harness")
     check("board_stations: item from another repository is EXCLUDED",
           isinstance(st, dict) and 99 not in st, repr(st))
     # THE READ HALF OF THE CASE BOUNDARY (FEAT-41 T-02): the board answered "Building", and what
@@ -205,7 +206,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({
             ],
         }}}}
     })):
-    st = _call(gh_board.board_stations, BOARD, "mruangutai/harness")
+    st = _call(github.board.board_stations, BOARD, "mruangutai/harness")
     check("board_stations: item with content null does not crash and is not in output",
           isinstance(st, dict) and len(st) == 0, repr(st))
 
@@ -221,7 +222,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({"data": {"re
             {"project": {"number": 3}, "fieldValueByName": None}]}},
         "i328": None,
     }}})):
-    st = _call(gh_board.board_stations_for, BOARD, "mruangutai/harness", [326, 327, 328])
+    st = _call(github.board.board_stations_for, BOARD, "mruangutai/harness", [326, 327, 328])
     # The same case boundary board_stations holds: the board answered "Building", and asserting
     # the capitalised form is ABSENT is the half that catches a pass-through implementation.
     check("board_stations_for: a board value is lowercased on read",
@@ -237,14 +238,14 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh(tmp, json.dumps({"data": {"re
     # producers interchangeable, which is the whole reason the vocabulary had to match.
     check("board_stations_for: read_station tells its absent apart from its None",
           isinstance(st, dict)
-          and gh_board.read_station(st, 327) == (None, "no station set")
-          and gh_board.read_station(st, 328) == (None, "not on the board"), repr(st))
+          and github.board.read_station(st, 327) == (None, "no station set")
+          and github.board.read_station(st, 328) == (None, "not on the board"), repr(st))
 
 # A gh that EXITS 3 for any argv. If an empty number set reached the network at all, this
 # would raise and the check below would redden — which is the only way to assert "no call"
 # through a fake binary rather than an in-process recorder.
 with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
-    st = _call(gh_board.board_stations_for, BOARD, "mruangutai/harness", [])
+    st = _call(github.board.board_stations_for, BOARD, "mruangutai/harness", [])
     check("board_stations_for: an empty number set touches no network and returns {}",
           st == {}, repr(st))
 
@@ -254,22 +255,22 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
 # which has already lowercased them.
 stations = {326: "building", 327: None}
 check("read_station: on the board with a station -> (station, None)",
-      gh_board.read_station(stations, 326) == ("building", None))
+      github.board.read_station(stations, 326) == ("building", None))
 check("read_station: absent from the mapping -> (None, 'not on the board')",
-      gh_board.read_station(stations, 999) == (None, "not on the board"))
+      github.board.read_station(stations, 999) == (None, "not on the board"))
 check("read_station: present with a None value -> (None, 'no station set')",
-      gh_board.read_station(stations, 327) == (None, "no station set"))
+      github.board.read_station(stations, 327) == (None, "no station set"))
 
 # ---------------- set_station ----------------
 
 with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
     raised = None
     try:
-        gh_board.set_station(BOARD, "mruangutai/harness", 326, "building")
+        github.board.set_station(BOARD, "mruangutai/harness", 326, "building")
     except Exception as exc:  # noqa: BLE001 — any other type is itself the failure
         raised = exc
     check("set_station: a failing gh raises BoardError",
-          isinstance(raised, gh_board.BoardError), type(raised).__name__)
+          isinstance(raised, github.board.BoardError), type(raised).__name__)
     text = str(raised) if raised else ""
     # THE MESSAGE NAMES THE STATION THE CALLER ASKED FOR, LOWERCASE — not the derived column.
     # The caller can grep its own source for "building"; "Building" appears nowhere it wrote.
@@ -277,7 +278,7 @@ with tempfile.TemporaryDirectory() as tmp, fake_gh_failing(tmp):
           "326" in text and "building" in text and "Building" not in text, text)
 
 # T-02's REQUIRED CASE: set_station is the write half of the case boundary, so what reaches
-# factory_gh.project_field_set must be the COLUMN, from a lowercase station in. This is asserted
+# github.projects.project_field_set must be the COLUMN, from a lowercase station in. This is asserted
 # by capturing the argument rather than by reading the board back, because the conversion is the
 # whole behaviour under test and a round-trip through a fake would hide a missing derivation.
 _captured = {}
@@ -287,12 +288,12 @@ def _capture_field_set(owner, number, item_id, field, value, _c=_captured):
     _c["value"] = value
 
 
-_orig_field_set = gh_board.factory_gh.project_field_set
-_orig_item_id = gh_board.factory_gh.issue_board_item_id
+_orig_field_set = github.projects.project_field_set
+_orig_item_id = github.projects.issue_board_item_id
 try:
-    gh_board.factory_gh.project_field_set = _capture_field_set
-    gh_board.factory_gh.issue_board_item_id = lambda repo, num, board_number: "ITEM-1"
-    gh_board.set_station(BOARD, "mruangutai/harness", 326, "done")
+    github.projects.project_field_set = _capture_field_set
+    github.projects.issue_board_item_id = lambda repo, num, board_number: "ITEM-1"
+    github.board.set_station(BOARD, "mruangutai/harness", 326, "done")
     check('set_station passes "Done" to project_field_set when given "done"',
           _captured.get("value") == "Done", _captured)
 
@@ -301,15 +302,15 @@ try:
     # board, and nothing should reach GitHub.
     _captured.clear()
     try:
-        gh_board.set_station(BOARD, "mruangutai/harness", 326, "Done")
+        github.board.set_station(BOARD, "mruangutai/harness", 326, "Done")
         check("set_station raises FleetError on a capitalised station and writes nothing",
               False, "did not raise")
     except artifact_accessors.FleetError:
         check("set_station raises FleetError on a capitalised station and writes nothing",
               "value" not in _captured, _captured)
 finally:
-    gh_board.factory_gh.project_field_set = _orig_field_set
-    gh_board.factory_gh.issue_board_item_id = _orig_item_id
+    github.projects.project_field_set = _orig_field_set
+    github.projects.issue_board_item_id = _orig_item_id
 
 # --------------------------------------------------------------- project (FEAT-41 T-06) ------
 # ONE function answers "which card goes where", so plan.yaml is the only input to the answer.
@@ -322,7 +323,7 @@ def _rec(issues=None, parent=None, source_issues=None):
 # --- every active feature phase is one projection for every unique recorded card. A mixed
 # --- task list proves task-local statuses cannot leak back into active board placement.
 for _phase in ("plan", "ready", "building", "review"):
-    _p = gh_board.project(
+    _p = github.board.project(
         plan("done", "building", "ready", "abandoned", top=_phase),
         _rec(issues={"T-01": 11, "T-02": 12, "T-03": 13, "T-04": 14},
              parent=12, source_issues=[91, 12, 91, 11]),
@@ -332,7 +333,7 @@ for _phase in ("plan", "ready", "building", "review"):
 
 # --- terminal Done still places every non-abandoned card at done, while abandoned task cards
 # --- stay absent. This is deliberately distinct from active projection above.
-_p = gh_board.project(
+_p = github.board.project(
     plan("done", "abandoned", top="done"),
     _rec(issues={"T-01": 21, "T-02": 22}, parent=20, source_issues=[19, 20]),
 )
@@ -340,7 +341,7 @@ check("project: done preserves terminal placement and excludes abandoned tasks",
       _p == {21: "done", 20: "done", 19: "done"}, repr(_p))
 
 # --- absent remains absent: no top-level phase and no derivation must not invent a placement.
-_p = gh_board.project(plan("done", "ready"), _rec(issues={"T-01": 31}, parent=30,
+_p = github.board.project(plan("done", "ready"), _rec(issues={"T-01": 31}, parent=30,
                                                    source_issues=[29]))
 check("project: absent phase leaves only the task-local non-terminal card",
       _p == {31: "done"}, repr(_p))
@@ -348,12 +349,12 @@ check("project: absent phase leaves only the task-local non-terminal card",
 # --- FEAT-61 T-02: the active projection is the ACTIVE bucket, not "every board column".
 # --- `backlog` has a column but is not active — the parent keeps its recorded backlog station
 # --- and the tasks keep their own — while abandoned and rejected project nothing at all.
-_p = gh_board.project(plan("done", "ready", top="backlog"),
+_p = github.board.project(plan("done", "ready", top="backlog"),
                       _rec(issues={"T-01": 51, "T-02": 52}, parent=50, source_issues=[49]))
 check("project: backlog is a column but never an active projection",
       _p == {51: "done", 52: "ready", 50: "backlog", 49: "backlog"}, repr(_p))
 for _terminal in factory_config.TERMINAL_STATIONS:
-    _p = gh_board.project(plan("done", "ready", top=_terminal),
+    _p = github.board.project(plan("done", "ready", top=_terminal),
                           _rec(issues={"T-01": 61, "T-02": 62}, parent=60, source_issues=[59]))
     check(f"project: {_terminal} places no parent or source card and no active projection",
           _p == {61: "done", 62: "ready"}, repr(_p))
@@ -363,7 +364,7 @@ for _terminal in factory_config.TERMINAL_STATIONS:
 for _bad in ("pending", "Building", "shipped"):
     _raised = None
     try:
-        gh_board.project(plan(_bad), _rec(issues={"T-01": 31}))
+        github.board.project(plan(_bad), _rec(issues={"T-01": 31}))
     except artifact_accessors.FleetError as exc:
         _raised = str(exc)
     check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
@@ -371,7 +372,7 @@ for _bad in ("pending", "Building", "shipped"):
 
 # --- it performs no I/O and produces no column: the returned values are stations, and a
 # --- station's column differs from its name for every one of the six.
-_p = gh_board.project(plan("review"), _rec(issues={"T-01": 41}))
+_p = github.board.project(plan("review"), _rec(issues={"T-01": 41}))
 check("project: the value is a station, never a column",
       _p[41] == "review" and _p[41] != factory_config.station_column("review"), repr(_p))
 sys.exit(C.report())

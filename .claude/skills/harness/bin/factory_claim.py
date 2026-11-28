@@ -3,7 +3,7 @@
 It is how an agent takes work, and it is the only thing standing between two agents and the
 same issue.
 
-THE CLAIM IS A REF CREATION, NOT AN ASSIGNMENT (D-05). `factory_gh.create_ref` is a
+THE CLAIM IS A REF CREATION, NOT AN ASSIGNMENT (D-05). `github.refs.create_ref` is a
 create-if-absent decided by the server: exactly one concurrent creator can receive a create, so
 its return value is the ONLY thing this tool trusts to decide ownership. The label
 `factory:claimed`, the assignee and the `building` station are written only by the winner, are
@@ -31,7 +31,10 @@ import sys
 import artifact_accessors
 import factory_cli
 import factory_config
-import factory_gh
+import github.issues
+import github.projects
+import github.refs
+import github.transport
 import feature_corpus
 import harness_yaml
 from feature_record import read as record_read
@@ -203,7 +206,7 @@ def _blocker_gate(cache, repo, feature, task_id):
     open_blocker = None
     for dep in depends_on:
         blocker_num = cache.issue_number(repo, feature, dep)
-        state = factory_gh.issue_view(repo, blocker_num, ["state"]).get("state")
+        state = github.issues.issue_view(repo, blocker_num, ["state"]).get("state")
         if state != "CLOSED":
             open_blocker = (dep, blocker_num)
     if open_blocker is not None:
@@ -274,7 +277,7 @@ def _main():
     fleet = artifact_accessors.load_fleet(args.fleet) if args.fleet else artifact_accessors.load_fleet(factory_config.FLEET_PATH)
 
     # 1. preflight — a missing or unauthenticated gh raises GhError, exits 2 via the wrapper.
-    factory_gh.preflight()
+    github.transport.preflight()
 
     # 1b. the repositories this run serves — every fleet repo, filtered to --repo when given.
     # repo_entry raises the existing "repository not in fleet" FleetError for an unknown --repo;
@@ -297,7 +300,7 @@ def _main():
     for repo_name in repos_to_serve:
         board = factory_config.board_for(fleet, repo_name)
         boards[repo_name] = board
-        options = factory_gh.project_field_options(
+        options = github.projects.project_field_options(
             board["owner"], board["number"], board["station_field"],
         )
         # These three are COMPARED AGAINST THE BOARD'S REAL OPTIONS, so they must be column
@@ -318,7 +321,7 @@ def _main():
         raw_items = []
         for repo_name in repos_to_serve:
             board = boards[repo_name]
-            found_id = factory_gh.issue_board_item_id(repo_name, args.issue, board["number"])
+            found_id = github.projects.issue_board_item_id(repo_name, args.issue, board["number"])
             if found_id is not None:
                 raw_items = [{
                     "id": found_id,
@@ -341,7 +344,7 @@ def _main():
             query = (f'{board["station_field"]}:"'
                      f'{factory_config.station_column("ready")}" is:open')
             raw_items.extend(
-                factory_gh.project_items(board["owner"], board["number"], query=query)
+                github.projects.project_items(board["owner"], board["number"], query=query)
             )
 
     # 4. keep candidates whose repository is served, DE-DUPLICATED on (repo_name, issue_number) —
@@ -372,7 +375,7 @@ def _main():
     cache = _BlockerCache()
     winner = None
     for num, repo_name, item in candidates:
-        issue = factory_gh.issue_view(
+        issue = github.issues.issue_view(
             repo_name, num, ["number", "title", "state", "assignees", "labels"],
         )
         labels = [l.get("name", "") for l in (issue.get("labels") or [])]
@@ -428,9 +431,9 @@ def _main():
 
         # 5b. THE POINT OF NO RETURN. The return value of create_ref decides ownership.
         entry = factory_config.repo_entry(fleet, repo_name)
-        sha = factory_gh.default_branch_sha(repo_name, entry["default_branch"])
+        sha = github.refs.default_branch_sha(repo_name, entry["default_branch"])
         ref = f"refs/heads/factory/issue-{num}"
-        ok = factory_gh.create_ref(repo_name, ref, sha)
+        ok = github.refs.create_ref(repo_name, ref, sha)
         if not ok:
             if args.issue is not None:
                 factory_cli.lost_race(
@@ -452,9 +455,9 @@ def _main():
     num, repo_name, item, issue = winner
     item_id = item.get("id")
     winner_board = boards[repo_name]
-    factory_gh.add_label(repo_name, num, "factory:claimed")
-    factory_gh.assign(repo_name, num, args.as_login)
-    factory_gh.project_field_set(
+    github.issues.add_label(repo_name, num, "factory:claimed")
+    github.issues.assign(repo_name, num, args.as_login)
+    github.projects.project_field_set(
         winner_board["owner"], winner_board["number"], item_id,
         winner_board["station_field"], factory_config.station_column("building"),
     )
@@ -464,4 +467,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, factory_gh.GhError))
+    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, github.transport.GhError))

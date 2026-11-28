@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Tests for factory_gh.py, the single seam every factory tool talks to GitHub through (D-02, D-14).
+"""Tests for the github package's transport, issues, projects and refs modules, the single seam
+every harness tool talks to GitHub through (D-02, D-14).
 
 WHY: this module's whole job is deciding failure behaviour once — loud (GhError), never a
-swallowed default — and routing the three DAG edge functions through gh_issues' argv builders
+swallowed default — and routing the three DAG edge functions through github.issue_args' argv builders
 so FACTORY_GH cannot be silently bypassed (the T-12 stub-gh escape named in the plan). Every
 case here monkeypatches subprocess.run or run_gh with an in-process recorder; nothing spawns a
 real gh (run-unit-tests.py classifies this as UNIT for exactly that reason).
@@ -19,15 +20,11 @@ import re
 import sys
 
 import artifact_accessors
-import factory_gh as fgh
+import github.issues
+import github.projects
+import github.refs
+import github.transport
 from check_support import Checks
-
-# FEAT-29 T-03, amendment 4: run_gh now wraps its subprocess call with gh_cost_log.measured(),
-# which (when enabled) makes TWO extra `gh api rate_limit` calls per invocation to read the
-# GraphQL counter before and after. This file asserts on calls[0] in ~28 places — those extra
-# calls would shift every one of them. Set BEFORE any test runs, at true module scope, so no
-# recorder here ever sees a counter-read call.
-os.environ["HARNESS_GH_COST_LOG"] = "0"
 
 C = Checks()
 check = C.check
@@ -42,7 +39,7 @@ class Result:
 
 
 def recorder(results):
-    """Returns (fake_run, calls). fake_run replaces factory_gh.subprocess.run."""
+    """Returns (fake_run, calls). fake_run replaces github.transport.subprocess.run."""
     calls = []
     it = iter(results)
 
@@ -56,13 +53,13 @@ def recorder(results):
     return fake_run, calls
 
 
-_real_subprocess_run = fgh.subprocess.run
-_real_run_gh = fgh.run_gh
+_real_subprocess_run = github.transport.subprocess.run
+_real_run_gh = github.transport.run_gh
 
 
 def restore():
-    fgh.subprocess.run = _real_subprocess_run
-    fgh.run_gh = _real_run_gh
+    github.transport.subprocess.run = _real_subprocess_run
+    github.transport.run_gh = _real_run_gh
 
 
 def silent_stdout(fn, *a, **kw):
@@ -151,7 +148,7 @@ def dispatching_fake(responses_by_prefix, default=None):
     ("project", "field-list")) rather than call ORDER, so it discriminates the shape of a value
     (which id reached --project-id) instead of merely recording that a call happened.
 
-    subprocess.run is invoked with [gh_binary] + args (factory_gh.run_gh prepends the binary),
+    subprocess.run is invoked with [gh_binary] + args (github.transport.run_gh prepends the binary),
     so argv[0] here is the binary, not the gh subcommand — the prefix match starts at argv[1:]."""
     calls = []
 
@@ -191,11 +188,11 @@ def fake_run_missing(argv, **kwargs):
     raise FileNotFoundError("no such file: 'gh'")
 
 
-fgh.subprocess.run = fake_run_missing
+github.transport.subprocess.run = fake_run_missing
 try:
-    fgh.run_gh(["auth", "status"])
+    github.transport.run_gh(["auth", "status"])
     raised, msg = False, ""
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, msg = True, str(e)
     RAISED.append(e)
 restore()
@@ -216,11 +213,11 @@ fake, calls = recorder([
     Result(1, stdout="", stderr="permission denied\nmore detail"),
     Result(1, stdout="", stderr="rate_limit query itself failed"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["issue", "list"])
+    github.transport.run_gh(["issue", "list"])
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -235,9 +232,9 @@ check("run_gh: GhError message has an em dash, no class name, no traceback",
 # ---------------- run_gh: FACTORY_GH resolved at call time ----------------
 os.environ["FACTORY_GH"] = "my-stub-gh"
 fake, calls = recorder([Result(0, stdout="ok")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["auth", "status"])
+    github.transport.run_gh(["auth", "status"])
 finally:
     del os.environ["FACTORY_GH"]
     restore()
@@ -247,17 +244,17 @@ check("run_gh: FACTORY_GH set AFTER import changes the binary used",
 
 # ---------------- run_gh: stdin is closed ----------------
 fake, calls = recorder([Result(0, stdout="ok")])
-fgh.subprocess.run = fake
-fgh.run_gh(["auth", "status"])
+github.transport.subprocess.run = fake
+github.transport.run_gh(["auth", "status"])
 restore()
 check("run_gh: stdin is closed (DEVNULL)",
-      calls and calls[0].get("stdin") is fgh.subprocess.DEVNULL, f"calls={calls}")
+      calls and calls[0].get("stdin") is github.transport.subprocess.DEVNULL, f"calls={calls}")
 
 
 # ---------------- preflight: succeeds silently, raises with the auth-login hint ----------------
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-result = fgh.preflight()
+github.transport.subprocess.run = fake
+result = github.transport.preflight()
 restore()
 check("preflight: returns None on a zero exit", result is None, f"result={result!r}")
 check("preflight: runs `auth status`",
@@ -271,11 +268,11 @@ fake, calls = recorder([
     Result(1, stderr="gh: not logged in"),
     Result(1, stderr="rate_limit query itself failed"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.preflight()
+    github.transport.preflight()
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -285,8 +282,8 @@ check("preflight: raises GhError telling the operator to run gh auth login",
 
 # ---------------- create_issue: parses number from URL ----------------
 fake, calls = recorder([Result(0, stdout="https://github.com/o/r/issues/42\n")])
-fgh.subprocess.run = fake
-num = fgh.create_issue("o/r", "title", "body", ["harness", "chore"])
+github.transport.subprocess.run = fake
+num = github.issues.create_issue("o/r", "title", "body", ["harness", "chore"])
 restore()
 check("create_issue: returns the number parsed from the URL", num == 42, f"num={num!r}")
 check("create_issue: passes repo verbatim",
@@ -298,11 +295,11 @@ check("create_issue: passes every label",
 
 # ---------------- create_issue: unparseable output raises ----------------
 fake, calls = recorder([Result(0, stdout="not a url\n")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.create_issue("o/r", "t", "b", [])
+    github.issues.create_issue("o/r", "t", "b", [])
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised = True
     RAISED.append(e)
 restore()
@@ -318,11 +315,11 @@ check("create_issue: unparseable output raises GhError, never returns a default"
 fake, calls = recorder([
     Result(0), Result(1, stderr="already frozen"), Result(1, stderr="rate_limit query itself failed"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.ensure_labels("o/r", ["a", "b", "c"])
+    github.issues.ensure_labels("o/r", ["a", "b", "c"])
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised = True
     RAISED.append(e)
 restore()
@@ -339,11 +336,11 @@ check("ensure_labels: passes repo verbatim",
 fake, calls = recorder([
     Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout=""),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
     set_exc = None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     set_exc = e
     RAISED.append(e)
 restore()
@@ -377,11 +374,11 @@ if set_exc is None:
 
 # ---------------- project_field_set: option not offered — raises, edits nothing ----------------
 fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "NotAnOption")
+    github.projects.project_field_set("owner", 3, "ITEM1", "Station", "NotAnOption")
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -403,11 +400,11 @@ check("project_field_set: option-not-offered message carries no generic subcomma
 fake, calls = dispatching_fake({
     ("api", "graphql"): Result(0, stdout=GRAPHQL_FIELD_JSON),
 }, default=Result(0, stdout=""))
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
     pid_exc = None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     pid_exc = e
     RAISED.append(e)
 restore()
@@ -434,16 +431,16 @@ if edit_calls:
 fake, calls = dispatching_fake({
     ("api", "graphql"): Result(1, stdout="", stderr="gh: API error"),
 }, default=Result(0, stdout=""))
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
 check("project_field_set: a non-diagnosable transport failure raises GhError",
-      raised and isinstance(exc, fgh.GhError), f"exc={exc!r}")
+      raised and isinstance(exc, github.transport.GhError), f"exc={exc!r}")
 check("project_field_set: a transport failure makes ZERO item-edit calls "
       "(never falls back to the bare number)",
       not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
@@ -457,15 +454,15 @@ check("project_field_set: transport-failure message never carries the generic "
 # ---------------- _project_field_resolve: the newly separated diagnosis states ----------------
 # unknown owner login — EXIT 0, no errors key. Different message from the org and board cases.
 fake, calls = recorder([Result(0, stdout=GRAPHQL_UNKNOWN_OWNER_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
     # "acmeuser", not "owner" (MF-1): "owner" occurs in this case's own fixed prose
     # ("project owner not found", "check the owner login"), so the naming assertion below
     # would pass regardless of the value slot. "acmeuser" occurs in no fixed prose in this
     # file. Moves together with :421 and :441.
-    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
     raised, unknown_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, unknown_exc = True, e
     RAISED.append(e)
 restore()
@@ -482,12 +479,12 @@ for label, fixture in (("exit-1 unreachable", GRAPHQL_ORG_UNREACHABLE_JSON),
     status = 1 if label.startswith("exit-1") else 0
     fake, calls = recorder([Result(status, stdout=fixture,
                                     stderr="" if status == 0 else "gh: not found")])
-    fgh.subprocess.run = fake
+    github.transport.subprocess.run = fake
     try:
         # "acmeuser" — moves together with :400 and :441 (MF-1 remedy).
-        fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+        github.projects.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
         raised, org_exc = False, None
-    except fgh.GhError as e:
+    except github.transport.GhError as e:
         raised, org_exc = True, e
         RAISED.append(e)
     restore()
@@ -503,14 +500,14 @@ for label, fixture in (("exit-1 unreachable", GRAPHQL_ORG_UNREACHABLE_JSON),
 
 # board number not present — EXIT 1, __typename User, projectV2 null
 fake, calls = recorder([Result(1, stdout=GRAPHQL_BOARD_ABSENT_JSON, stderr="gh: not found")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
     # "acmeuser" — not optional here even though :452 already discriminates below;
     # moving only the org case would make that inequality pass for the wrong reason
     # (differing values, not differing messages) — MF-1 trap 1.
-    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
     raised, board_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, board_exc = True, e
     RAISED.append(e)
 restore()
@@ -528,11 +525,11 @@ check("board absent: message carries no generic subcommand fallback",
 
 # field exists but is not single-select — EXIT 0, field is {} — must catch `{} is not None`
 fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_NOT_SINGLE_SELECT_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    github.projects.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
     raised, notsingle_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, notsingle_exc = True, e
     RAISED.append(e)
 restore()
@@ -548,28 +545,28 @@ check("field not single-select: message carries no generic subcommand fallback",
 
 # ---------------- issue_view / add_label / assign: pass repo verbatim ----------------
 fake, calls = recorder([Result(0, stdout="{}")])
-fgh.subprocess.run = fake
-fgh.issue_view("o/r", 9, ["title", "state"])
+github.transport.subprocess.run = fake
+github.issues.issue_view("o/r", 9, ["title", "state"])
 restore()
 check("issue_view: passes repo verbatim and comma-joins fields",
       "o/r" in calls[0]["argv"] and "title,state" in calls[0]["argv"], f"calls={calls}")
 
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-fgh.add_label("o/r", 9, "harness")
+github.transport.subprocess.run = fake
+github.issues.add_label("o/r", 9, "harness")
 restore()
 check("add_label: passes repo verbatim", "o/r" in calls[0]["argv"], f"calls={calls}")
 
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-fgh.assign("o/r", 9, "mruangutai")
+github.transport.subprocess.run = fake
+github.issues.assign("o/r", 9, "mruangutai")
 restore()
 check("assign: passes repo and login verbatim",
       "o/r" in calls[0]["argv"] and "mruangutai" in calls[0]["argv"], f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout='{"id":"PVTI_1"}')])
-fgh.subprocess.run = fake
-item_id = fgh.project_item_add("owner", 3, "https://github.com/o/r/issues/9")
+github.transport.subprocess.run = fake
+item_id = github.projects.project_item_add("owner", 3, "https://github.com/o/r/issues/9")
 restore()
 check("project_item_add: returns the item id", item_id == "PVTI_1", f"item_id={item_id!r}")
 check("project_item_add: passes owner verbatim", "owner" in calls[0]["argv"], f"calls={calls}")
@@ -577,8 +574,8 @@ check("project_item_add: passes owner verbatim", "owner" in calls[0]["argv"], f"
 
 # ---------------- create_ref: True on success, False on the measured conflict, raise otherwise --
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-ok = fgh.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
+github.transport.subprocess.run = fake
+ok = github.refs.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
 restore()
 check("create_ref: returns True on a zero exit", ok is True, f"ok={ok!r}")
 
@@ -587,18 +584,18 @@ fake, calls = recorder([Result(
     stdout='{"message":"Reference already exists","status":"422"}',
     stderr="gh: Reference already exists (HTTP 422)",
 )])
-fgh.subprocess.run = fake
-ok = fgh.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
+github.transport.subprocess.run = fake
+ok = github.refs.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
 restore()
 check("create_ref: returns False WITHOUT raising on the measured conflict", ok is False,
       f"ok={ok!r}")
 
 fake, calls = recorder([Result(1, stdout="", stderr="gh: authentication required")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
+    github.refs.create_ref("o/r", "refs/heads/factory/issue-1", "abc123")
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised = True
     RAISED.append(e)
 restore()
@@ -609,11 +606,11 @@ fake, calls = recorder([Result(
     stdout='{"message":"Invalid request","status":"422"}',
     stderr="gh: Invalid request (HTTP 422)",
 )])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.create_ref("o/r", "refs/heads/factory/issue-1", "badsha")
+    github.refs.create_ref("o/r", "refs/heads/factory/issue-1", "badsha")
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised = True
     RAISED.append(e)
 restore()
@@ -623,26 +620,26 @@ check("create_ref: a 422 WITHOUT 'already exists' raises rather than reporting a
 
 # ---------------- project_items: truncation guard, query passthrough ----------------
 fake, calls = recorder([Result(0, stdout=json.dumps(PROJECT_ITEMS_2))])
-fgh.subprocess.run = fake
-items = fgh.project_items("o", 3)
+github.transport.subprocess.run = fake
+items = github.projects.project_items("o", 3)
 restore()
 check("project_items: returns the items list", len(items) == 2, f"items={items}")
 check("project_items: omits --query when none is given", "--query" not in calls[0]["argv"])
 
 fake, calls = recorder([Result(0, stdout=json.dumps(PROJECT_ITEMS_2))])
-fgh.subprocess.run = fake
-items = fgh.project_items("o", 3, query="is:open")
+github.transport.subprocess.run = fake
+items = github.projects.project_items("o", 3, query="is:open")
 restore()
 check("project_items: passes the query string verbatim when given",
       "--query" in calls[0]["argv"] and
       calls[0]["argv"][calls[0]["argv"].index("--query") + 1] == "is:open", f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout=json.dumps(PROJECT_ITEMS_TRUNCATED))])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_items("o", 3)
+    github.projects.project_items("o", 3)
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -650,11 +647,11 @@ check("project_items: raises GhError when totalCount exceeds the returned items"
       raised and "5" in str(exc) and "1" in str(exc), f"exc={exc if raised else None}")
 
 fake, calls = recorder([Result(0, stdout=json.dumps({"items": []}))])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_items("o", 3)
+    github.projects.project_items("o", 3)
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised = True
     RAISED.append(e)
 restore()
@@ -693,14 +690,14 @@ STATION_SINGLE_PAGE_JSON = _station_page(2, False, None, [STATION_NODE_READY, ST
 # single-page accumulated count fall short of totalCount, tripping the truncation guard — an
 # uncaught raise here would crash the whole suite rather than reddening just its own check.
 fake, calls = recorder([Result(0, stdout=STATION_SINGLE_PAGE_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    station_items = fgh.project_item_stations("owner", 3, "Station")
+    station_items = github.projects.project_item_stations("owner", 3, "Station")
     station_single_exc = None
 except Exception as e:
     station_items = None
     station_single_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 _sargv = calls[0]["argv"] if calls else []  # the argv-shape checks below read this same run
@@ -721,14 +718,14 @@ check("project_item_stations: a stationed item's content carries the issue numbe
 # drop is caught ONLY by this presence check, not smothered by an unrelated raise.
 STATION_PRESENCE_JSON = _station_page(1, False, None, [STATION_NODE_READY, STATION_NODE_NULL_FV])
 fake, calls = recorder([Result(0, stdout=STATION_PRESENCE_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    station_presence_items = fgh.project_item_stations("owner", 3, "Station")
+    station_presence_items = github.projects.project_item_stations("owner", 3, "Station")
     station_presence_exc = None
 except Exception as e:
     station_presence_items = None
     station_presence_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("project_item_stations: a null fieldValueByName item maps to station None "
@@ -749,17 +746,17 @@ STATION_PAGE2_JSON = _station_page(3, False, None, [
      "fieldValueByName": {"name": "Doing"}},
 ])
 fake, calls = recorder([Result(0, stdout=STATION_PAGE1_JSON), Result(0, stdout=STATION_PAGE2_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 # Wrapped (P-04): a mutation that stops pagination after page 1 leaves items_out (1) short of
 # totalCount (3), which trips the truncation guard tested separately below — an unguarded call
 # here would let that raise crash the whole suite instead of reddening just these checks.
 try:
-    two_page_items = fgh.project_item_stations("owner", 3, "Station")
+    two_page_items = github.projects.project_item_stations("owner", 3, "Station")
     two_page_exc = None
 except Exception as e:
     two_page_items = None
     two_page_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("project_item_stations: two-page response makes exactly TWO calls",
@@ -776,18 +773,18 @@ check("project_item_stations: the second page's items appear in the output",
 # ---- accumulated count below totalCount raises GhError ----
 STATION_TRUNCATED_JSON = _station_page(5, False, None, [STATION_NODE_READY, STATION_NODE_DOING])
 fake, calls = recorder([Result(0, stdout=STATION_TRUNCATED_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_item_stations("owner", 3, "Station")
+    github.projects.project_item_stations("owner", 3, "Station")
     station_trunc_raised, station_trunc_exc = False, None
 except Exception as e:
     station_trunc_raised = True
     station_trunc_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("project_item_stations: accumulated count below totalCount raises GhError",
-      station_trunc_raised and isinstance(station_trunc_exc, fgh.GhError),
+      station_trunc_raised and isinstance(station_trunc_exc, github.transport.GhError),
       f"exc={station_trunc_exc!r}")
 check("project_item_stations: truncation message names both totals",
       station_trunc_raised and "5" in str(station_trunc_exc) and "2" in str(station_trunc_exc),
@@ -799,37 +796,37 @@ STATION_NO_TOTAL_JSON = json.dumps({"data": {"user": {"projectV2": {"items": {
     "nodes": [STATION_NODE_READY],
 }}}}})
 fake, calls = recorder([Result(0, stdout=STATION_NO_TOTAL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_item_stations("owner", 3, "Station")
+    github.projects.project_item_stations("owner", 3, "Station")
     station_notot_raised, station_notot_exc = False, None
 except Exception as e:
     station_notot_raised = True
     station_notot_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("project_item_stations: a response missing totalCount raises GhError, "
       "never defaults it to 0",
-      station_notot_raised and isinstance(station_notot_exc, fgh.GhError),
+      station_notot_raised and isinstance(station_notot_exc, github.transport.GhError),
       f"exc={station_notot_exc!r}")
 
 # ---- a null user (e.g. an organization-owned board) raises GhError, never an empty list ----
 STATION_NULL_USER_JSON = json.dumps({"data": {"user": None}})
 fake, calls = recorder([Result(0, stdout=STATION_NULL_USER_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_item_stations("acmeorg", 3, "Station")
+    github.projects.project_item_stations("acmeorg", 3, "Station")
     station_nouser_raised, station_nouser_exc = False, None
 except Exception as e:
     station_nouser_raised = True
     station_nouser_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("project_item_stations: a null user (organization-owned board) raises GhError, "
       "never returns an empty list",
-      station_nouser_raised and isinstance(station_nouser_exc, fgh.GhError),
+      station_nouser_raised and isinstance(station_nouser_exc, github.transport.GhError),
       f"exc={station_nouser_exc!r}")
 
 # ---- argv shape and query selection guard: -F for owner/number/field/cursor, -f for query,
@@ -852,8 +849,8 @@ check("project_item_stations: query has no widened plural fieldValues connection
 # with no match) returns None; only an unrecognised or truncated shape raises.
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_MATCH_JSON)])
-fgh.subprocess.run = fake
-match_id = fgh.issue_board_item_id("acme/widget", 42, 9)
+github.transport.subprocess.run = fake
+match_id = github.projects.issue_board_item_id("acme/widget", 42, 9)
 restore()
 check("issue_board_item_id: made exactly ONE call",
       len(calls) == 1, f"calls={calls}")
@@ -874,7 +871,7 @@ check("issue_board_item_id: returns the matching node's id when project.number =
 # a STRUCTURAL check (the argument-name list inside `issue( ... )`), not a keyword blacklist and
 # not an equality check on the whole query text, so it reddens under any state-scoping argument
 # regardless of spelling and survives a pure whitespace/reformat of the query.
-_issue_sel = re.search(r"issue\s*\(([^)]*)\)", fgh._ISSUE_ITEM_QUERY)
+_issue_sel = re.search(r"issue\s*\(([^)]*)\)", github.projects._ISSUE_ITEM_QUERY)
 _issue_arg_names = []
 if _issue_sel:
     for _part in _issue_sel.group(1).split(","):
@@ -884,14 +881,14 @@ if _issue_sel:
 check("issue_board_item_id: _ISSUE_ITEM_QUERY's issue(...) selection takes exactly the "
       "argument {number} — no state/filter argument of any spelling",
       _issue_arg_names == ["number"],
-      f"arg_names={_issue_arg_names!r} query={fgh._ISSUE_ITEM_QUERY!r}")
+      f"arg_names={_issue_arg_names!r} query={github.projects._ISSUE_ITEM_QUERY!r}")
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_OTHER_PROJECT_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    other_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    other_result = github.projects.issue_board_item_id("acme/widget", 42, 9)
     other_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     other_raised, other_result = True, None
     RAISED.append(e)
 restore()
@@ -899,11 +896,11 @@ check("issue_board_item_id: an item on a DIFFERENT project number returns None, 
       not other_raised and other_result is None, f"raised={other_raised} result={other_result!r}")
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_EMPTY_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    empty_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    empty_result = github.projects.issue_board_item_id("acme/widget", 42, 9)
     empty_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     empty_raised, empty_result = True, None
     RAISED.append(e)
 restore()
@@ -911,11 +908,11 @@ check("issue_board_item_id: empty nodes list with totalCount 0 returns None, doe
       not empty_raised and empty_result is None, f"raised={empty_raised} result={empty_result!r}")
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_ISSUE_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    null_issue_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    null_issue_result = github.projects.issue_board_item_id("acme/widget", 42, 9)
     null_issue_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     null_issue_raised, null_issue_result = True, None
     RAISED.append(e)
 restore()
@@ -926,11 +923,11 @@ check("issue_board_item_id: repository.issue explicitly null returns None, does 
 # ABSENT "issue" key is a DIFFERENT case from explicit null above — absence is an unrecognised
 # shape and raises; only an explicit null is a real "issue does not exist" answer.
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_ISSUE_KEY_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     no_issue_key_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     no_issue_key_raised = True
     RAISED.append(e)
 restore()
@@ -938,33 +935,33 @@ check("issue_board_item_id: repository dict with NO 'issue' key at all RAISES "
       "(distinct from the explicit-null case above)", no_issue_key_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_PROJECTITEMS_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     no_pi_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     no_pi_raised = True
     RAISED.append(e)
 restore()
 check("issue_board_item_id: issue with no 'projectItems' key RAISES", no_pi_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODES_NOT_LIST_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     nodes_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     nodes_raised = True
     RAISED.append(e)
 restore()
 check("issue_board_item_id: projectItems.nodes not a list RAISES", nodes_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_TOTALCOUNT_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     no_total_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     no_total_raised = True
     RAISED.append(e)
 restore()
@@ -972,24 +969,24 @@ check("issue_board_item_id: projectItems with no 'totalCount' key RAISES "
       "(never defaults to 0)", no_total_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_TOTALCOUNT_STRING_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     total_str_raised, total_str_type = False, None
 except Exception as e:
     total_str_raised, total_str_type = True, type(e)
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("issue_board_item_id: a string totalCount raises GhError, NOT a bare TypeError",
-      total_str_raised and total_str_type is fgh.GhError, f"type={total_str_type}")
+      total_str_raised and total_str_type is github.transport.GhError, f"type={total_str_type}")
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_TRUNCATED_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     trunc_raised, trunc_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     trunc_raised, trunc_exc = True, e
     RAISED.append(e)
 restore()
@@ -999,33 +996,33 @@ check("issue_board_item_id: truncation message names the totals",
       f"exc={trunc_exc if trunc_raised else None}")
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODE_NO_ID_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     no_id_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     no_id_raised = True
     RAISED.append(e)
 restore()
 check("issue_board_item_id: a node missing 'id' RAISES", no_id_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODE_NO_PROJECT_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     no_project_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     no_project_raised = True
     RAISED.append(e)
 restore()
 check("issue_board_item_id: a node missing 'project' RAISES", no_project_raised)
 
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NULL_REPOSITORY_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     null_repo_raised, null_repo_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     null_repo_raised, null_repo_exc = True, e
     RAISED.append(e)
 restore()
@@ -1038,11 +1035,11 @@ check("issue_board_item_id: a null repository RAISES, naming the repository, "
 # a non-diagnosable transport failure (no JSON on stdout at all) still raises GhError, naming
 # the repo and issue number — mirrors _project_field_resolve's partial-failure recovery shape.
 fake, calls = recorder([Result(1, stdout="", stderr="gh: API error")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("acme/widget", 42, 9)
+    github.projects.issue_board_item_id("acme/widget", 42, 9)
     transport_raised, transport_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     transport_raised, transport_exc = True, e
     RAISED.append(e)
 restore()
@@ -1054,11 +1051,11 @@ check("issue_board_item_id: transport-failure message names the repo and issue n
 
 # a malformed repository string (no exactly-two-part split) raises before any call is made.
 fake, calls = recorder([])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_board_item_id("not-a-valid-repo", 1, 9)
+    github.projects.issue_board_item_id("not-a-valid-repo", 1, 9)
     malformed_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     malformed_raised = True
     RAISED.append(e)
 restore()
@@ -1070,10 +1067,10 @@ check("issue_board_item_id: malformed-repository message names the repository",
 
 # ---------------- project_field_options ----------------
 fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    opts = fgh.project_field_options("owner", 3, "Station")
-except fgh.GhError as e:
+    opts = github.projects.project_field_options("owner", 3, "Station")
+except github.transport.GhError as e:
     opts = None
     RAISED.append(e)
 restore()
@@ -1081,11 +1078,11 @@ check("project_field_options: returns the option names",
       opts == ["Ready", "Doing"], f"opts={opts!r}")
 
 fake, calls = recorder([Result(1, stdout=GRAPHQL_FIELD_ABSENT_JSON, stderr="gh: not found")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_field_options("owner", 3, "NoSuchField")
+    github.projects.project_field_options("owner", 3, "NoSuchField")
     raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -1112,8 +1109,8 @@ GRAPHQL_PROJECT_RESOLVE_ORG_JSON = json.dumps({"data": {"repositoryOwner": {
     "__typename": "Organization", "projectV2": None}}})
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_OK_JSON)])
-fgh.subprocess.run = fake
-resolved = fgh.project_resolve("owner", 3)
+github.transport.subprocess.run = fake
+resolved = github.projects.project_resolve("owner", 3)
 restore()
 check("project_resolve: returns the project id and title when it exists",
       resolved == {"id": "PVT_kwHOEXIST", "title": "Board"}, f"resolved={resolved!r}")
@@ -1125,11 +1122,11 @@ check("project_resolve: sends owner and number as GraphQL variables",
 # GhError (the old, dangerous inference) would call project_create here and duplicate a board;
 # this case is the one that would go RED if project_resolve raised instead of returning None.
 fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_ABSENT_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 absent_result, absent_raised = "unset", False
 try:
-    absent_result = fgh.project_resolve("owner", 99)
-except fgh.GhError as e:
+    absent_result = github.projects.project_resolve("owner", 99)
+except github.transport.GhError as e:
     absent_raised = True
     RAISED.append(e)
 restore()
@@ -1142,11 +1139,11 @@ check("project_resolve: an absent project (owner resolves, projectV2 null) retur
 # with result None instead of an exception — the assertion on `raised` is what a mutant deleting
 # the owner-absent raise turns red.
 fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_OWNER_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_resolve("nosuchowner", 3)
+    github.projects.project_resolve("nosuchowner", 3)
     owner_raised, owner_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     owner_raised, owner_exc = True, e
     RAISED.append(e)
 restore()
@@ -1156,11 +1153,11 @@ check("project_resolve: an unresolvable owner raises GhError naming the owner",
 # ORGANIZATION — raises GhError with the organization message, and sends NO mutation (no argv
 # here contains a mutation keyword at all, since project_resolve issues only the one query call).
 fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_ORG_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_resolve("acmeorg", 3)
+    github.projects.project_resolve("acmeorg", 3)
     org_raised, org_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     org_raised, org_exc = True, e
     RAISED.append(e)
 restore()
@@ -1185,8 +1182,8 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_OWNER_ID_JSON),
     Result(0, stdout=GRAPHQL_CREATE_PROJECT_JSON),
 ])
-fgh.subprocess.run = fake
-created = fgh.project_create("owner", "sample-product board")
+github.transport.subprocess.run = fake
+created = github.projects.project_create("owner", "sample-product board")
 restore()
 check("project_create: returns the new project's id and number",
       created == {"id": "PVT_kwHONEW", "number": 7}, f"created={created!r}")
@@ -1199,11 +1196,11 @@ check("project_create: second call's query mutates createProjectV2",
       any("createProjectV2" in a for a in calls[1]["argv"]), f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_OWNER_ID_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_create("nosuchowner", "t")
+    github.projects.project_create("nosuchowner", "t")
     create_owner_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     create_owner_raised = True
     RAISED.append(e)
 restore()
@@ -1214,11 +1211,11 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_OWNER_ID_JSON),
     Result(0, stdout=GRAPHQL_CREATE_PROJECT_NULL_JSON),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_create("owner", "t")
+    github.projects.project_create("owner", "t")
     create_null_raised, create_null_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     create_null_raised, create_null_exc = True, e
     RAISED.append(e)
 restore()
@@ -1237,8 +1234,8 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_REPO_ID_JSON),
     Result(0, stdout=GRAPHQL_LINK_OK_JSON),
 ])
-fgh.subprocess.run = fake
-link_result = fgh.project_link_repository("PVT_kwHOEXIST", "mruangutai/sample-product")
+github.transport.subprocess.run = fake
+link_result = github.projects.project_link_repository("PVT_kwHOEXIST", "mruangutai/sample-product")
 restore()
 check("project_link_repository: returns None on success", link_result is None, f"r={link_result!r}")
 check("project_link_repository: resolves owner/name split from the repo string",
@@ -1249,11 +1246,11 @@ check("project_link_repository: second call sends the resolved project and repos
       f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_REPO_ID_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_link_repository("PVT_1", "owner/nope")
+    github.projects.project_link_repository("PVT_1", "owner/nope")
     link_repo_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     link_repo_raised = True
     RAISED.append(e)
 restore()
@@ -1267,11 +1264,11 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_REPO_ID_JSON),
     Result(1, stdout="", stderr="Repository is already linked to this project"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    already_result = fgh.project_link_repository("PVT_1", "owner/repo")
+    already_result = github.projects.project_link_repository("PVT_1", "owner/repo")
     already_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     already_result, already_raised = None, True
     RAISED.append(e)
 restore()
@@ -1282,11 +1279,11 @@ fake, calls = recorder([
     Result(0, stdout=GRAPHQL_REPO_ID_JSON),
     Result(1, stdout="", stderr="gh: authentication required"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_link_repository("PVT_1", "owner/repo")
+    github.projects.project_link_repository("PVT_1", "owner/repo")
     unrelated_link_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     unrelated_link_raised = True
     RAISED.append(e)
 restore()
@@ -1301,8 +1298,8 @@ GRAPHQL_CREATE_FIELD_NULL_JSON = json.dumps(
     {"data": {"createProjectV2Field": {"projectV2Field": None}}})
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_CREATE_FIELD_JSON)])
-fgh.subprocess.run = fake
-field_id = fgh.project_single_select_create(
+github.transport.subprocess.run = fake
+field_id = github.projects.project_single_select_create(
     "PVT_1", "Status", ["Backlog", "Plan", "Ready", "Building", "Review", "Done"])
 restore()
 check("project_single_select_create: returns the new field's node id",
@@ -1322,11 +1319,11 @@ check("project_single_select_create: sends the field name and project id as vari
       f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_CREATE_FIELD_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_single_select_create("PVT_1", "Status", ["Backlog"])
+    github.projects.project_single_select_create("PVT_1", "Status", ["Backlog"])
     create_field_raised, create_field_exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     create_field_raised, create_field_exc = True, e
     RAISED.append(e)
 restore()
@@ -1347,8 +1344,8 @@ GRAPHQL_UPDATE_FIELD_NULL_JSON = json.dumps(
 # "Backlog" and "Plan" from the call below (the shape a broken refactor would produce) makes the
 # ordering assertion fail because "Backlog" is absent from sent_query entirely.
 fake, calls = recorder([Result(0, stdout=GRAPHQL_UPDATE_FIELD_JSON)])
-fgh.subprocess.run = fake
-extend_result = fgh.project_single_select_extend(
+github.transport.subprocess.run = fake
+extend_result = github.projects.project_single_select_extend(
     "PVT_1", "PVTSSF_1", ["Backlog", "Plan", "Ready", "Building", "Review", "Done"])
 restore()
 check("project_single_select_extend: returns None", extend_result is None, f"r={extend_result!r}")
@@ -1370,11 +1367,11 @@ check("project_single_select_extend: mutates updateProjectV2Field, never createP
       and not any("createProjectV2Field" in a for a in calls[0]["argv"]), f"calls={calls}")
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_UPDATE_FIELD_NULL_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.project_single_select_extend("PVT_1", "PVTSSF_1", ["Backlog"])
+    github.projects.project_single_select_extend("PVT_1", "PVTSSF_1", ["Backlog"])
     extend_null_raised = False
-except fgh.GhError as e:
+except github.transport.GhError as e:
     extend_null_raised = True
     RAISED.append(e)
 restore()
@@ -1393,8 +1390,8 @@ GRAPHQL_WORKFLOWS_NULL_JSON = json.dumps(
     {"data": {"user": {"projectV2": {"workflows": None}}}})
 
 fake, calls = recorder([Result(0, stdout=GRAPHQL_WORKFLOWS_JSON)])
-fgh.subprocess.run = fake
-workflows = fgh.project_workflows("owner", 3)
+github.transport.subprocess.run = fake
+workflows = github.projects.project_workflows("owner", 3)
 restore()
 check("project_workflows: returns one dict per workflow with name/enabled/number",
       workflows == [
@@ -1413,11 +1410,11 @@ for label, fixture in (
     ("workflows null", GRAPHQL_WORKFLOWS_NULL_JSON),
 ):
     fake, calls = recorder([Result(0, stdout=fixture)])
-    fgh.subprocess.run = fake
+    github.transport.subprocess.run = fake
     try:
-        wf_result = fgh.project_workflows("owner", 3)
+        wf_result = github.projects.project_workflows("owner", 3)
         wf_raised = False
-    except fgh.GhError as e:
+    except github.transport.GhError as e:
         wf_result, wf_raised = None, True
         RAISED.append(e)
     restore()
@@ -1427,8 +1424,8 @@ for label, fixture in (
 
 # ---------------- default_branch_sha ----------------
 fake, calls = recorder([Result(0, stdout="deadbeef\n")])
-fgh.subprocess.run = fake
-sha = fgh.default_branch_sha("o/r", "main")
+github.transport.subprocess.run = fake
+sha = github.refs.default_branch_sha("o/r", "main")
 restore()
 check("default_branch_sha: returns the sha", sha == "deadbeef", f"sha={sha!r}")
 check("default_branch_sha: hits the ref/heads path",
@@ -1437,8 +1434,8 @@ check("default_branch_sha: hits the ref/heads path",
 
 # ---------------- file_at_ref ----------------
 fake, calls = recorder([Result(0, stdout=base64.b64encode(b"hello world").decode() + "\n")])
-fgh.subprocess.run = fake
-text = fgh.file_at_ref("o/r", "path/to/file.txt", "main")
+github.transport.subprocess.run = fake
+text = github.refs.file_at_ref("o/r", "path/to/file.txt", "main")
 restore()
 check("file_at_ref: returns the decoded file body", text == "hello world", f"text={text!r}")
 check("file_at_ref: hits the contents path with the ref",
@@ -1449,11 +1446,11 @@ check("file_at_ref: hits the contents path with the ref",
       and "-f" not in calls[0]["argv"], f"calls={calls}")
 
 fake, calls = recorder([Result(1, stdout="", stderr="404 Not Found")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.file_at_ref("o/r", "missing/file.txt", "release-branch")
+    github.refs.file_at_ref("o/r", "missing/file.txt", "release-branch")
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -1465,11 +1462,11 @@ check("file_at_ref: a missing file raises GhError naming repo, path and ref",
       f"exc={exc}")
 
 fake, calls = recorder([Result(0, stdout="not-valid-base64!!!")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.file_at_ref("o/r", "path/x", "main")
+    github.refs.file_at_ref("o/r", "path/x", "main")
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -1479,11 +1476,11 @@ check("file_at_ref: undecodable content raises rather than returning empty", rai
 # error — it can only be caught by validate=True rejecting the embedded "!". A padding-error
 # fixture (like "not-valid-base64!!!" above) cannot see the validate flag at all.
 fake, calls = recorder([Result(0, stdout="aGV!sbG8=")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.file_at_ref("o/r", "path/lax", "main")
+    github.refs.file_at_ref("o/r", "path/lax", "main")
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -1496,10 +1493,10 @@ _wrap_text = b"the quick brown fox jumps over the lazy dog " * 5
 _wrap_enc = base64.b64encode(_wrap_text).decode()
 _wrap_body = "\n".join(_wrap_enc[i:i + 60] for i in range(0, len(_wrap_enc), 60)) + "\n"
 fake, calls = recorder([Result(0, stdout=_wrap_body)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    wrapped_text = fgh.file_at_ref("o/r", "path/to/wrapped.txt", "main")
-except fgh.GhError as e:
+    wrapped_text = github.refs.file_at_ref("o/r", "path/to/wrapped.txt", "main")
+except github.transport.GhError as e:
     wrapped_text = None
     _wrap_exc = e
 else:
@@ -1510,11 +1507,11 @@ check("file_at_ref: decodes GitHub's line-wrapped base64 content",
       f"wrapped_text={wrapped_text!r} exc={_wrap_exc}")
 
 fake, calls = recorder([Result(0, stdout="null")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.file_at_ref("o/r", "adir", "main")
+    github.refs.file_at_ref("o/r", "adir", "main")
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
@@ -1523,8 +1520,8 @@ check("file_at_ref: an absent content field raises rather than defaulting", rais
 
 # ---------------- delete_ref ----------------
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-fgh.delete_ref("o/r", "refs/heads/factory/issue-1")
+github.transport.subprocess.run = fake
+github.refs.delete_ref("o/r", "refs/heads/factory/issue-1")
 restore()
 check("delete_ref: hits the DELETE endpoint for the ref name",
       any("git/refs/heads/factory/issue-1" in a for a in calls[0]["argv"]), f"calls={calls}")
@@ -1532,8 +1529,8 @@ check("delete_ref: hits the DELETE endpoint for the ref name",
 
 # ---------------- internal_id: the trap, in the only form a test can see it ----------------
 fake, calls = recorder([Result(0, stdout="998877\n")])
-fgh.subprocess.run = fake
-val = fgh.internal_id("o/r", 7)
+github.transport.subprocess.run = fake
+val = github.issues.internal_id("o/r", 7)
 restore()
 check("internal_id: returns an int parsed from the output",
       val == 998877 and isinstance(val, int), f"val={val!r}")
@@ -1545,22 +1542,22 @@ check("internal_id: hits the REST path repos/<owner/name>/issues/<n> with --jq .
 
 # ---------------- attach_sub_issue / blocked_by: two endpoints, never collapsed ----------------
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-fgh.attach_sub_issue("o/r", 5, 999)
+github.transport.subprocess.run = fake
+github.issues.attach_sub_issue("o/r", 5, 999)
 restore()
 check("attach_sub_issue: argv path ends in /sub_issues",
       any(a.endswith("/sub_issues") for a in calls[0]["argv"]), f"calls={calls}")
 
 fake, calls = recorder([Result(0)])
-fgh.subprocess.run = fake
-fgh.blocked_by("o/r", 5, 1000)
+github.transport.subprocess.run = fake
+github.issues.blocked_by("o/r", 5, 1000)
 restore()
 check("blocked_by: argv path ends in /dependencies/blocked_by",
       any(a.endswith("/dependencies/blocked_by") for a in calls[0]["argv"]), f"calls={calls}")
 
 
 # ---------------- all three edge functions go through run_gh and its FACTORY_GH binary ----------
-# Asserted on the transport, never on gh_issues' own resolver, so the binary-override API can
+# Asserted on the transport, never on github.issue_args' own resolver, so the binary-override API can
 # be removed there without a shim: with run_gh replaced, no edge function may launch a process
 # of its own; with the real run_gh, every launch uses the call-time FACTORY_GH binary.
 edge_calls = []
@@ -1575,12 +1572,12 @@ def launch_boom(argv, **kwargs):
     raise AssertionError(f"an edge function launched a process outside run_gh: argv={argv!r}")
 
 
-fgh.run_gh = fake_run_gh
-fgh.subprocess.run = launch_boom
+github.transport.run_gh = fake_run_gh
+github.transport.subprocess.run = launch_boom
 try:
-    fgh.internal_id("o/r", 1)
-    fgh.attach_sub_issue("o/r", 1, 2)
-    fgh.blocked_by("o/r", 1, 2)
+    github.issues.internal_id("o/r", 1)
+    github.issues.attach_sub_issue("o/r", 1, 2)
+    github.issues.blocked_by("o/r", 1, 2)
     escaped = False
 except AssertionError:
     escaped = True
@@ -1590,11 +1587,11 @@ check("edge functions: all three route through run_gh and launch nothing of thei
 
 os.environ["FACTORY_GH"] = "edge-stub-gh"
 fake, calls = recorder([Result(0, stdout="1\n"), Result(0), Result(0)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.internal_id("o/r", 1)
-    fgh.attach_sub_issue("o/r", 1, 2)
-    fgh.blocked_by("o/r", 1, 2)
+    github.issues.internal_id("o/r", 1)
+    github.issues.attach_sub_issue("o/r", 1, 2)
+    github.issues.blocked_by("o/r", 1, 2)
 finally:
     del os.environ["FACTORY_GH"]
     restore()
@@ -1605,7 +1602,7 @@ check("edge functions: every launch uses the call-time FACTORY_GH binary",
 # ---------------- no helper writes to stdout ----------------
 def with_recorder(results, fn, *a, **kw):
     fake, calls = recorder(results)
-    fgh.subprocess.run = fake
+    github.transport.subprocess.run = fake
     try:
         result, out = silent_stdout(fn, *a, **kw)
     finally:
@@ -1615,42 +1612,42 @@ def with_recorder(results, fn, *a, **kw):
 
 _STDOUT_CASES = (
     ("run_gh: writes nothing to stdout on success",
-     [Result(0, stdout="ok")], fgh.run_gh, (["auth", "status"],)),
+     [Result(0, stdout="ok")], github.transport.run_gh, (["auth", "status"],)),
     ("create_issue: writes nothing to stdout",
-     [Result(0, stdout="https://github.com/o/r/issues/1\n")], fgh.create_issue, ("o/r", "t", "b", [])),
+     [Result(0, stdout="https://github.com/o/r/issues/1\n")], github.issues.create_issue, ("o/r", "t", "b", [])),
     ("ensure_labels: writes nothing to stdout",
-     [Result(0), Result(0)], fgh.ensure_labels, ("o/r", ["a", "b"])),
+     [Result(0), Result(0)], github.issues.ensure_labels, ("o/r", ["a", "b"])),
     ("project_items: writes nothing to stdout",
-     [Result(0, stdout=json.dumps(PROJECT_ITEMS_2))], fgh.project_items, ("o", 3)),
+     [Result(0, stdout=json.dumps(PROJECT_ITEMS_2))], github.projects.project_items, ("o", 3)),
     ("project_field_options: writes nothing to stdout",
-     [Result(0, stdout=GRAPHQL_FIELD_JSON)], fgh.project_field_options, ("owner", 3, "Station")),
+     [Result(0, stdout=GRAPHQL_FIELD_JSON)], github.projects.project_field_options, ("owner", 3, "Station")),
     ("internal_id: writes nothing to stdout",
-     [Result(0, stdout="55\n")], fgh.internal_id, ("o/r", 3)),
+     [Result(0, stdout="55\n")], github.issues.internal_id, ("o/r", 3)),
     ("attach_sub_issue: writes nothing to stdout",
-     [Result(0)], fgh.attach_sub_issue, ("o/r", 5, 999)),
+     [Result(0)], github.issues.attach_sub_issue, ("o/r", 5, 999)),
     ("blocked_by: writes nothing to stdout",
-     [Result(0)], fgh.blocked_by, ("o/r", 5, 999)),
+     [Result(0)], github.issues.blocked_by, ("o/r", 5, 999)),
     ("create_ref: writes nothing to stdout on success",
-     [Result(0)], fgh.create_ref, ("o/r", "refs/heads/x", "sha")),
+     [Result(0)], github.refs.create_ref, ("o/r", "refs/heads/x", "sha")),
     ("create_ref: writes nothing to stdout on the measured conflict",
      [Result(1, stdout='{"status":"422"}', stderr="gh: Reference already exists (HTTP 422)")],
-     fgh.create_ref, ("o/r", "refs/heads/x", "sha")),
+     github.refs.create_ref, ("o/r", "refs/heads/x", "sha")),
     ("project_field_set: writes nothing to stdout",
      [Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout="")],
-     fgh.project_field_set, ("owner", 3, "ITEM1", "Station", "Ready")),
+     github.projects.project_field_set, ("owner", 3, "ITEM1", "Station", "Ready")),
     ("issue_view: writes nothing to stdout",
-     [Result(0, stdout="{}")], fgh.issue_view, ("o/r", 9, ["title"])),
+     [Result(0, stdout="{}")], github.issues.issue_view, ("o/r", 9, ["title"])),
     ("add_label: writes nothing to stdout",
-     [Result(0)], fgh.add_label, ("o/r", 9, "harness")),
+     [Result(0)], github.issues.add_label, ("o/r", 9, "harness")),
     ("assign: writes nothing to stdout",
-     [Result(0)], fgh.assign, ("o/r", 9, "mruangutai")),
+     [Result(0)], github.issues.assign, ("o/r", 9, "mruangutai")),
     ("project_item_add: writes nothing to stdout",
-     [Result(0, stdout='{"id":"PVTI_1"}')], fgh.project_item_add,
+     [Result(0, stdout='{"id":"PVTI_1"}')], github.projects.project_item_add,
      ("owner", 3, "https://github.com/o/r/issues/9")),
     ("default_branch_sha: writes nothing to stdout",
-     [Result(0, stdout="deadbeef\n")], fgh.default_branch_sha, ("o/r", "main")),
+     [Result(0, stdout="deadbeef\n")], github.refs.default_branch_sha, ("o/r", "main")),
     ("delete_ref: writes nothing to stdout",
-     [Result(0)], fgh.delete_ref, ("o/r", "refs/heads/factory/issue-1")),
+     [Result(0)], github.refs.delete_ref, ("o/r", "refs/heads/factory/issue-1")),
 )
 for _name, _results, _fn, _args in _STDOUT_CASES:
     _, out, _ = with_recorder(_results, _fn, *_args)
@@ -1672,17 +1669,17 @@ fake, calls = recorder([
     Result(1, stdout="", stderr="API rate limit exceeded for installation ID 123."),
     Result(0, stdout=_RATE_LIMIT_JSON),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["api", "graphql", "-f", "query=whatever"])
+    github.transport.run_gh(["api", "graphql", "-f", "query=whatever"])
     exc = None
 except Exception as e:
     exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 msg = str(exc) if exc is not None else ""
-check("run_gh: rate-limit failure raises GhError", isinstance(exc, fgh.GhError), f"exc={exc!r}")
+check("run_gh: rate-limit failure raises GhError", isinstance(exc, github.transport.GhError), f"exc={exc!r}")
 check("run_gh: budget message names GraphQL", "GraphQL" in msg, f"msg={msg!r}")
 check("run_gh: budget message carries used and limit points",
       "5000" in msg, f"msg={msg!r}")
@@ -1712,18 +1709,18 @@ fake, calls = recorder([
     Result(1, stdout="", stderr="could not resolve to a Repository with the name 'o/nope'"),
     Result(0, stdout=_RATE_LIMIT_JSON),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["issue", "view", "1", "--repo", "o/nope"])
+    github.transport.run_gh(["issue", "view", "1", "--repo", "o/nope"])
     exc2 = None
 except Exception as e:
     exc2 = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 msg2 = str(exc2) if exc2 is not None else ""
 check("run_gh: unrelated exit-1 raises a plain GhError, not a budget error",
-      isinstance(exc2, fgh.GhError), f"exc={exc2!r}")
+      isinstance(exc2, github.transport.GhError), f"exc={exc2!r}")
 check("run_gh: unrelated failure never contains the GraphQL budget headline",
       "GraphQL budget exhausted" not in msg2, f"msg={msg2!r}")
 check("run_gh: unrelated failure message preserves the original gh text",
@@ -1735,18 +1732,18 @@ fake, calls = recorder([
     Result(1, stdout="", stderr="was submitted too quickly"),
     Result(1, stdout="", stderr="gh: not logged in"),
 ])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["api", "graphql", "-f", "query=whatever"])
+    github.transport.run_gh(["api", "graphql", "-f", "query=whatever"])
     exc3 = None
 except Exception as e:
     exc3 = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 msg3 = str(exc3) if exc3 is not None else ""
 check("run_gh: a rate-limit failure whose budget read also fails still raises GhError",
-      isinstance(exc3, fgh.GhError), f"exc={exc3!r}")
+      isinstance(exc3, github.transport.GhError), f"exc={exc3!r}")
 check("run_gh: budget-read failure names its own message, not the original rate-limit text",
       "the budget could not be read" in msg3, f"msg={msg3!r}")
 check("run_gh: budget-read failure preserves the original rate-limit stderr as detail",
@@ -1779,9 +1776,9 @@ def _issue_stations_payload(entries, has_next=False):
 
 # ---- the invariant the issue turns on: nothing in flight costs nothing ----
 fake, calls = recorder([])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    empty_stations = fgh.issue_stations("o/r", 3, "Station", [])
+    empty_stations = github.projects.issue_stations("o/r", 3, "Station", [])
     empty_exc = None
 except Exception as e:
     empty_stations, empty_exc = None, e
@@ -1800,13 +1797,13 @@ MIXED_JSON = _issue_stations_payload({
     8: None,
 })
 fake, calls = recorder([Result(0, stdout=MIXED_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    mixed = fgh.issue_stations("o/r", 3, "Station", [5, 6, 7, 8])
+    mixed = github.projects.issue_stations("o/r", 3, "Station", [5, 6, 7, 8])
     mixed_exc = None
 except Exception as e:
     mixed, mixed_exc = None, e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("issue_stations: four issues cost exactly ONE gh call",
@@ -1824,13 +1821,13 @@ check("issue_stations: an issue GraphQL resolves null is absent, not an error",
 BATCH_ONE = _issue_stations_payload({n: [_issue_node(3, "Ready")] for n in range(1, 51)})
 BATCH_TWO = _issue_stations_payload({51: [_issue_node(3, "Doing")]})
 fake, calls = recorder([Result(0, stdout=BATCH_ONE), Result(0, stdout=BATCH_TWO)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    batched = fgh.issue_stations("o/r", 3, "Station", list(range(1, 52)))
+    batched = github.projects.issue_stations("o/r", 3, "Station", list(range(1, 52)))
     batch_exc = None
 except Exception as e:
     batched, batch_exc = None, e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("issue_stations: 51 issues take exactly TWO calls at a batch of 50",
@@ -1841,32 +1838,32 @@ check("issue_stations: both batches' results are merged, none dropped",
 
 # ---- a null repository is loud: it would otherwise read as every card being off the board ----
 fake, calls = recorder([Result(0, stdout=json.dumps({"data": {"repository": None}}))])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_stations("o/r", 3, "Station", [5])
+    github.projects.issue_stations("o/r", 3, "Station", [5])
     null_repo_exc = None
 except Exception as e:
     null_repo_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("issue_stations: a null repository RAISES rather than reporting an empty board",
-      isinstance(null_repo_exc, fgh.GhError), f"exc={null_repo_exc!r}")
+      isinstance(null_repo_exc, github.transport.GhError), f"exc={null_repo_exc!r}")
 
 # ---- a truncated projectItems page is loud for the same reason ----
 TRUNCATED_JSON = _issue_stations_payload({5: [_issue_node(9, "Ready")]}, has_next=True)
 fake, calls = recorder([Result(0, stdout=TRUNCATED_JSON)])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.issue_stations("o/r", 3, "Station", [5])
+    github.projects.issue_stations("o/r", 3, "Station", [5])
     truncated_exc = None
 except Exception as e:
     truncated_exc = e
-    if isinstance(e, fgh.GhError):
+    if isinstance(e, github.transport.GhError):
         RAISED.append(e)
 restore()
 check("issue_stations: an issue whose project items are truncated RAISES, never reports absent",
-      isinstance(truncated_exc, fgh.GhError), f"exc={truncated_exc!r}")
+      isinstance(truncated_exc, github.transport.GhError), f"exc={truncated_exc!r}")
 
 # ---------------- every GhError raised above: em dash, concrete value, no class name/traceback --
 check("GhError invariant: at least one case was collected", len(RAISED) >= 10, f"n={len(RAISED)}")
@@ -1887,11 +1884,11 @@ def fake_run_perm(argv, **kwargs):
     raise PermissionError("gh: permission denied")
 
 
-fgh.subprocess.run = fake_run_perm
+github.transport.subprocess.run = fake_run_perm
 try:
-    fgh.run_gh(["auth", "status"])
+    github.transport.run_gh(["auth", "status"])
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
 restore()
 check("FEAT-64 run_gh: a launch PermissionError is GhError", raised)
@@ -1899,24 +1896,24 @@ check("FEAT-64 run_gh: the launch failure is chained as the cause",
       raised and isinstance(exc.__cause__, PermissionError), repr(getattr(exc, "__cause__", None)))
 
 fake, calls = recorder([Result(0, stdout="not json {", stderr="")])
-fgh.subprocess.run = fake
+github.transport.subprocess.run = fake
 try:
-    fgh.run_gh(["api", "x"], json_out=True)
+    github.transport.run_gh(["api", "x"], json_out=True)
     raised, exc = False, None
-except fgh.GhError as e:
+except github.transport.GhError as e:
     raised, exc = True, e
 restore()
 check("FEAT-64 run_gh: a non-JSON body under json_out is GhError", raised)
 check("FEAT-64 run_gh: the decode failure names the argv and keeps the stdout",
       raised and exc.argv == ["api", "x"] and exc.stdout == "not json {", repr(exc))
 
-fgh.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+github.transport.subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
 try:
-    fgh.run_gh(["auth", "status"])
+    github.transport.run_gh(["auth", "status"])
     escaped = False
 except RuntimeError:
     escaped = True
-except fgh.GhError:
+except github.transport.GhError:
     escaped = False
 restore()
 check("FEAT-64 run_gh: an unrelated RuntimeError escapes", escaped)
@@ -1942,10 +1939,10 @@ def raiser(exc):
 
 
 def t01_ghresult_shape():
-    err = fgh.GhError(["x"], 1, "", "", "w", "v", "n")
-    good = fgh.GhResult(status=0, stdout="o", stderr="e", value="o", error=None)
-    bad = fgh.GhResult(status=1, stdout="", stderr="", value=None, error=err)
-    names = [f.name for f in dataclasses.fields(fgh.GhResult)]
+    err = github.transport.GhError(["x"], 1, "", "", "w", "v", "n")
+    good = github.transport.GhResult(status=0, stdout="o", stderr="e", value="o", error=None)
+    bad = github.transport.GhResult(status=1, stdout="", stderr="", value=None, error=err)
+    names = [f.name for f in dataclasses.fields(github.transport.GhResult)]
     check("T-01 GhResult: fields are exactly status, stdout, stderr, value, error",
           names == ["status", "stdout", "stderr", "value", "error"], f"names={names}")
     check("T-01 GhResult: ok is derived as error is None", good.ok is True and bad.ok is False)
@@ -1959,8 +1956,8 @@ def t01_ghresult_shape():
 
 def t01_try_gh_success():
     fake, calls = recorder([Result(0, stdout="  hello\n", stderr="note\n")])
-    fgh.subprocess.run = fake
-    res, out = silent_stdout(fgh.try_gh, ["issue", "view", "1"])
+    github.transport.subprocess.run = fake
+    res, out = silent_stdout(github.transport.try_gh, ["issue", "view", "1"])
     check("T-01 try_gh success: ok, real status and raw streams retained",
           res.ok and res.status == 0 and res.stdout == "  hello\n" and res.stderr == "note\n",
           repr(res))
@@ -1972,9 +1969,9 @@ def t01_try_gh_success():
 
 def t01_try_gh_json():
     fake, _ = recorder([Result(0, stdout='{"a": [1, 2]}'), Result(0, stdout="null\n")])
-    fgh.subprocess.run = fake
-    first = fgh.try_gh(["api", "x"], json_out=True)
-    second = fgh.try_gh(["api", "x"], True)
+    github.transport.subprocess.run = fake
+    first = github.transport.try_gh(["api", "x"], json_out=True)
+    second = github.transport.try_gh(["api", "x"], True)
     check("T-01 try_gh json: value is the parsed document",
           first.ok and first.value == {"a": [1, 2]} and first.stdout == '{"a": [1, 2]}', repr(first))
     check("T-01 try_gh json: JSON null is a successful None value, positional json_out",
@@ -1986,14 +1983,14 @@ def t01_try_gh_nonzero():
     args = ["issue", "view", "9", "--repo", "o/r"]
     fake, calls = recorder([Result(1, stdout="partial", stderr="HTTP 404: Not Found\n"),
                             Result(1, stderr="spare")])
-    fgh.subprocess.run = fake
-    res = fgh.try_gh(args)
+    github.transport.subprocess.run = fake
+    res = github.transport.try_gh(args)
     check("T-01 try_gh nonzero: never raises; not ok with status and original streams",
           not res.ok and res.status == 1 and res.stdout == "partial"
           and res.stderr == "HTTP 404: Not Found\n" and res.value is None, repr(res))
     err = res.error
     check("T-01 try_gh nonzero: error is the GhError run_gh raises",
-          isinstance(err, fgh.GhError) and err.argv == args and err.status == 1
+          isinstance(err, github.transport.GhError) and err.argv == args and err.status == 1
           and "HTTP 404" in str(err), repr(err))
     check("T-01 try_gh nonzero: no retry", len(calls) == 1, f"calls={calls}")
 
@@ -2005,14 +2002,14 @@ def t01_try_gh_launch_failures():
         ("general OSError", OSError(8, "Exec format error"), "OSError"),
     )
     for label, exc, words in cases:
-        fgh.subprocess.run = raiser(exc)
-        res = fgh.try_gh(["auth", "status"])
+        github.transport.subprocess.run = raiser(exc)
+        res = github.transport.try_gh(["auth", "status"])
         err = res.error
         check(f"T-01 try_gh {label}: status None, empty streams, no value",
               not res.ok and res.status is None and res.stdout == "" and res.stderr == ""
               and res.value is None, repr(res))
         check(f"T-01 try_gh {label}: GhError with argv, status None and the launch error chained",
-              isinstance(err, fgh.GhError) and err.__cause__ is exc and err.status is None
+              isinstance(err, github.transport.GhError) and err.__cause__ is exc and err.status is None
               and err.argv == ["auth", "status"] and words in str(err), repr(err))
 
 
@@ -2020,28 +2017,28 @@ def t01_strict_json_failures():
     for label, body in (("malformed", "not json {"), ("duplicate key", '{"a": 1, "a": 2}'),
                         ("nonfinite", '{"a": NaN}')):
         fake, _ = recorder([Result(0, stdout=body, stderr="w"), Result(0, stdout=body)])
-        fgh.subprocess.run = fake
-        res = fgh.try_gh(["api", "x"], json_out=True)
+        github.transport.subprocess.run = fake
+        res = github.transport.try_gh(["api", "x"], json_out=True)
         check(f"T-01 try_gh {label} JSON: status zero yet not ok, streams kept, value None",
               not res.ok and res.status == 0 and res.stdout == body and res.stderr == "w"
               and res.value is None, repr(res))
         check(f"T-01 try_gh {label} JSON: typed GhError chained from the strict parser",
-              isinstance(res.error, fgh.GhError)
+              isinstance(res.error, github.transport.GhError)
               and isinstance(res.error.__cause__, artifact_accessors.ArtifactAccessError),
               repr(res.error))
         try:
-            fgh.run_gh(["api", "x"], True)
+            github.transport.run_gh(["api", "x"], True)
             raised = False
-        except fgh.GhError:
+        except github.transport.GhError:
             raised = True
         check(f"T-01 run_gh {label} JSON: raises GhError", raised)
 
 
 def t01_unexpected_exceptions_escape():
-    fgh.subprocess.run = raiser(RuntimeError("unrelated"))
+    github.transport.subprocess.run = raiser(RuntimeError("unrelated"))
     for name in ("launch_gh", "try_gh"):
         try:
-            getattr(fgh, name)(["auth", "status"])
+            getattr(github.transport, name)(["auth", "status"])
             escaped = False
         except RuntimeError:
             escaped = True
@@ -2050,18 +2047,18 @@ def t01_unexpected_exceptions_escape():
 
 def t01_input_forwarding():
     fake, calls = recorder([Result(0, stdout="ok")] * 4)
-    fgh.subprocess.run = fake
-    fgh.launch_gh(["api", "x"], input="payload-1")
-    fgh.try_gh(["api", "x"], input="payload-2")
-    fgh.run_gh(["api", "x"], input="payload-3")
-    fgh.run_gh(["api", "x"])
+    github.transport.subprocess.run = fake
+    github.transport.launch_gh(["api", "x"], input="payload-1")
+    github.transport.try_gh(["api", "x"], input="payload-2")
+    github.transport.run_gh(["api", "x"], input="payload-3")
+    github.transport.run_gh(["api", "x"])
     forwarded = [c.get("input") for c in calls[:3]]
     check("T-01 input: text input reaches the process from launch_gh, try_gh and run_gh",
           forwarded == ["payload-1", "payload-2", "payload-3"], f"calls={calls}")
     check("T-01 input: text input is never combined with a stdin argument",
           all("stdin" not in c for c in calls[:3]), f"calls={calls}")
     check("T-01 input: no input closes stdin through DEVNULL and passes no input",
-          len(calls) == 4 and calls[3].get("stdin") is fgh.subprocess.DEVNULL
+          len(calls) == 4 and calls[3].get("stdin") is github.transport.subprocess.DEVNULL
           and "input" not in calls[3], f"calls={calls}")
     check("T-01 input: every launch captures text output",
           all(c.get("capture_output") is True and c.get("text") is True for c in calls), f"calls={calls}")
@@ -2070,21 +2067,21 @@ def t01_input_forwarding():
 def t01_launch_gh_contract():
     proc = Result(3, stdout="{not json", stderr="bad")
     fake, calls = recorder([proc])
-    fgh.subprocess.run = fake
+    github.transport.subprocess.run = fake
     os.environ["FACTORY_GH"] = "launch-stub-gh"
     try:
-        out = fgh.launch_gh(["api", "x"])
+        out = github.transport.launch_gh(["api", "x"])
     finally:
         del os.environ["FACTORY_GH"]
     check("T-01 launch_gh: returns the completed process uninterpreted (nonzero, no JSON parse)",
           out is proc, repr(out))
     check("T-01 launch_gh: FACTORY_GH resolved at call time",
           calls and calls[0]["argv"] == ["launch-stub-gh", "api", "x"], f"calls={calls}")
-    fgh.subprocess.run = raiser(FileNotFoundError(2, "No such file", "gh"))
+    github.transport.subprocess.run = raiser(FileNotFoundError(2, "No such file", "gh"))
     try:
-        fgh.launch_gh(["auth", "status"])
+        github.transport.launch_gh(["auth", "status"])
         err = None
-    except fgh.GhError as exc:
+    except github.transport.GhError as exc:
         err = exc
     check("T-01 launch_gh: a missing binary is GhError with status None and the cause chained",
           err is not None and err.status is None and isinstance(err.__cause__, FileNotFoundError),
@@ -2093,10 +2090,10 @@ def t01_launch_gh_contract():
 
 def t01_try_gh_call_time_binary():
     fake, calls = recorder([Result(0, stdout="ok")])
-    fgh.subprocess.run = fake
+    github.transport.subprocess.run = fake
     os.environ["FACTORY_GH"] = "try-stub-gh"
     try:
-        fgh.try_gh(["auth", "status"])
+        github.transport.try_gh(["auth", "status"])
     finally:
         del os.environ["FACTORY_GH"]
     check("T-01 try_gh: FACTORY_GH set after import is the binary launched",
@@ -2109,8 +2106,8 @@ def t01_rate_limit_diagnosis():
         Result(0, stdout=_RATE_LIMIT_JSON),
         Result(0, stdout="spare"),
     ])
-    fgh.subprocess.run = fake
-    res = fgh.try_gh(["api", "graphql", "-f", "query=q"])
+    github.transport.subprocess.run = fake
+    res = github.transport.try_gh(["api", "graphql", "-f", "query=q"])
     check("T-01 try_gh rate limit: the process status stays authoritative beside the diagnosis",
           not res.ok and res.status == 1 and res.error.status is None
           and "API rate limit exceeded" in res.stderr, repr(res))
@@ -2119,8 +2116,8 @@ def t01_rate_limit_diagnosis():
     check("T-01 try_gh rate limit: one budget read and no retry of the failed operation",
           len(calls) == 2 and calls[1]["argv"][1:3] == ["api", "rate_limit"], f"calls={calls}")
     fake, calls = recorder([Result(1, stderr="rate limit"), Result(0, stdout=_RATE_LIMIT_JSON)])
-    fgh.subprocess.run = fake
-    res = fgh.try_gh(["api", "rate_limit"])
+    github.transport.subprocess.run = fake
+    res = github.transport.try_gh(["api", "rate_limit"])
     check("T-01 try_gh rate limit: the budget query's own failure never recurses",
           not res.ok and len(calls) == 1, f"calls={calls}")
 
@@ -2171,7 +2168,7 @@ _T01_REJECTED_URLS = (
 
 
 def t01_issue_number_from_url_accepts():
-    parse = fgh.issue_number_from_url
+    parse = github.issues.issue_number_from_url
     got = [parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/42\n"),
            parse(_T01_CREATE_ARGS, "http://github.com/o/r/issues/7/"),
            parse(_T01_CREATE_ARGS, "https://github.com/o/r/issues/1234567"),
@@ -2188,9 +2185,9 @@ def t01_issue_number_from_url_accepts():
 def t01_issue_number_from_url_rejects():
     for label, output in _T01_REJECTED_URLS:
         try:
-            fgh.issue_number_from_url(_T01_CREATE_ARGS, output)
+            github.issues.issue_number_from_url(_T01_CREATE_ARGS, output)
             err = None
-        except fgh.GhError as exc:
+        except github.transport.GhError as exc:
             err = exc
         check(f"T-01 issue_number_from_url {label}: GhError with argv and the original output",
               err is not None and err.argv == _T01_CREATE_ARGS and err.stdout == output
@@ -2202,11 +2199,11 @@ def t01_create_issue_reuses_parser():
     for label, output in (("non-ASCII digits", "https://github.com/o/r/issues/\uff14\uff12\n"),
                           ("oversized", "https://github.com/o/r/issues/" + "9" * 5000 + "\n")):
         fake, _ = recorder([Result(0, stdout=output)])
-        fgh.subprocess.run = fake
+        github.transport.subprocess.run = fake
         try:
-            fgh.create_issue("o/r", "t", "b", [])
+            github.issues.create_issue("o/r", "t", "b", [])
             outcome = "returned"
-        except fgh.GhError:
+        except github.transport.GhError:
             outcome = "GhError"
         except ValueError:
             outcome = "ValueError"

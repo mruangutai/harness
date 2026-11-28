@@ -13,8 +13,8 @@ file is UNIT, not INTEGRATION, for exactly that reason).
 
 FEAT-24 T-02: the board no longer lives in fleet.yaml. A fleet member's board is read from ITS
 OWN repository's .harness/harness.json at its default_branch — factory_config.product_config /
-board_for — via one gh api read, faked here by monkeypatching factory_gh.file_at_ref on the
-imported module object (fc.factory_gh.file_at_ref). No case in this file may invoke gh or make a
+board_for — via one gh api read, faked here by monkeypatching github.refs.file_at_ref on the
+imported module object (github.refs.file_at_ref). No case in this file may invoke gh or make a
 network call, and no case may call load_fleet() with no argument — FLEET_PATH binds at import to
 the LIVE repository's fleet.yaml, so an omitted path passes for the wrong reason.
 """
@@ -29,6 +29,8 @@ import tempfile
 from unittest import mock
 
 import factory_config as fc
+import github.refs
+import github.transport
 import harness_boundary as hb
 import artifact_accessors as accessors
 from check_support import Checks
@@ -51,9 +53,9 @@ def check(name, cond, detail=""):
 
 
 def patched_file_at_ref(func):
-    """Monkeypatch factory_gh.file_at_ref on the imported module object — never gh, never a
+    """Monkeypatch github.refs.file_at_ref on the imported module object — never gh, never a
     network call — for the life of the `with` block."""
-    return mock.patch.object(fc.factory_gh, "file_at_ref", func)
+    return mock.patch.object(github.refs, "file_at_ref", func)
 
 
 def good_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
@@ -550,7 +552,7 @@ with tempfile.TemporaryDirectory() as td:
     fleet = accessors.load_fleet(write_fleet(td, _d))
 
     def _boom(repo, path, ref):
-        raise fc.factory_gh.GhError(
+        raise github.transport.GhError(
             ["gh", "api", "repos/mruangutai/harness/contents/.harness/harness.json"],
             1, "", "404", "gh call failed", "mruangutai/harness", "check gh auth and the ref",
         )
@@ -600,7 +602,7 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
 
     def _raising_stub_with_checkout(repo, path, ref, _calls=_stub_calls):
         _calls.append((repo, path, ref))
-        raise fc.factory_gh.GhError(
+        raise github.transport.GhError(
             ["gh", "api", "repos/mruangutai/harness/contents/.harness/harness.json"],
             1, "", "500", "gh call failed", repo, "retry",
         )
@@ -645,7 +647,7 @@ with tempfile.TemporaryDirectory() as td:
     # wrongly cached the failure, since the wipe (not the correct no-cache behaviour) would be
     # what makes the recovery call succeed.
     def _raising_stub(repo, path, ref):
-        raise fc.factory_gh.GhError(["gh"], 1, "", "500", "gh call failed", repo, "retry")
+        raise github.transport.GhError(["gh"], 1, "", "500", "gh call failed", repo, "retry")
 
     with patched_file_at_ref(_raising_stub):
         try:

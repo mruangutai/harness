@@ -576,7 +576,7 @@ def _called_names(index, fn):
 # `spawn` is Ctx.spawn, the checker's one process boundary (FEAT-63 T-01): every git/gh read
 # now arrives through it, so the lock reads its argv exactly as it read subprocess.run's.
 _SPAWN_CALLEES = ("run", "check_output", "Popen", "spawn")
-# The one GitHub read check-state.py makes through a module rather than an argv: gh_board's
+# The one GitHub read check-state.py makes through a module rather than an argv: github.board's
 # board query. Declared on the row as "gh:board".
 _BOARD_READ_CALLEE = "board_stations_for"
 

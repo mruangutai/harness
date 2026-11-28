@@ -3172,7 +3172,8 @@ capability-and-declared-names query, and the node-id lookup `gh_issue_types.node
 immediately before a type-apply, against a number the local receipt already holds. Not new, and
 never enumerated: `gh_issues.internal_id_args` has read an already-recorded issue's identifier for
 sub-issue attach and detach since sub-issue mirroring shipped (`gh-sync.py:974` and `:1215`,
-`factory_gh.py:981`, all verified at `eb9d044e`), the enumeration never listed it, and nothing in
+verified at `eb9d044e`; the third call site, then `factory_gh.py`, is `github/issues.py:100`
+since #2699), the enumeration never listed it, and nothing in
 this feature removes those call sites.
 
 **Issue type.** Where the target repository declares native GitHub Issue Types, every issue Harness
@@ -8845,6 +8846,20 @@ The rule has three homes:
 **Record:** FEAT-2557 (#2557), plan decision D-01, signed by Mike Ruangutai on 2026-11-27.
 Executed main-session-direct under the operator's INV-32 ruling. Refs: DEC-149, DEC-158, DEC-202,
 DEC-205, DEC-235.
+
+**Amended by #2699 (2026-11-28) — a shared domain gets one package with no entry.** The "Chose"
+paragraph above names only one package shape: the twin of an entry. Code that one domain needs and
+many entries use had no home under it, so five flat modules (`factory_gh.py`, `gh_cost_log.py`,
+`gh_issues.py`, `gh_issue_types.py` and `gh_board.py`) stayed flat with a shared prefix, the
+shape this entry rejects. When several modules serve one domain that many entries use, they now live
+in one package named for the domain, with an empty `__init__.py` and no entry; `github/` is the
+first. A cross-cutting module that stands alone, such as `harness_boundary.py`, still stays flat.
+`LAYOUT.md` carries the mechanics. `gh_cost_log.py` did not move: its recorder had been off since
+#676 (2026-11-22), so #2699 deleted it and its test instead. That deletion is the one behaviour
+change in #2699: `try_gh` no longer wraps each call in a cost measurement, and
+`HARNESS_GH_COST_LOG` no longer does anything. The other rules of this entry are unchanged: modules are named
+for what they read, each domain has one home, code moves without changes, and every caller moves in
+the same change with no re-export shim.
 
 ## DEC-260 — The practicality rule: every reader finding states its exposure, and a contrived finding no worse than today never gates
 

@@ -6,7 +6,7 @@ import sys
 
 import artifact_accessors
 import factory_config
-import gh_board
+import github.board
 import harness_boundary
 import harness_merge
 import harness_yaml
@@ -133,7 +133,7 @@ def _legal_stations(resolved):
     """
     root = _harness_root(os.path.dirname(os.path.abspath(resolved)))
     try:
-        board = gh_board.load_board(root) if root is not None else None
+        board = github.board.load_board(root) if root is not None else None
     except artifact_accessors.FleetError as error:
         _die(2, f"plan-merge: {error}")
     stations = factory_config.station_names(board) if board is not None else None

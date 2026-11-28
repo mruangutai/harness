@@ -2,9 +2,9 @@
 """Tests for factory_decompose.py — publish an approved plan as issues on the board (T-04, D-14).
 
 Nothing here spawns a subprocess and nothing touches a real repository or board: every call
-`factory_decompose` makes into `factory_gh`'s public functions is monkeypatched over a single
+`factory_decompose` makes into the `github` package's public functions is monkeypatched over a single
 `Recorder`, whose ordered `.calls` list is the evidence every assertion below is a projection
-of. `factory_gh.preflight()` is called unconditionally at step 3, before dispositions are even
+of. `github.transport.preflight()` is called unconditionally at step 3, before dispositions are even
 sorted, so "zero calls of any kind" assertions are scoped to the mutating/board/edge/id
 surface — `ensure_labels`, `create_issue`, `add_label`, `project_item_add`, `project_field_set`,
 `internal_id`, `attach_sub_issue`, `blocked_by` — and say so in their labels; `preflight` itself
@@ -25,11 +25,13 @@ from unittest import mock
 import yaml
 
 import factory_decompose as fd
-import factory_gh
+import github.issues
+import github.projects
+import github.transport
 import factory_config as fc
 from feature_record import schema as record_schema, write as record_write
 import harness_merge
-import gh_issue_types
+import github.issue_types
 from check_support import Checks, raises
 import factory_support as fsup
 from factory_support import board_stub, invoke, split_boards, write_yaml
@@ -67,7 +69,7 @@ MUTATING_NAMES = (
 
 
 # --------------------------------------------------------------------------
-# Recorder — a single ordered call log over every factory_gh public function T-04 calls.
+# Recorder — a single ordered call log over every github package function T-04 calls.
 # --------------------------------------------------------------------------
 
 class Recorder:
@@ -97,7 +99,7 @@ class Recorder:
     def mutating_calls(self):
         return [c for c in self.calls if c[0] in MUTATING_NAMES]
 
-    # --- factory_gh's public surface ---
+    # --- the github package's public surface ---
     def preflight(self):
         self._hit("preflight", ())
 
@@ -146,23 +148,29 @@ class Recorder:
 
 
 PATCHED = (
-    "preflight", "ensure_labels", "create_issue", "add_label", "project_item_add",
-    "project_field_set", "internal_id", "attach_sub_issue", "blocked_by",
-    "project_field_options", "project_items", "issue_board_item_id",
+    (github.transport, "preflight"), (github.issues, "ensure_labels"),
+    (github.issues, "create_issue"), (github.issues, "add_label"),
+    (github.projects, "project_item_add"), (github.projects, "project_field_set"),
+    (github.issues, "internal_id"), (github.issues, "attach_sub_issue"),
+    (github.issues, "blocked_by"), (github.projects, "project_field_options"),
+    (github.projects, "project_items"), (github.projects, "issue_board_item_id"),
 )
 
 
 def _no_issue_types(_repo):
-    """Stands in for factory_gh.detect_issue_types, which otherwise launches a real `gh` query
+    """Stands in for github.issues.detect_issue_types, which otherwise launches a real `gh` query
     per publish. Returns the classification a failed query gets, so every run takes the
     labels-only path, and is not recorded in Recorder.calls."""
-    return gh_issue_types.classify_capability(1, "stubbed: this test never reaches gh")
+    return github.issue_types.classify_capability(1, "stubbed: this test never reaches gh")
 
 
 def patch_gh(rec):
-    """Every PATCHED factory_gh function routed to `rec`, for the duration of a with block."""
-    return mock.patch.multiple(factory_gh, detect_issue_types=_no_issue_types,
-                               **{name: getattr(rec, name) for name in PATCHED})
+    """Every PATCHED github function routed to `rec`, for the duration of a with block."""
+    stack = contextlib.ExitStack()
+    stack.enter_context(mock.patch.object(github.issues, "detect_issue_types", _no_issue_types))
+    for module, name in PATCHED:
+        stack.enter_context(mock.patch.object(module, name, getattr(rec, name)))
+    return stack
 
 
 # --------------------------------------------------------------------------
@@ -276,7 +284,7 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
 
 def _publish():
     fd.factory_cli.run(fd.TOOL, fd._main,
-                       expected=(fd.artifact_accessors.FleetError, fd.factory_gh.GhError))
+                       expected=(fd.artifact_accessors.FleetError, github.transport.GhError))
 
 
 def run_publish(feat_dir, fleet_path, rec, extra_args=None, repo_name=REPO):
@@ -478,7 +486,7 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td)
     rec = Recorder()
-    rec.raise_on["project_item_add"] = factory_gh.GhError(
+    rec.raise_on["project_item_add"] = github.transport.GhError(
         [], 1, "", "boom", "gh project item-add failed", "acme", "retry",
     )
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
@@ -494,7 +502,7 @@ with tempfile.TemporaryDirectory() as td:
 with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td)
     rec1 = Recorder()
-    rec1.raise_on["project_item_add"] = factory_gh.GhError(
+    rec1.raise_on["project_item_add"] = github.transport.GhError(
         [], 1, "", "boom", "gh project item-add failed", "acme", "retry",
     )
     run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
@@ -764,7 +772,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01"), task("T-02", depends_on=["T-01"])]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
-    already_taken = factory_gh.GhError(
+    already_taken = github.transport.GhError(
         [], 1, "422 error body: sub-issue already been taken", "",
         "gh api failed", REPO, "n/a",
     )
@@ -783,7 +791,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01"), task("T-02", depends_on=["T-01"])]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
-    already_taken2 = factory_gh.GhError(
+    already_taken2 = github.transport.GhError(
         [], 1, "422 error: this sub-issue has already been taken", "",
         "gh api failed", REPO, "n/a",
     )
@@ -799,7 +807,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01"), task("T-02", depends_on=["T-01"])]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
-    auth_error = factory_gh.GhError(
+    auth_error = github.transport.GhError(
         [], 1, "", "authentication failed, run gh auth login",
         "gh api failed", REPO, "run gh auth login",
     )
@@ -978,7 +986,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec = Recorder()
-    persistent_fail = factory_gh.GhError(
+    persistent_fail = github.transport.GhError(
         [], 1, "", "field not found", "gh project item-edit failed", "Status",
         "check fleet.yaml",
     )
@@ -1012,7 +1020,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec1 = Recorder()
-    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+    rec1.raise_on["project_field_set"] = github.transport.GhError(
         [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
     )
     run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
@@ -1053,7 +1061,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec1 = Recorder()
-    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+    rec1.raise_on["project_field_set"] = github.transport.GhError(
         [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
     )
     run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
@@ -1084,7 +1092,7 @@ with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
     rec1 = Recorder()
-    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+    rec1.raise_on["project_field_set"] = github.transport.GhError(
         [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
     )
     run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
