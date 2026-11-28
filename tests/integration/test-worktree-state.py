@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / ".claude/skills/harness/bin/worktree-state.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 
 HIDDEN_BRIEF = ".harness/harness/features/FEAT-2-beta/BRIEF.md"
 BETA_TEXT = "# BRIEF FEAT-2-beta\n"
@@ -24,7 +25,7 @@ BETA_TEXT = "# BRIEF FEAT-2-beta\n"
 
 def run(mode, checkout, *extra):
     proc = subprocess.run([sys.executable, str(CLI), f"--{mode}", "--checkout", checkout,
-                           "--json", *extra], env=F.ENV, capture_output=True, text=True)
+                           "--json", *extra], env=G.ENV, capture_output=True, text=True)
     try:
         doc = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -113,7 +114,7 @@ class RecordBearingClasses(Case):
         doc = self.converged(wt)
         self.assertIsNone(doc["artifact_segment"])
         self.assertEqual(F.feature_dirs_on_disk(wt), [])
-        cone = F.git(wt, "sparse-checkout", "list").stdout.split()
+        cone = G.git(wt, "sparse-checkout", "list").stdout.split()
         self.assertIn(".harness/harness/features/FEAT-99-new", cone)
         self.assertIn(".harness/kaya/features/FEAT-99-new", cone)
         F.write_files(wt, {".harness/kaya/features/FEAT-99-new/BRIEF.md": "# new\n"})
@@ -126,11 +127,11 @@ class RecordBearingClasses(Case):
         wt = self.fx.add_worktree("scratch", branch="feat/FEAT-1-alpha")
         self.converged(wt)
         F.write_files(wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "work\n"})
-        F.git(wt, "add", "-A")
-        F.git(wt, "commit", "-qm", "feature work")
+        G.git(wt, "add", "-A")
+        G.git(wt, "commit", "-qm", "feature work")
         self.fx.commit_owner({"newtop/x.txt": "x\n"}, "main moves")
-        F.git(wt, "rebase", "--exec", "false", "main", check=False)
-        self.assertEqual(F.git(wt, "symbolic-ref", "-q", "HEAD", check=False).returncode, 1)
+        G.git(wt, "rebase", "--exec", "false", "main", check=False)
+        self.assertEqual(G.git(wt, "symbolic-ref", "-q", "HEAD", check=False).returncode, 1)
         code, doc = run("verify", wt)
         self.assertEqual((doc["checkout_class"], doc["active_feature"]),
                          ("planning-worktree", "FEAT-1-alpha"), doc)
@@ -169,7 +170,7 @@ class Refusals(Case):
     def test_underivable_pin_name(self):
         path = self.fx.add_pin("FEAT-2-beta")
         moved = os.path.join(os.path.dirname(path), "not-a-pin")
-        F.git(self.fx.owner, "worktree", "move", path, moved)
+        G.git(self.fx.owner, "worktree", "move", path, moved)
         self.assert_refused_unchanged(moved, "cannot be derived")
 
     def test_directory_and_branch_naming_different_features(self):
@@ -198,18 +199,18 @@ class StructuralBreaks(Case):
         self.converged(self.wt)
         self.assertEqual(run("verify", self.wt)[0], 0)
         self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
-        self.assertEqual(F.git(self.wt, "status", "--porcelain").stdout, "")
+        self.assertEqual(G.git(self.wt, "status", "--porcelain").stdout, "")
 
     def test_wrong_cone(self):
-        F.git(self.wt, "sparse-checkout", "set", "--cone", "src")
+        G.git(self.wt, "sparse-checkout", "set", "--cone", "src")
         self.assert_verify_reports_without_mutation(3, "cone")
         self.assert_repair_converges()
 
     def test_cleared_skip_bits_after_a_merge_are_class_a(self):
-        hidden = [p for p in F.git(self.wt, "ls-files", "-t").stdout.splitlines()
+        hidden = [p for p in G.git(self.wt, "ls-files", "-t").stdout.splitlines()
                   if p.startswith("S ")]
-        F.git(self.wt, "update-index", "--no-skip-worktree", *[p[2:] for p in hidden])
-        status = F.git(self.wt, "status", "--porcelain").stdout
+        G.git(self.wt, "update-index", "--no-skip-worktree", *[p[2:] for p in hidden])
+        status = G.git(self.wt, "status", "--porcelain").stdout
         self.assertIn(f" D {HIDDEN_BRIEF}", status)          # the measured shape: absent, no bit
         self.assert_verify_reports_without_mutation(4, "skip-bits")
         _code, doc = run("verify", self.wt)
@@ -218,7 +219,7 @@ class StructuralBreaks(Case):
 
     def test_merge_touching_a_hidden_feature(self):
         self.fx.commit_owner({HIDDEN_BRIEF: "# BRIEF FEAT-2-beta, revised\n"}, "revise beta")
-        F.git(self.wt, "merge", "-q", "--no-edit", "main")
+        G.git(self.wt, "merge", "-q", "--no-edit", "main")
         self.assert_repair_converges()
 
     def test_class_b_identical_materialised_file(self):
@@ -262,7 +263,7 @@ class ClassC(Case):
 
     def test_staged_deletion_of_a_hidden_file(self):
         wt = self.converged_wt()
-        F.git(wt, "rm", "-q", "--cached", "--sparse", HIDDEN_BRIEF)
+        G.git(wt, "rm", "-q", "--cached", "--sparse", HIDDEN_BRIEF)
         self.assert_refused(wt, HIDDEN_BRIEF)
 
     def test_untracked_and_ignored_files_in_a_hidden_directory(self):
@@ -290,13 +291,13 @@ class ClassC(Case):
     # target, so neither filtered hash proves it.
     def test_bytes_a_clean_filter_hides_are_class_c(self):
         rel = ".harness/harness/features/FEAT-2-beta/notes/filtered.txt"
-        F.git(self.fx.owner, "config", "filter.loss.clean", "sed s/.*/canonical/")
-        F.git(self.fx.owner, "config", "filter.loss.smudge", "cat")
+        G.git(self.fx.owner, "config", "filter.loss.clean", "sed s/.*/canonical/")
+        G.git(self.fx.owner, "config", "filter.loss.smudge", "cat")
         self.fx.commit_owner({".gitattributes": f"{rel} filter=loss\n", rel: "canonical\n"},
                              "a lossy clean filter")
         wt = self.fx.add_worktree("FEAT-1-alpha")
         F.write_files(wt, {rel: "SECRET123\n"})
-        self.assertEqual(F.git(wt, "status", "--porcelain").stdout, "")   # git sees no change
+        self.assertEqual(G.git(wt, "status", "--porcelain").stdout, "")   # git sees no change
         self.assert_refused(wt, rel)
         with open(os.path.join(wt, rel), encoding="utf-8") as fh:
             self.assertEqual(fh.read(), "SECRET123\n")
@@ -337,7 +338,7 @@ class Report(Case):
     def test_human_output_names_the_category_and_the_remedy(self):
         wt = self.fx.add_worktree("FEAT-1-alpha")
         proc = subprocess.run([sys.executable, str(CLI), "--verify", "--checkout", wt],
-                              env=F.ENV, capture_output=True, text=True)
+                              env=G.ENV, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 3)
         self.assertIn("cone (3)", proc.stdout)
         self.assertIn(f"--repair --checkout {wt}", proc.stdout)

@@ -185,14 +185,23 @@ def scan_file(path):
     return sorted(set(findings))
 
 
+def _scanned(name, under_tests):
+    """A test file anywhere, or a shared *_support.py helper under tests/ (tests import them, so
+    a write hidden in one is a test's write)."""
+    return (fnmatch.fnmatch(name, "test-*.py") or fnmatch.fnmatch(name, "test_*.py")
+            or (under_tests and fnmatch.fnmatch(name, "*_support.py")))
+
+
 def discover(root):
     found = []
     worktrees = os.path.realpath(os.path.join(root, ".claude", "worktrees"))
+    tests = os.path.join(os.path.abspath(root), "tests")
     for current, dirs, files in os.walk(root):
         dirs[:] = [name for name in dirs if name not in {".git", "node_modules", ".venv"}
                    and os.path.realpath(os.path.join(current, name)) != worktrees]
+        under_tests = (os.path.abspath(current) + os.sep).startswith(tests + os.sep)
         found.extend(os.path.join(current, name) for name in files
-                     if fnmatch.fnmatch(name, "test-*.py") or fnmatch.fnmatch(name, "test_*.py"))
+                     if _scanned(name, under_tests))
     return sorted(found)
 
 
@@ -282,11 +291,27 @@ def _root_refusal_failure():
     return None if ok else "unresolved root did not refuse at exit 2"
 
 
+def _support_discovery_failure():
+    """Shared helpers under tests/ are scanned like the tests that import them; a *_support.py
+    elsewhere (production code) is not."""
+    with tempfile.TemporaryDirectory() as root:
+        for rel in ("tests/x_support.py", "tests/unit/y_support.py", "tests/unit/test-z.py",
+                    "bin/w_support.py"):
+            os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
+            open(os.path.join(root, rel), "w").close()
+        got = {os.path.relpath(path, root) for path in discover(root)}
+    want = {"tests/x_support.py", "tests/unit/y_support.py", "tests/unit/test-z.py"}
+    ok = got == want
+    print(f"{'ok' if ok else 'FAIL'} self-test discovery scans tests/**/*_support.py")
+    return None if ok else f"support discovery: expected {sorted(want)}, got {sorted(got)}"
+
+
 def run_self_tests():
     with tempfile.TemporaryDirectory() as root:
         failures = _red_fixture_failures(root)
         clean = _clean_fixture_failure(root)
-    return failures + [failure for failure in (clean, _live_fixture_failure(), _root_refusal_failure())
+    return failures + [failure for failure in (clean, _support_discovery_failure(),
+                                               _live_fixture_failure(), _root_refusal_failure())
                        if failure]
 
 

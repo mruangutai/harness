@@ -31,6 +31,7 @@ BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 
 FIXTURE_DIRS = ({f"harness/{fid}" for fid in (*F.HARNESS_FEATURES, F.RECORDLESS_FEATURE)}
@@ -150,14 +151,14 @@ class TheEqualityRejectsMutants(unittest.TestCase):
 
     def test_an_empty_walk_is_rejected(self):
         empty = self.fx.clone("emptied")
-        F.git(empty, "rm", "-rq", ".harness/harness/features", f".harness/{F.FLEET_SEGMENT}/features")
-        F.git(empty, "commit", "-qm", "no features")
+        G.git(empty, "rm", "-rq", ".harness/harness/features", f".harness/{F.FLEET_SEGMENT}/features")
+        G.git(empty, "commit", "-qm", "no features")
         self.assertTrue(audit_mismatch(empty, self.fx.owner))
 
     def test_a_wrong_root_override_is_rejected(self):
         other = self.fx.clone("elsewhere")
-        F.git(other, "rm", "-rq", ".harness/kaya")
-        F.git(other, "commit", "-qm", "a different corpus")
+        G.git(other, "rm", "-rq", ".harness/kaya")
+        G.git(other, "commit", "-qm", "a different corpus")
         self.assertTrue(audit_mismatch(other, self.fx.owner))
 
     def test_a_staged_missing_directory_is_rejected(self):

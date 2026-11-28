@@ -15,7 +15,9 @@ import shutil
 import statistics
 import subprocess
 import tempfile
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tests/
 from git_support import MAINTENANCE_OFF, commit_all, init_repo
 
 ROOT = Path(__file__).resolve().parents[2]

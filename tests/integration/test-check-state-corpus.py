@@ -24,6 +24,7 @@ REPAIR = BIN / "worktree-state.py"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 from isolated_bin import isolated_bin  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"
@@ -31,7 +32,7 @@ NO_INVARIANT_RAN = "no invariant ran"
 
 
 def check(checkout, *args, script=CHECK, opens=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout)
+    env = dict(G.ENV, HARNESS_PROJECT_DIR=checkout)
     argv = [sys.executable, str(script), *args]
     if opens is not None:
         env["OPEN_LOG"] = opens
@@ -53,7 +54,7 @@ class Case(unittest.TestCase):
     def sparse(self, name=ACTIVE):
         wt = self.fx.add_worktree(name)
         proc = subprocess.run([sys.executable, str(REPAIR), "--repair", "--checkout", wt],
-                              env=F.ENV, capture_output=True, text=True)
+                              env=G.ENV, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         return wt
 
@@ -149,7 +150,7 @@ class Refusals(Case):
     def test_a_structural_break_refuses_before_any_invariant(self):
         wt = self.sparse()
         # Keeps .harness (so the checkout is still a harness root) but drops the active feature.
-        F.git(wt, "sparse-checkout", "set", "--cone", "src", ".harness/notes")
+        G.git(wt, "sparse-checkout", "set", "--cone", "src", ".harness/notes")
         code, out = check(wt)
         self.assertEqual(code, 1)
         self.assertIn("LAYOUT cone (3)", out)
@@ -187,7 +188,7 @@ class Refusals(Case):
 
     def test_list_stays_metadata_only(self):
         wt = self.sparse()
-        F.git(wt, "sparse-checkout", "set", "--cone", "src")
+        G.git(wt, "sparse-checkout", "set", "--cone", "src")
         code, out = check(wt, "--list")
         self.assertEqual(code, 0)
         self.assertIn("INV-52", out)
