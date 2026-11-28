@@ -1,0 +1,1 @@
+PASS — Mode B out of scope: the measured `e6960865..4460c352` diff changes 44 paths, none a visual or interactive UI surface (the operator-facing changes are CLI text only); the pin has no feature `DESIGN.md`, and UI accessibility and light/dark parity are not applicable.

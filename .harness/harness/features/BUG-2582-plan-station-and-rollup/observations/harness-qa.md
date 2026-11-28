@@ -1,0 +1,5 @@
+# Observations — harness-qa — BUG-2582-plan-station-and-rollup
+
+- 2026-11-27: Task literal verifies (T-01..T-05) all exited 0, yet the full unit/integration runners at the pin were red in 4 diff-caused files (broad-catch census ceiling 0, checker-structure-locks, canonical-reader migration inventory in check-plan-routes, DECISIONS-INDEX 30-word ruling cap). Task-scoped verifies never catch repo-wide census/lock tests; only the full kind run does.
+- 2026-11-27: A mutant folding the carve-out disposition compare (lower/startswith) is equivalent at the pin because panel_findings.shape_faults enforces the exact enum upstream; only removing both guards opens relief.
+- 2026-11-27: validate-c2 at 4460c352: unit 71/71 and integration 95/95 runner_exit 0; the four c1 reds green. A guard case added for an advisory (bug2582-guard-eng-lead-plan-steps) reached the gated code under mutant M6 but was refused by an unrelated leg (no findings attributed), so it stayed green; a fixture must carry everything relief needs except the one gated factor to discriminate that factor.

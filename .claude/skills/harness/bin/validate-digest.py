@@ -34,6 +34,7 @@ import artifact_accessors
 import amendment_contract
 import digest_record
 import digest_schema
+import panel_findings
 from feature_record import read as record_read
 from code_grade import classify, commit_oid, gated_set, _git_show
 from gate_policy import GatePolicyError, evaluate_review, load_policy
@@ -1574,7 +1575,7 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
     err = [error for field in _GATED if field in seen
            for error in _gate_field_errors(field, seen[field], seen, family, mission, passing,
                                            qa)]
-    err += _family_errors(family, verdict, seen, artifact, feature_dir, qa)
+    err += _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa, mission)
     if canonical == "harness-code-reviewer":
         err += _reviewer_errors(seen, artifact, verdict, family, mission,
                                 config_path=config_path, feature_dir=feature_dir,
@@ -1584,13 +1585,14 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
     return err
 
 
-def _family_errors(family, verdict, seen, artifact, feature_dir, qa):
+def _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa, mission=None):
     if family == "qa":
         return _qa_errors(seen, verdict, feature_dir, qa)
     if family in ("dev", "dev-ops"):
         return _dev_receipt_errors(seen, verdict, artifact, feature_dir)
     if family == "lead":
-        return _lead_rollup_errors(seen, verdict)
+        return _lead_rollup_errors(
+            seen, verdict, _plan_reader_carveout(canonical, seen, artifact, feature_dir, mission))
     return []
 
 
@@ -1995,7 +1997,8 @@ def _bound_tree_errors(artifact, feature_dir, review_pin, seen):
             if error]
 
 
-# --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
+# --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4), with one
+# exception: the plan-team reader carve-out (BUG-2582, DEC-123 as amended), below.
 #
 # This is the only part of collation that is arithmetic rather than judgement, and
 # it was the one thing stated in prose with a validator sitting next to it that
@@ -2006,12 +2009,202 @@ def _bound_tree_errors(artifact, feature_dir, review_pin, seen):
 #
 # ESCALATE outranks FAIL deliberately: a decision only the user can make must not
 # be hidden behind a failure the team could have fixed.
-def _lead_rollup_errors(seen, top):
+def _lead_rollup_errors(seen, top, carveout):
     members = seen.get("members")
     err = _empty_members_errors(members, seen.get("steps_run"))
     if isinstance(members, list) and members:
-        err += _member_rank_errors(members, top)
+        err += _member_rank_errors(members, top, carveout)
     return err
+
+
+# The plan team's reader slots and the persona `teams/plan.yaml` declares for each (its own
+# spelling): panel_findings.PANEL_READERS minus goalcheck, which is pm's. The roster a lead reports
+# is bound to this, never to the lead's own pairing (validate run 02 MF-1b), and
+# tests/unit/test-validate-digest-plan-rollup.py fails when the team file drifts from it.
+PLAN_READER_PERSONAS = {"scope": "code-reviewer", "should-not-exist": "fable-advisor",
+                        "design": "ui-reviewer"}
+PLAN_READER_STEPS = tuple(PLAN_READER_PERSONAS)
+
+
+# BUG-2582 (D-02; DEC-123 as amended): THE PLAN-TEAM READER CARVE-OUT.
+#
+# Plan readers return FAIL to carry findings, and pm's `apply` step resolves those findings in
+# the same run. Worst-wins then forced the team to FAIL over a plan that was ready, so the
+# orchestrator could not tell "plan ready" from "plan failed". A reader member's FAIL ranks as
+# PASS only when the feature's plan.yaml, on disk, records every finding attributed to that
+# reader as `resolved`.
+#
+# - Attribution accepts the slot or the persona spelling, both observed in real digests
+#   (`scope`, `code-reviewer`, `harness-code-reviewer`), but PF identity binds the exact reader
+#   string, because that is what `record-panel` hashed.
+# - Relief is keyed by the member's INDEX, never its step: a step-keyed relief re-ranked a
+#   second member sharing that step, so a duplicated reader step denies relief altogether.
+# - The PF id is recomputed from the team digest's own findings. The lead's word is not
+#   evidence; the hook's check_artifact_file binds the artifact to the registered run.
+# - Every unresolvable or malformed case (no feature, another mission, no loadable plan, a bad
+#   panel row, an unattributable finding) keeps worst-wins.
+# - The roster is the team's (validate run 02 MF-1): exactly one entry per reader slot, a skipped
+#   one included, each carrying the persona the team file declares; and a live dispatch whose
+#   mission is not plan gets no relief. Offline (no live mission), feature.json decides alone.
+def _plan_reader_carveout(canonical, seen, artifact, feature_dir, mission=None):
+    """{member index: None (relief applies) or the reason it does not} for every plan-team
+    reader member at FAIL; {} when there is no such member."""
+    members = seen.get("members")
+    candidates = _carveout_candidates(canonical, seen, members)
+    if not candidates:
+        return {}
+    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
+    rows, reason = _carveout_rows(findings, members, artifact, feature_dir, mission)
+    if reason:
+        return {index: reason for index in candidates}
+    return {index: _candidate_reason(index, members, findings, rows) for index in candidates}
+
+
+def _carveout_candidates(canonical, seen, members):
+    if (canonical != "harness-product-lead" or str(seen.get("team")).strip() != "plan"
+            or not isinstance(members, list)):
+        return []
+    return [index for index, member in enumerate(members)
+            if isinstance(member, dict) and member.get("step") in PLAN_READER_STEPS
+            and _member_verdict(member)[0] == "FAIL"]
+
+
+def _carveout_rows(findings, members, artifact, feature_dir, mission):
+    """(plan.yaml panel.findings rows, None), or (None, why the carve-out cannot apply)."""
+    plan, reason = _carveout_plan(artifact, feature_dir, mission)
+    if reason:
+        return None, reason
+    rows = _panel_rows(plan)
+    if rows is None:
+        return None, "plan.yaml panel.findings malformed"
+    roster = _roster_reason(members)
+    if roster:
+        return None, roster
+    if any(len(_matching_members(item.get("reader"), members)) != 1
+           for item in findings + rows):
+        return None, "a finding matches no member or more than one"
+    return rows, None
+
+
+def _carveout_plan(artifact, feature_dir, mission):
+    """(the feature's loaded plan, None), or (None, why not). Any failure fails closed."""
+    fdir, reason = _carveout_feature_dir(artifact, feature_dir, mission)
+    if reason:
+        return None, reason
+    try:
+        doc = record_read.load_feature_json(os.path.join(fdir, "feature.json"))
+    except (record_read.FeatureJsonError, OSError):
+        doc = None
+    if not isinstance(doc, dict) or doc.get("mission") != "plan":
+        return None, "feature.json mission is not plan"
+    path = os.path.join(fdir, "plan.yaml")
+    try:
+        plan = artifact_accessors.load_plan(path) if os.path.isfile(path) else None
+    except (harness_yaml.YamlParseError, OSError):
+        plan = None
+    if not isinstance(plan, dict):
+        return None, "plan.yaml missing or unloadable"
+    return plan, None
+
+
+def _carveout_feature_dir(artifact, feature_dir, mission):
+    """(the feature directory, None), or (None, why the carve-out cannot look at it)."""
+    if mission is not None and mission != "plan":
+        return None, "dispatch mission is not plan"
+    fdir, _error = _resolve_feature_dir(artifact, feature_dir)
+    if not fdir:
+        return None, "feature directory unresolved"
+    return fdir, None
+
+
+def _panel_rows(plan):
+    """The plan's panel.findings as a list, [] when absent, or None when any row is malformed."""
+    panel = plan.get("panel", {})
+    if not isinstance(panel, dict):
+        return None
+    rows = panel.get("findings")
+    rows = [] if rows is None else rows
+    if not isinstance(rows, list):
+        return None
+    task_ids = {task.get("id") for task in plan.get("tasks") or [] if isinstance(task, dict)}
+    if any(panel_findings.shape_faults(row, task_ids) for row in rows):
+        return None
+    return rows
+
+
+def _roster_reason(members):
+    """Why the reported reader roster is not the plan team's, or None."""
+    reasons = (_slot_reason(slot, members) for slot in PLAN_READER_STEPS)
+    return next((reason for reason in reasons if reason), None)
+
+
+def _slot_reason(slot, members):
+    """Why one reader slot is not exactly one entry carrying the team's persona, or None."""
+    entries = [m for m in members if isinstance(m, dict) and m.get("step") == slot]
+    if len(entries) > 1:
+        return f"duplicated reader step {slot}"
+    if not entries:
+        return f"reader step {slot} missing"
+    persona = str(entries[0].get("persona"))
+    if not _same_persona(persona, PLAN_READER_PERSONAS[slot]):
+        return (f"reader step {slot} persona {persona!r} is not the team's "
+                f"{PLAN_READER_PERSONAS[slot]!r}")
+    return None
+
+
+def _matching_members(reader, members):
+    """Indices of the members a finding's `reader` names: its step, its persona, or the same
+    canonical persona."""
+    return [index for index, member in enumerate(members)
+            if isinstance(member, dict) and _reader_names(str(reader), member)]
+
+
+def _reader_names(reader, member):
+    return reader == member.get("step") or _same_persona(reader, str(member.get("persona")))
+
+
+def _same_persona(left, right):
+    """The same persona: equal spellings, or the same canonical harness persona."""
+    if left == right:
+        return True
+    try:
+        return digest_schema.canonical_persona(left) == digest_schema.canonical_persona(right)
+    except digest_schema.DigestSchemaError:
+        return False
+
+
+def _candidate_reason(index, members, findings, rows):
+    """None when every finding attributed to member `index` is resolved on disk, else why not."""
+    mine = [f for f in findings if _matching_members(f.get("reader"), members) == [index]]
+    if not mine:
+        return f"no findings attributed to {members[index].get('step')}"
+    reasons = ([_digest_finding_reason(item, rows) for item in mine]
+               + [_open_row_reason(row, index, members) for row in rows])
+    return next((reason for reason in reasons if reason), None)
+
+
+def _open_row_reason(row, index, members):
+    """Why an on-disk row attributed to member `index` blocks relief, or None."""
+    if (_matching_members(row.get("reader"), members) == [index]
+            and row.get("disposition") != "resolved"):
+        return f"finding {row.get('id')} is not resolved"
+    return None
+
+
+def _digest_finding_reason(item, rows):
+    """Why one team-digest finding does not match exactly one resolved plan.yaml row, or None."""
+    reader, summary = str(item.get("reader")), str(item.get("summary"))
+    pfid = panel_findings.finding_id(reader, summary)
+    hits = [row for row in rows if row.get("id") == pfid]
+    if not hits:
+        return f"finding {pfid} absent from plan.yaml panel.findings"
+    if (len(hits) != 1 or str(hits[0].get("reader")) != reader
+            or panel_findings.finding_id(str(hits[0].get("reader")),
+                                         str(hits[0].get("summary"))) != pfid):
+        return f"finding {pfid} has no matching plan.yaml panel row"
+    if hits[0].get("disposition") != "resolved":
+        return f"finding {pfid} is not resolved"
+    return None
 
 
 def _empty_members_errors(members, steps_run):
@@ -2031,8 +2224,8 @@ def _empty_members_errors(members, steps_run):
 RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
 
 
-def _member_rank_errors(members, top):
-    worst, worst_src, err = _worst_member(members)
+def _member_rank_errors(members, top, carveout):
+    worst, worst_src, err = _worst_member(members, carveout)
     if worst is None:
         err.append("members records no member actually ran — a lead verdict cannot "
                    "claim an outcome for an entirely skipped team.")
@@ -2042,20 +2235,30 @@ def _member_rank_errors(members, top):
                    f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
                    f"your VERDICT and never opens member entries, so reporting "
                    f"{top} here hides the {worst}.")
+        err += [f"Plan-team reader carve-out not applied: {members[index].get('step')}: {reason}"
+                for index, reason in carveout.items() if reason]
     return err
 
 
-def _worst_member(members):
+def _worst_member(members, carveout):
     """(worst verdict, its entry's head, errors) over the members that actually ran."""
     err = []
     worst, worst_src = None, None
-    for item in members:
-        v, error = _member_verdict(item)
+    for index, item in enumerate(members):
+        v, error = _ranked_member_verdict(index, item, carveout)
         if error:
             err.append(error)
         elif _outranks(v, worst):
             worst, worst_src = v, str(item)[:60]
     return worst, worst_src, err
+
+
+def _ranked_member_verdict(index, item, carveout):
+    """`_member_verdict`, except a member the carve-out relieves (index maps to None) is PASS."""
+    v, error = _member_verdict(item)
+    if v is not None and carveout.get(index, "") is None:
+        return "PASS", error
+    return v, error
 
 
 def _outranks(v, worst):
