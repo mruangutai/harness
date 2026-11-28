@@ -5,11 +5,6 @@ node_modules/
 # OS
 .DS_Store
 
-# Harness run UI: screenshots and traces, read from disk by the gate, never committed.
-# Every other run record (digest.md, state.yaml, .run-identity.json, panels, qa manifests)
-# is retained evidence (DEC-238) and is committed with its feature like any artifact; the
-# dirty-tree halt (SPEC 8.6) already whitelists .harness/**, so tracking them cannot deadlock.
-.harness/*/features/*/runs/*/ui/**
 
 # The one-session PyYAML bootstrap marker (DEC-171). The write hooks fail CLOSED
 # when PyYAML is absent, so the first session gets one escape and drops this marker to
@@ -54,3 +49,13 @@ __pycache__/
 # registry. All four live under .harness/, so this covers exactly them. A COMMITTED lock is
 # worse than none: it never expires and wedges the next write on a fresh checkout.
 .harness/**/*.lock
+
+# --- harness ---
+# A feature's notes/, runs/ and observations/ and .harness/notes/ are local working
+# files, never committed (DEC-260). Everything else under .harness/ is committed on
+# purpose - it is the record of what shipped.
+.harness/*/features/*/notes/
+.harness/*/features/*/runs/
+.harness/*/features/*/observations/
+.harness/notes/
+# --- end harness ---
