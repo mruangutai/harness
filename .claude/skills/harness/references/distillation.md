@@ -16,11 +16,8 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    report per-section counts before and after." **The read is mandatory:** the skill carries
    the ops format and refusal meanings; the tool's `check-expertise` catches format violations.
    **Put `HARNESS-MISSION: distill` on its own line in every distill dispatch — yours to the
-   lead, and the lead's to each member.** The host forwards it to the digest validator (the
-   road `HARNESS-REVIEW-PIN` takes, #1677), which then pins the readers' gate fields to their
-   did-nothing spelling — qa `suite: n/a` / `matrix_ok: n/a`, code-reviewer `code_grade: n_a` /
-   `reviewed: none` — instead of demanding a suite nobody ran or a diff nobody reviewed
-   (#1855). Without the line, qa's honest return is refused and the code-reviewer cannot bind.
+   lead, and the lead's to each member.** Without it the digest validator refuses the readers'
+   did-nothing returns (`harness-distill`, #1855).
    **Register each lead's run as `distill-<squad>`** (`feature-record.py run-start --id
    distill-validator`, `distill-product`, `distill-eng`): that id is how the digest validator and
    the dispatch guard know the run is a distill, so applied ops on any other run id are refused.
@@ -33,19 +30,16 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    returned.
 2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per
    member** as sourced observations ("your t04 digest noted X"), never pre-written entries, and
-   flags stale ones. **The member is the sole judge** — it accepts, or **rejects with a reason** in
-   its digest; rejection is first-class and never re-litigated. A full section takes a candidate
-   only by **displacing** a weaker entry; nothing weaker → it dies, which is healthy, not
-   `expertise_full`.
+   flags stale ones. **The member is the sole judge** (`harness-distill` step 2); its rejection is
+   never re-litigated.
 3. **Who applies the ops: each member applies its own, through `expertise_apply`** — reviewers
    included; the host binds persona and destination, so nobody applies another's judgment.
    Members return the applied ops (each with `persona`, no `state`) plus the tool's receipt.
    **The lead reads each member's receipt and the actual resulting file**, applies its own
    lessons the same way, consolidates the active ops exactly as applied, and returns PASS when
    no real refusal remains. **You confirm and never apply** a member's or lead's ops; your own
-   log you distill into your own file the same way. A refusal (same-entry conflict, cap)
-   returns through the lead to the **original member**, who re-judges and re-applies with
-   `supersedes`; an empty withdrawal is that member's judgment, never the lead's or yours.
+   log you distill into your own file the same way. A refusal returns through the lead to the
+   **original member** to re-judge (`harness-distill`), never to the lead or you.
    **Before merge, in the still-live worktree:** fetch and rebase onto current `main`; run
    `expertise-merge.py replay --root <wt> --feature <id> --base <main sha>`; run
    `check-expertise`; commit and push the reconstructed files with the original applied

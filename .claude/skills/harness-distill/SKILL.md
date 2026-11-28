@@ -47,7 +47,7 @@ file; never another persona's. Then:
    | 9 | destination refused | not yours to fix by path — report it upward |
    | 10 | `MISSING TARGET` | rejected, never guessed at — a contract violation |
    | 11 | `AMBIGUOUS TARGET` — the id appears twice in its section, or two ops name the same section and id | |
-   | 12 | `MALFORMED OPS` | |
+   | 12 | `MALFORMED OPS` | fix the ops, re-apply |
    | 13 | replay refusal | re-judge against current main, then re-apply with `supersedes` |
    | 14 / 15 | candidate failed `check-expertise` / receipt evidence failed | fix the ops, re-apply |
 
@@ -83,8 +83,7 @@ layout) and is injected ahead of both by `inject-expertise.py`; you never write 
 
 **The default is craft, and the test is one question: could this entry be true and useful in a
 repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on
-a path, file, decision or invariant that exists in **one** repository. Measured at `ada8e99`: 4.3%
-of 374 craft entries named a repo-specific token, so craft is the default by a wide margin (DEC-158).
+a path, file, decision or invariant that exists in **one** repository (DEC-158).
 
 **Durable repo facts — "`tests/` is not type-checked here" — are the repository layer**, and they
 still qualify without the `WHEN/DO` shape.
@@ -123,9 +122,8 @@ gate's field list, the decision's evidence, or a procedure preloaded on every wa
 These four section names are the only legal ones in **both** layers, and `check-expertise.py`
 enforces all of it. The spawn hook hard-truncates at the budget, so an over-budget file silently
 loses its tail — the budget is physics, not advice. **Craft is 150 lines; the repository layer is
-40.** The repository budget is deliberately small: the measured worst case is 4 entries in one file,
-and both layers are injected at every spawn, so a generous second budget would double a per-spawn
-cost DEC-105 already treats as expensive.
+40.** The repository budget is deliberately small: both layers are injected at every spawn, a cost
+DEC-105 already treats as expensive.
 
 Updates are **ops**. The vocabulary is exactly `add | replace | merge | drop`. Every op requires
 both `target` and `section`: `target` names the entry ID, `section` names one of the four sections,
@@ -150,7 +148,7 @@ is refused and returns through your lead to **you** to re-judge — re-apply wit
 naming the refused batch; an empty withdrawal is also your judgment to make.
 
 At a section cap during distillation, condense until you are under it — distillation IS the
-curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot
+curation step. If you genuinely cannot
 condense below a cap without losing durable rules, set `expertise_full: true` in your DIGEST and
 let the tier above decide.
 

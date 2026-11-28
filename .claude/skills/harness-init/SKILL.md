@@ -142,14 +142,6 @@ Before `--upgrade`, MUST read and follow
 (DEC-158/222). Run in the already-initialised checkout; for a fleet member, land the merged
 `harness.json` on its default branch through `harness-add-repo`.
 
-**Preserve every project value, especially verified `test_kinds.*.cmd`.** Resetting a working
-active runner to null makes it `BLOCKED`, not a soft skip (DEC-187).
-**`team-config.yaml` is report-only, never rewritten**: it belongs only to the control plane,
-and `safe_dump` cannot preserve the comments justifying its write-scope globs (DEC-171).
-Relay reported new entries and add them by hand, preserving the globs and comments.
-**Never change `BRIEF.md`, `PLAN.md` or `DESIGN.md` in an upgrade**: they are content, not
-schema. First BRIEF, approval and design work route to `/harness-plan`.
-
 ## Red flags
 
 | Thought | Reality |
