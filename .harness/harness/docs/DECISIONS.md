@@ -717,7 +717,7 @@ what genuinely binds it. Each rule also needs a directory with a `SKILL.md` rath
 `.md` file.
 **Evidence:** originally verified in the Claude Code subagent documentation, whose `skills:` field
 injected full skill content rather than descriptions; that host is removed (DEC-233). The live
-mechanism is OMP's `autoloadSkills`, checked by `check-omp-port.py` against every `.omp/agents/` file.
+mechanism is OMP's `autoloadSkills`, checked by INV-42 in `check-state.py` against every `.omp/agents/` file.
 
 ## DEC-64 — Expertise is delivered by the OMP extension's agent-start hook, not read by the agent
 
@@ -6355,10 +6355,12 @@ and `yield` validates the returned object directly. The TypeScript layer owns no
 repository's same-named directories. `.claude/worktrees/` remains the sanctioned development
 location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
 
-**`check-omp-port.py` is the port gate.** It rejects a reversed or broken `.agents/skills` link,
-concrete provider IDs in canonical agents, a role whose `thinking-level` disagrees with its `model`
-alias, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery. Since BUG-2565
-it also fails when an agent's frontmatter `output:` drifts from its persona schema.
+**`check-omp-port.py` is the port gate.** It rejects concrete provider IDs in canonical agents, a
+role whose `thinking-level` disagrees with its `model` alias, missing provider overlays, or
+re-enabled Claude discovery. Since BUG-2565 it also fails when an agent's frontmatter `output:`
+drifts from its persona schema. Since #2696 it no longer repeats checks another gate owns: the
+`.agents/skills` link is graded by `test-check-skill-refs.py`, the OMP hooks file by INV-48 and
+`test-omp-hooks.py`, and the roster by the suites that load every agent.
 
 **Cost accepted:** OMP runs require an explicit provider overlay and the OMP extension is a maintained
 host adapter. The alternative is cheaper only by keeping provider coupling and silently losing

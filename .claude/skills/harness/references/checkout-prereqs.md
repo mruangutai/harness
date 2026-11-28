@@ -50,7 +50,7 @@ self-report `MISSING` from their own environment; `check-domain.py` is authorita
 finished but has no domain enforcement, which is worse than a refused one (observed in testing).
 
 Enforcement is live **immediately, in this session** — `harness-hooks.ts` is loaded with the OMP
-session and its wiring is graded by `check-omp-port.py` on every run. Nothing here waits on a
+session and its wiring is tested by `test-omp-hooks.py` in the unit suite. Nothing here waits on a
 restart.
 
 ## The per-checkout step: point git at the tracked hooks directory

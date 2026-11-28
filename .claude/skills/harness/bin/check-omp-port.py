@@ -3,31 +3,12 @@
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
 import artifact_accessors
 import digest_projection
 
-EXPECTED_AGENTS = {
-    "harness-ai-dev",
-    "harness-backend-dev",
-    "harness-code-reviewer",
-    "harness-data-engineer",
-    "harness-dev-ops",
-    "harness-documentor",
-    "harness-eng-lead",
-    "harness-frontend-dev",
-    "harness-orchestrator",
-    "harness-pm",
-    "harness-product-lead",
-    "harness-qa",
-    "harness-security-reviewer",
-    "harness-ui-reviewer",
-    "harness-validator-lead",
-    "harness-visual-designer",
-}
 # The one place a role's reasoning effort is bound to its capability alias (DEC-233).
 THINKING_FOR_CAPABILITY = {
     "@deep": "high",
@@ -47,24 +28,6 @@ def frontmatter(path: Path) -> dict:
     metadata, _body = artifact_accessors.load_frontmatter(
         path.read_text(encoding="utf-8"), str(path))
     return metadata
-
-# BUG-1898 defect D: OMP emits task:subagent:lifecycle on the session EventBus that an
-# extension reaches as `pi.events`; `pi.on` is the hook dispatcher and never delivers it.
-# The marker string alone is present in both forms, so the registration shape is checked.
-_LIFECYCLE_ON_EVENTS = re.compile(r"""\bpi\.events\.on\(\s*(["'])task:subagent:lifecycle\1""")
-_LIFECYCLE_ON_HOOKS = re.compile(r"""\bpi\.on\(\s*(["'])task:subagent:lifecycle\1""")
-
-
-def lifecycle_bus_errors(source: str) -> list[str]:
-    errors = []
-    if _LIFECYCLE_ON_HOOKS.search(source):
-        errors.append(".omp/extensions/harness-hooks.ts registers task:subagent:lifecycle on "
-                      "pi.on, which never delivers it; register it on pi.events")
-    if not _LIFECYCLE_ON_EVENTS.search(source):
-        errors.append(".omp/extensions/harness-hooks.ts has no task:subagent:lifecycle "
-                      "listener on pi.events; terminal children are never released")
-    return errors
-
 
 def check(root: Path) -> list[str]:
     # FEAT-67: order is part of the contract — errors come out in CHECKS order.
@@ -117,11 +80,10 @@ def agent_files_errors(root: Path) -> list[str]:
         name = str(meta.get("name") or "")
         actual_names.add(name)
         errors.extend(agent_file_errors(root, path, meta, name))
-    if actual_names != EXPECTED_AGENTS:
-        errors.append(
-            "OMP agent roster mismatch: missing=%s extra=%s"
-            % (sorted(EXPECTED_AGENTS - actual_names), sorted(actual_names - EXPECTED_AGENTS))
-        )
+    # The roster itself is graded by the suites that load every agent (#2696); this guard only
+    # keeps the per-agent checks above from passing vacuously when no agent file is found.
+    if not actual_names:
+        errors.append(f"no harness-*.md agent files under {agent_dir.relative_to(root)}")
     return errors
 
 
@@ -142,11 +104,12 @@ def agent_file_errors(root: Path, path: Path, meta: dict, name: str) -> list[str
         errors.append(
             f"{path.relative_to(root)} must set blocking: true for nested OMP supervision"
         )
+    # Kept by the #2698 review: OMP reads a `tools` mapping as an empty allowlist and only logs
+    # a warning, and no suite catches that shape on an agent without bash.
     if not isinstance(meta.get("tools"), list):
         errors.append(f"{path.relative_to(root)} tools must be a list")
     if not isinstance(meta.get("spawns"), list):
         errors.append(f"{path.relative_to(root)} spawns must be an explicit list")
-    errors.extend(agent_skills_errors(root, path, meta.get("autoloadSkills")))
     marker = f"HARNESS_AGENT_ID: {name}"
     if marker not in path.read_text(encoding="utf-8"):
         errors.append(f"{path.relative_to(root)} lacks its stable HARNESS_AGENT_ID marker")
@@ -184,14 +147,6 @@ def agent_output_errors(root: Path, path: Path, meta: dict, name: str) -> list[s
     return errors
 
 
-def agent_skills_errors(root: Path, path: Path, skills) -> list[str]:
-    if not isinstance(skills, list):
-        return [f"{path.relative_to(root)} autoloadSkills must be a list"]
-    return [f"{path.relative_to(root)} references missing skill {skill!r}"
-            for skill in skills
-            if not (root / ".agents" / "skills" / str(skill) / "SKILL.md").is_file()]
-
-
 def provider_errors(root: Path) -> list[str]:
     errors: list[str] = []
     for filename, prefix in PROVIDER_PREFIX.items():
@@ -213,39 +168,6 @@ def provider_file_errors(root: Path, path: Path, prefix: str) -> list[str]:
     return errors
 
 
-def skills_link_errors(root: Path) -> list[str]:
-    claude_skills = root / ".claude" / "skills"
-    agent_skills = root / ".agents" / "skills"
-    try:
-        if not agent_skills.is_symlink() or agent_skills.resolve() != claude_skills.resolve():
-            return [".agents/skills must be a symlink to the authored tree at .claude/skills"]
-    except OSError as exc:
-        return [f"cannot resolve .agents/skills link: {exc}"]
-    return []
-
-
-def extension_errors(root: Path) -> list[str]:
-    extension = root / ".omp" / "extensions" / "harness-hooks.ts"
-    if not extension.is_file():
-        return [".omp/extensions/harness-hooks.ts is missing"]
-    source = extension.read_text(encoding="utf-8")
-    required_wiring = {
-        "dispatch-guard.py": "OMP task preflight",
-        "gh-close-gate.py": "GitHub close preflight",
-        "inflight_registry.py": "OMP claim attachment and release",
-        # BUG-1132: absent here until this fix, so plan-sign-gate.py's own absence from
-        # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went
-        # undetected. required_wiring is a spot-check, not an enumeration of every gate
-        # script; this entry closes the one instance that was actually missing, not the
-        # general class.
-        "plan-sign-gate.py": "sign-approval identity preflight",
-    }
-    errors = [f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})"
-              for marker, purpose in required_wiring.items() if marker not in source]
-    errors.extend(lifecycle_bus_errors(source))
-    return errors
-
-
 def door_errors(root: Path) -> list[str]:
     command_dir = root / ".omp" / "commands"
     return [f".omp/commands/{door}.md is missing; {door} has no provider-neutral door"
@@ -257,8 +179,6 @@ CHECKS = (
     config_errors,
     agent_files_errors,
     provider_errors,
-    skills_link_errors,
-    extension_errors,
     door_errors,
 )
 

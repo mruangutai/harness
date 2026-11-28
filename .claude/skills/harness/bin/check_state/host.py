@@ -2,8 +2,9 @@
 import os, sys
 import harness_boundary
 # --- INV-9 retired under DEC-233; the number is never reused (DEC-205). Host enforcement is
-# `.omp/extensions/harness-hooks.ts`, and its wiring is graded by check-omp-port.py — INV-45
-# since the 2026-09-21 ruling (the row ran unnumbered as `OMP-PORT` before it). The
+# `.omp/extensions/harness-hooks.ts`, whose wiring test-omp-hooks.py tests; the OMP config,
+# agent frontmatter, overlays and doors are graded by check-omp-port.py — INV-45 since the
+# 2026-09-21 ruling (the row ran unnumbered as `OMP-PORT` before it). The
 # gate keys on `.omp/config.yml` so a scratch tree that carries no OMP surface (every
 # fixture in tests/) grades its own invariants without the whole port surface.
 def _omp_port_findings(ctx, omp_check):
@@ -26,7 +27,7 @@ def inv_45(ctx):
         _omp_check = os.path.join(root, ".agents", "skills", "harness", "bin", "check-omp-port.py")
         if not os.path.isfile(_omp_check):
             bad.append("OMP is configured but check-omp-port.py is missing — nothing grades the "
-                       "roster, hook wiring or provider overlays.")
+                       "OMP config, agent frontmatter, provider overlays or command doors.")
         else:
             bad.extend(_omp_port_findings(ctx, _omp_check))
     return bad, warn
