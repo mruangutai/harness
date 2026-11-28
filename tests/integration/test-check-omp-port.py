@@ -7,6 +7,7 @@ from integration_support import ROOT, BIN
 
 import contextlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -232,6 +233,24 @@ def case_agent_output_drift():
     return rows
 
 
+def case_tools_mapping_fails():
+    """#2698 review: a `tools` mapping is read by OMP as an empty allowlist (a log warning, no
+    error), and the suites read it as its keys, so this gate is the only one that refuses it."""
+    with fixture() as root:
+        agent = root / ".omp" / "agents" / "harness-eng-lead.md"
+        text = agent.read_text(encoding="utf-8")
+        match = re.search(r"(?m)^tools:\n((?:- .*\n)+)", text)
+        mapping = "".join(f"  {line[2:].strip()}: true\n" for line in match.group(1).splitlines(keepends=True))
+        agent.write_text(text.replace(match.group(0), "tools:\n" + mapping, 1), encoding="utf-8")
+        result = run(root)
+        return [
+            ("a tools mapping is planted", match is not None and "read: true" in agent.read_text(), ""),
+            ("a tools mapping instead of a list fails", result.returncode == 1, result.stderr),
+            ("the tools shape is named", "harness-eng-lead.md tools must be a list" in result.stderr,
+             result.stderr),
+        ]
+
+
 def case_nonblocking_nested_agent_fails():
     with fixture() as root:
         agent = root / ".omp" / "agents" / "harness-backend-dev.md"
@@ -310,6 +329,7 @@ CASES = (
     case_task_wall_clock_limit_fails,
     case_task_structured_off,
     case_agent_output_drift,
+    case_tools_mapping_fails,
     case_nonblocking_nested_agent_fails,
     case_no_agent_files_fails,
     case_missing_command_door_fails,

@@ -104,6 +104,10 @@ def agent_file_errors(root: Path, path: Path, meta: dict, name: str) -> list[str
         errors.append(
             f"{path.relative_to(root)} must set blocking: true for nested OMP supervision"
         )
+    # Kept by the #2698 review: OMP reads a `tools` mapping as an empty allowlist and only logs
+    # a warning, and no suite catches that shape on an agent without bash.
+    if not isinstance(meta.get("tools"), list):
+        errors.append(f"{path.relative_to(root)} tools must be a list")
     if not isinstance(meta.get("spawns"), list):
         errors.append(f"{path.relative_to(root)} spawns must be an explicit list")
     marker = f"HARNESS_AGENT_ID: {name}"
