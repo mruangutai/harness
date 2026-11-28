@@ -79,13 +79,19 @@ def exposure_faults(value):
         return []
     if not isinstance(value, dict):
         return [f"exposure {value!r} is neither a mapping nor {EXPOSURE_UNRATED!r}"]
+    return _exposure_key_faults(value) + _exposure_value_faults(value)
+
+
+def _exposure_key_faults(value):
     keys = [key for key, _allowed in _EXPOSURE_ENUMS]
-    faults = [f"exposure is missing {key}" for key in keys if key not in value]
-    faults += [f"exposure carries {key}, outside {', '.join(keys)}"
-               for key in sorted(map(str, value)) if key not in keys]
-    faults += [f"exposure {key} {value[key]!r} is not one of {' | '.join(allowed)}"
-               for key, allowed in _EXPOSURE_ENUMS if key in value and value[key] not in allowed]
-    return faults
+    return ([f"exposure is missing {key}" for key in keys if key not in value]
+            + [f"exposure carries {key}, outside {', '.join(keys)}"
+               for key in sorted(map(str, value)) if key not in keys])
+
+
+def _exposure_value_faults(value):
+    return [f"exposure {key} {value[key]!r} is not one of {' | '.join(allowed)}"
+            for key, allowed in _EXPOSURE_ENUMS if key in value and value[key] not in allowed]
 
 
 def is_discounted(exposure):
@@ -153,12 +159,16 @@ def shape_faults(finding, task_ids=None):
                          ("disposition", DISPOSITIONS)):
         if key not in missing:
             faults.extend(_enum_fault(finding, key, allowed))
-    if "exposure" in finding:
-        faults.extend(exposure_faults(finding["exposure"]))
-        fault = practicality_fault(finding)
-        if fault:
-            faults.append(fault)
-    return faults + _scope_fault(finding) + _resolved_by_fault(finding, task_ids)
+    return (faults + _exposure_row_faults(finding) + _scope_fault(finding)
+            + _resolved_by_fault(finding, task_ids))
+
+
+def _exposure_row_faults(finding):
+    """A row's exposure is optional; when present it is well-formed and within the rule."""
+    if "exposure" not in finding:
+        return []
+    fault = practicality_fault(finding)
+    return exposure_faults(finding["exposure"]) + ([fault] if fault else [])
 
 
 def gates_signature(finding, accepted_ids):

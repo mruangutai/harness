@@ -1601,16 +1601,23 @@ def _practicality_errors(canonical, verdict, seen):
     if not isinstance(findings, list):
         return []
     indexed = [(i, f) for i, f in enumerate(findings) if isinstance(f, dict)]
-    err = [f"findings[{i}] ({f.get('summary')}): {fault}" for i, f in indexed
-           for fault in [panel_findings.practicality_fault(f)] if fault]
+    err = _severity_errors(indexed)
     err += _discounted_must_fix_errors(indexed, seen.get("must_fix"))
     if canonical in _STATES_OWN_EXPOSURE:
-        err += [f"findings[{i}] carries exposure 'unrated', which {_RULE} refuses here: a harness "
-                "reviewer states its exposure; unrated is a lead's transcription of a reader "
-                "that gave none" for i, f in indexed
-                if f.get("exposure") == panel_findings.EXPOSURE_UNRATED]
+        err += _unrated_errors(indexed)
     err += _discounted_verdict_errors(canonical, verdict, seen, [f for _i, f in indexed])
     return err
+
+
+def _severity_errors(indexed):
+    return [f"findings[{i}] ({f.get('summary')}): {fault}" for i, f in indexed
+            for fault in [panel_findings.practicality_fault(f)] if fault]
+
+
+def _unrated_errors(indexed):
+    return [f"findings[{i}] carries exposure 'unrated', which {_RULE} refuses here: a harness "
+            "reviewer states its exposure; unrated is a lead's transcription of a reader that "
+            "gave none" for i, f in indexed if f.get("exposure") == panel_findings.EXPOSURE_UNRATED]
 
 
 def _discounted_must_fix_errors(indexed, must_fix):
@@ -1639,20 +1646,31 @@ def _discounted_verdict_errors(canonical, verdict, seen, findings):
     discounted = [panel_findings.is_discounted(f.get("exposure")) for f in findings]
     if not any(discounted):
         return []
-    gating_witness = any(not hit and not panel_findings.is_non_gating(f.get("severity"))
-                         for f, hit in zip(findings, discounted))
+    return (_severity_max_errors(seen, findings, discounted)
+            + _reviewer_fail_errors(canonical, verdict, seen, discounted))
+
+
+def _severity_max_errors(seen, findings, discounted):
+    """A gating severity_max needs a finding the rule does not discount behind it."""
     severity_max = str(seen.get("severity_max")).strip().lower()
-    err = []
-    if "severity_max" in seen and severity_max in ("high", "critical") and not gating_witness:
-        err.append(f"severity_max {severity_max!r} breaks {_RULE}: a gating severity_max must "
-                   "rest on a finding the practicality rule does not discount")
-    if (canonical in _REVIEWERS and verdict == "FAIL" and all(discounted)
-            and seen.get("must_fix") == []
-            and panel_findings.is_non_gating(seen.get("severity_max"))
-            and seen.get("code_grade") != "fail"):
-        err.append(f"VERDICT FAIL breaks {_RULE}: a review whose only findings are discounted "
-                   "does not fail")
-    return err
+    if "severity_max" not in seen or severity_max not in ("high", "critical"):
+        return []
+    if any(not hit and not panel_findings.is_non_gating(f.get("severity"))
+           for f, hit in zip(findings, discounted)):
+        return []
+    return [f"severity_max {severity_max!r} breaks {_RULE}: a gating severity_max must rest on a "
+            "finding the practicality rule does not discount"]
+
+
+def _reviewer_fail_errors(canonical, verdict, seen, discounted):
+    """A review whose only findings are discounted, with nothing else gating, cannot FAIL."""
+    gated = (seen.get("must_fix") != []
+             or not panel_findings.is_non_gating(seen.get("severity_max"))
+             or seen.get("code_grade") == "fail")
+    if canonical not in _REVIEWERS or verdict != "FAIL" or not all(discounted) or gated:
+        return []
+    return [f"VERDICT FAIL breaks {_RULE}: a review whose only findings are discounted does not "
+            "fail"]
 
 
 def _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa, mission=None):
