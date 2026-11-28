@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import artifact_accessors
+import digest_projection
 
 EXPECTED_AGENTS = {
     "harness-ai-dev",
@@ -93,8 +94,9 @@ def config_errors(root: Path) -> list[str]:
             errors.append(".omp/config.yml async.enabled must be true")
         if ((config.get("task") or {}).get("maxRuntimeMs")) != 0:
             errors.append(".omp/config.yml task.maxRuntimeMs must be 0")
-        if ((config.get("task") or {}).get("structured")) is not True:
-            errors.append(".omp/config.yml task.structured must be true")
+        if ((config.get("task") or {}).get("structured", False)) is not False:
+            errors.append(".omp/config.yml task.structured must stay unset or false: each harness "
+                          "agent's frontmatter carries its digest schema")
         if config.get("modelRoles"):
             errors.append("concrete modelRoles belong in .omp/providers overlays, not .omp/config.yml")
     except artifact_accessors.ArtifactAccessError as exc:
@@ -148,6 +150,37 @@ def agent_file_errors(root: Path, path: Path, meta: dict, name: str) -> list[str
     marker = f"HARNESS_AGENT_ID: {name}"
     if marker not in path.read_text(encoding="utf-8"):
         errors.append(f"{path.relative_to(root)} lacks its stable HARNESS_AGENT_ID marker")
+    errors.extend(agent_output_errors(root, path, meta, name))
+    return errors
+
+
+def typed_equal(a, b) -> bool:
+    """Structural equality that never lets a bool stand in for an int (or either for a float):
+    Python's own `{"a": False} == {"a": 0}` is True, so plain equality would pass a
+    hand-edited `additionalProperties: 0`."""
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, dict):
+        return a.keys() == b.keys() and all(typed_equal(a[key], b[key]) for key in a)
+    if isinstance(a, list):
+        return len(a) == len(b) and all(typed_equal(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+def agent_output_errors(root: Path, path: Path, meta: dict, name: str) -> list[str]:
+    """BUG-2565: an agent's yield is bound to its digest schema only through its frontmatter,
+    so `structured: true` and an `output:` equal to the persona's projection are required."""
+    rel = path.relative_to(root)
+    errors = []
+    if meta.get("structured") is not True:
+        errors.append(f"{rel} must set structured: true so its yield is bound to its digest schema")
+    try:
+        bundle = digest_projection.provider_bundle(name, root / digest_projection.SCHEMA_RELPATH)
+    except digest_projection.ProjectionError as exc:
+        return [*errors, f"{rel}: digest schema for {name} cannot be projected: {exc}"]
+    if not typed_equal(meta.get("output"), bundle):
+        errors.append(f"{rel} output differs from schemas/digest/{name}.json; "
+                      "run .claude/skills/harness/bin/gen-agent-output.py")
     return errors
 
 

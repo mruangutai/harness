@@ -279,11 +279,13 @@
       Every declared property is required, including conditionally meaningful fields; use
       <code>none</code> or <code>[]</code>, never null or omission. Minimal list-item variants are
       closed objects too.</p>
-    <p class="sub" style="margin-top:10px">The OMP task hook refuses dispatcher-supplied
-      <code>outputSchema</code> or <code>schemaMode</code>, then injects the persona schema in strict
-      mode. YieldTool validates the mapping itself. Missing, null, string, wrapped, open or otherwise
+    <p class="sub" style="margin-top:10px">Each harness agent definition carries structured true
+      and an output generated from its persona schema by <code>gen-agent-output.py</code>, so the
+      task tool exposes no schema parameter and a dispatcher supplies none. YieldTool validates the
+      mapping itself. Missing, null, string, wrapped, open or otherwise
       invalid data returns an actionable retryable tool error to the same job; no prose parser,
-      last-message fallback or host-created digest can complete it.</p>
+      last-message fallback or host-created digest can complete it. A yield the validator cannot
+      check is refused, never passed.</p>
     <p class="sub" style="margin-top:10px">A lead writes the human report to the existing regular
       <code>&lt;run&gt;/digest.md</code> before yielding. After validation,
       <code>validate-digest.py</code> alone appends deterministic fenced YAML. The lead never writes

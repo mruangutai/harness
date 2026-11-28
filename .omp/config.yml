@@ -12,9 +12,10 @@ async:
 task:
   maxRecursionDepth: 3
   maxRuntimeMs: 0
-  # BUG-2171: native since OMP 18.10.2 and default off. Off, task children get no `yield` tool
-  # and OMP strips the hook-injected strict digest schema, so no return reaches digest.md.
-  structured: true
+  # BUG-2565: task.structured stays at OMP's default (off). Each harness agent's frontmatter
+  # carries structured: true and an output generated from schemas/digest by
+  # gen-agent-output.py, so the task tool exposes no schema parameter to any dispatcher;
+  # non-harness children get no yield tool, accepted by the operator.
   # FEAT-2397: native per-call model authority, explicitly off for every session, Main included.
   # A project setting narrows an operator's choice but never widens it. Quoted: an unquoted
   # `off` is a YAML 1.1 boolean, and the pin is the string. A task that needs a stronger model

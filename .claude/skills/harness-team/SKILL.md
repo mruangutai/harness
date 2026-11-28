@@ -92,7 +92,7 @@ suggestion to continue other work does not override this (DEC-201).
 `completed_at`. A repeated delivery after resume is an idempotent no-op, never a second dispatch or
 GitHub transition (DEC-204).
 
-**The digest contract is enforced for you** — the OMP hook injects your persona's strict schema
+**The digest contract is enforced for you** — your persona's schema comes from your agent definition
 and `validate-digest.py --hook` checks every yielded object (DEC-237). Route *on* the fields, never
 re-adjudicate them: charitable normalization is how drift stays invisible (DEC-101). A return can
 be well-formed yet substantively wrong; on a missing or contradictory `VERDICT`, re-prompt
@@ -143,8 +143,8 @@ Never write that fenced block yourself. The digest-of-digests shape: `team-run-s
 
 ## Reporting up
 
-Return an object through YieldTool, never fenced YAML text (`harness-handoff`). Your injected lead
-schema owns the required fields (DEC-121, DEC-237), e.g.
+Return an object through YieldTool, never fenced YAML text (`harness-handoff`). Your lead schema,
+carried by your agent definition, owns the required fields (DEC-121, DEC-237), e.g.
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-eng-lead.json`;
 product-lead and validator-lead have their own `harness-<persona>.json` with the same fields.
 **Before your first lead return, read

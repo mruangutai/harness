@@ -2,8 +2,6 @@ import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, type Stats } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isDeepStrictEqual } from "node:util";
-import { DigestSchemaBundleError, loadDigestSchemaBundle } from "./digest-schema.ts";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
 const FEATURE_MARKER = /^HARNESS-FEATURE: ((?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+)$/gm;
@@ -383,7 +381,8 @@ export function narrowGateApplies(script: string, command: string): boolean {
   return Object.hasOwn(NARROW_GATES, script) && NARROW_GATES[script](command);
 }
 
-// The four gates whose own failure is reported rather than enforced (DEC-100, amended by D-01).
+// The four gates whose own failure is reported as unavailable rather than enforced (DEC-100,
+// amended by D-01); the yield phase alone refuses on validate-digest's (BUG-2565).
 const BROAD_GATES = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"];
 
 // How a gate process ended; `error` is a spawn failure, `timedOut` a kill at the budget.
@@ -796,67 +795,6 @@ export function normalizeTaskDispatches(input: Dict): TaskDispatch[] {
   }] : [];
 }
 
-// FEAT-1928: the digest contract a harness child yields against is the hook's to supply, and
-// only the hook's. Agent frontmatter cannot set schemaMode and OMP defaults to permissive, so a
-// dispatcher-supplied schema or mode would replace or loosen that contract. Refused wherever
-// it can appear, the main session included — the FEAT-65 collision came from the main session.
-// BUG-2305: OMP persists the hook's revision as the call itself, so a dispatcher may send the
-// injected pair back. A harness target carrying exactly its own bundle (key order aside) with
-// schemaMode "strict" changes nothing and is accepted; withDigestSchemas re-injects it anyway.
-const SCHEMA_CONTROLS = ["outputSchema", "schemaMode"];
-const DIGEST_SCHEMA_DIR = join(gateRoot(), BIN, "..", "schemas", "digest");
-
-function isInjectedCopy(target: Dict): boolean {
-  const agent = text(target.agent);
-  if (!agent.startsWith("harness-") || target.schemaMode !== "strict" || !Object.hasOwn(target, "outputSchema")) {
-    return false;
-  }
-  try {
-    return isDeepStrictEqual(target.outputSchema, loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, agent));
-  } catch (error) {
-    // An unloadable bundle has no copy; the controls are refused like any other.
-    if (error instanceof DigestSchemaBundleError) return false;
-    throw error;
-  }
-}
-
-function schemaControlRefusal(input: Dict): string | undefined {
-  const batch = Array.isArray(input.tasks);
-  const found = batch || !isInjectedCopy(input)
-    ? SCHEMA_CONTROLS.filter((key) => Object.hasOwn(input, key))
-    : [];
-  if (batch) {
-    (input.tasks as unknown[]).forEach((item, index) => {
-      if (!item || typeof item !== "object" || isInjectedCopy(item as Dict)) return;
-      found.push(...SCHEMA_CONTROLS.filter((key) => Object.hasOwn(item, key))
-        .map((key) => `tasks[${index}].${key}`));
-    });
-  }
-  return found.length
-    ? `Harness dispatches never carry ${found.join(", ")}: the hook injects each harness `
-      + "persona's strict digest schema itself. Remove the field and dispatch again."
-      + " Only an unchanged copy of a harness target's own bundle with schemaMode strict is accepted."
-    : undefined;
-}
-
-// The revised task input with every harness target carrying its persona's strict bundle, or
-// undefined when no target is a harness persona. Other targets and every other field — the
-// batch shape, context, names, tools — are passed through as given. A bundle that cannot load
-// throws DigestSchemaBundleError; there is no loose fallback.
-function withDigestSchemas(input: Dict): Dict | undefined {
-  const governed = (item: Dict): Dict => text(item.agent).startsWith("harness-")
-    ? { ...item, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, text(item.agent)), schemaMode: "strict" }
-    : item;
-  if (Array.isArray(input.tasks)) {
-    const given = input.tasks;
-    const tasks = given.map((item) =>
-      item && typeof item === "object" && !Array.isArray(item) ? governed(item as Dict) : item);
-    return tasks.some((item, index) => item !== given[index]) ? { ...input, tasks } : undefined;
-  }
-  const flat = governed(input);
-  return flat === input ? undefined : flat;
-}
-
 function parseClaimReceipt(stdout: string): ClaimReceipt | undefined {
   for (const parsed of jsonLines(stdout)) {
     const raw = parsed.harness_claim as Dict | undefined;
@@ -935,6 +873,17 @@ export function heldRunReason(refusal: RunAnswer): string {
 const RETURN_THE_OBJECT = "Harness agents must return the digest as an object: "
   + "yield({data: {VERDICT, DIGEST, artifact}}) — a string, null, list or missing `data` is "
   + "not a digest.";
+
+// BUG-2565 (D-02): a yield the validator could not check. The child cannot repair a Harness
+// fault, and every yield (BLOCKED included) is refused until validate-digest runs, so it is told
+// to try once more and then stop, naming the cause.
+function validatorUnavailableRefusal(detail: string): string {
+  return `Harness refused this yield: ${detail}. Your object was not checked, and Harness never `
+    + "passes an unchecked return. This is a Harness fault, not a violation found in your object: "
+    + "do not change a valid object to get past it. Yield the same object once more; if it is "
+    + "refused again for this same cause, stop yielding and end your turn with one line naming "
+    + "this cause, because no yield can pass until validate-digest runs.";
+}
 const MISSING_CAPABILITY = "Harness requires OMP's runtime lineage capability; install the "
   + "pinned Harness OMP build before dispatching agents or allowing governed mutations.";
 
@@ -1812,20 +1761,9 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       }
     }
     if (!reason && toolName === "task") {
-      // FEAT-1928: schema controls are refused and every harness target's bundle is loaded
-      // BEFORE dispatch-guard.py runs, so a schema-refused dispatch never records a claim.
-      // A per-call `model` is native policy's (`task.perCallModel: off`, FEAT-2397) and is
-      // forwarded untouched, never stripped.
-      reason = schemaControlRefusal(input);
-      if (!reason) {
-        try {
-          revisedInput = withDigestSchemas(input);
-        } catch (error) {
-          if (!(error instanceof DigestSchemaBundleError)) throw error;
-          reason = `Harness dispatch refused: ${error.message} A harness agent is never `
-            + "dispatched without its strict digest schema.";
-        }
-      }
+      // BUG-2565: the call goes out unrevised; each harness agent's digest schema comes from its
+      // agent definition. A per-call `model` is native policy's (`task.perCallModel: off`,
+      // FEAT-2397) and is forwarded untouched, never stripped.
       const receipts: ClaimReceipt[] = [];
       if (!reason) {
         for (const dispatch of normalizeTaskDispatches(input)) {
@@ -1894,9 +1832,8 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     }
     if (!reason && toolName === "yield") {
       let digest: unknown = input.data;
-      // OMP normalizes optional null data to absence before this hook; strict terminal yields
-      // reject that natively before last-turn resolution and leave the same child retryable.
-      if (digest == null && input.type === "result") return undefined;
+      // BUG-2565 (D-04): a yield with no data is refused whatever its type. Agent frontmatter
+      // cannot set strict mode, so OMP's own rejection of a data-less yield is not guaranteed.
       // BUG-2171: a model may send the object as JSON text, which OMP's own yield tool parses
       // losslessly; only a string encoding one plain object passes the check below.
       if (typeof digest === "string") {
@@ -1907,7 +1844,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       } else if (currentAgent && runGate.state !== "ready" && (digest as Dict).VERDICT !== "BLOCKED") {
         reason = `${heldReason()} This run may yield only a BLOCKED digest.`;
       } else {
-        const result = await reportingRunner(policyRunner, "yield", notices)(ctx.cwd, "validate-digest.py", ["--hook"], {
+        const result = await policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
           ...basePayload(policyAgent, "SubagentStop", ctx.cwd, runtimeCtx),
           digest_object: digest,
           harness_digest_binding: digestBinding,
@@ -1917,7 +1854,11 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         });
         debug(`yield agent=${currentAgent} value=${JSON.stringify(digest).slice(0, 500)}`);
         debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
-        reason = result.blocked ? result.reason : undefined;
+        // BUG-2565 (D-02, D-05): validate-digest.py reports its own failure as unavailable like
+        // the other broad gates, but the yield it was checking is refused, never passed.
+        reason = result.blocked
+          ? result.reason
+          : result.unavailable !== undefined ? validatorUnavailableRefusal(result.unavailable) : undefined;
       }
     }
     // FEAT-2274 V3: omp 19.1.0 returns a blocking tool_call result's `reason` alone and drops
