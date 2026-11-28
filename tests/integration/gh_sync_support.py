@@ -10,13 +10,23 @@ none of them changed in the move.
 Each importing file installs its own fake gh into its own temporary directory through
 `install_gh`, so the files carry no ordering dependency on one another and the runner
 pool may run them concurrently in any order (`tests/unit/test-suite-independence.py`).
+
+The pass/fail harness is one tests/check_support.Checks for the importing process, exposed as
+the module-level `check` and `report` (`C` is the instance). An importer ends with
+`sys.exit(main())` where main returns `report()`: 1 when any check failed or none ran, 0
+otherwise.
+
+The gh-sync launcher and its log:
+    run(args, tmp, env_extra=None, log="calls.log")   gh-sync.py <args> confined to tmp/gh,
+        the fake writing its argv lines to tmp/<log>; the default-binary sentinel must stay unused.
+    calls(tmp, log="calls.log", strip=False)          those argv lines, one per gh call. Each
+        line ends in the \\x01 the fake's `tr` made of echo's newline; strip=True removes it,
+        for a caller that matches a line's last argument (a regex like `--label (\\S+)`).
+
+HERE (bin/) and SYNC (bin/gh-sync.py) are str paths.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import BIN  # noqa: E402  (puts bin/ and tests/ on sys.path)
+from check_support import Checks  # noqa: E402
 from harness_config_support import build_config, write_config  # noqa: E402
 from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
 import importlib.util
@@ -24,12 +34,10 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
+HERE = str(BIN)
 SYNC = os.path.join(HERE, "gh-sync.py")
 
 
@@ -225,11 +233,11 @@ def _fleet_factory(args):
             return None
 
 
-def run(args, tmp, env_extra=None):
+def run(args, tmp, env_extra=None, log="calls.log"):
     """Run gh-sync confined to the tmp fake: FACTORY_GH only, the default-binary sentinel unused."""
     binary = os.path.join(tmp, "gh")
     env, sentinel_log = offline_gh_env(binary, tmp)
-    env["FAKE_LOG"] = os.path.join(tmp, "calls.log")
+    env["FAKE_LOG"] = os.path.join(tmp, log)
     if _fleet_factory(args) and (env_extra or {}).get("FACTORY_GH", binary) != binary:
         raise ValueError("fleet tests must bind FACTORY_GH to the shared fake")
     env.update(env_extra or {})
@@ -238,8 +246,8 @@ def run(args, tmp, env_extra=None):
     return result
 
 
-def calls(tmp):
-    p = os.path.join(tmp, "calls.log")
+def calls(tmp, log="calls.log", strip=False):
+    p = os.path.join(tmp, log)
     # ENCODING IS EXPLICIT, and the separator above is a SINGLE BYTE. CI on Linux found
     # what macOS could not: `tr '\n' '§'` gives `tr` a TWO-byte SET2 (§ is U+00A7 =
     # 0xC2 0xA7). BSD tr copies both bytes; GNU tr truncates SET2 to SET1's length and
@@ -251,8 +259,10 @@ def calls(tmp):
     # and then calling splitlines() re-splits them and defeats the whole point — a first
     # fix for this did exactly that and turned one green suite into seven failures. errors="replace" so a future mangling is a visible
     # test failure rather than a crash inside the harness.
-    return (open(p, encoding="utf-8", errors="replace").read().splitlines()
-            if os.path.exists(p) else [])
+    if not os.path.exists(p):
+        return []
+    lines = open(p, encoding="utf-8", errors="replace").read().splitlines()
+    return [line.rstrip("\x01") for line in lines] if strip else lines
 
 
 FAKE_GH_ATTACH_FAILS = """#!/bin/bash
@@ -859,7 +869,7 @@ def install_gh(tmp, script=FAKE_GH, product_configs=None):
     if product_configs is not None:
         with open(configs, "w", encoding="utf-8") as target:
             json.dump(product_configs, target)
-    wrapper = f"""#!{_anchor_sys.executable}
+    wrapper = f"""#!{sys.executable}
 import base64, json, os, re, subprocess, sys
 args = sys.argv[1:]
 if args and args[0] == "api" and any("/contents/" in arg for arg in args):
@@ -942,30 +952,15 @@ def moved_to_done(log):
     return out
 
 
-# The reporter, verbatim in its output grammar -- `ok    <name>` and `FAIL  <name>` plus
-# the indented detail line -- with the module-level counter replaced by a list each
-# importing file reads for its own exit status.
-FAILURES = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILURES.append(name)
-        print(f"FAIL  {name}\n      {detail}")
-
-
-def report():
-    """The summary line, then the exit status: 1 if anything failed, 0 otherwise."""
-    print(f"\n{'ALL PASSED' if not FAILURES else str(len(FAILURES)) + ' FAILED'}")
-    return 1 if FAILURES else 0
+# The reporter: one Checks per importing process (each test file is its own process).
+C = Checks()
+check, report = C.check, C.report
 
 
 def load_gh_sync():
     """gh-sync.py's hyphen blocks a plain import, so the module is loaded from its path.
     Used by the cases that assert a function's own contract rather than a subcommand's."""
-    spec = importlib.util.spec_from_file_location("_ghs", os.path.join(BIN_DIR, "gh-sync.py"))
+    spec = importlib.util.spec_from_file_location("_ghs", SYNC)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
