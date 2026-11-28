@@ -2793,6 +2793,8 @@ def _pf(reader, summary):
 _READERS = [{"reader": "scope", "status": "ran", "persona": "harness-code-reviewer"},
             {"reader": "should-not-exist", "status": "skipped", "persona": "fable-advisor",
              "reason": "host refused the persona"}]
+# FEAT-2622 D-05: record-panel requires exposure on every finding it newly writes.
+_EXPOSURE = {"trigger": "plausible", "vs_today": "regression", "control": "chance"}
 
 
 def case_f59_record_panel_writes_from_a_lead_digest():
@@ -2807,9 +2809,9 @@ def case_f59_record_panel_writes_from_a_lead_digest():
         digest = os.path.join(run_dir, "digest.md")
         findings = [
             {"kind": "substance", "severity": "high", "reader": "scope",
-             "summary": "T-02 traces no SC"},
+             "summary": "T-02 traces no SC", "exposure": _EXPOSURE},
             {"kind": "form", "severity": "low", "reader": "should-not-exist",
-             "summary": "D-01 restates  DEC-100", "why": "duplication"},
+             "summary": "D-01 restates  DEC-100", "why": "duplication", "exposure": _EXPOSURE},
         ]
         write(digest, _digest_md(_READERS, findings))
         r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1")
@@ -2825,10 +2827,11 @@ def case_f59_record_panel_writes_from_a_lead_digest():
         got = panel.get("findings") or []
         want = [
             {"id": _pf("scope", "T-02 traces no SC"), "severity": "high", "reader": "scope",
-             "kind": "substance", "summary": "T-02 traces no SC", "disposition": "open"},
+             "kind": "substance", "summary": "T-02 traces no SC", "disposition": "open",
+             "exposure": _EXPOSURE},
             {"id": _pf("should-not-exist", "D-01 restates  DEC-100"), "severity": "low",
              "reader": "should-not-exist", "kind": "form", "summary": "D-01 restates  DEC-100",
-             "disposition": "open"},
+             "disposition": "open", "exposure": _EXPOSURE},
         ]
         check("record-panel writes id (content hash), severity, reader, kind, summary and an "
               "open disposition per finding", got == want, f"got={got!r}\nwant={want!r}")
@@ -2872,9 +2875,9 @@ def case_f59_record_panel_carries_existing_findings_byte_for_byte():
         digest = os.path.join(root, "digest.md")
         findings = [
             {"kind": "substance", "severity": "high", "reader": "scope",
-             "summary": "t-01   HAS no verify"},          # same identity after normalisation
+             "summary": "t-01   HAS no verify", "exposure": _EXPOSURE},  # same id after normalising
             {"kind": "proportionality", "scope": "mission", "severity": "info", "reader": "scope",
-             "summary": "this is a patch, not a plan"},
+             "summary": "this is a patch, not a plan", "exposure": _EXPOSURE},
         ]
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
         r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
@@ -4227,11 +4230,14 @@ def case_f59_review_f8_record_panel_opens_every_new_finding():
         digest = os.path.join(root, "digest.md")
         findings = [
             {"kind": "substance", "severity": "high", "reader": "scope",
-             "summary": "T-01 has no verify", "disposition": "open"},     # carried, base wins
+             "summary": "T-01 has no verify", "disposition": "open",       # carried, base wins
+             "exposure": _EXPOSURE},
             {"kind": "substance", "severity": "high", "reader": "scope",
-             "summary": "T-02 ships without a test", "disposition": "resolved"},
+             "summary": "T-02 ships without a test", "disposition": "resolved",
+             "exposure": _EXPOSURE},
             {"kind": "form", "severity": "low", "reader": "scope",
-             "summary": "D-01 restates DEC-100", "disposition": "not-a-disposition"},
+             "summary": "D-01 restates DEC-100", "disposition": "not-a-disposition",
+             "exposure": _EXPOSURE},
         ]
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}], findings))
         r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "1",
@@ -4281,7 +4287,7 @@ def case_f59_review_f10_panel_splice_keeps_a_comment_with_the_finding_it_followe
         digest = os.path.join(root, "digest.md")
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"kind": "form", "severity": "low", "reader": "scope",
-                                   "summary": "new one"}]))
+                                   "summary": "new one", "exposure": _EXPOSURE}]))
 
         one = _finding_text(fid1, "T-01 has no verify", note)
         write(plan, _comment_panel_base(one))
@@ -5713,7 +5719,7 @@ def case_2095_record_panel_refuses_an_off_template_base_finding():
         digest = os.path.join(root, "digest.md")
         write(digest, _digest_md([{"reader": "scope", "status": "ran"}],
                                  [{"kind": "form", "severity": "low", "reader": "scope",
-                                   "summary": "a new finding"}]))
+                                   "summary": "a new finding", "exposure": _EXPOSURE}]))
         r = run_verb("record-panel", "--file", plan, "--digest", digest, "--cycle", "2")
         check("2095: record-panel refuses to carry an off-template base finding (exit 5)",
               r.returncode == 5 and "PF-2095" in r.stderr and "note" in r.stderr,
