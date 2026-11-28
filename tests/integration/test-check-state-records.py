@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""check-state.py INV-32, INV-33, INV-36 and INV-37: the validator run record.
+"""check-state.py INV-7, INV-32, INV-33 and INV-37: the validator run record.
 
 Sliced out of tests/integration/test-check-state.py (issue #1527). A plan approved with
 no complete panel result (INV-32, plus BUG-1071's era guard), a review_sha that is stale
-rather than absent (INV-33), a run id clobbered in place (INV-36) and digest verdict
-reconciliation (INV-46 — its own row since the 2026-09-21 ruling; it printed under INV-37's
-number until then) plus BUG-1309's Build-entry mirror receipt (INV-37).
+rather than absent (INV-33), INV-7's cycle arithmetic, plus BUG-1309's Build-entry mirror
+receipt (INV-37). The run-checkpoint and run-digest rows (INV-36, INV-46) retired with the run
+directories they read (DEC-260).
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -15,7 +15,6 @@ _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
-import re
 import subprocess
 import sys
 import shutil
@@ -810,64 +809,6 @@ def _bug1305_invariant_feature(tmp, h, names):
     return fdir
 
 
-def case_bug1305_run_identity_invariant():
-    """BUG-1305 SC-02/03/09: report clobbers and remain silent for owned/legacy runs."""
-    def build(tmp, names):
-        h = _bug1305_invariant_scaffold(tmp)
-        return _bug1305_invariant_feature(tmp, h, names)
-
-    def write_run(fdir, name, state, marker=None):
-        rdir = os.path.join(fdir, "runs", name)
-        os.makedirs(rdir, exist_ok=True)
-        with open(os.path.join(rdir, "state.yaml"), "w") as fh:
-            fh.write(state)
-        if marker is not None:
-            with open(os.path.join(rdir, ".run-identity.json"), "w") as fh:
-                if isinstance(marker, str):
-                    fh.write(marker)
-                else:
-                    json.dump(marker, fh)
-
-    base = {"feature": "FEAT-TEST", "squad": "product", "host": "omp",
-            "identity": "session", "created_at": "2026-09-05T00:00:00+00:00"}
-    with tempfile.TemporaryDirectory() as tmp:
-        names = ["X", "V", "Y", "Z", "L", "W"]
-        fdir = build(tmp, names)
-        write_run(fdir, "X", "run_id: B\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "A", "run_uid": None})
-        write_run(fdir, "V", "run_id: V\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: U2\n",
-                  {**base, "run_id": "V", "run_uid": "U1"})
-        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
-                  {**base, "run_id": "Y", "run_uid": "SAME"})
-        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
-        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "L", "run_uid": "OLD"})
-        write_run(fdir, "W", "run_id: W\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n", "{")
-        code, out = run(tmp)
-        lines = [line for line in out.splitlines() if "INV-36" in line]
-        joined = "\n".join(lines)
-        bad_tree_ok = (code == 1 and len(lines) == 3 and all(x in joined for x in
-                       ("runs/X", "'A'", "'B'", "runs/V", "'U1'", "'U2'", "runs/W",
-                        "cannot be read")) and "non-checkpoint top-level key" not in joined)
-
-    with tempfile.TemporaryDirectory() as tmp:
-        names = ["Y", "Z", "L"]
-        fdir = build(tmp, names)
-        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
-                  {**base, "run_id": "Y", "run_uid": "SAME"})
-        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
-        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "L", "run_uid": "OLD"})
-        clean_code, clean_out = run(tmp)
-        clean_ok = clean_code == 0 and "INV-36" not in clean_out
-
-    ok = bad_tree_ok and clean_ok
-    print(f"{'ok' if ok else 'FAIL'} - BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs")
-    if not ok:
-        print(f"        bad_ok={bad_tree_ok}; clean exit={clean_code}; clean violations={[line for line in clean_out.splitlines() if 'VIOLATION' in line]}")
-    return ok
-
-
 # --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant. Each independent
 # invariant state is driven through the external checker from one shared fixture builder.
 def _t06_fixture(tmp, feature, station="review", build_entry=None, sync=True,
@@ -992,120 +933,6 @@ def _bug440_build(tmp, entries, runs):
     return fdir
 
 
-def _bug440_validate_fixture(tmp, entries, runs):
-    import hashlib
-    fdir = _bug440_build(tmp, entries, runs)
-    paths = [os.path.join(fdir, "feature.json")]
-    for root, _, files in os.walk(os.path.join(fdir, "runs")):
-        paths.extend(os.path.join(root, p) for p in files if p == "digest.md")
-    before = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
-    code, out = run(tmp)
-    after = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
-    return fdir, code, out, before == after
-
-
-def _bug440_mixed_case():
-    digest = _bug440_digest
-    runs = [
-        ("M", "harness-eng-lead", "complete", digest("FAIL")),
-        ("E", "harness-product-lead", "complete", digest("PASS")),
-        ("N", "omp", "complete", digest("FAIL")),
-        ("I", "harness-eng-lead", "active", digest("FAIL")),
-        ("G", "harness-eng-lead", "complete", None),
-        ("X", "harness-eng-lead", "complete", "VERDICT: FAIL\n"),
-        ("O", "harness-eng-lead", "complete", digest("FAIL")),
-    ]
-    with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, unchanged = _bug440_validate_fixture(
-            tmp, ("M", "E", "N", "I", "G", "X"), runs)
-    lines = re.findall(r"^.*INV-46.*$", out, re.M)
-    line = lines[0] if len(lines) == 1 else ""
-    expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
-    silent = ("runs/E", "runs/N", "runs/I", "runs/G", "runs/X", "runs/O")
-    return all((
-        code == 1, len(lines) == 1, unchanged,
-        all(token in line for token in expected),
-        not any(name in "\n".join(lines) for name in silent),
-        out.count("runs/G: run is complete but digest.md is missing") == 1,
-        out.count("runs/X/digest.md: does not satisfy the lead digest") == 1,
-    ))
-
-
-def _bug440_blocking_case():
-    with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, _ = _bug440_validate_fixture(
-            tmp, ("M",), [("M", "harness-eng-lead", "complete",
-                           _bug440_digest("FAIL"))])
-    return code == 1 and "INV-46" in out
-
-
-def _bug440_clean_case():
-    with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, _ = _bug440_validate_fixture(
-            tmp, ("E",), [("E", "harness-product-lead", "complete",
-                           _bug440_digest("PASS"))])
-    return code == 0 and "INV-46" not in out
-
-
-def case_bug440_digest_verdict_reconciliation():
-    """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
-    ok = all((
-        _bug440_mixed_case(),
-        _bug440_blocking_case(),
-        _bug440_clean_case(),
-    ))
-    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-46 reconciles digest verdicts without mutation")
-    return ok
-
-
-def case_historical_refusal_completion():
-    from feature_record import evidence as record_evidence
-    outcomes = []
-    with tempfile.TemporaryDirectory() as tmp:
-        original = "# assessment completed; the return was refused\n"
-        fdir = _bug440_build(tmp, ("R", "P"), [
-            ("R", "harness-eng-lead", "complete", original),
-            ("P", "harness-product-lead", "complete", _bug440_digest("PASS"))])
-        path = os.path.join(fdir, "feature.json")
-        with open(path, encoding="utf-8") as source:
-            doc = json.load(source)
-        doc.update(branch="none", pr=None, max_total_cycles=10)
-        doc["runs"][0].update(
-            verdict="BLOCKED", agent="harness-eng-lead", cycles_used=0,
-            ended_at="2026-10-01T10:00:00+00:00")
-        with open(path, "w", encoding="utf-8") as target:
-            json.dump(doc, target, indent=2)
-        _, before = run(tmp)
-        outcomes.append("runs/R/digest.md: does not satisfy" in before)
-        digest = os.path.join(fdir, "runs", "R", "digest.md")
-        ref = record_evidence.resolve_evidence_ref(fdir, digest)
-        note = os.path.join(fdir, "authorization.json")
-        with open(note, "w", encoding="utf-8") as target:
-            json.dump({"feature_id": "FEAT-TEST", "effects": [
-                {"effect": "record-refusal", "run_id": "R", "digest": ref}]}, target)
-        proc = subprocess.run([
-            sys.executable, os.path.join(_anchor_bin, "feature-record.py"), "record-refusal",
-            "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
-            "--by", "operator", "--reason", "authentic historical contract rejection", "--yes"
-        ], capture_output=True, text=True, env=_root_env(tmp))
-        outcomes.append(proc.returncode == 0)
-        _, after = run(tmp)
-        outcomes.append("runs/R/digest.md: does not satisfy" not in after
-                        and "refused completion" in after and "INV-46" not in after)
-        with open(digest, encoding="utf-8") as source:
-            outcomes.append(source.read() == original)
-        with open(digest, "a", encoding="utf-8") as target:
-            target.write("changed evidence\n")
-        _, changed = run(tmp)
-        outcomes.append("refusal evidence" in changed and "hash" in changed)
-    passed = all(outcomes)
-    print(f"{'ok' if passed else 'FAIL'} - historical refused completion remains BLOCKED, "
-          "hash-bound, and distinct from a later accepted return")
-    if not passed:
-        print(proc.stdout, proc.stderr, after, changed)
-    return passed
-
-
 def _feature_record(*args, tmp):
     return subprocess.run([sys.executable, os.path.join(_anchor_bin, "feature-record.py"), *args],
                           capture_output=True, text=True, env=_root_env(tmp))
@@ -1157,7 +984,6 @@ def case_inv7_counts_evidence_not_fail_verdicts():
     """BUG-20261006 fix c1 (SC-04), through the real reader.
     - Three FAIL runs against a total of 1 are not a violation; there is no FAIL-count floor.
     - Run F's evidenced 0 is clean.
-    - Run L's unevidenced 1 is a note, not a violation.
     - Run U's absent count is an unknown-attribution note, not a violation."""
     with tempfile.TemporaryDirectory() as tmp:
         path = _inv7_fixture(tmp)
@@ -1169,8 +995,6 @@ def case_inv7_counts_evidence_not_fail_verdicts():
     return _print_outcomes("INV-7 (SC-04)", [
         ("run-end records F's evidenced zero", ended.returncode == 0),
         ("no cycle or FAIL-count violation for three FAILs against a total of 1", not violations),
-        ("L's unevidenced count is reported as a note",
-         _note_only(out, "L", "historical cycle attribution without evidence")),
         ("U's absent count is reported as unknown attribution",
          _note_only(out, "U", "unknown historical cycle attribution")),
         ("F's evidenced count draws no note", not _lines_with(out, "run F has"))],
@@ -1223,8 +1047,7 @@ def case_refusal_provenance_never_satisfies_live_validation():
     """BUG-20261006 fix c1 (SC-06). Recording run R's refused prose return as historical
     provenance must not make that prose acceptable to live validation:
     - the live validator rejects it;
-    - close-run rejects it for a new run S;
-    - the reader still reports complete run Q, whose digest is missing."""
+    - close-run rejects it for a new run S."""
     with tempfile.TemporaryDirectory() as tmp:
         path, digest = _refused_fixture(tmp, "# assessment completed; the return was refused\n")
         recorded = _record_refusal(tmp, path, digest)
@@ -1237,9 +1060,7 @@ def case_refusal_provenance_never_satisfies_live_validation():
         ("record-refusal records R's provenance", recorded.returncode == 0),
         ("the live validator still rejects R's refused prose", live.returncode != 0),
         ("close-run refuses the same prose for a new run, leaving the record unchanged",
-         closed.returncode != 0 and unchanged),
-        ("complete run Q with no digest is still a violation",
-         bool(_lines_with(out, "runs/Q", "digest.md is missing")))],
+         closed.returncode != 0 and unchanged)],
         (recorded.stderr, live.stdout, closed.stdout, closed.stderr, out[-3000:]))
 
 
@@ -1260,9 +1081,9 @@ _CASES = (
     case_inv32_era_boundary_is_exact, case_inv32_patch_mission_has_no_panel,
     case_inv32_patch_mission_exempts_only_one_task, case_inv32_undated_approval_fails,
     case_inv32_era_guard_is_load_bearing, case_inv32_era_comes_from_project_config,
-    case_inv32_null_era_grades_everything, case_bug440_digest_verdict_reconciliation,
-    case_bug1305_run_identity_invariant, case_t06_inv37_receipt, case_t06_recovery_command,
-    case_historical_refusal_completion, case_inv7_counts_evidence_not_fail_verdicts,
+    case_inv32_null_era_grades_everything,
+    case_t06_inv37_receipt, case_t06_recovery_command,
+    case_inv7_counts_evidence_not_fail_verdicts,
     case_refusal_provenance_never_satisfies_live_validation)
 _INV33_CASES = (case_inv33a_stale_is_reported, case_inv33b_current_is_silent,
                 case_inv33c_terminal_is_silent, case_inv33d_absent_path_is_silent,

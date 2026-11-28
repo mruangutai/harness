@@ -511,8 +511,7 @@ def case_feat64_broad_catch_census_wave4():
 # zero broad-catch ceiling for every package file. Each mutant fails for ITS OWN finding.
 
 _FEAT69_PACKAGE = ("__init__.py", "ctx.py", "table.py", "runner.py", "plan.py", "feature_record.py",
-                   "run_state.py", "seams.py", "brief.py", "worktrees.py", "board.py", "host.py")
-_INV47_HEAD = "def inv_47(ctx, feat):\n"
+                   "brief.py", "worktrees.py", "board.py", "host.py")
 
 
 def _feat69_package_body_checks():
@@ -524,24 +523,24 @@ def _feat69_package_body_checks():
 
 
 def _feat69_cross_module_checks():
-    """An undeclared read reached ONLY through an imported helper (feature_record.inv_47 ->
-    feature_record._note_verdict -> run_state._inv15_digest_verdict, two helpers deep, across a
+    """An undeclared read reached ONLY through an imported helper (feature_record.inv_40 ->
+    feature_record._feat59_record -> brief._brief_is_by_perspective, two helpers deep, across a
     module boundary) is a finding on the row; a git spawn placed there is one too."""
     def deep_read(root):
-        _edit_checker(root, "def _inv15_digest_verdict(",
-                      "def _inv15_digest_verdict(*_a, **_k):\n    open('secret.yaml')\n"
-                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
+        _edit_checker(root, "def _brief_is_by_perspective(",
+                      "def _brief_is_by_perspective(*_a, **_k):\n    open('secret.yaml')\n"
+                      "    return _brief_is_by_perspective_real(*_a, **_k)\n\n\ndef _brief_is_by_perspective_real(")
     f = _feat62_findings_for_tree(deep_read)
     check("feat69_reads_lock_follows_an_imported_helper_two_calls_deep",
-          any(all(n in x for n in ("INV-47", "opens 'secret.yaml'")) for x in f)
+          any(all(n in x for n in ("INV-40", "opens 'secret.yaml'")) for x in f)
           and all("opens 'secret.yaml'" in x for x in f), "\n".join(f))
     def deep_spawn(root):
-        _edit_checker(root, "def _inv15_digest_verdict(",
-                      "def _inv15_digest_verdict(*_a, **_k):\n    subprocess.run(['git', 'status'])\n"
-                      "    return _inv15_digest_verdict_real(*_a, **_k)\n\n\ndef _inv15_digest_verdict_real(")
+        _edit_checker(root, "def _brief_is_by_perspective(",
+                      "def _brief_is_by_perspective(*_a, **_k):\n    subprocess.run(['git', 'status'])\n"
+                      "    return _brief_is_by_perspective_real(*_a, **_k)\n\n\ndef _brief_is_by_perspective_real(")
     f = _feat62_findings_for_tree(deep_spawn)
     check("feat69_reads_lock_sees_a_spawn_two_helpers_deep_across_modules",
-          any(all(n in x for n in ("INV-47", "reads git:status")) for x in f)
+          any(all(n in x for n in ("INV-40", "reads git:status")) for x in f)
           and all("reads git:status" in x for x in f), "\n".join(f))
     _feat69_ctx_method_check()
 

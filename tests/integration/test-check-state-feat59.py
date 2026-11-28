@@ -287,8 +287,9 @@ def case_inv39():
 # ----------------------------------------------------------------------------- INV-40 ---
 
 def case_inv40():
-    """SC-21: every autonomous judgement leaves a ledger entry; the three checks are
-    independent; a record predating the ledger is noted."""
+    """SC-21: every autonomous judgement leaves a ledger entry; the checks are independent; a
+    record predating the ledger is noted. The handoff-note succession clause retired with the
+    notes it read (DEC-260)."""
     results = []
 
     _, out = _check(_in_era(mission="patch"))
@@ -331,35 +332,11 @@ def case_inv40():
     results.append(("(40.f) two re-gates against one regate judgement names the uncovered run",
                     len(v) == 1 and "r2" in v[0] and "r1" not in v[0], out[:400]))
 
-    _, out = _check(_in_era(runs=[_run("r1"), _run("r2")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1)})
+    _, out = _check(_in_era(mission="plan", runs=[_run("r1", "FAIL"), _run("r2")]))
     v = _violations(out, "INV-40")
-    results.append(("(40.g) a handoff at seq-1 with a run after it and no succession names the note",
-                    len(v) == 1 and "handoff-build.md" in v[0] and "succession" in v[0],
-                    out[:400]))
-
-    _, out = _check(_in_era(runs=[_run("r1"), _run("r2")], judgements=[_j("succession")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1)})
-    results.append(("(40.h) the same with a succession judgement is silent",
-                    not _lines(out, "INV-40"), out[:400]))
-
-    _, out = _check(_in_era(runs=[_run("r1"), _run("r2")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=2)})
-    results.append(("(40.i) a handoff at seq-2 with exactly two runs has no successor run yet",
-                    not _lines(out, "INV-40"), out[:400]))
-
-    _, out = _check(_in_era(runs=[_run("r1"), _run("r2")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.replace(", seq-{n}", "")})
-    v = _violations(out, "INV-40")
-    results.append(("(40.j) an in-era handoff with no seq-N on line one is refused, not skipped",
-                    len(v) == 1 and "seq-N" in v[0], out[:400]))
-
-    _, out = _check(_in_era(mission="plan", runs=[_run("r1", "FAIL"), _run("r2")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1)})
-    v = _violations(out, "INV-40")
-    results.append(("(40.k) the three checks are independent — all three fire on one record",
-                    len(v) == 3 and any("mission" in l for l in v)
-                    and any("regate" in l for l in v) and any("succession" in l for l in v),
+    results.append(("(40.k) the checks are independent — mission and regate both fire on one record",
+                    len(v) == 2 and any("mission" in l for l in v)
+                    and any("regate" in l for l in v),
                     out[:600]))
 
     _, out = _check(_legacy(runs=[_run("r1", "FAIL"), _run("r2")]), BRIEF_OLD,
@@ -637,231 +614,6 @@ def case_feat61_module_loading_spec_and_registration():
     registered = ("(61.d) the dataclass loader observes its own name in sys.modules during exec",
                   not _lines(out, "INV-42") and "Traceback" not in err, out[:600])
     return [null_spec, registered]
-
-
-def _v2_run(tmp, bin_dir):
-    fdir = _fixture(tmp, _in_era(), BRIEF_NEW)
-    _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
-           "schema_version: 2\nrun_id: r1\nstatus: running\nsteps:\n"
-           "  - id: s1\n    status: pending\n")
-    return _run_from(bin_dir, tmp)
-
-
-def _inv16_with_schema(schema_text):
-    with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({os.path.join("..", "schemas", "run-state.json"): schema_text}))
-    return _violations(out, "INV-16"), out[:600]
-
-
-_CANNOT = "run-state schema CANNOT be checked: "
-
-
-def case_feat61_run_schema():
-    """load_run_step_contract behind INV-16: strict decode refuses a duplicate key the old
-    json.load silently resolved last-wins."""
-    with open(os.path.join(os.path.dirname(_anchor_bin), "schemas", "run-state.json"), encoding="utf-8") as f:
-        live = f.read()
-    duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
-    if duplicate == live:
-        raise AssertionError("INCONCLUSIVE: the live schema carries no top-level title key")
-    v, out = _inv16_with_schema(duplicate)
-    return [("(61.e) a duplicate key in schemas/run-state.json is INV-16 CANNOT be checked, never last-wins",
-             len(v) == 1 and _CANNOT + "ArtifactAccessError: " in v[0]
-             and "invalid JSON: duplicate key: 'title'" in v[0], out)]
-
-
-def case_feat61_run_schema_natural_errors():
-    """A mis-shaped document keeps its natural exception text at the same catch boundary."""
-    results = []
-    for label, schema, natural in (
-        ("(61.f) a step schema without its properties keeps its natural KeyError",
-         '{"properties": {"steps": {"items": {"type": "object"}}}}', "KeyError: 'properties'"),
-        ("(61.g) a schema without steps keeps its natural KeyError",
-         '{"properties": {}}', "KeyError: 'steps'"),
-    ):
-        v, out = _inv16_with_schema(schema)
-        results.append((label, len(v) == 1 and _CANNOT + natural in v[0], out))
-    return results
-
-
-def _digest_run(digest_text, runs=None):
-    """The findings naming run r1 (INV-15's lines carry the path, not the tag) for a complete lead run whose durable digest.md holds `digest_text`,
-    and whether INV-15 left the file byte-identical."""
-    with tempfile.TemporaryDirectory() as tmp:
-        fdir = _fixture(tmp, _in_era(**({"runs": runs} if runs is not None else {})), BRIEF_NEW)
-        _write(os.path.join(fdir, "runs", "r1", "state.yaml"),
-               "run_id: r1\nstatus: complete\nhost: harness-eng-lead\n")
-        dg = os.path.join(fdir, "runs", "r1", "digest.md")
-        _write(dg, digest_text)
-        _, out = run(tmp)
-        with open(dg, encoding="utf-8") as f:
-            return _violations(out, "runs/r1"), out, f.read() == digest_text
-
-
-_RECORD_HEAD = "# lead digest\n\nprose narrative\n\n```yaml\n"
-
-
-def case_feat1928_durable_digest_record():
-    """FEAT-1928 SC-07: INV-15 reads the durable digest through digest_record's final fenced
-    mapping — the required top-level keys decide, never the live persona schema and never a
-    bare VERDICT line; a historical record's extra keys are accepted and bytes never change."""
-    results = []
-    v, out, same = _digest_run("VERDICT: PASS\nDIGEST:\n  headline: bare\nartifact: a.md\n")
-    results.append(("(1928.a) a bare-text digest with no fenced mapping is an INV-15 finding",
-                    len(v) == 1 and "no fenced YAML block loads to a mapping" in v[0] and same,
-                    out[:600]))
-    v, out, same = _digest_run(_RECORD_HEAD + "VERDICT: PASS\nDIGEST:\n  headline: h\n```\n")
-    results.append(("(1928.b) a final mapping missing a required key names it",
-                    len(v) == 1 and "['artifact']" in v[0] and same, out[:600]))
-    v, out, same = _digest_run(
-        _RECORD_HEAD + "VERDICT: FAIL\nDIGEST: {}\nartifact: a.md\n```\n\ncorrection:\n\n"
-        "```yaml\nVERDICT: PASS\nDIGEST:\n  headline: h\n  retired_key: kept\n"
-        "artifact: a.md\nhistorical_extra: [1, 2]\n```\n")
-    results.append(("(1928.c) a historical final mapping with out-of-schema keys is accepted",
-                    v == [] and same, out[:600]))
-    return results
-
-
-def case_refused_terminal_digest():
-    results = []
-    refused = {"id": "r1", "squad": "engineering", "agent": "harness-eng-lead",
-               "verdict": "BLOCKED", "ended_at": "2026-10-05T10:00:00+00:00",
-               "return_disposition": "refused"}
-    prose = "# assessment whose live return was refused\n"
-    v, out, same = _digest_run(prose, [refused])
-    results.append(("a recorded refused BLOCKED closure preserves prose without INV-15",
-                    v == [] and same, out[:600]))
-    v, out, same = _digest_run(prose, [refused, dict(refused, ended_at="2026-10-05T11:00:00+00:00")])
-    results.append(("duplicate run IDs cannot exempt a refused closure",
-                    len(v) == 1 and "does not satisfy" in v[0] and same, out[:600]))
-    for verdict in ("PASS", "PENDING"):
-        v, out, same = _digest_run(prose, [dict(refused, verdict=verdict)])
-        results.append((f"a refused marker cannot exempt {verdict}",
-                        bool(v) and same, out[:600]))
-    return results
-
-# ----------------------------------------------------------------------------- INV-43 ---
-
-def _timed(rid, started, verdict="PASS"):
-    return {"id": rid, "squad": "eng", "verdict": verdict, "started_at": started,
-            "ended_at": started}
-
-
-def _succ_at(at):
-    return {"at": at, "by": "harness-orchestrator", "kind": "succession",
-            "decision": "continue", "reason": "fixture"}
-
-
-# BUG-1723 SC-03 / D-02: a succession judgement whose `at` postdates the first run after its
-# handoff is a retrospective seam correction — the trace #1713 measured twice on
-# BUG-285-canonical-reader. INV-40 already demands the judgement EXIST; INV-43 grades WHEN.
-_SEQ1 = {"handoff-build.md": HANDOFF_SEQ.format(n=1)}
-_RUNS43 = [_timed("r1", "2026-09-11T10:00:00+00:00"), _timed("r2", "2026-09-11T12:00:00+00:00")]
-
-
-def _seam(succession_at, runs=_RUNS43, notes=_SEQ1, **extra):
-    """One INV-43 fixture: an in-era record with `runs`, one succession at `succession_at`."""
-    judgements = [] if succession_at is None else [_succ_at(succession_at)]
-    return _check(_in_era(runs=runs, judgements=judgements), notes=notes, **extra)
-
-
-def case_inv43_chronology():
-    """Later than the successor's first run fires; earlier or equal is silent."""
-    results = []
-    _, out = _seam("2026-09-11T13:00:00+00:00")
-    v = _violations(out, "INV-43")
-    results.append(("(43.a) succession recorded AFTER run 2 started is a VIOLATION naming both",
-                    len(v) == 1 and "handoff-build.md" in v[0] and "r2" in v[0]
-                    and "retrospective" in v[0], out[:500]))
-    _, out = _seam("2026-09-11T11:00:00+00:00")
-    results.append(("(43.b) succession recorded before run 2 started is silent",
-                    not _lines(out, "INV-43"), out[:400]))
-    _, out = _seam("2026-09-11T12:00:00+00:00")
-    results.append(("(43.c) succession at exactly run 2's start is silent (no later than)",
-                    not _lines(out, "INV-43"), out[:400]))
-    return results
-
-
-def case_inv43_matching():
-    """Matching is INV-40's own: the k-th handoff by seq takes the k-th succession by ledger
-    order, so only the retrospective one is named."""
-    three = _RUNS43 + [_timed("r3", "2026-09-11T15:00:00+00:00")]
-    _, out = _check(_in_era(runs=three, judgements=[_succ_at("2026-09-11T11:00:00+00:00"),
-                                                     _succ_at("2026-09-11T16:00:00+00:00")]),
-                    notes={"handoff-build.md": HANDOFF_SEQ.format(n=1),
-                           "handoff-validate.md": HANDOFF_SEQ.format(n=2)})
-    v = _violations(out, "INV-43")
-    return [("(43.h) two handoffs match two successions in order; only the second is retrospective",
-             len(v) == 1 and "handoff-validate.md" in v[0] and "r3" in v[0], out[:500])]
-
-
-def case_inv43_unreadable():
-    """A present-but-unreadable timestamp is CANNOT VERIFY naming the field, never silence."""
-    results = []
-    _, out = _seam("not-a-time")
-    v = _violations(out, "INV-43")
-    results.append(("(43.d) an unparseable succession `at` is CANNOT VERIFY naming the field",
-                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "at" in v[0], out[:500]))
-    _, out = _seam("2026-09-11T11:00:00+00:00",
-                   runs=[_timed("r1", "2026-09-11T10:00:00+00:00"), _run("r2")])
-    v = _violations(out, "INV-43")
-    results.append(("(43.e) a successor run with no started_at is CANNOT VERIFY naming started_at",
-                    len(v) == 1 and "CANNOT VERIFY" in v[0] and "started_at" in v[0]
-                    and "r2" in v[0], out[:500]))
-    return results
-
-
-def case_inv43_scope():
-    """What INV-43 leaves alone: a missing succession (INV-40's), no successor run yet, a
-    legacy record, and a shipped feature (done: checked for nothing, DEC-252). What it does NOT
-    leave alone: any station still checked — a retrospective succession is graded at review
-    (SC-03/D-02; validate c0 struck the terminal downgrade)."""
-    results = []
-    _, out = _seam(None)
-    results.append(("(43.f) a MISSING succession is INV-40's finding, not INV-43's",
-                    not _lines(out, "INV-43") and _violations(out, "INV-40"), out[:400]))
-    _, out = _seam(None, runs=_RUNS43[:1])
-    results.append(("(43.g) a handoff with no successor run yet has nothing to grade",
-                    not _lines(out, "INV-43"), out[:400]))
-    _, out = _check(_legacy(runs=_RUNS43, judgements=None), BRIEF_OLD, notes=_SEQ1)
-    results.append(("(43.i) a legacy record is never graded by INV-43",
-                    not _violations(out, "INV-43"), out[:400]))
-    _, out = _seam("2026-09-11T13:00:00+00:00", station="review")
-    v = _violations(out, "INV-43")
-    results.append(("(43.j) at station review the retrospective succession is a VIOLATION",
-                    len(v) == 1 and "retrospective" in v[0] and not _notes(out, "INV-43"),
-                    out[:500]))
-    _, out = _seam("2026-09-11T13:00:00+00:00", station="done")
-    results.append(("(43.j2) at station done (shipped) nothing is graded",
-                    not _lines(out, "INV-43"), out[:500]))
-    return results
-
-
-def _seam_era_config(value):
-    return {**CONFIG, "seam_era_start": json.loads(value)}
-
-
-_LATE43 = "2026-09-11T13:00:00+00:00"
-
-
-def _seam_era(era, **extra):
-    """INV-43 (violations, notes) for a retrospective succession under `seam_era_start: era`."""
-    _, out = _seam(_LATE43, config=_seam_era_config(era), **extra)
-    return _violations(out, "INV-43"), _notes(out, "INV-43"), out
-
-
-def case_inv43_era_boundary():
-    """The boundary is by DATE, never by station (BUG-1071's rule for INV-32): a retrospective
-    succession recorded before `seam_era_start` is a note that says what it would fail; on or
-    after it is a violation; at a terminal station the same date rule applies."""
-    v, n, out = _seam_era('"2026-09-12"')
-    before = ("(43.k) before seam_era_start the retrospective succession is a NOTE naming would-fail",
-              not v and len(n) == 1 and "would fail" in n[0] and "retrospective" in n[0], out[:600])
-    v, n, out = _seam_era('"2026-09-11"')
-    on = ("(43.l) on the seam_era_start date it is graded — a VIOLATION", len(v) == 1 and not n, out[:500])
-    v, n, out = _seam_era('"2026-09-12"', station="abandoned")
-    terminal = ("(43.m) the boundary is by date at a terminal station too", not v and len(n) == 1, out[:500])
-    return [before, on, terminal]
 
 
 # ----------------------------------------------------------------------------- INV-41 ---
@@ -1173,64 +925,6 @@ def case_feat63_inv23_import_boundary():
     ]
 
 
-# ----------------------------------------------------------------------------- INV-47 ---
-
-_QA_BLOCKED = "# qa c2\n\n```yaml\nVERDICT: BLOCKED\nDIGEST:\n  headline: runner exit 1 unreconciled\n```\n"
-_QA_PASS = "# qa c2\n\n```yaml\nVERDICT: PASS\nDIGEST:\n  headline: green\n```\n"
-_UI_NA = "# ui c2\n\n```yaml\nVERDICT: n/a\nDIGEST:\n  headline: no UI surface\n```\n"
-
-
-def _validate_runs(*verdicts):
-    """validate-validator (c0), validate-c1-validator, … with the given verdicts."""
-    ids = ["validate-validator"] + [f"validate-c{n}-validator" for n in range(1, len(verdicts))]
-    return [_run(rid, verdict=v, squad="validator") for rid, v in zip(ids, verdicts)]
-
-
-def _inv47(record, notes):
-    """INV-47's violation lines for one record with the given member notes."""
-    _, out = _check(record, notes=notes)
-    return _violations(out, "INV-47"), out
-
-
-def case_inv47_member_verdicts():
-    """#1884: FEAT-63's validate c2 was recorded PASS while notes/review-harness-qa-c2.md
-    said BLOCKED — the integration runner's exit 1 was real (test-harness-yaml's D-12 lock)
-    and CI caught it after PASS. A run's PASS is graded against the member notes of ITS
-    cycle: validate-validator ↔ c0, validate-cN-validator ↔ cN; FAIL or BLOCKED in any of
-    them is a VIOLATION naming the note."""
-    v, out = _inv47(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
-                    {"review-harness-qa-c2.md": _QA_BLOCKED,
-                     "review-harness-ui-reviewer-c2.md": _UI_NA})
-    a = ("(47.a) a PASS validate run over a same-cycle qa BLOCKED note is a VIOLATION "
-         "naming the note and the run",
-         len(v) == 1 and "review-harness-qa-c2.md" in v[0]
-         and "validate-c2-validator" in v[0] and "BLOCKED" in v[0], out[:600])
-    v, out = _inv47(_in_era(runs=_validate_runs("PASS")),
-                    {"review-harness-qa-c0.md": _QA_BLOCKED})
-    c = ("(47.c) the unsuffixed validate-validator run is cycle 0",
-         len(v) == 1 and "review-harness-qa-c0.md" in v[0], out[:500])
-    return [a, c] + case_inv47_silences()
-
-
-def case_inv47_silences():
-    """What INV-47 leaves alone: PASS/n/a notes, another cycle's BLOCKED (that cycle's FAIL
-    run owns it), plan-review notes (-plan-cN belong to plan runs), legacy records."""
-    v, out = _inv47(_in_era(runs=_validate_runs("FAIL", "FAIL", "PASS")),
-                    {"review-harness-qa-c2.md": _QA_PASS,
-                     "review-harness-ui-reviewer-c2.md": _UI_NA,
-                     "review-harness-qa-c1.md": _QA_BLOCKED})
-    b = ("(47.b) member notes at PASS/n/a are silent; an earlier cycle's BLOCKED note "
-         "belongs to that cycle's FAIL run, not this one", not _lines(out, "INV-47"), out[:400])
-    v, out = _inv47(_in_era(runs=_validate_runs("PASS")),
-                    {"review-harness-code-reviewer-plan-c0.md": _QA_BLOCKED})
-    d = ("(47.d) a plan-review note is not a validate member note",
-         not _lines(out, "INV-47"), out[:400])
-    v, out = _inv47(_legacy(runs=_validate_runs("PASS")),
-                    {"review-harness-qa-c0.md": _QA_BLOCKED})
-    e = ("(47.e) a legacy record is not graded", not v, out[:400])
-    return [b, d, e]
-
-
 def case_inv37_binding():
     results = []
     for shape in ("claims", "opened", "wrong-repo", "bound-owner-off"):
@@ -1255,12 +949,9 @@ def case_inv37_binding():
 def main():
     return 0 if _report(case_inv37_binding() + case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
-                        + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
-                        + case_feat1928_durable_digest_record() + case_refused_terminal_digest()
-                        + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
-                        + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
+                        + case_inv41() + case_inv49()
                         + case_inv44()
-                        + case_feat63_inv23_import_boundary() + case_inv47_member_verdicts()) else 1
+                        + case_feat63_inv23_import_boundary()) else 1
 
 
 if __name__ == "__main__":

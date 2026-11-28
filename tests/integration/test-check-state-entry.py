@@ -172,33 +172,6 @@ def case_k():
     return all(results)
 
 
-
-def case_t():
-    """A crash shape: exit 1 with EMPTY stdout.
-
-    The /harness gate reads a non-zero exit as "violations found" and prints nothing for the
-    operator to act on, and every invariant after the raise never runs. A plain FILE named
-    `runs` under a feature dir: glob matches files as well as directories, and os.listdir on
-    a file raises NotADirectoryError.
-
-    The assertion is diagnosis-shaped, not exit-code-shaped: exit 1 is the CORRECT outcome
-    once it is reported, so only non-empty output distinguishes a report from a crash.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-CRASH")
-        os.makedirs(fdir, exist_ok=True)
-        with open(os.path.join(fdir, "runs"), "w") as f:   # a FILE, not a directory
-            f.write("not a directory\n")
-        _code, out = run(tmp)
-        ok = out.strip() != "" and "Traceback" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (t): a plain file named `runs` does not "
-              f"crash INV-18 (empty stdout means the checker crashed)")
-        if not ok:
-            print(f"       | stdout: {out.strip()[:200]!r}")
-        return ok
-
-
 FLEET_YAML = """schema: factory-fleet/1
 repos:
   - name: acme/widget
@@ -408,38 +381,11 @@ def case_o():
     ok_all &= counts_journal
     checks.append(f"feature.json counting rule shared: {counts_journal}")
 
-    # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
-    va = set(_re.findall(r'"([a-z_]+)"',
-                         _re.search(r"ALLOWED = \{(.*?)\}", dom, _re.S).group(1)))
-    vb = set(_re.findall(r'"([a-z_]+)"',
-                         _re.search(r"CHECKPOINT_KEYS = \{(.*?)\n\}", sta, _re.S).group(1)))
-    vgood = bool(va) and va == vb
-    ok_all &= vgood
-    checks.append(f"checkpoint keys: {len(va)} vs {len(vb)}, "
-                  f"diff {sorted(va ^ vb) or 'none'}")
-
-    # The handoff contract, in THREE copies — the two scripts plus the template a human
-    # fills in. The template is the one that matters most and is the one no gate reads:
-    # rename a heading there and every future handoff is written to a shape check-domain
-    # rejects, with the rejection pointing at templates/HANDOFF.md as the authority.
-    # Compared case-insensitively, because check-state lowercases and check-domain does not.
-    tpl = open(os.path.join(here, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
-    ha = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
-          _re.search(r'required = \[(.*?)\]', dom, _re.S).group(1))}
-    hb_ordered = [h.lower() for h in _re.findall(r'"(## [^"]+)"',
-                  _re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, _re.S).group(1))]
-    hb = set(hb_ordered)
-    narrative_is_prefix = bool(_re.search(
-        r"HANDOFF_NARRATIVE_HEADINGS\s*=\s*HANDOFF_SECTIONS\[:4\]", sta))
-    hc = {h.strip().lower() for h in _re.findall(r"^(## .+)$", tpl, _re.M)}
-    hgood = (bool(ha) and ha == hb and ha <= hc and narrative_is_prefix
-             and hb_ordered[-1:] == ["## done when"])
-    ok_all &= hgood
-    checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
-                  f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
-
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py, check-state.py and "
-          f"HANDOFF.md agree on every duplicated budget, key and heading")
+    # The checkpoint vocabulary and the handoff headings are no longer duplicated: the rows that
+    # read run checkpoints (INV-16) and handoff notes (INV-17) retired (DEC-260), so check-domain
+    # is their one reader.
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py and check-state.py "
+          f"agree on every duplicated budget")
     if not ok_all:
         for c in checks:
             print(f"       | {c}")
@@ -508,7 +454,6 @@ def main():
     results.append(case_k())
     results.append(case_o())
     results.append(case_s())
-    results.append(case_t())
     results.append(case_no_root_replays_resolver_stderr())
     results.append(case_canonical_reader_rejects_duplicate_harness_json())
     ok_exit_unchanged = code_a == code_b

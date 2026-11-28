@@ -5,24 +5,17 @@ from check_state.corpus import inv_52
 from check_state.feature_record import (
     collate_feat59,
     inv_1,
-    inv_12,
-    inv_18,
     inv_2,
     inv_22,
     inv_23,
     inv_33,
     inv_39,
     inv_40,
-    inv_43,
-    inv_47,
     inv_6,
     inv_7,
-    inv_8,
 )
 from check_state.host import inv_19, inv_42, inv_45, inv_48
-from check_state.plan import inv_3, inv_32, inv_34, inv_35, inv_4, inv_44, inv_5, inv_51
-from check_state.run_state import inv_15, inv_16, inv_36, inv_46
-from check_state.seams import inv_17
+from check_state.plan import inv_3, inv_32, inv_34, inv_35, inv_4, inv_44, inv_5
 from check_state.worktrees import inv_25, inv_27, inv_29, inv_31
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole
@@ -68,8 +61,6 @@ _PLAN_MD = "path:.harness/*/features/*/PLAN.md"
 _BRIEF = "path:.harness/*/features/*/BRIEF.md"
 _STATE_MD = "path:.harness/*/features/*/STATE.md"
 _HARNESS_JSON = "path:.harness/harness.json"
-_RUN_STATE = "path:.harness/*/features/*/runs/*/state.yaml"
-_HANDOFF = "path:.harness/*/features/*/notes/handoff-*.md"
 # Evidence operands may name any regular file inside their feature, regardless of suffix.
 _FEATURE_EVIDENCE = "path:.harness/*/features/*/**"
 _EVIDENCE_READER = "path:.claude/skills/harness/bin/feature_record/evidence.py"
@@ -106,27 +97,14 @@ INVARIANTS = (
             "a validator run that reviewed code has a pinned review_sha", "DEC-50"),
         Inv("INV-33", inv_33, "feature", (_FEATURE_JSON, _PLAN_YAML, _PLAN_MD, "git:show", "git:log"),
             "a pinned review_sha still matches the plan bytes at a non-terminal station", "DEC-121"),
-        Inv("INV-7", inv_7, "feature", (_FEATURE_JSON, _FEATURE_EVIDENCE, _EVIDENCE_READER,
-                                      "path:.claude/skills/harness/bin/digest_record.py"),
-            "nonnegative cycle attribution preserves the feature total and agrees with immutable evidence; unknown history is noted", "DEC-157"),
+        Inv("INV-7", inv_7, "feature", (_FEATURE_JSON,),
+            "nonnegative per-run cycle attribution never exceeds the feature total; unknown history is noted", "DEC-157"),
         Inv("INV-22", inv_22, "feature", (_FEATURE_JSON, _HARNESS_JSON),
             "recorded runs are counted against budgets.max_total_runs (a note)", "DEC-178"),
-        Inv("INV-8", inv_8, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/runs/*"),
-            "a recorded run's directory exists on disk (a note)", "DEC-131"),
-        Inv("INV-12", inv_12, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/runs/*"),
-            "a run directory on disk is recorded in feature.json (a note)", "DEC-131"),
     )),
     Group("omp-port", (
         Inv("INV-45", inv_45, "repo", ("path:.omp/config.yml", "path:.agents/skills/harness/bin/check-omp-port.py"),
             "an OMP-configured tree grades its roster, hook wiring and overlays through check-omp-port.py", "DEC-233"),
-    )),
-    Group("seams", (
-        Inv("INV-17", inv_17, "feature", (_FEATURE_JSON, _PLAN_YAML, _HANDOFF, _HARNESS_JSON),
-            "every seam a feature's station has crossed left a well-formed handoff note", "DEC-159"),
-    )),
-    Group("runs-without-record", (
-        Inv("INV-18", inv_18, "feature", ("path:.harness/*/features/*/runs", _FEATURE_JSON),
-            "a feature with run directories has a feature.json", "DEC-160"),
     )),
     Group("station-record", (
         Inv("INV-34", inv_34, "feature", (_FEATURE_JSON, _PLAN_YAML),
@@ -135,20 +113,6 @@ INVARIANTS = (
     Group("budgets", (
         Inv("INV-23", inv_23, "repo", (_FEATURE_JSON, _STATE_MD, "path:CLAUDE.md"),
             "feature.json, STATE.md and CLAUDE.md stay within their line budgets (notes)", "DEC-150"),
-    )),
-    Group("run-state", (
-        Inv("INV-16", inv_16, "feature", (_RUN_STATE, "path:.claude/skills/harness/schemas/run-state.json"),
-            "state.yaml is a checkpoint: whitelisted keys, declared step shape", "DEC-154"),
-        Inv("INV-36", inv_36, "feature", (_RUN_STATE, "path:.harness/*/features/*/runs/*/.run-identity"),
-            "a run directory's checkpoint carries the identity recorded when it was first written", "DEC-154"),
-        Inv("INV-15", inv_15, "feature", (_RUN_STATE, _FEATURE_EVIDENCE, _FEATURE_JSON,
-                                          "path:.harness/*/features/*/runs/*/digest.md",
-                                          _EVIDENCE_READER, "path:.claude/skills/harness/bin/digest_record.py"),
-            "a complete lead execution has an accepted durable record or evidenced BLOCKED refusal", "DEC-156"),
-        Inv("INV-46", inv_46, "feature", (_RUN_STATE, _FEATURE_EVIDENCE, _FEATURE_JSON,
-                                          "path:.harness/*/features/*/runs/*/digest.md",
-                                          _EVIDENCE_READER, "path:.claude/skills/harness/bin/digest_record.py"),
-            "an accepted lead digest agrees with every recorded verdict; evidenced refusals are not accepted returns", "DEC-156"),
     )),
     Group("glossary", (
         Inv("INV-19", inv_19, "repo", ("path:.harness/glossary.md",),
@@ -213,18 +177,9 @@ INVARIANTS = (
     Group("ledger", (
         Inv("INV-39", inv_39, "feature", (_FEATURE_JSON, _BRIEF, _HARNESS_JSON),
             "cycles_used stays within the bound, and a raised bound is a recorded decision", "DEC-157"),
-        Inv("INV-40", inv_40, "feature", (_FEATURE_JSON, _BRIEF, _PLAN_YAML, _HANDOFF),
-            "every autonomous judgement -- mission, regate, succession, amendment -- leaves a ledger entry", "DEC-229"),
-        Inv("INV-43", inv_43, "feature", (_FEATURE_JSON, _BRIEF, _HANDOFF, _HARNESS_JSON),
-            "a succession judgement is recorded no later than the successor's first run", "DEC-227"),
-        Inv("INV-47", inv_47, "feature", (_FEATURE_JSON, "path:.harness/*/features/*/notes/review-harness-*.md",
-                                          "path:.claude/skills/harness/bin/digest_record.py"),
-            "a validate run recorded PASS has no same-cycle member review at FAIL or BLOCKED", "DEC-156"),
+        Inv("INV-40", inv_40, "feature", (_FEATURE_JSON, _BRIEF, _PLAN_YAML),
+            "every autonomous judgement -- mission, regate, amendment -- leaves a ledger entry", "DEC-229"),
     ), collate=collate_feat59),
-    Group("abandoned-evidence", (
-        Inv("INV-51", inv_51, "feature", (_PLAN_YAML, "path:.harness/*/features/*/runs/*/"),
-            "an abandoned feature carries no runs/ evidence", "DEC-238"),
-    )),
     Group("rejected-shape", (
         Inv("INV-44", inv_44, "feature", (_FEATURE_JSON, _PLAN_YAML, _BRIEF),
             "a REJECTED record has exactly one shape: one run, zero cycles, a reject judgement, nothing signed", "DEC-230"),
@@ -239,4 +194,15 @@ RETIRED = {
     "INV-13": "DEC-256 — the validated loader defaults an absent github block and refuses sync without a pinned repo",
     "INV-28": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship records the PR",
     "INV-30": "DEC-252 — a shipped feature is checked for nothing; gh-sync.py ship closes the milestone",
+    "INV-8": "DEC-260 — run directories are local working files no CI gate reads",
+    "INV-12": "DEC-260 — run directories are local working files no CI gate reads",
+    "INV-15": "DEC-260 — run digests are local working files no CI gate reads",
+    "INV-16": "DEC-260 — run checkpoints are local working files no CI gate reads",
+    "INV-17": "DEC-260 — handoff notes are local working files no CI gate reads",
+    "INV-18": "DEC-260 — run directories are local working files no CI gate reads",
+    "INV-36": "DEC-260 — run checkpoints are local working files no CI gate reads",
+    "INV-43": "DEC-260 — handoff notes are local working files no CI gate reads",
+    "INV-46": "DEC-260 — run digests are local working files no CI gate reads",
+    "INV-47": "DEC-260 — member review notes are local working files no CI gate reads",
+    "INV-51": "DEC-260 — run directories are local working files no CI gate reads",
 }

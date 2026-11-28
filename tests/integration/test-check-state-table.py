@@ -16,7 +16,6 @@ import os as _anchor_os, sys as _anchor_sys
 _anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_os.path.abspath(__file__)))
 
 import json
-import hashlib
 import os
 import re
 import subprocess
@@ -95,18 +94,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check("--list exits 0 and executes nothing (no VIOLATION or note rows)",
           code == 0 and "VIOLATION" not in out and "note " not in out and not err.strip(),
           f"code={code} err={err[-200:]!r}")
+    retired = ["INV-9", "INV-10", "INV-13", "INV-28", "INV-30", "INV-8", "INV-12", "INV-15",
+               "INV-16", "INV-17", "INV-18", "INV-36", "INV-43", "INV-46", "INV-47", "INV-51"]
     check("--list names every active row once, in table order, INV-35 first and INV-44 last",
-          rows and rows[0] == "INV-35" and rows[-6] == "INV-44" and len(rows) == len(set(rows)),
+          rows and rows[0] == "INV-35" and rows[-(len(retired) + 1)] == "INV-44"
+          and len(rows) == len(set(rows)),
           f"rows={rows}")
-    check("every row is an INV-N identity — the OMP port check is INV-45, the digest-verdict "
-          "cross-check INV-46 (ruling 2026-09-21)",
-          all(re.match(r"^INV-\d+$", r) for r in rows) and "INV-45" in rows and "INV-46" in rows
-          and rows.index("INV-46") == rows.index("INV-15") + 1, f"rows={rows}")
+    check("every row is an INV-N identity — the OMP port check is INV-45 (ruling 2026-09-21)",
+          all(re.match(r"^INV-\d+$", r) for r in rows) and "INV-45" in rows, f"rows={rows}")
     check("--list carries the retired numbers, marked retired, never as runnable rows",
-          rows[-5:] == ["INV-9", "INV-10", "INV-13", "INV-28", "INV-30"]
+          rows[-len(retired):] == retired
           and all("retired" in l for l in out.splitlines()
-                  if l.startswith(("INV-9 ", "INV-10 ", "INV-13 ", "INV-28 ", "INV-30 "))),
-          out[-600:])
+                  if l.split()[:1] and l.split()[0] in retired),
+          out[-1200:])
     check("--list shows each row's scope, reads and authority",
           re.search(r"^INV-26\s+repo\s+.*gh:board", out, re.M) is not None
           and re.search(r"^\s+DEC-203\s+the board agrees", out, re.M) is not None,
@@ -198,16 +198,6 @@ with tempfile.TemporaryDirectory() as tmp:
           and "FEAT-A-first" not in out and "approval is pending" not in out, out)
     git(tmp, "add", "-A")
     git(tmp, "commit", "-qm", "state")
-    new = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first", "notes")
-    os.makedirs(new)
-    with open(os.path.join(new, "handoff-plan.md"), "w") as f:
-        f.write("# Handoff — seq-1\n## Next\nx\n## Trust\nx\n## Dead ends\nx\n## Working set\nx\n## Done when\nx\n")
-    code, out, err = run(tmp, "--changed")
-    check("--changed sees an UNTRACKED file and selects the rows that read handoff notes, for that feature only",
-          "FEAT-A-first" in out and "FEAT-B-second" not in out and "handoff-plan.md" in out
-          and "references T-09" not in out, f"code={code} {out}")
-    git(tmp, "add", "-A")
-    git(tmp, "commit", "-qm", "note")
     git(tmp, "mv", os.path.join(".harness", "harness", "features", "FEAT-A-first", "STATE.md"),
         os.path.join(".harness", "harness", "features", "FEAT-A-first", "STATE.old.md"))
     code, out, err = run(tmp, "--changed", "--only", "INV-2")
@@ -216,29 +206,6 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out, err = run(tmp, "--changed", "--only", "INV-19")
     check("--changed intersects with --only: a selected row that reads nothing dirty runs nothing (silent)",
           code == 0 and out == "", f"code={code} out={out!r}")
-
-with tempfile.TemporaryDirectory() as tmp:
-    two_feature_tree(tmp)
-    feature = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first")
-    evidence = os.path.join(feature, "cycle-evidence.data")
-    raw = b"```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0}\nartifact: cycle-evidence.data\n```\n"
-    with open(evidence, "wb") as target:
-        target.write(raw)
-    path = os.path.join(feature, "feature.json")
-    with open(path, encoding="utf-8") as source:
-        doc = json.load(source)
-    doc["runs"] = [{"id": "R", "squad": "product", "verdict": "FAIL", "cycles_used": 0,
-                    "cycle_evidence": {"source": "lead-digest", "path": "cycle-evidence.data",
-                                       "sha256": hashlib.sha256(raw).hexdigest()}}]
-    with open(path, "w", encoding="utf-8") as target:
-        json.dump(doc, target)
-    quiet_repo(tmp)
-    with open(evidence, "ab") as target:
-        target.write(b"changed bytes\n")
-    code, out, err = run(tmp, "--changed", "--only", "INV-7")
-    check("--changed revalidates arbitrary target-local evidence without a feature.json edit",
-          code == 1 and "hash does not match" in out and "FEAT-A-first" in out
-          and "FEAT-B-second" not in out, f"code={code} {out} {err}")
 
 with tempfile.TemporaryDirectory() as tmp:
     two_feature_tree(tmp)

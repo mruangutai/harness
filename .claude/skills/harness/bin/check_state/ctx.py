@@ -1,7 +1,6 @@
 """The parse-once runner context and the primitives every family shares. (FEAT-69)"""
 import glob, json, os, re, subprocess
 import artifact_accessors
-import digest_record
 import harness_boundary
 import harness_yaml
 from feature_record import read as record_read
@@ -121,58 +120,6 @@ def approved(txt):
 def has_approval_block(txt):
     return bool(txt) and re.search(r"^##\s+Approval\s*$", txt, re.M) is not None
 
-# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
-# The next editor's first instinct is to build the filename from the station; do not. The stems
-# are seam names — plan, build, validate — and the stations are positions. They now happen to
-# share a case, which is exactly what makes deriving look safe and still be wrong: `ready` and
-# `building` both require notes/handoff-plan.md, and no station is named `validate` at all.
-# Keeping the stems as their own literals also renames no file on disk.
-#
-# THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
-# review, so the validate-to-ship crossing is no longer separately observable and
-# handoff-validate.md cannot be demanded at review. It used to be demanded at done; since
-# DEC-252 a done feature is shipped and checked for nothing, so handoff-validate.md is demanded
-# nowhere. The validate seam is recorded by its validator digest, not by a handoff note.
-#
-# A STATION OUTSIDE STATUS_ORDER IS NOW A VIOLATION, NOT A SILENT SKIP (FEAT-41 T-07, A-03).
-# It was a deliberate silent skip on the grounds that status was schema-required with a closed
-# enum, so an unknown value was already denied at write time and a branch here would have been
-# a second enforcement point for a rule the schema owned. THAT COMPENSATING CONTROL IS GONE:
-# T-07 deleted the key from schemas/feature.json, and the station now lives in plan.yaml, whose
-# schema does not constrain the top-level `status` value at all. What denies an illegal station
-# today is plan-merge.py's set-feature-station, which validates before it opens the file — an
-# enforcement point on the WRITE ROUTE, not on the document. A hand-edited plan therefore
-# reaches this loop with a station nothing has checked, and the old skip would have taken every
-# such feature out of INV-17 without a word. It is reported instead.
-#
-# Despite the name, STATUS_ORDER is used as a SET — the membership test below is its only
-# reader and nothing indexes it. So the marker sitting at the end implies no progression.
-#
-# STATUS_ORDER AND SEAM_NOTES ARE ONE VOCABULARY AND MOVE TOGETHER. SEAM_NOTES is indexed by a
-# BARE SUBSCRIPT below, guarded only by that membership test, so rekeying one without the other
-# does not degrade to a skip — it is a KeyError in the project's own state gate, for every
-# well-formed feature on disk. Derived from factory_config rather than spelled, which makes the
-# pairing structural: both are built from MANDATED_STATIONS, so neither can be rekeyed alone.
-STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + list(TERMINAL_STATIONS)
-SEAM_NOTES = {
-    "backlog":  [],
-    "plan":     [],
-    "ready":    ["plan"],
-    "building": ["plan"],
-    "review":   ["plan", "build"],
-    "done":     [],            # shipped: never an INV-17 subject (DEC-252)
-    # THE TERMINAL STATIONS REQUIRE NO HANDOFF. A feature planned and never built (abandoned)
-    # or refused at intake (rejected, FEAT-1714) crossed no seam, so there is no honest handoff
-    # note to write and none will be fabricated.
-    # Keyed EXPLICITLY rather than omitted: an omitted key is now a KeyError rather than a
-    # silent skip, since the station passes the membership test above by construction.
-    **{station: [] for station in TERMINAL_STATIONS},
-}
-# EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
-# structures are derived from the same source, so the only way they can disagree is a hand-typed
-# SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
-# on whichever feature happens to sit at that station.
-
 def _int_field(v):
     """int, or None. bool is rejected BEFORE the int check (INV-22's lesson: bool subclasses
     int, so `true` read as a budget of 1)."""
@@ -183,20 +130,6 @@ def _int_field(v):
     if isinstance(v, str) and v.strip().isdigit():
         return int(v.strip())
     return None
-
-
-def _iso_instant(v):
-    """An aware datetime, or None. Accepts the two spellings the ledger writes — feature-record
-    writes `+00:00`, older fixtures and gh write `Z` — and refuses a naive value rather than
-    guessing its zone, since INV-43 compares instants across two writers."""
-    if not isinstance(v, str) or not v.strip():
-        return None
-    from datetime import datetime
-    try:
-        parsed = datetime.fromisoformat(v.strip().replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    return parsed if parsed.tzinfo is not None else None
 
 
 # =====================================================================================
@@ -281,12 +214,8 @@ class Ctx:
         self.abandoned = {f for f in self.features if self.station(f) in TERMINAL_STATIONS}
 
     def _load_eras(self):
-        # INV-32 / INV-43 era boundaries, resolved ONCE (BUG-1071; see _era_start_for).
+        # INV-32's era boundary, resolved ONCE (BUG-1071; see _era_start_for).
         self.era_start = self._era_start_for("INV-32", "panel_era_start", "adversarial panel")
-        # INV-43 (BUG-1723) has the same shape of boundary for the same reason: a succession recorded
-        # before the seam was graded cannot be re-recorded to satisfy it (history stays as recorded,
-        # DEC-227), and an invariant that reddens the whole corpus trains its reader to ignore it.
-        self.seam_era_start = self._era_start_for("INV-43", "seam_era_start", "graded seam")
 
     def _load_git_top(self):
         # THE GIT TOP LEVEL, resolved ONCE for INV-33 below (FEAT-41 T-14 / issue #867).
@@ -346,18 +275,6 @@ class Ctx:
             self.cj, self.cj_valid = {}, False
             self.bad.append(f".harness/harness.json is invalid: {e}")
 
-    def _assert_seam_rows(self):
-        # EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
-        # structures are derived from the same source, so the only way they can disagree is a hand-typed
-        # SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
-        # on whichever feature happens to sit at that station.
-        bad = self.bad
-        _missing_seam_rows = [_s for _s in STATUS_ORDER if _s not in SEAM_NOTES]
-        if _missing_seam_rows:
-            bad.append("check-state.py: SEAM_NOTES has no row for station(s) %s — the seam table and "
-                       "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
-                       "first feature at one of them." % ", ".join(_missing_seam_rows))
-
     def _load_hash_module(self):
         bad = self.bad
         try:
@@ -386,18 +303,14 @@ class Ctx:
         self._load_git_top()
         self._load_config()
         self._load_eras()
-        self._assert_seam_rows()
         self.default_cycles = self.cj["budgets"]["max_total_cycles"] if self.cj_valid else None
         self._load_hash_module()
 
-        # Per-feature caches filled on first use: the feature.json record (INV-6 family, INV-15's
-        # verdict cross-check) and the run checkpoints (INV-16/36/15).
+        # Per-feature caches filled on first use: the feature.json record (INV-6 family).
         self._records = {}
-        self._run_states = {}
         self._gh_ok = {}
         self.spawn_error = None
         self._record_errors = {}
-        self._digests = {}
 
     def population(self):
         """`[(feature, feature.json mapping or None, shipped)]` for a REPO-WIDE record predicate,
@@ -453,7 +366,7 @@ class Ctx:
         error = None
         # One canonical strict JSON reader owns duplicate-key, non-finite-value and
         # recorded-issue validation. A reader failure is loud below; it never reduces
-        # the run set and lets INV-6, INV-7 or INV-8 pass over partial data.
+        # the run set and lets INV-6 or INV-7 pass over partial data.
         try:
             doc = record_read.load_feature_json(fy) or {}
         except record_read.FeatureJsonError as e:
@@ -461,7 +374,7 @@ class Ctx:
             # A file that does not parse is a VIOLATION, never a silent skip — the whole
             # point of DEC-171 is that there is no quieter mode. Report and move on
             # so one broken feature cannot hide every other feature's invariants.
-            error = (f"{self.fpath(feat, 'feature.json')} does not parse, so INV-6..8 and INV-12 "
+            error = (f"{self.fpath(feat, 'feature.json')} does not parse, so INV-6 and INV-7 "
                      f"cannot be checked for it: {e}")
             doc = None
         if doc is not None and not isinstance(doc, dict):
@@ -502,7 +415,7 @@ class Ctx:
 
     def record_error(self, feat):
         """The FeatureJsonError the ONE parse of `feat`'s feature.json raised, or None. For the
-        rows (INV-17, INV-21, INV-44) whose own finding renders it (FEAT-63 T-02)."""
+        rows (INV-21, INV-44) whose own finding renders it (FEAT-63 T-02)."""
         self.record(feat)
         return self._record_errors.get(feat)
 
@@ -522,52 +435,3 @@ class Ctx:
             runs, code_reviewing_runs, errors = self._record_runs(feat, doc)
         self._records[feat] = (doc, runs, code_reviewing_runs, errors)
         return self._records[feat]
-
-    def run_verdicts(self, feat):
-        """{run id: [verdicts]} as feature.json records them, for INV-15's cross-check."""
-        doc, _runs, _crr, _errors = self.record(feat)
-        out = {}
-        for entry in ((doc or {}).get("runs") or []):
-            if isinstance(entry, dict):
-                out.setdefault(str(entry.get("id", "")).strip(), []).append(
-                    str(entry.get("verdict", "")).strip())
-        return out
-
-    def run_states(self, feat):
-        """Every runs/*/state.yaml under the feature as (path, rel, rundir, sdoc, error), in
-        filesystem order like the baseline glob. `error` is INV-16's parse finding; sdoc is
-        None when it is set."""
-        if feat in self._run_states:
-            return self._run_states[feat]
-        out = []
-        for sy in glob.glob(os.path.join(self.feature_dir(feat), "runs", "*", "state.yaml")):
-            rel = os.path.relpath(sy, self.H)
-            rundir = os.path.dirname(sy)
-            # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
-            # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
-            # False and the completed-run checks below silently never fired.
-            try:
-                sdoc = harness_yaml.load_file(sy) or {}
-            except harness_yaml.YamlParseError as e:
-                out.append((sy, rel, rundir, None,
-                            f"{rel}: state.yaml does not parse, so INV-15/16 cannot be "
-                            f"checked for this run: {e}"))
-                continue
-            if not isinstance(sdoc, dict):
-                out.append((sy, rel, rundir, None, f"{rel}: state.yaml is not a YAML mapping."))
-                continue
-            out.append((sy, rel, rundir, sdoc, None))
-        self._run_states[feat] = out
-        return out
-
-    def lead_digest(self, dg):
-        """(mapping, error) of one durable lead digest: digest_record's final fenced mapping,
-        read ONCE and shared by INV-15 (the record exists and carries the required keys) and
-        INV-46 (the verdict cross-check). Never validated against the live persona schema — a
-        historical record may carry keys today's closed contract refuses (FEAT-1928 SC-07)."""
-        if dg not in self._digests:
-            try:
-                self._digests[dg] = (digest_record.load_record(dg), None)
-            except digest_record.DigestRecordError as _e:
-                self._digests[dg] = (None, str(_e))
-        return self._digests[dg]
