@@ -327,9 +327,11 @@ _MANUAL_VERIFY_RE = re.compile(r"^MANUAL \u2014 ")  # em dash, exactly — a hyp
 _VERIFY_ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 # #2067 added the JS/TS runners `pnpm`, `node` and `npx`: a served product repository's verify
 # opens with them as naturally as harness's opens with python3, and refusing them pushed plans
-# into `bash -c '…'` wrappers that say nothing a bare invocation does not.
+# into `bash -c '…'` wrappers that say nothing a bare invocation does not. #2692 added `bun` for
+# the same reason (pm opened a verify with `set -e` to get `bun test` past this rule), and #2666
+# added `env`: several gates must run with a variable unset (`env -u HARNESS_AGENT_TYPE …`).
 _VERIFY_BARE_COMMANDS = ("cd", "set", "python3", "bash", "git", "grep", "test", "diff",
-                         "true", "false", "pnpm", "node", "npx")
+                         "true", "false", "pnpm", "node", "npx", "bun", "env")
 
 
 def _looks_runnable(first_line):
