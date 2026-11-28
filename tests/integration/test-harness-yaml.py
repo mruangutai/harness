@@ -635,7 +635,7 @@ def test_missing_pyyaml_is_reportable_not_a_second_crash():
         try:
             hy.load_str("a: 1", "probe")
         except hy.MissingDependency as e:
-            assert "pip install" in str(e), f"message lacks the install command: {e}"
+            assert hy.INSTALL_COMMAND in str(e), f"message lacks the install command: {e}"
         except Exception as e:  # noqa: BLE001 - any other class is the second crash
             raise AssertionError(f"raised {type(e).__name__}, not MissingDependency: {e}")
         else:
