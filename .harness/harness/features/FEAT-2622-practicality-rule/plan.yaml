@@ -5,7 +5,7 @@ approval:
   approved_by: operator
   status: approved
 drafted_at: '2026-11-28T03:54:58Z'
-status: ready
+status: building
 source_issues: [2622]
 
 panel:
@@ -214,7 +214,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - changes validate-digest.py, panel_findings.py and the digest schema, the gate that would police this build, with their tests.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/panel_findings.py#shape_faults
       - .claude/skills/harness/schemas/digest/common.json
@@ -270,7 +270,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - changes plan-merge.py record-panel, the writer whose refusals guard plan signature, with its tests.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/plan_merge/panel.py#_digest_finding
     - tests/unit/test-practicality-record-panel.py
@@ -328,7 +328,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 and operator constraint 6 - the agent output frontmatter is the generated delivery of the digest schema the gate enforces; NOBODY owns .omp/agents.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .omp/agents/harness-code-reviewer.md
       - .omp/agents/harness-security-reviewer.md
@@ -392,7 +392,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Operator constraint 6 - NOBODY owns these skills, team prompts, the template or the reference, and the reader prompts produce the records the gate reads.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-code-review/SKILL.md
       - .claude/skills/harness-tdd-enforcement/SKILL.md
@@ -458,7 +458,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: Operator constraint 6 - every task of this feature runs main-session-direct; DECISIONS.md is otherwise the documentor's.
     depends_on: [T-01, T-02, T-03, T-04]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
