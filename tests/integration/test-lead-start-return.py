@@ -23,6 +23,8 @@ Output: one line per case, `PASS|FAIL [startup|control] <id>: <name>`, then any 
     python3 tests/integration/test-lead-start-return.py                    -> behaviour only
     python3 tests/integration/test-lead-start-return.py --check-producers  -> plus the
         dispatch-producer documents of the explicit preflight contract
+    LEAD_START_UNION=<path to union.py>  optional: copy that union.py over the private bin's
+        plan_merge/union.py, so the BUG-2582 cases can be red-proved against another revision
 """
 import importlib.util
 import json
@@ -70,6 +72,9 @@ def private_bin():
         holder = tempfile.mkdtemp(prefix="lead-return-bin-")
         _PRIVATE["holder"] = holder
         _PRIVATE["bin"] = isolated_bin(holder)
+        override = os.environ.get("LEAD_START_UNION")
+        if override:
+            shutil.copyfile(override, os.path.join(_PRIVATE["bin"], "plan_merge", "union.py"))
     return _PRIVATE["bin"]
 
 
@@ -291,6 +296,66 @@ def sc02_scope_reader():
               "a scope-reader dispatch after the plan is approved under a running plan lead "
               "is refused before the reader works",
               ok, f"lead exit={lead.returncode}; reader {outcome(reader, root, READER)}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# --- BUG-2582: the INV-34 station-only record starts a plan and converts --------------------
+
+STUB = (f"schema: plan/1\nfeature: {FEATURE}\nstatus: plan\n"
+        "station_only: true\ntasks: []\n")
+PROPOSAL = (f"schema: plan/1\nfeature: {FEATURE}\nstatus: plan\ntasks:\n"
+            "  - id: T-01\n    title: fixture task\n    change_type: bugfix\n"
+            "    execution_mode: main-session-direct\n    execution_reason: fixture\n"
+            "    files: [fixture.py]\n    verify: \"true\"\n    intent: fixture\n")
+
+
+def plan_merge(root, stdin_text, *argv):
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+    env.pop("HARNESS_AGENT_TYPE", None)
+    return subprocess.run([sys.executable, os.path.join(private_bin(), "plan-merge.py"), *argv],
+                          input=stdin_text, cwd=root, timeout=30, capture_output=True,
+                          text=True, env=env)
+
+
+# BUG-2582 (D-04): INV-34's remedy writes the station-only record through `apply`, which seeds
+# `approval: {status: pending}`, so the dispatch guard admits a plan start on it with no guard
+# change. This group proves the whole path: the start, then the started run's `apply` converting
+# the record into the plan. A hand-written record, with no approval, is still refused.
+def bug2582_station_stub():
+    root = make_root([lead_run(PRODUCT)], None)
+    try:
+        stub = plan_merge(root, STUB, "apply", "--file", plan_path(root), "--proposal", "-")
+        lead = dispatch(root, PRODUCT, prompt(root, "plan"))
+        check("control", "BUG-2582/stub-plan-start",
+              "a product plan start on a station-only record written through plan-merge.py "
+              "apply is admitted",
+              stub.returncode == 0 and started(lead, root, PRODUCT),
+              f"apply exit={stub.returncode}; {outcome(lead, root, PRODUCT)}")
+        applied = plan_merge(root, PROPOSAL, "apply", "--file", plan_path(root), "--proposal", "-")
+        doc = {}
+        if applied.returncode == 0:
+            with open(plan_path(root)) as handle:
+                doc = yaml.safe_load(handle) or {}
+        ok = (applied.returncode == 0 and "station_only" not in doc
+              and [t.get("id") for t in doc.get("tasks") or []] == ["T-01"]
+              and doc.get("approval") == {"status": "pending"} and doc.get("status") == "plan")
+        check("startup", "BUG-2582/stub-convert-after-start",
+              "the started plan run's apply converts the record into the plan", ok,
+              " ".join(f"apply exit={applied.returncode} {applied.stdout} {applied.stderr}"
+                       .split()))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    root = make_root([lead_run(PRODUCT)], None)
+    try:
+        with open(plan_path(root), "w") as handle:
+            handle.write(STUB)
+        result = dispatch(root, PRODUCT, prompt(root, "plan"))
+        ok = (refused_before_claim(result, root, PRODUCT)
+              and os.path.realpath(plan_path(root)) in result.stderr and "None" in result.stderr)
+        check("startup", "BUG-2582/stub-hand-written-refused",
+              "a hand-written station-only record with no approval still refuses the product "
+              "plan start before any claim", ok, outcome(result, root, PRODUCT))
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -698,6 +763,7 @@ def main(argv):
         sc02_signed_plan_controls()
         sc02_mission_refusals()
         sc02_scope_reader()
+        bug2582_station_stub()
         for lead in LEADS:
             sc04_lead(lead)
             sc04_unregistered_witness(lead)

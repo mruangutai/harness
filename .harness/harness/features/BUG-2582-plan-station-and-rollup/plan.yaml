@@ -335,6 +335,7 @@ tasks:
 
       Run the literal verify from the repository root; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-03.
   - id: T-04
+    status: done
     title: Witness the first plan run starting on an apply-written station-only record and converting it
     traces: [SC-10]
     change_type: bugfix
