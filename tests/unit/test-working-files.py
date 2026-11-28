@@ -318,6 +318,32 @@ def test_untracked_counts(tmp):
           raises(wf.untracked_counts, os.path.join(tmp, "not-a-repo"), rel))
 
 
+def test_untracked_undecodable_name(tmp):
+    """T-11 fix c2 MF-1: a working-file name that is not valid UTF-8 is counted, never a
+    UnicodeDecodeError: the one counting rule GATE 2b and bash-write-guard share. A `git` earlier
+    on PATH adds the name to the real ls-files output, since APFS will not create it."""
+    repo = os.path.join(tmp, "undecodable")
+    os.makedirs(repo)
+    _git(repo, "init", "-q")
+    rel = ".harness/harness/features/FEAT-0-probe"
+    write(os.path.join(repo, rel, "notes", "a.md"))
+    bindir = os.path.join(tmp, "undecodable-bin")
+    write(os.path.join(bindir, "git"),
+          f'#!/bin/sh\n"{shutil.which("git")}" "$@"\nrc=$?\n'
+          f'case " $* " in *" ls-files "*) printf \'{rel}/notes/\\377.md\\0\' ;; esac\nexit $rc\n')
+    os.chmod(os.path.join(bindir, "git"), 0o755)
+    saved = os.environ["PATH"]
+    os.environ["PATH"] = bindir + os.pathsep + saved
+    try:
+        got = wf.untracked_counts(repo, rel)
+    except UnicodeDecodeError as exc:
+        got = f"UnicodeDecodeError: {exc}"
+    finally:
+        os.environ["PATH"] = saved
+    check("untracked_counts counts a non-UTF-8 working-file name: notes 2",
+          got == {"notes": 2}, got)
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="working-files-test-")
     try:
@@ -325,7 +351,8 @@ def main():
                      test_directory_note_refuses, test_parent_symlink_refuses,
                      test_feature_directory, test_clean_command, test_owner_none,
                      test_scratch, test_symlinked_ancestor_refuses, test_symlinked_feature_dir_refuses,
-                     test_swap_after_validation, test_claims_dir, test_untracked_counts):
+                     test_swap_after_validation, test_claims_dir, test_untracked_counts,
+                     test_untracked_undecodable_name):
             try:
                 test(tmp)
             except Exception as exc:  # one broken case reports and the rest still run

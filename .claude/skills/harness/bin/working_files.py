@@ -206,16 +206,17 @@ def clean(feature_dir, owner_root, dry_run=False, emit=print, claims_dir=None):
 
 def untracked(checkout, feature_rel):
     """Untracked paths (ignored ones included, tracked ones never) under feature_rel's working
-    directories in checkout."""
+    directories in checkout. Read as bytes and decoded with os.fsdecode, so a name that is not
+    valid in the locale's encoding is still listed (and counted), never a UnicodeDecodeError."""
     argv = ["git", "-C", checkout, "ls-files", "-z", "--others", "--"]
     argv += [f"{feature_rel}/{d}" for d in WORKING_DIRS]
     try:
-        r = subprocess.run(argv, capture_output=True, text=True)
+        r = subprocess.run(argv, capture_output=True)
     except OSError as exc:
         raise WorkingFilesError(f"git ls-files could not run in {checkout}: {exc}") from exc
     if r.returncode != 0:
-        raise WorkingFilesError(f"git ls-files failed in {checkout}: {r.stderr.strip()}")
-    return [p for p in r.stdout.split("\0") if p]
+        raise WorkingFilesError(f"git ls-files failed in {checkout}: {os.fsdecode(r.stderr).strip()}")
+    return [os.fsdecode(p) for p in r.stdout.split(b"\0") if p]
 
 
 def untracked_counts(checkout, feature_rel):

@@ -885,15 +885,35 @@ def _suffix_names(path, operand):
     return bool(operand) and at_boundary and path[start:].lower() == operand.lower()
 
 
+# Repository selectors git honours that this guard does not model: it resolves the removal's
+# worktree only through -C and the hook's cwd, so an identifier read in the wrong repository
+# would name nothing and let the removal through. Any of them refuses instead (DEC-151).
+_REPO_SELECTOR_FLAGS = ("--git-dir", "--work-tree")
+_REPO_SELECTOR_ENV_RE = re.compile(r"(?<![\w$])(GIT_(?:DIR|WORK_TREE|COMMON_DIR))=")
+
+
+def _refuse_repo_selectors(global_args):
+    """Refuse a `git worktree remove` carrying --git-dir/--work-tree (spaced or `=` form) among
+    git's global options, or a GIT_DIR/GIT_WORK_TREE/GIT_COMMON_DIR assignment anywhere in the
+    command: a prefix, `env`, or an earlier `export`."""
+    found = [a.split("=", 1)[0] for a in global_args if a.split("=", 1)[0] in _REPO_SELECTOR_FLAGS]
+    found += [f"{name}=" for name in _REPO_SELECTOR_ENV_RE.findall(cmd)]
+    if found:
+        _refuse_native_remove(f"`git worktree remove` with {', '.join(found)}: this guard resolves "
+                              "the worktree only through -C and the cwd, so it cannot tell which "
+                              "worktree would be removed or whether working files would be lost.")
+
+
 def _remove_target(args):
     """(operand, worktree paths) for `git [-C <dir>] worktree remove <worktree>`; None for any
     other git call. The paths are the operand's directory, resolved against -C, else the hook's
     cwd, and every linked worktree git's own list says the operand can name (an identifier or a
-    unique path suffix); git refuses to remove the main worktree. No determinable operand
-    refuses (DEC-151's undecidable direction)."""
+    unique path suffix); git refuses to remove the main worktree. A repository selector and no
+    determinable operand both refuse (DEC-151's undecidable direction)."""
     where, rest = _git_effective_args(args)
     if rest[:2] != ["worktree", "remove"]:
         return None
+    _refuse_repo_selectors(args[:len(args) - len(rest)])
     operand = _worktree_destination(rest[2:], "remove")
     if operand is None:
         _refuse_native_remove("`git worktree remove` with no worktree operand this guard can "

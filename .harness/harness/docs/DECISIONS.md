@@ -8914,9 +8914,9 @@ PR CI is the independent proof that tests pass at merge. `runs/` records and QA 
 2.8 MB of a 3.4 MB feature directory; FEAT-2488 committed five QA notes of about 1 MB each. The
 repository and the disk grew with data that has no reader.
 
-**Tradeoff accepted:** a later reader cannot re-derive a verdict, only read its summary and CI's
-run. An operator ruling on a divergence is recorded in the summary, not beside the bytes it ruled
-on. What has already been committed stays in history.
+**Tradeoff accepted:** a later reader cannot re-derive a verdict. The summary, and any operator
+ruling it records on a divergence, is local and goes with the working files at cleanup; after
+that only CI's run remains. What has already been committed stays in history.
 
 **Record:** operator ruling, 2026-11-28. Refs: DEC-238, DEC-252, DEC-255, DEC-257, DEC-262.
 

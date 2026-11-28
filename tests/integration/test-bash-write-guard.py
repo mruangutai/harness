@@ -187,7 +187,7 @@ teams:
 """
 
 def fire(root, cmd, agent="harness-backend-dev", guard=GUARD, cwd=None,
-         agent_id=None, parent_agent_id=None, feature=None):
+         agent_id=None, parent_agent_id=None, feature=None, extra_env=None):
     """Run the guard on one Bash payload. A falsy agent or id leaves its key out entirely
     (agent None is the main session, which sends no agent_type)."""
     payload = {"tool_name": "Bash", "tool_input": {"command": cmd}}
@@ -197,7 +197,7 @@ def fire(root, cmd, agent="harness-backend-dev", guard=GUARD, cwd=None,
         if value:
             payload[key] = value
     return subprocess.run([guard], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root), cwd=cwd)
+                          text=True, env=_env(root, **(extra_env or {})), cwd=cwd)
 
 
 def _partial_bin(*extra):
@@ -790,11 +790,13 @@ def _put(path, text):
 
 def _native_remove_fixture():
     """A real repository (git init, one commit) with two linked worktrees made by this test's
-    own git: FEAT-91 holding untracked notes/x.md and runs/r/digest.md under
-    .harness/harness/features/FEAT-91-probe, FEAT-92 holding only an untracked scratch.txt."""
+    own git: FEAT-91 holding untracked, IGNORED notes/x.md and runs/r/digest.md under
+    .harness/harness/features/FEAT-91-probe (the loss git cannot see), FEAT-92 holding only an
+    untracked scratch.txt."""
     tmp = tempfile.mkdtemp(prefix="bash-guard-native-remove-")
     root = os.path.join(tmp, "root")
     _put(os.path.join(root, ".harness", "team-config.yaml"), FIXTURE_MANIFEST)
+    _put(os.path.join(root, ".gitignore"), _NATIVE_IGNORES)
     git = ["git", "-C", root, "-c", "user.email=t@example.com", "-c", "user.name=T"]
     for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
         subprocess.run(git + args, check=True, capture_output=True)
@@ -872,6 +874,61 @@ def run_native_remove_identifier():
     kept = [os.path.join(feature, "notes", "x.md"), os.path.join(feature, "runs", "r", "digest.md")]
     results.append(("T-11 (f)-(i): the worktree and both working files survive",
                     os.path.isdir(worktrees["FEAT-91"]) and all(map(os.path.exists, kept)), feature))
+    shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
+_NATIVE_IGNORES = "/.harness/*/features/*/notes/\n/.harness/*/features/*/runs/\n"
+_NATIVE_FEATURE_REL = ".harness/harness/features/FEAT-91-probe"
+
+
+def _undecodable_git(tmp):
+    """A bin directory whose `git` runs the real one and, for `ls-files`, adds one more NUL-ended
+    path that is not valid UTF-8 (notes/\\377.md): APFS will not create such a name."""
+    bindir = os.path.join(tmp, "undecodable-bin")
+    _put(os.path.join(bindir, "git"),
+         f'#!/bin/sh\n"{shutil.which("git")}" "$@"\nrc=$?\n'
+         f'case " $* " in *" ls-files "*) printf \'{_NATIVE_FEATURE_REL}/notes/\\377.md\\0\' ;; esac\n'
+         'exit $rc\n')
+    os.chmod(os.path.join(bindir, "git"), 0o755)
+    return {"PATH": bindir + os.pathsep + os.environ["PATH"]}
+
+
+def _native_selector_cases(root, other, tmp):
+    """(name, command, wanted exit, hook cwd, stderr needles, extra env) for the fix c2 legs. The
+    cwd `other` is a different repository, where the identifier FEAT-91 names nothing."""
+    gd = os.path.join(root, ".git")
+    sel = [("--git-dir", f"git --git-dir {gd} worktree remove FEAT-91"),
+           ("--git-dir=", f"git --git-dir={gd} worktree remove FEAT-91"),
+           ("--work-tree", f"git --work-tree {root} worktree remove FEAT-91"),
+           ("--work-tree=", f"git --work-tree={root} worktree remove FEAT-91"),
+           ("GIT_DIR=", f"GIT_DIR={gd} git worktree remove FEAT-91"),
+           ("GIT_WORK_TREE=", f"GIT_WORK_TREE={root} git worktree remove FEAT-91"),
+           ("export GIT_DIR=", f"export GIT_DIR={gd}; git worktree remove FEAT-91")]
+    cases = [(f"T-11 (k) MF-2: `{form}` with an identifier operand and ignored evidence, cwd another "
+              f"repository, is refused", cmd, 2, other, ("cannot tell which worktree",), None)
+             for form, cmd in sel]
+    cases.append(("T-11 (l) MF-1: a working file whose name is not valid UTF-8 is counted, never a "
+                  "crash: exit 2 with notes/ (2 files)", "git worktree remove FEAT-91", 2, root,
+                  ("notes/ (2 files)", "runs/ (1 files)"), _undecodable_git(tmp)))
+    return cases
+
+
+def run_native_remove_c2():
+    """FEAT-2641 T-11 (fix c2 MF-1, MF-2): a repository selector the guard does not model refuses
+    (DEC-151), and an undecodable working-file name is counted rather than crashing the hook
+    open. The evidence is ignored, so git alone would remove it."""
+    tmp, root, worktrees, _feature = _native_remove_fixture()
+    other = os.path.join(tmp, "other")
+    subprocess.run(["git", "init", "-q", other], check=True, capture_output=True)
+    ignored = subprocess.run(["git", "-C", worktrees["FEAT-91"], "check-ignore", "-q",
+                              f"{_NATIVE_FEATURE_REL}/notes/x.md"], capture_output=True)
+    results = [("T-11 c2: the fixture's notes/x.md is ignored by git", ignored.returncode == 0,
+                f"check-ignore exit {ignored.returncode}")]
+    for name, cmd, want, cwd, needles, extra in _native_selector_cases(root, other, tmp):
+        r = fire(root, cmd, cwd=cwd, extra_env=extra)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
     shutil.rmtree(tmp, ignore_errors=True)
     _record(results)
 
@@ -1855,6 +1912,7 @@ def main():
     run_head_move()
     run_native_remove_retention()
     run_native_remove_identifier()
+    run_native_remove_c2()
     run_feat50_checkout_binding()
     run_feat61_feature_checkout_adapter()
     run_feat65_guard_cases()
