@@ -50,7 +50,7 @@ approval:
       date: '2026-11-27'
       reason: stale wording fixed at build per operator signature
 drafted_at: '2026-11-27T16:23:46Z'
-status: building
+status: review
 source_issues: [2581, 2569]
 panel:
   last_run: repanel3-product
