@@ -1024,7 +1024,7 @@ tasks:
     execution_reason: DEC-174 - bash-write-guard.py is a PreToolUse hook that refuses Bash commands, and the retention routine it shares with feature-worktree.py remove is the gate this feature adds; operator ruling E4 at validate c0.
     depends_on:
     - T-03
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/bash-write-guard.py
     - .claude/skills/harness/bin/working_files.py
@@ -1064,7 +1064,7 @@ tasks:
     - T-07
     - T-08
     - T-11
-    status: ready
+    status: done
     files:
     - .harness/harness/docs/DECISIONS.md
     - .harness/harness/docs/DECISIONS-INDEX.md
