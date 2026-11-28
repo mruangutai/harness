@@ -7,40 +7,28 @@ Nothing here spawns a subprocess, touches a real repository, or makes a real gh/
 `Recorder`, whose ordered `.git_calls` / `.gh_calls` lists are the evidence every assertion below
 is a projection of.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT  # noqa: F401  (puts bin/ and tests/ on sys.path)
+
 import contextlib
-import io
 import json
-import os
 import sys
 import tempfile
+from unittest import mock
 
-import yaml
 import artifact_accessors
-
 import factory_cli
 import factory_config as fc
 import factory_gh
 import factory_land as land
 import factory_workspace as fw
+from check_support import Checks
+from factory_support import board, board_stub, fleet, invoke, repo, split_boards, write_fleet
 
-FAILS = 0
-RAN = 0
+C = Checks()
+check = C.check
 
-
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
-
+# One temp root for every scenario, removed when the interpreter exits.
+TMP = tempfile.TemporaryDirectory(prefix="land-")
 
 OWNER = "acme"
 BOARD = 3
@@ -52,23 +40,12 @@ BRANCH = f"factory/issue-{ISSUE}"
 ISSUE_TITLE = "widget: do the thing"
 PR_URL = "https://github.com/acme/widget/pull/99"
 ITEM_ID = "PVTI_item99"
+LAND_ARGS = ["--repo", REPO, "--issue", str(ISSUE)]
 
 
-def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH, repos=None):
-    board = {
-        "owner": OWNER,
-        "number": BOARD,
-        "station_field": STATION_FIELD,
-        # Ordered lowercase declaration (FEAT-41 T-01); columns are derived, never stored.
-        "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-    }
-    return {
-        "schema": "factory-fleet/1",
-        "repos": repos if repos is not None else [
-            {"name": REPO, "default_branch": default_branch, "board": board},
-        ],
-        "workspace_root": workspace_root,
-    }
+def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH):
+    return fleet(workspace_root,
+                 [repo(REPO, default_branch, board(OWNER, BOARD, STATION_FIELD))])
 
 
 OWNER_B = "other-org"
@@ -77,64 +54,29 @@ STATION_FIELD_B = "Stage"
 REPO_B = "acme/other"
 
 
-def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
-                         default_branch=DEFAULT_BRANCH):
-    """Two repos entries on two different board numbers, no fleet-level board — repo_a on
+def two_repo_fleet_dict(workspace_root):
+    """Two repos entries on two different board numbers, no fleet-level board — REPO on
     BOARD/OWNER/STATION_FIELD (matching good_fleet_dict's numbers/options so most existing
-    assertions keep working when repo_a is what a test lands against); repo_b on a distinct
+    assertions keep working when REPO is what a test lands against); REPO_B on a distinct
     board with distinct owner, station_field and option names, so a test can prove a call
     landed on A's board and never B's by inspecting the recorded gh call arguments alone."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {
-                "name": repo_a,
-                "default_branch": default_branch,
-                "board": {
-                    "owner": OWNER,
-                    "number": BOARD,
-                    "station_field": STATION_FIELD,
-                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-                },
-            },
-            {
-                "name": repo_b,
-                "default_branch": default_branch,
-                "board": {
-                    "owner": OWNER_B,
-                    "number": BOARD_B,
-                    "station_field": STATION_FIELD_B,
-                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
-                },
-            },
-        ],
-        "workspace_root": workspace_root,
-    }
+    return fleet(workspace_root, [
+        repo(REPO, DEFAULT_BRANCH, board(OWNER, BOARD, STATION_FIELD)),
+        repo(REPO_B, DEFAULT_BRANCH, board(OWNER_B, BOARD_B, STATION_FIELD_B)),
+    ])
 
 
-def write_yaml(path, data):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f)
-    return path
+def calls(rec, kind):
+    """The recorded gh calls of one kind, in order."""
+    return [c for c in rec.gh_calls if c[0] == kind]
 
 
-def _split_boards(fleet_dict):
-    """Splits a test-side fleet dict into (yaml-safe fleet dict with no repos[].board,
-    {repo_name: board_mapping}) — the board no longer lives in fleet.yaml (T-02/T-03); it is
-    read remotely through `factory_config.product_config`, which `run_main` monkeypatches for
-    the duration of the call using the mapping this returns."""
-    boards = {}
-    clean_repos = []
-    for r in fleet_dict["repos"]:
-        r = dict(r)
-        board = r.pop("board", None)
-        if board is not None:
-            boards[r["name"]] = board
-        clean_repos.append(r)
-    clean = dict(fleet_dict)
-    clean["repos"] = clean_repos
-    return clean, boards
+def pr_creates(rec):
+    return [c for c in rec.gh_calls if c[0] == "run_gh" and c[1][0][:2] == ("pr", "create")]
+
+
+def pushes(rec):
+    return [c for c in rec.git_calls if c[0][0] == "push"]
 
 
 # --------------------------------------------------------------------------
@@ -150,11 +92,7 @@ class Recorder:
         ]
         self.issue_title = ISSUE_TITLE
         self.issue_state = "OPEN"
-        self.preflight_raises = None
         self.pr_create_raises = None
-        self.field_options = {STATION_FIELD: ["Ready", "Building", "Review"]}
-        self.field_ids = {STATION_FIELD: "FIELD_1"}
-        self.option_ids = {"Ready": "OPT_R", "Building": "OPT_B", "Review": "OPT_V"}
 
     # --- run_git stand-in ---
     def run_git(self, args, cwd):
@@ -164,9 +102,6 @@ class Recorder:
     # --- factory_gh's public surface used by factory_land ---
     def preflight(self):
         self.gh_calls.append(("preflight", ()))
-        if self.preflight_raises is not None:
-            raise self.preflight_raises
-
     def issue_view(self, repo, number, fields):
         self.gh_calls.append(("issue_view", (repo, number, tuple(fields))))
         # Honours the requested `fields` (FEAT-13 fix01) — the fixture is not the full record
@@ -206,61 +141,31 @@ PATCHED_GH = (
 )
 
 
-def patch(rec):
-    saved_gh = {name: getattr(factory_gh, name) for name in PATCHED_GH}
-    for name in PATCHED_GH:
-        setattr(factory_gh, name, getattr(rec, name))
-    saved_run_git = fw.run_git
-    fw.run_git = rec.run_git
-    return saved_gh, saved_run_git
-
-
-def unpatch(saved_gh, saved_run_git):
-    for name, fn in saved_gh.items():
-        setattr(factory_gh, name, fn)
-    fw.run_git = saved_run_git
-
-
 # --------------------------------------------------------------------------
 # Driver.
 # --------------------------------------------------------------------------
 
-def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
-    workspace_root = workspace_root or tempfile.mkdtemp(prefix="land-ws-")
-    fleet_dir = tempfile.mkdtemp(prefix="land-fleet-")
+def run_main(rec, extra_args=LAND_ARGS, fleet_dict=None):
+    workspace_root = tempfile.mkdtemp(prefix="land-ws-", dir=TMP.name)
     raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root)
-    clean_fleet, boards_by_repo = _split_boards(raw_fleet)
-    fleet_path = write_yaml(os.path.join(fleet_dir, "fleet.yaml"), clean_fleet)
-    argv_saved = sys.argv
-    sys.argv = ["factory_land.py", "--fleet", fleet_path] + extra_args
-    saved_gh, saved_run_git = patch(rec)
+    clean_fleet, boards_by_repo = split_boards(raw_fleet)
+    fleet_path = write_fleet(tempfile.mkdtemp(prefix="land-fleet-", dir=TMP.name), clean_fleet)
     # The board is resolved through factory_config.product_config, never from fleet.yaml
     # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
     # is monkeypatched rather than faking a `gh` call.
-    saved_product_config = fc.product_config
-
-    def fake_product_config(fleet, repo_name):
-        return {"github": {"board": boards_by_repo.get(repo_name)}}
-
-    fc.product_config = fake_product_config
-    out, err = io.StringIO(), io.StringIO()
-    code = None
-    try:
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                factory_cli.run(
-                    "land", land._main,
-                    expected=(artifact_accessors.FleetError, factory_gh.GhError),
-                )
-            except SystemExit as e:
-                code = e.code
-        if code is None:
-            code = 0
-    finally:
-        sys.argv = argv_saved
-        unpatch(saved_gh, saved_run_git)
-        fc.product_config = saved_product_config
-    return code, out.getvalue(), err.getvalue(), workspace_root
+    with contextlib.ExitStack() as stack:
+        stack.enter_context(mock.patch.multiple(
+            factory_gh, **{name: getattr(rec, name) for name in PATCHED_GH}))
+        stack.enter_context(mock.patch.object(fw, "run_git", rec.run_git))
+        stack.enter_context(mock.patch.object(fc, "product_config", board_stub(boards_by_repo)))
+        result = invoke(
+            lambda: factory_cli.run(
+                "land", land._main,
+                expected=(artifact_accessors.FleetError, factory_gh.GhError),
+            ),
+            argv=["factory_land.py", "--fleet", fleet_path] + list(extra_args),
+        )
+    return result.code or 0, result.out, result.err, workspace_root
 
 
 # ==========================================================================
@@ -269,9 +174,9 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
 
 # (M1) happy path.
 rec = Recorder()
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(M1) exits 0", code == 0, code)
-push_calls = [c for c in rec.git_calls if c[0][0] == "push"]
+push_calls = pushes(rec)
 check("(M1) pushes exactly one branch", len(push_calls) == 1, rec.git_calls)
 check("(M1) push args are --set-upstream origin <branch>",
       push_calls and push_calls[0][0] == ("push", "--set-upstream", "origin", BRANCH),
@@ -279,7 +184,7 @@ check("(M1) push args are --set-upstream origin <branch>",
 expected_ws_path = fc.workspace_path(good_fleet_dict(ws), REPO)
 check("(M1) push runs against workspace_path's cwd",
       push_calls and push_calls[0][1] == expected_ws_path, (push_calls, expected_ws_path))
-pr_create_calls = [c for c in rec.gh_calls if c[0] == "run_gh" and c[1][0][:2] == ("pr", "create")]
+pr_create_calls = pr_creates(rec)
 check("(M1) creates exactly one pull request", len(pr_create_calls) == 1, rec.gh_calls)
 pr_argv = pr_create_calls[0][1][0]
 check("(M1) pr create base is the fleet's default_branch",
@@ -288,7 +193,7 @@ check("(M1) pr create head is the branch",
       "--head" in pr_argv and pr_argv[pr_argv.index("--head") + 1] == BRANCH, pr_argv)
 check("(M1) pr create body contains closes #<n>",
       "--body" in pr_argv and f"closes #{ISSUE}" in pr_argv[pr_argv.index("--body") + 1], pr_argv)
-lookup_calls = [c for c in rec.gh_calls if c[0] == "issue_board_item_id"]
+lookup_calls = calls(rec, "issue_board_item_id")
 check("(M1) issue_board_item_id was called EXACTLY ONCE — the targeted lookup replaces the "
       "whole-board scan (FEAT-13, D-01)", len(lookup_calls) == 1, rec.gh_calls)
 check("(M1) project_items was called ZERO times",
@@ -301,12 +206,12 @@ check("(M1) issue_board_item_id's first argument is explicitly NOT the board-own
       lookup_calls and lookup_calls[0][1][0] != OWNER, lookup_calls)
 check("(M1) issue_board_item_id called with (repo, issue, board_number)",
       lookup_calls and lookup_calls[0][1] == (REPO, ISSUE, BOARD), lookup_calls)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(M1) sets the station to Review", len(field_set_calls) == 1
       and field_set_calls[0][1][4] == "Review", field_set_calls)
 # FIX 2 (FEAT-13 fix01): issue_view is invoked with "state" among the requested fields — without
 # it the closed-issue refusal (M7 below) always reads None and NEVER refuses (total outage).
-issue_view_calls = [c for c in rec.gh_calls if c[0] == "issue_view"]
+issue_view_calls = calls(rec, "issue_view")
 check("(M1) issue_view's requested fields include \"state\"",
       issue_view_calls and "state" in issue_view_calls[0][1][2], issue_view_calls)
 payload = json.loads(out)
@@ -315,9 +220,10 @@ check("(M1) payload url is the created pull request url", payload.get("url") == 
 check("(M1) payload carries repo, issue, branch", payload.get("repo") == REPO
       and payload.get("issue") == ISSUE and payload.get("branch") == BRANCH, payload)
 
+# The M1 run is the happy path; M1-json, M5, M6 and C1 read their evidence from it too.
+happy_rec, happy_code, happy_out = rec, code, out
+
 # (M1-json) the happy path's whole stdout stream is exactly one JSON object.
-rec = Recorder()
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
 try:
     json.loads(out)
     parsed_ok = True
@@ -333,9 +239,9 @@ rec.pr_create_raises = factory_gh.GhError(
     f"{PR_URL}",
     "gh pr create failed", REPO, "n/a",
 )
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(M2) still exits 0", code == 0, code)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(M2) still sets the station", len(field_set_calls) == 1, rec.gh_calls)
 payload = json.loads(out)
 check("(M2) payload carries the existing pr's url", payload.get("url") == PR_URL, payload)
@@ -349,9 +255,9 @@ rec.pr_create_raises = factory_gh.GhError(
     ["pr", "create"], 1, "", "authentication failed, run gh auth login",
     "gh pr create failed", REPO, "run gh auth login",
 )
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(M2b) a non-already-open GhError stays fatal: exits 2", code == 2, code)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(M2b) the station is never set on an unopened pull request", field_set_calls == [],
       rec.gh_calls)
 check("(M2b) stdout empty", out == "", out)
@@ -361,9 +267,9 @@ check("(M2b) stdout empty", out == "", out)
 # recovery note that every step from the push onward is safe to re-run.
 rec = Recorder()
 rec.items = []
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(M2c) a missing board item exits 2, not 0 or 1 (fail-closed on the miss)", code == 2, code)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(M2c) the station is never set when no item was found", field_set_calls == [],
       rec.gh_calls)
 check("(M2c) stdout empty", out == "", out)
@@ -374,13 +280,15 @@ check("(M2c) the pull request WAS already created before the miss was discovered
 # (M3) an issue number whose branch would equal the default branch exits 2, zero calls.
 rec = Recorder()
 weird_default = f"factory/issue-{ISSUE}"
-fleet_dict = good_fleet_dict(tempfile.mkdtemp(prefix="land-ws-"), default_branch=weird_default)
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], fleet_dict=fleet_dict)
+fleet_dict = good_fleet_dict(tempfile.mkdtemp(prefix="land-ws-", dir=TMP.name),
+                            default_branch=weird_default)
+code, out, err, ws = run_main(rec, fleet_dict=fleet_dict)
 check("(M3) exits 2", code == 2, code)
 check("(M3) zero git calls", rec.git_calls == [], rec.git_calls)
 check("(M3) zero gh calls", rec.gh_calls == [], rec.gh_calls)
 check("(M3) stdout empty", out == "", out)
 check("(M3) stderr names the branch", weird_default in err, err)
+guard_code, guard_out, guard_err = code, out, err
 
 # (M4) a repository absent from the fleet exits 2, zero calls.
 rec = Recorder()
@@ -392,8 +300,7 @@ check("(M4) stdout empty", out == "", out)
 check("(M4) stderr names the repository", "acme/other" in err, err)
 
 # (M5) the recorded git argument lists contain no push of the default branch (anti-vacuum).
-rec = Recorder()
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+rec = happy_rec
 check("(M5) at least one git call was recorded (anti-vacuum)", len(rec.git_calls) > 0,
       rec.git_calls)
 default_branch_pushes = [
@@ -404,8 +311,6 @@ check("(M5) no recorded git call pushes the default branch", default_branch_push
       rec.git_calls)
 
 # (M6) the recorded gh argument lists contain no merge subcommand (anti-vacuum).
-rec = Recorder()
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
 check("(M6) at least one gh call was recorded (anti-vacuum)", len(rec.gh_calls) > 0, rec.gh_calls)
 merge_calls = [
     c for c in rec.gh_calls
@@ -419,17 +324,17 @@ check("(M6) no recorded gh call contains a merge subcommand", merge_calls == [],
 # explicit check on the widened issue_view(["title", "state"]) read (REQ-04, D-04).
 rec = Recorder()
 rec.issue_state = "CLOSED"
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(M7) a closed issue exits 2 (refused), not 0", code == 2, code)
 check("(M7) stdout empty", out == "", out)
 check("(M7) stderr names the issue", str(ISSUE) in err, err)
-push_calls = [c for c in rec.git_calls if c[0][0] == "push"]
+push_calls = pushes(rec)
 check("(M7) the push already happened before the closed-issue refusal", len(push_calls) == 1,
       rec.git_calls)
-pr_create_calls = [c for c in rec.gh_calls if c[0] == "run_gh" and c[1][0][:2] == ("pr", "create")]
+pr_create_calls = pr_creates(rec)
 check("(M7) the pull request WAS already created before the closed-issue refusal",
       len(pr_create_calls) == 1, rec.gh_calls)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(M7) the station is never set on a closed issue (field_set_calls == [])",
       field_set_calls == [], rec.gh_calls)
 
@@ -438,30 +343,26 @@ check("(M7) the station is never set on a closed issue (field_set_calls == [])",
 # ==========================================================================
 
 # (C1) happy path's stdout parses as JSON in a single json.loads of the whole stream.
-rec = Recorder()
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
-check("(C1) code is 0", code == 0, code)
+check("(C1) code is 0", happy_code == 0, happy_code)
 try:
-    obj = json.loads(out)
+    obj = json.loads(happy_out)
     ok = isinstance(obj, dict)
 except Exception:
     ok = False
-check("(C1) whole stdout stream is one JSON object", ok, out)
+check("(C1) whole stdout stream is one JSON object", ok, happy_out)
 
 # (C2) the default-branch guard writes nothing to stdout and one stderr line naming the branch.
-rec = Recorder()
-fleet_dict = good_fleet_dict(tempfile.mkdtemp(prefix="land-ws-"), default_branch=weird_default)
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], fleet_dict=fleet_dict)
-check("(C2) exit 2", code == 2, code)
-check("(C2) stdout empty", out == "", out)
-err_lines = [l for l in err.splitlines() if l.strip()]
-check("(C2) exactly one stderr line", len(err_lines) == 1, err)
-check("(C2) that line names the branch", err_lines and weird_default in err_lines[0], err)
+# Same scenario as M3, so it reads M3's run.
+check("(C2) exit 2", guard_code == 2, guard_code)
+check("(C2) stdout empty", guard_out == "", guard_out)
+err_lines = [line for line in guard_err.splitlines() if line.strip()]
+check("(C2) exactly one stderr line", len(err_lines) == 1, guard_err)
+check("(C2) that line names the branch", err_lines and weird_default in err_lines[0], guard_err)
 
 # (C3) a monkeypatched pr-create raising a plain ValueError makes the entry point exit 2, not 1.
 rec = Recorder()
 rec.pr_create_raises = ValueError("boom")
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+code, out, err, ws = run_main(rec)
 check("(C3) exits 2, not 1", code == 2, code)
 check("(C3) stdout empty", out == "", out)
 
@@ -473,14 +374,13 @@ check("(C3) stdout empty", out == "", out)
 # (T04-1) landing repo_a sets the station on A's board with A's review option name, and issues
 # no call against B's board.
 rec = Recorder()
-ws = tempfile.mkdtemp(prefix="land-ws-")
-fleet_dict = two_repo_fleet_dict(ws)
-code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], fleet_dict=fleet_dict)
+fleet_dict = two_repo_fleet_dict(tempfile.mkdtemp(prefix="land-ws-", dir=TMP.name))
+code, out, err, ws = run_main(rec, fleet_dict=fleet_dict)
 check("(T04-1) exits 0", code == 0, code)
-lookup_calls = [c for c in rec.gh_calls if c[0] == "issue_board_item_id"]
+lookup_calls = calls(rec, "issue_board_item_id")
 check("(T04-1) issue_board_item_id called with A's (repo, issue, board_number)",
       lookup_calls and lookup_calls[0][1] == (REPO, ISSUE, BOARD), lookup_calls)
-field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+field_set_calls = calls(rec, "project_field_set")
 check("(T04-1) project_field_set called exactly once", len(field_set_calls) == 1,
       rec.gh_calls)
 check("(T04-1) project_field_set carries A's owner, board number, station_field and "
@@ -503,5 +403,4 @@ check("(T04-1) no gh call of any kind was recorded against B's board number",
               and BOARD_B in c[1] for c in rec.gh_calls),
       rec.gh_calls)
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

@@ -5,6 +5,8 @@ Written against check-state.sh; #1674 converted the checker to Python while this
 open, and a test aimed at a file that no longer exists passes its two "is silent" checks
 vacuously. So the checker's absence is a failure here, never an empty output."""
 
+from unit_support import ROOT
+
 import os
 from pathlib import Path
 import subprocess
@@ -12,13 +14,23 @@ import tarfile
 import sys
 import tempfile
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness_config_support import write_config  # noqa: E402
+from check_support import Checks
+from harness_config_support import write_config
 
-
-ROOT = Path(__file__).resolve().parents[2]
 CHECKER_RELATIVE = Path(".claude/skills/harness/bin/check-state.py")
-FAILURES = []
+C = Checks()
+check = C.check
+
+# (name, notes, expect_report): expect_report asks for an INV-35 line naming #217; otherwise the
+# checker must print no INV-35 line at all.
+CASES = [
+    ("multiline double-quoted #217 is silent",
+     'notes: "close out the fix\n  tracked by #217"\n', False),
+    ("multiline single-quoted #217 is silent",
+     "notes: 'close out the fix\n  tracked by #217'\n", False),
+    ("unquoted notes value reports INV-35 naming #217",
+     "notes: close out #217\n", True),
+]
 
 
 def materialize_checker(directory):
@@ -41,8 +53,6 @@ def materialize_checker(directory):
 
 
 def run_checker(checker, notes):
-    if not checker.is_file():
-        raise SystemExit(f"FAIL - checker missing at {checker}; nothing was tested")
     with tempfile.TemporaryDirectory() as fixture_dir:
         root = Path(fixture_dir)
         feature = root / ".harness/harness/features/FEAT-TEST"
@@ -53,53 +63,28 @@ def run_checker(checker, notes):
             "schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
             "station_only: true\ntasks: []\n" + notes
         )
-        environment = dict(os.environ)
-        environment["HARNESS_PROJECT_DIR"] = str(root)
         result = subprocess.run(
-            ["python3", str(checker)], cwd=root, text=True, env=environment,
+            ["python3", str(checker)], cwd=root, text=True,
+            env={**os.environ, "HARNESS_PROJECT_DIR": str(root)},
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
         )
         return [line for line in result.stdout.splitlines() if "INV-35" in line]
 
 
-def check(name, condition, detail):
-    print(("PASS" if condition else "FAIL") + " - " + name)
-    if not condition:
-        FAILURES.append(name)
-        print("       " + detail[:500])
-
-
 def main():
     with tempfile.TemporaryDirectory() as checker_dir:
         checker = materialize_checker(checker_dir)
-
-        double_lines = run_checker(
-            checker, 'notes: "close out the fix\n  tracked by #217"\n'
-        )
-        check(
-            "multiline double-quoted #217 is silent",
-            not double_lines,
-            "\n".join(double_lines),
-        )
-
-        single_lines = run_checker(
-            checker, "notes: 'close out the fix\n  tracked by #217'\n"
-        )
-        check(
-            "multiline single-quoted #217 is silent",
-            not single_lines,
-            "\n".join(single_lines),
-        )
-
-        unquoted_lines = run_checker(checker, "notes: close out #217\n")
-        check(
-            "unquoted notes value reports INV-35 naming #217",
-            bool(unquoted_lines) and any("#217" in line for line in unquoted_lines),
-            "\n".join(unquoted_lines),
-        )
-
-    return 1 if FAILURES else 0
+        if not checker.is_file():
+            raise SystemExit(f"FAIL - checker missing at {checker}; nothing was tested")
+        for name, notes, expect_report in CASES:
+            lines = run_checker(checker, notes)
+            if expect_report:
+                passed = bool(lines) and any("#217" in line for line in lines)
+            else:
+                passed = not lines
+            check(name, passed, "\n".join(lines))
+    return C.report()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

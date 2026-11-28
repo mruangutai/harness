@@ -4,7 +4,6 @@
 Every valid input comes from the one fixture builder; every invalid one is a valid result with
 one field corrupted, so each refusal row names exactly the rule it breaks.
 """
-import copy
 import json
 import os
 import subprocess
@@ -13,8 +12,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tests"))
+from unit_support import ROOT, TESTS
 from harness_config_support import EXCLUDED_KIND as EXCLUDED, build_config  # noqa: E402
 import artifact_accessors as accessors  # noqa: E402
 
@@ -36,7 +34,7 @@ def prose_free(value):
 
 def corrupt(path, value, base=None):
     """A valid built config with the leaf at `path` replaced (or deleted when value is DELETE)."""
-    document = copy.deepcopy(base if base is not None else build_config())
+    document = base if base is not None else build_config()
     *parents, leaf = path
     node = document
     for key in parents:
@@ -194,7 +192,7 @@ class Refusals(unittest.TestCase):
     def test_each_broken_rule_is_refused_at_its_key_path(self):
         for description, path, value, base in REFUSED:
             with self.subTest(description):
-                document = corrupt(path, value, build_config(base) if base else None)
+                document = corrupt(path, value, build_config(base))
                 with self.assertRaises(accessors.ArtifactAccessError) as caught:
                     load(document)
                 self.assertIn("case:", str(caught.exception))
@@ -239,7 +237,7 @@ class Sources(unittest.TestCase):
 
     def test_cli_prints_the_validated_config(self):
         printed = subprocess.run(
-            [sys.executable, str(ROOT / "tests" / "harness_config_support.py"),
+            [sys.executable, str(TESTS / "harness_config_support.py"),
              "--overrides-json", '{"log_retention_days": 7}'],
             capture_output=True, text=True, check=True).stdout
         self.assertEqual(build_config({"log_retention_days": 7}), json.loads(printed))

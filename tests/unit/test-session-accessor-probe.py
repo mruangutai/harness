@@ -18,27 +18,23 @@ Changing one must not move the other, and both are exercised table by table.
 import importlib.util
 import inspect
 import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from unit_support import ROOT
+from check_support import Checks
+
 PROBE_PATH = ROOT / "tests/manual/probe-omp-session-accessor.py"
 
 spec = importlib.util.spec_from_file_location("probe_omp_session_accessor", PROBE_PATH)
 probe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(probe)
 
-failures = []
+C = Checks()
+check = C.check
 
 ABSENT = object()
 CHILD = "/tmp/s/2026-11-22T10-00-00-000Z_0a1b2c3d-4e5f/Pong.jsonl"
 MAIN = "/tmp/s/2026-11-22T10-00-00-000Z_0a1b2c3d-4e5f.jsonl"
 NUMBERS = {"tokens": 1234, "contextWindow": 200000, "percent": 0.617}
-
-
-def check(name, cond, detail=""):
-    print(f"{'ok  ' if cond else 'FAIL'} {name}" + (f": {detail!r}" if not cond else ""))
-    if not cond:
-        failures.append(name)
 
 
 def row(session, path, usage=NUMBERS, usage_defined=None):
@@ -208,8 +204,7 @@ def main():
     test_tokens_never_reclassify()
     test_scenarios()
     test_one_pattern_no_usage_identity()
-    print(f"{'FAIL' if failures else 'PASS'} - {len(failures)} failing")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":

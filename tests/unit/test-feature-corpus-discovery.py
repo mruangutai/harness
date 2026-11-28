@@ -8,19 +8,13 @@ from git, so a fake would test the fake. Branch claims are pure and take record 
 import inspect
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import feature_corpus as fc  # noqa: E402
-
-ENV = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
-           GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.com",
-           GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@example.com")
+from git_support import checked_git, commit_files, git, init_repo  # noqa: E402
 
 
 def record(fid, branch):
@@ -55,23 +49,20 @@ class BranchClaims(unittest.TestCase):
 
 
 class LandedDiscovery(unittest.TestCase):
+    def _tmp(self, prefix):
+        return os.path.realpath(self.enterContext(
+            tempfile.TemporaryDirectory(prefix=prefix, ignore_cleanup_errors=True)))
+
     def setUp(self):
-        self.root = os.path.realpath(tempfile.mkdtemp(prefix="feature-corpus-"))
-        self.addCleanup(shutil.rmtree, self.root, True)
-        files = {
+        self.root = self._tmp("feature-corpus-")
+        init_repo(self.root, None, git=checked_git)
+        commit_files(self.root, {
             ".harness/team-config.yaml": "teams: {}\n",
             ".harness/harness/features/FEAT-1-a/feature.json":
                 '{"feature_id": "FEAT-1-a", "branch": "feat/FEAT-1-a"}\n',
             ".harness/harness/features/BUG-2-b/notes/deep/n.md": "record-less\n",
             ".harness/kaya/features/FEAT-3-c/feature.json": "{not json\n",
-        }
-        for rel, text in files.items():
-            path = os.path.join(self.root, rel)
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            Path(path).write_text(text)
-        for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "seed"]):
-            subprocess.run(["git", *args], cwd=self.root, env=ENV, check=True,
-                           capture_output=True)
+        }, "seed", git=checked_git)
 
     def test_population_is_every_tracked_directory_by_name(self):
         names = [f"{s}/{i}" for s, i, _p in fc.landed_dirs(self.root)]
@@ -97,8 +88,7 @@ class LandedDiscovery(unittest.TestCase):
         self.assertIsNotNone(by_id["FEAT-3-c"]["error"])
 
     def test_owner_root_of_a_non_checkout_refuses(self):
-        outside = os.path.realpath(tempfile.mkdtemp(prefix="feature-corpus-outside-"))
-        self.addCleanup(shutil.rmtree, outside, True)
+        outside = self._tmp("feature-corpus-outside-")
         with self.assertRaises(fc.CorpusError):
             fc.owner_root(outside)
 
@@ -110,9 +100,8 @@ class LandedDiscovery(unittest.TestCase):
             fc.owner_root(broken)
 
     def test_an_unborn_head_has_landed_nothing(self):
-        fresh = os.path.realpath(tempfile.mkdtemp(prefix="feature-corpus-unborn-"))
-        self.addCleanup(shutil.rmtree, fresh, True)
-        subprocess.run(["git", "init", "-q"], cwd=fresh, env=ENV, check=True)
+        fresh = self._tmp("feature-corpus-unborn-")
+        git(fresh, "init", "-q")
         os.makedirs(os.path.join(fresh, ".harness/harness/features/FEAT-1-a"))
         self.assertEqual(fc.landed_dirs(fresh), [])
 

@@ -20,22 +20,26 @@ import re
 import sys
 import tempfile
 from pathlib import Path
+from unittest import mock
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(ROOT / "tests"))
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
+import artifact_accessors  # noqa: E402
+from check_support import Checks  # noqa: E402
 from feature_record import binding as record_binding, evidence as record_evidence  # noqa: E402
 from feature_record import schema as record_schema  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
-failures = []
+C = Checks()
+check = C.check
 
 
-def check(name, ok, detail=""):
-    print("PASS" if ok else "FAIL", name, detail if not ok else "")
-    if not ok:
-        failures.append(name)
+def raises(call, exc):
+    """True when call() raises exc."""
+    try:
+        call()
+    except exc:
+        return True
+    return False
 
 
 def feat_dir(tmp, name, trailing_slash=False):
@@ -121,29 +125,35 @@ allowed = [(name, entry) for name in PROBE_IDS for entry in (None, "recovery-req
 check("BE-10 no receipt allows no merge for any feature id", allowed == [],
       f"{len(allowed)} allowed, e.g. {allowed[:3]}")
 
-# BE-03: a feature with no plan.yaml returns recover-terminal.
-with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "FEAT-9002-fixture-no-plan")
-    got = record_schema.recovery_command_for(d)
-    check("BE-03 a feature with no plan.yaml returns recover-terminal",
-          got == "recover-terminal", repr(got))
+# One feature directory per case, each with its own plan (None: no plan.yaml; str: raw text).
+# BE-03: no plan.yaml. BE-04: a plan.yaml that does not parse. BE-06: plan status done,
+# isolated from the any()-task-done trigger by giving the one task a non-done status.
+# BE-09 (below, after BE-08) keeps its place in the report order.
+_SINGLE_PLAN_CASES = (
+    ("BE-03 a feature with no plan.yaml returns recover-terminal",
+     "FEAT-9002-fixture-no-plan", None, "recover-terminal"),
+    ("BE-04 a feature whose plan.yaml does not parse returns recover-terminal",
+     "FEAT-9003-fixture-bad-yaml",
+     "status: building\ntasks: [\n  - unterminated flow sequence\n", "recover-terminal"),
+    ("BE-06 plan status done returns recover-terminal",
+     "FEAT-9004-fixture-plan-done", ("done", [{"id": "T-01", "status": "building"}]),
+     "recover-terminal"),
+)
 
-# BE-04: a feature whose plan.yaml does not parse returns recover-terminal.
-with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "FEAT-9003-fixture-bad-yaml")
-    with open(os.path.join(d, "plan.yaml"), "w", encoding="utf-8") as f:
-        f.write("status: building\ntasks: [\n  - unterminated flow sequence\n")
-    got = record_schema.recovery_command_for(d)
-    check("BE-04 a feature whose plan.yaml does not parse returns recover-terminal",
-          got == "recover-terminal", repr(got))
 
-# BE-06: plan status done returns recover-terminal, isolated from the any()-task-done trigger
-# by giving the one task a non-done status.
-with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "FEAT-9004-fixture-plan-done")
-    write_plan(d, "done", [{"id": "T-01", "status": "building"}])
+def single_plan_case(tmp, name, plan, expected, label):
+    d = feat_dir(tmp, name)
+    if isinstance(plan, str):
+        Path(d, "plan.yaml").write_text(plan, encoding="utf-8")
+    elif plan is not None:
+        write_plan(d, *plan)
     got = record_schema.recovery_command_for(d)
-    check("BE-06 plan status done returns recover-terminal", got == "recover-terminal", repr(got))
+    check(label, got == expected, repr(got))
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    for label, name, plan, expected in _SINGLE_PLAN_CASES:
+        single_plan_case(tmp, name, plan, expected, label)
 
 # BE-08: a plan at status building with THREE tasks, none carrying a status of done, returns
 # open; and the SAME three-task plan with only the LAST task carrying status done returns
@@ -163,11 +173,8 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # BE-09: plan status building with an empty tasks list returns open.
 with tempfile.TemporaryDirectory() as tmp:
-    d = feat_dir(tmp, "FEAT-9007-fixture-empty-tasks")
-    write_plan(d, "building", [])
-    got = record_schema.recovery_command_for(d)
-    check("BE-09 plan status building with an empty tasks list returns open",
-          got == "open", repr(got))
+    single_plan_case(tmp, "FEAT-9007-fixture-empty-tasks", ("building", []), "open",
+                     "BE-09 plan status building with an empty tasks list returns open")
 
 # A plan-flow SIMPLIFY run an engineering lead hosts before signature grades a specification
 # (code_grade n_a): recovery stays open. An engineering run that reviewed code is started work.
@@ -199,25 +206,15 @@ check("FEAT-71 a runs entry without agent is refused at index 0 for every featur
 # FEAT-64 (SC-03): the plan read is a TYPED boundary. A plan that does not parse is
 # recover-terminal (harness_yaml.YamlParseError, the loader's own class); an unrelated
 # programming defect in the loader must escape, never be read as "the plan is unusable".
-import artifact_accessors  # noqa: E402
 with tempfile.TemporaryDirectory() as tmp:
     d = feat_dir(tmp, "FEAT-9010-fixture-bad-yaml")
     Path(d, "plan.yaml").write_text("schema: plan/1\ntasks: [\n", encoding="utf-8")
     got = record_schema.recovery_command_for(d)
     check("FEAT-64 BE-11 a plan.yaml that does not parse is recover-terminal",
           got == "recover-terminal", repr(got))
-    _real = artifact_accessors.load_plan
-    def _boom(path):
-        raise RuntimeError("unrelated defect")
-    artifact_accessors.load_plan = _boom
-    try:
-        try:
-            record_schema.recovery_command_for(d)
-            escaped = False
-        except RuntimeError:
-            escaped = True
-    finally:
-        artifact_accessors.load_plan = _real
+    with mock.patch.object(artifact_accessors, "load_plan",
+                           side_effect=RuntimeError("unrelated defect")):
+        escaped = raises(lambda: record_schema.recovery_command_for(d), RuntimeError)
     check("FEAT-64 BE-12 an unrelated RuntimeError in the plan loader escapes recovery_command_for",
           escaped)
 
@@ -226,41 +223,36 @@ bound = {"repo": "org/product"}
 check("a bound feature's opened mapping without github.repo is not repository provenance",
       callable(allows) and not allows(
           {"factory": bound, "github": {"parent": 7, "build_entry": "opened"}}, "org/product"))
-if callable(allows):
-    for name, doc, expected in (
-        ("matching opened generation",
-         {"github": {"repo": "org/product", "parent": 7, "build_entry": "opened"}}, True),
-        ("wrong repository",
-         {"github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}}, False),
-        ("bound wrong repository",
-         {"factory": bound, "github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}},
-         False),
-        ("legacy unbound opened, created by the owner binding that still resolves it",
-         {"github": {"parent": 7, "build_entry": "opened"}}, True),
-        ("legacy unbound recovered-terminal",
-         {"github": {"milestone": 3, "parent": 7, "build_entry": "recovered-terminal"}}, True),
-        ("unresolved owner repository", {"github": {"parent": 7, "build_entry": "opened"}}, None),
-        ("legacy unbound sync-off", {"github": {"build_entry": "not-applicable"}}, True),
-    ):
-        repo = None if expected is None else "org/product"
-        check(f"repository-aware merge receipt: {name}",
-              allows(doc, repo) is bool(expected))
+# (name, doc, bound repo passed to the gate, expected verdict)
+_MERGE_RECEIPT_CASES = (
+    ("matching opened generation",
+     {"github": {"repo": "org/product", "parent": 7, "build_entry": "opened"}}, "org/product", True),
+    ("wrong repository",
+     {"github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}}, "org/product", False),
+    ("bound wrong repository",
+     {"factory": bound, "github": {"repo": "org/owner", "parent": 7, "build_entry": "opened"}},
+     "org/product", False),
+    ("legacy unbound opened, created by the owner binding that still resolves it",
+     {"github": {"parent": 7, "build_entry": "opened"}}, "org/product", True),
+    ("legacy unbound recovered-terminal",
+     {"github": {"milestone": 3, "parent": 7, "build_entry": "recovered-terminal"}},
+     "org/product", True),
+    ("unresolved owner repository", {"github": {"parent": 7, "build_entry": "opened"}}, None, False),
+    ("legacy unbound sync-off", {"github": {"build_entry": "not-applicable"}}, "org/product", True),
+)
+for name, doc, repo, expected in _MERGE_RECEIPT_CASES:
+    check(f"repository-aware merge receipt: {name}", allows(doc, repo) is expected)
 
 resolve = getattr(record_binding, "resolve_binding", None)
 check("the shared binding resolver exists", callable(resolve))
-if callable(resolve):
-    with tempfile.TemporaryDirectory() as tmp:
-        directory = Path(tmp, ".harness")
-        directory.mkdir()
-        write_config(Path(directory, "harness.json"))
-        check("unbound sync-off retains legal null board", resolve({}, tmp) == (None, None, {}))
-        for malformed in ("", "owner", "../owner/product", 12, False):
-            try:
-                resolve({"factory": {"repo": malformed}}, tmp)
-            except artifact_accessors.FleetError:
-                refused = True
-            else:
-                refused = False
-            check(f"invalid authoritative binding refuses before owner fallback: {malformed!r}", refused)
+with tempfile.TemporaryDirectory() as tmp:
+    directory = Path(tmp, ".harness")
+    directory.mkdir()
+    write_config(Path(directory, "harness.json"))
+    check("unbound sync-off retains legal null board", resolve({}, tmp) == (None, None, {}))
+    for malformed in ("", "owner", "../owner/product", 12, False):
+        check(f"invalid authoritative binding refuses before owner fallback: {malformed!r}",
+              raises(lambda: resolve({"factory": {"repo": malformed}}, tmp),
+                     artifact_accessors.FleetError))
 
-sys.exit(1 if failures else 0)
+sys.exit(C.report())

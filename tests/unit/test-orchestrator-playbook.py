@@ -8,7 +8,7 @@ REQ-02 is met by the loop's own "There is no waiting anywhere in this loop". The
 retired-wording absences below are what still guards the direction of travel.
 
 Stdlib only, no subprocess: reads the playbook text straight off disk from PLAYBOOK_PATH
-(default .agents/skills/harness/SKILL.md), so the same seven assertions can be pointed at
+(default .agents/skills/harness/SKILL.md), so the same assertions can be pointed at
 an older copy (e.g. a `git show <rev>:...SKILL.md` extract) to prove they discriminate.
 
 Case 6 is worded as a PRESENCE assertion, not a pure negative, on purpose. The intent's
@@ -18,31 +18,18 @@ from the file — which is exactly the state at 569d417 (measured: 0 occurrences
 1 at current SKILL.md). Pairing the clean-line requirement with a presence requirement is
 what keeps the case a real discriminator rather than a check that could never have failed.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT
+
 import os
 import re
 import sys
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
-DEFAULT_PLAYBOOK = os.path.join(ROOT, ".agents", "skills", "harness", "SKILL.md")
+from check_support import Checks
 
-failures = []
+DEFAULT_PLAYBOOK = str(ROOT / ".agents" / "skills" / "harness" / "SKILL.md")
 
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def read_playbook():
@@ -55,16 +42,12 @@ REFUSAL_WORDS_RE = re.compile(r"refuse|refused|blocked|prevented", re.IGNORECASE
 CONTEXT_WARN_TOKEN = "orchestrator_context_warn_tokens"
 
 
-def case1_absence_receive_team_digest(text):
-    literal = "Receive the team digest"
-    check("case1_absence_receive_the_team_digest", literal not in text,
-          f"found the retired literal {literal!r}")
-
-
-def case2_absence_loop_until_done(text):
-    literal = "Loop until DONE"
-    check("case2_absence_loop_until_done", literal not in text,
-          f"found the retired literal {literal!r}")
+def literal_case(text, name, literal, present):
+    """One literal that must be present (True) or absent (False) anywhere in the playbook."""
+    if present:
+        check(name, literal in text, f"literal {literal!r} not found")
+    else:
+        check(name, literal not in text, f"found the retired literal {literal!r}")
 
 
 def case4_host_neutral_context_signal(text):
@@ -122,18 +105,6 @@ def case6_context_warn_tokens_never_paired_with_refusal(text):
           f"lines pairing {CONTEXT_WARN_TOKEN!r} with a refusal word: {tainted_lines}")
 
 
-def case7_absence_record_your_phase_in(text):
-    literal = "Record your phase in"
-    check("case7_absence_record_your_phase_in", literal not in text,
-          f"found the retired literal {literal!r}")
-
-
-def case8_presence_record_your_status_in(text):
-    literal = "Record your station in"
-    check("case8_presence_record_your_status_in", literal in text,
-          f"literal {literal!r} not found")
-
-
 def case9_plan_yaml_write_is_a_verb_not_an_edit(text):
     """(9) The playbook names `set-task-station` and never sends the orchestrator to an editor.
 
@@ -188,21 +159,16 @@ def main():
     text, path = read_playbook()
     print(f"reading playbook from {path}")
 
-    case1_absence_receive_team_digest(text)
-    case2_absence_loop_until_done(text)
+    literal_case(text, "case1_absence_receive_the_team_digest", "Receive the team digest", False)
+    literal_case(text, "case2_absence_loop_until_done", "Loop until DONE", False)
     case4_host_neutral_context_signal(text)
     case5_presence_context_warn_tokens(text)
     case6_context_warn_tokens_never_paired_with_refusal(text)
-    case7_absence_record_your_phase_in(text)
-    case8_presence_record_your_status_in(text)
+    literal_case(text, "case7_absence_record_your_phase_in", "Record your phase in", False)
+    literal_case(text, "case8_presence_record_your_status_in", "Record your station in", True)
     case9_plan_yaml_write_is_a_verb_not_an_edit(text)
     case10_blocking_host_supervision(text)
-
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":

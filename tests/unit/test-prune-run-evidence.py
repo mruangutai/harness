@@ -13,6 +13,8 @@ offender (#2399). Fixtures are real git repositories ignoring only `runs/*/ui/**
 PRUNE_RUN_EVIDENCE_BIN overrides the subject so the regressions can be proven RED against a
 reverted copy of the pruner."""
 import ast
+import contextlib
+import functools
 import hashlib
 import json
 import os
@@ -23,13 +25,14 @@ import tempfile
 import textwrap
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(ROOT / "tests"))
+from unit_support import ROOT, BIN
+from check_support import Checks  # noqa: E402
+from git_support import git  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 TOOL = Path(os.environ.get("PRUNE_RUN_EVIDENCE_BIN") or BIN / "prune-run-evidence.py")
 CHECK_STATE = BIN / "check-state.py"
-FAILURES = []
+C = Checks()
+check = C.check
 PIN = "f" * 40
 RUNS = [
     ("build-c0-eng", "PASS", "a" * 40),
@@ -47,13 +50,6 @@ RUNS = [
 ]
 EXPECTED_KEPT = ["fix-c5-validator", "simplify-eng", "validate-c2-validator"]
 ALL_RUNS = sorted(r for r, _v, _s in RUNS)
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL") + " - " + name)
-    if not condition:
-        FAILURES.append(name)
-        print("       " + detail[:500])
-
 
 def scrubbed_env():
     return {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
@@ -84,12 +80,6 @@ def hooked_tool(root, log, *args):
     env["PRUNE_SUBPROCESS_LOG"] = str(log)
     return subprocess.run([sys.executable, "-c", NO_SUBPROCESS, str(TOOL), "--root", str(root), *args],
                           capture_output=True, text=True, env=env)
-
-
-def git(root, *args):
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(root), *args],
-                          capture_output=True, env=env, check=True).stdout
 
 
 def checkout(root):
@@ -297,7 +287,7 @@ def evidence_feature(root):
 
 def evidence_refused(root, feat, missing):
     files, index = tree_bytes(feat), index_bytes(root)
-    for label, args in (("prune", ()), ("dry-run", ("--dry-run",))):
+    for label, args in MODES:
         refused = tool(root, "--feature", "FEAT-9-thing", *args)
         check(f"{label} refuses with exit 2 naming every missing cycle_evidence path",
               refused.returncode == 2 and all(p in refused.stderr for p in missing), f"rc={refused.returncode} {refused.stderr}")
@@ -333,12 +323,24 @@ UNREADABLE = ["runs/build-c0-eng/qa", "runs/validate-c2-validator/qa"]
 
 def unreadable_checks(root, feat):
     files, index = tree_bytes(feat / "runs" / "fix-c3-eng" / "ui"), index_bytes(root)
-    for label, args in (("dry-run", ("--dry-run",)), ("prune", ())):
+    for label, args in MODES:
         failed = tool(root, "--feature", "FEAT-9-thing", *args)
         check(f"{label} fails with exit 1 naming every unreadable directory under a recorded run",
               failed.returncode == 1 and all(p in failed.stderr for p in UNREADABLE), f"rc={failed.returncode} {failed.stderr}")
         check(f"a {label} over unreadable directories changes no index byte and removes no ui/",
               index_bytes(root) == index and tree_bytes(feat / "runs" / "fix-c3-eng" / "ui") == files)
+
+
+@contextlib.contextmanager
+def unreadable(dirs):
+    """chmod 000 each of dirs, yield whether that took effect (False for root), restore 0o755."""
+    for directory in dirs:
+        directory.chmod(0)
+    try:
+        yield not os.access(dirs[0], os.R_OK)
+    finally:
+        for directory in dirs:
+            directory.chmod(0o755)
 
 
 def unreadable_cases():
@@ -347,17 +349,11 @@ def unreadable_cases():
         root = Path(tmp)
         checkout(root)
         feat = records_feature(root)
-        dirs = [feat / p for p in UNREADABLE]
-        for qa in dirs:
-            qa.chmod(0)
-        try:
-            if os.access(dirs[0], os.R_OK):
+        with unreadable([feat / p for p in UNREADABLE]) as effective:
+            if not effective:
                 print("SKIP - unreadable subtree: chmod 000 has no effect for this user (root?)")
                 return
             unreadable_checks(root, feat)
-        finally:
-            for qa in dirs:
-                qa.chmod(0o755)
 
 
 UNREADABLE_UI = ["runs/fix-c3-eng/ui/evidence", "runs/fix-c5-eng/ui", "runs/validate-c2-validator/ui/evidence"]
@@ -396,17 +392,11 @@ def unreadable_ui_cases():
         root.mkdir()
         feat = tracked_repo(root)
         before = tree_bytes(feat)
-        dirs = [feat / p for p in UNREADABLE_UI]
-        for directory in dirs:
-            directory.chmod(0)
-        try:
-            if os.access(dirs[0], os.R_OK):
+        with unreadable([feat / p for p in UNREADABLE_UI]) as effective:
+            if not effective:
                 print("SKIP - unreadable ui/: chmod 000 has no effect for this user (root?)")
                 return
             unreadable_ui_checks(root, feat)
-        finally:
-            for directory in dirs:
-                directory.chmod(0o755)
         check("refused prunes over unreadable ui/ directories leave every feature file byte-identical",
               tree_bytes(feat) == before)
 
@@ -540,8 +530,8 @@ def refusal_cases(root):
     refused = tool(other, "--feature", "FEAT-9-thing")
     untouched = (nopin / "runs" / "build-eng" / "ui").exists()
     check("refuses the placeholder review_sha 'none' — nothing shipped, nothing pruned", refused.returncode == 2 and untouched, refused.stderr)
-    empty = feature(Path(tempfile.mkdtemp()), [("build-eng", "PASS", "b" * 40)], review_sha="")
-    refused_empty = tool(empty.parents[3], "--feature", "FEAT-9-thing")
+    empty = feature(root / "empty", [("build-eng", "PASS", "b" * 40)], review_sha="")
+    refused_empty = tool(root / "empty", "--feature", "FEAT-9-thing")
     check("refuses an empty review_sha", refused_empty.returncode == 2 and (empty / "runs" / "build-eng" / "ui").exists(), refused_empty.stderr)
     lookup_refusal_cases(root)
     duplicate_key_case(root)
@@ -636,6 +626,12 @@ DOCS = ROOT / ".harness" / "harness" / "docs"
 SHIP = ROOT / ".omp" / "commands" / "harness-ship.md"
 
 
+@functools.lru_cache(maxsize=None)
+def read(path):
+    """A source file's text, read once per run however many surfaces scan it."""
+    return Path(path).read_text(encoding="utf-8")
+
+
 def claims(text):
     """Forbidden phrases in `text`, in any letter case, matched across line wraps."""
     joined = " ".join(text.split())
@@ -690,27 +686,27 @@ def current_texts():
     """The pruner, this file and harness-ship.md whole; in the decision documents, the surfaces T-01
     owns (DEC-238 and its index row) plus DEC-257 and its row, DEC-257 exempt only while it is
     byte-identical to DEC_257. Other decisions are not T-01's text and are not scanned."""
-    decisions = (DOCS / "DECISIONS.md").read_text(encoding="utf-8")
-    index = (DOCS / "DECISIONS-INDEX.md").read_text(encoding="utf-8")
+    decisions = read(DOCS / "DECISIONS.md")
+    index = read(DOCS / "DECISIONS-INDEX.md")
     dec_257 = section(decisions, "## DEC-257 ", "\n## DEC-")
     return {
-        str(TOOL): TOOL.read_text(encoding="utf-8"),
+        str(TOOL): read(TOOL),
         "tests/unit/test-prune-run-evidence.py": test_text(),
         "DECISIONS.md DEC-238": section(decisions, "## DEC-238 ", "\n## DEC-"),
         "DECISIONS.md DEC-257": "" if dec_257 == DEC_257 else dec_257,
         "DECISIONS-INDEX.md DEC-238 and DEC-257 rows": section(index, "\n- DEC-238 @", "\n") + section(index, "\n- DEC-257 @", "\n"),
-        "harness-ship.md": SHIP.read_text(encoding="utf-8"),
+        "harness-ship.md": read(SHIP),
     }
 
 
 def restoration_errors():
-    decisions = (DOCS / "DECISIONS.md").read_text(encoding="utf-8")
+    decisions = read(DOCS / "DECISIONS.md")
     bullet = section(decisions, "- **Ship keeps the record and drops the rest.**", "\n- **")
     bad = [] if bullet == restored(SHIP_BULLET) else ["DEC-238 ship bullet text"]
     generated = subprocess.run([sys.executable, str(BIN / "gen-decisions-index.py"), "--stdout"],
                                capture_output=True, text=True, cwd=ROOT, env=scrubbed_env())
-    bad += [] if generated.stdout == (DOCS / "DECISIONS-INDEX.md").read_text(encoding="utf-8") else ["stale DECISIONS-INDEX.md"]
-    text = SHIP.read_text(encoding="utf-8")
+    bad += [] if generated.stdout == read(DOCS / "DECISIONS-INDEX.md") else ["stale DECISIONS-INDEX.md"]
+    text = read(SHIP)
     paragraph = section(text + "\n", "It keeps every validator-squad validate or fix run", "\n\n")  # ends at a blank line or EOF
     bad += [] if paragraph == restored(SHIP_PARAGRAPH) else ["ship prune paragraph text"]
     order = [text.find(marker) for marker in (
@@ -725,7 +721,7 @@ def five_file_cases():
     """No forbidden claim, in any case, in the five files' current text (current_texts), the restored
     surfaces equal their 5e51124e text plus the one refusal sentence exactly, and the subject launches nothing."""
     bad = [f"{name}: {phrase}" for name, text in current_texts().items() for phrase in claims(text)]
-    bad += pruner_claims(TOOL.read_text(encoding="utf-8")) + restoration_errors()
+    bad += pruner_claims(read(TOOL)) + restoration_errors()
     check("five-file current claims and historical restoration", not bad, str(bad))
 
 
@@ -745,8 +741,7 @@ def main():
     unreadable_cases()
     unreadable_ui_cases()
     five_file_cases()
-    print(f"{len(FAILURES)} failure(s)" if FAILURES else "all checks passed")
-    return 1 if FAILURES else 0
+    return C.report()
 
 
 if __name__ == "__main__":

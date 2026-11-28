@@ -20,14 +20,13 @@ import contextlib
 import importlib.util
 import io
 import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN))
+from unit_support import BIN
+
+from check_support import Checks  # noqa: E402
 
 import plan_merge  # noqa: E402,F401  the package must be importable before its stations module
 
@@ -37,13 +36,8 @@ stations = importlib.util.module_from_spec(_spec)
 sys.modules["plan_merge.stations"] = stations
 _spec.loader.exec_module(stations)
 
-failures = []
-
-
-def check(name, ok, detail=""):
-    print("PASS" if ok else "FAIL", name, detail if not ok else "")
-    if not ok:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 APPROVAL = ("approval:\n  date: '2026-11-22'\n  approved_by: Fixture Signer\n"
@@ -71,14 +65,15 @@ def set_station(plan_path, task, station):
     return code, out.getvalue(), err.getvalue()
 
 
+@contextlib.contextmanager
 def fixture(text=PLAN):
-    """(root, plan path) for a fresh plan under a features directory the guard accepts."""
-    root = Path(tempfile.mkdtemp(prefix="bug2420-"))
-    feature = root / ".harness" / "harness" / "features" / "FEAT-99-fixture"
-    feature.mkdir(parents=True)
-    plan = feature / "plan.yaml"
-    plan.write_bytes(text.encode("utf-8"))
-    return root, plan
+    """The plan path of a fresh plan under a features directory the guard accepts; removed after."""
+    with tempfile.TemporaryDirectory(prefix="bug2420-") as root:
+        feature = Path(root) / ".harness" / "harness" / "features" / "FEAT-99-fixture"
+        feature.mkdir(parents=True)
+        plan = feature / "plan.yaml"
+        plan.write_bytes(text.encode("utf-8"))
+        yield plan
 
 
 def plan_bytes(plan):
@@ -103,66 +98,52 @@ ROWS = (
 
 
 def case_station_rows():
+    """Run every row once; returns {task: (stderr, file after)} for the cases that reuse a run."""
+    runs = {}
     for row, task, station, code, expected, needles in ROWS:
-        root, plan = fixture()
-        try:
+        with fixture() as plan:
             rc, out, err = set_station(plan, task, station)
             after = plan_bytes(plan)
-            check(f"{row}: exit {code}", rc == code, f"rc={rc} out={out!r} err={err!r}")
-            check(f"{row}: the whole file is exactly the expected bytes", after == expected,
-                  repr(after))
-            check(f"{row}: reports its outcome", all(n in out + err for n in needles),
-                  repr(out + err))
-            check(f"{row}: prints APPLIED only on success", ("APPLIED" in out) == (code == 0),
-                  repr(out))
-        finally:
-            shutil.rmtree(root, ignore_errors=True)
+        runs[task] = (err, after)
+        check(f"{row}: exit {code}", rc == code, f"rc={rc} out={out!r} err={err!r}")
+        check(f"{row}: the whole file is exactly the expected bytes", after == expected,
+              repr(after))
+        check(f"{row}: reports its outcome", all(n in out + err for n in needles),
+              repr(out + err))
+        check(f"{row}: prints APPLIED only on success", ("APPLIED" in out) == (code == 0),
+              repr(out))
+    return runs
 
 
-def case_first_station_lands_on_the_task_itself():
+def case_first_station_lands_on_the_task_itself(runs):
     """The inserted line belongs to T-01, not to its nested verify prose or to T-02."""
-    root, plan = fixture()
-    try:
-        set_station(plan, "T-01", "building")
-        lines = plan_bytes(plan).splitlines()
-        t01 = lines.index("- id: T-01")
-        check("the first station sits inside T-01's own mapping, before T-02",
-              "  status: building" in lines[t01:lines.index("- id: T-02")], repr(lines))
-        check("T-01's verify prose keeps its own `status: prose` line",
-              "    status: prose" in lines, repr(lines))
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+    lines = runs["T-01"][1].splitlines()
+    t01 = lines.index("- id: T-01")
+    check("the first station sits inside T-01's own mapping, before T-02",
+          "  status: building" in lines[t01:lines.index("- id: T-02")], repr(lines))
+    check("T-01's verify prose keeps its own `status: prose` line",
+          "    status: prose" in lines, repr(lines))
 
 
-def case_absent_task_message_is_about_absence():
+def case_absent_task_message_is_about_absence(runs):
     """The refusal names absence and the ids present, never a missing status field."""
-    root, plan = fixture()
-    try:
-        _rc, _out, err = set_station(plan, "T-09", "building")
-        check("the absent-task refusal never blames a status line", "status" not in err.lower(),
-              repr(err))
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+    err = runs["T-09"][0]
+    check("the absent-task refusal never blames a status line", "status" not in err.lower(),
+          repr(err))
 
 
 def case_signed_approval_survives_the_first_station():
     """No re-sign: the insert succeeds and the approval block is byte-identical."""
-    root, plan = fixture(PLAIN)
-    try:
+    with fixture(PLAIN) as plan:
         rc, _out, _err = set_station(plan, "T-01", "building")
         after = plan_bytes(plan)
-        check("the first-station insert on a signed plan succeeds", rc == 0, f"rc={rc}")
-        check("the signed approval block is byte-identical after the insert",
-              rc == 0 and APPROVAL in after and after.count("status: approved") == 1, after)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+    check("the first-station insert on a signed plan succeeds", rc == 0, f"rc={rc}")
+    check("the signed approval block is byte-identical after the insert",
+          rc == 0 and APPROVAL in after and after.count("status: approved") == 1, after)
 
 
-for case in (case_station_rows, case_first_station_lands_on_the_task_itself,
-             case_absent_task_message_is_about_absence,
-             case_signed_approval_survives_the_first_station):
-    case()
-
-print("FAIL test-plan-merge-first-station.py" if failures
-      else "PASS test-plan-merge-first-station.py")
-sys.exit(1 if failures else 0)
+runs = case_station_rows()
+case_first_station_lands_on_the_task_itself(runs)
+case_absent_task_message_is_about_absence(runs)
+case_signed_approval_survives_the_first_station()
+sys.exit(C.report())

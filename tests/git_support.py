@@ -1,12 +1,27 @@
-"""git_support.py — real-git fixture primitives shared by integration tests.
+"""git_support.py — real-git fixture primitives shared by unit and integration tests.
 
-Every primitive runs git through a caller-chosen `git(args, cwd)` callable. The default,
-`quiet_git`, captures output and never checks the exit code — the policy every migrated caller
-had before. A caller that runs git loudly (test-hooks-install.py's `_git`) passes its own.
+Two ways to run git, each with its exit-code policy explicit:
+
+    git(cwd, *args, check=True) -> CompletedProcess (text)
+        Runs under ENV, the isolated environment: system and global git config disabled, a fixed
+        author and committer identity, every inherited GIT_* variable dropped. check=True raises
+        AssertionError naming the command on a non-zero exit; check=False never checks.
+    quiet_git(args, cwd) / checked_git(args, cwd)
+        The `git=` callables the primitives below accept. quiet_git inherits os.environ and never
+        checks the exit code (the default, the policy the integration callers were written
+        against). checked_git is git(cwd, *args) above: isolated and raising, for a caller whose
+        fixture must not fail silently.
+
+Primitives, each taking `git=quiet_git`: init_repo, commit_files, commit_all, commit_feature,
+add_worktree, plus feature_rel and plan_text. IDENTITY and MAINTENANCE_OFF are config pairs.
 
 Nothing here picks a default branch, maintenance setting, file, or commit message on a caller's
 behalf: `init_repo` takes the branch (None leaves git's own default), and the seed file,
 feature layout, plan text, and message are all supplied by the caller or spelled at its site.
+
+Import from a unit file:        from unit_support import ROOT   (puts tests/ on sys.path)
+                                from git_support import checked_git, init_repo, commit_files
+Import from an integration file: put tests/ (the parent of tests/integration) on sys.path first.
 """
 import json
 import os
@@ -16,8 +31,36 @@ IDENTITY = ("t@example.com", "t")
 MAINTENANCE_OFF = (("maintenance.auto", "false"), ("gc.auto", "0"))
 
 
+def _isolated_env():
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    env.update({
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
+    })
+    return env
+
+
+ENV = _isolated_env()
+
+
+def git(cwd, *args, check=True):
+    """Run git in `cwd` under the isolated environment; returns the CompletedProcess."""
+    proc = subprocess.run(["git", *args], cwd=cwd, env=ENV, capture_output=True, text=True)
+    if check and proc.returncode != 0:
+        raise AssertionError(f"git {' '.join(args)} in {cwd} exited {proc.returncode}: "
+                             f"{proc.stderr.strip()}")
+    return proc
+
+
 def quiet_git(args, cwd):
     return subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True)
+
+
+def checked_git(args, cwd):
+    """The loud `git=` callable: isolated environment, AssertionError on a non-zero exit."""
+    return git(cwd, *args)
 
 
 def init_repo(path, branch, identity=IDENTITY, config=(), git=quiet_git):

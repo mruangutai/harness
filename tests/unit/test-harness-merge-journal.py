@@ -19,14 +19,15 @@ import sys
 import tempfile
 from unittest.mock import patch
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN_DIR)
+from unit_support import BIN
 
 import harness_merge  # noqa: E402
+from check_support import Checks  # noqa: E402
 
-RESULTS = []
+C = Checks()
+check = C.check
+# One root for every case's own mkdtemp() directory, removed when the run exits.
+TMP = tempfile.TemporaryDirectory(prefix="merge-journal-")
 SUFFIX = ".harness-merge.journal"
 SCHEMA = "harness-merge-journal/1"
 PLAN = "plan.yaml"
@@ -34,11 +35,6 @@ LEDGER = "feature.json"
 P0, P1, P2 = b"plan: base\n", b"plan: amended\n", b"plan: amended again\n"
 S0, S1, S2 = b'{"ledger": []}\n', b'{"ledger": ["a"]}\n', b'{"ledger": ["a", "b"]}\n'
 MINE = b"# caller's own change\n"
-
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
-    print(("PASS" if ok else "FAIL") + f" - {name}" + (f" ({detail})" if detail and not ok else ""))
 
 
 # ---- fixtures ------------------------------------------------------------------------------
@@ -83,7 +79,7 @@ def put_journal(d, members):
 
 
 def pair_dir(plan, ledger, members=None):
-    d = tempfile.mkdtemp()
+    d = tempfile.mkdtemp(dir=TMP.name)
     write(os.path.join(d, PLAN), plan)
     write(os.path.join(d, LEDGER), ledger)
     if members:
@@ -92,6 +88,7 @@ def pair_dir(plan, ledger, members=None):
 
 
 J1 = [(PLAN, P0, P1), (LEDGER, S0, S1)]
+TRUNCATED = journal_bytes(J1)[: len(journal_bytes(J1)) // 2]
 
 
 def outcome(fn, *args, **kwargs):
@@ -108,6 +105,10 @@ def outcome(fn, *args, **kwargs):
 
 def refused(result, code, marker):
     return result[0] == "refusal" and result[1] == code and marker in result[2]
+
+
+def raised(result, name):
+    return result[0] == "error" and result[1].startswith(name + ":")
 
 
 def failing_replace(target):
@@ -136,11 +137,11 @@ def acquire_hook(lock_path, mutate):
     return wrapper, fired
 
 
-def appending(seen=None, extra=MINE):
+def appending(seen=None):
     def transform(base):
         if seen is not None:
             seen.append(base)
-        return (base or b"") + extra
+        return (base or b"") + MINE
     return transform
 
 
@@ -219,10 +220,10 @@ def case_pair_two_directories():
     _, _, other_ledger = pair_dir(P0, S0)
     result = outcome(harness_merge.locked_pair_update, plan, appending(), other_ledger, appending())
     check("pair: members in two directories raise ValueError",
-          result[0] == "error" and result[1].startswith("ValueError"), repr(result))
+          raised(result, "ValueError"), repr(result))
     same = outcome(harness_merge.locked_pair_update, plan, appending(), plan, appending())
     check("pair: the same file twice raises ValueError",
-          same[0] == "error" and same[1].startswith("ValueError"), repr(same))
+          raised(same, "ValueError"), repr(same))
     check("pair: a ValueError writes nothing", snapshot(d1) == {LEDGER: S0, PLAN: P0})
 
 
@@ -247,9 +248,10 @@ def case_pair_pending_after_publish():
     check("pending: journal attribute is the primary plus JOURNAL_SUFFIX, cause the OSError, "
           "replay false", exc is not None and (exc.journal, exc.cause, exc.replay, exc.__cause__)
           == (plan + SUFFIX, error, False, error), repr(exc and vars(exc)))
+    journal = read(plan + SUFFIX)
     check("pending: primary at after, secondary at before, journal present",
-          snapshot(d) == {LEDGER: S0, PLAN: P1, PLAN + SUFFIX: read(plan + SUFFIX)}
-          and read(plan + SUFFIX) is not None, repr(snapshot(d)))
+          snapshot(d) == {LEDGER: S0, PLAN: P1, PLAN + SUFFIX: journal}
+          and journal is not None, repr(snapshot(d)))
     check_journal_record(d)
     check("pending: recover_journals(primary) rolls forward", harness_merge.recover_journals(plan))
     check("pending: both files converge to after and the journal is gone",
@@ -258,20 +260,20 @@ def case_pair_pending_after_publish():
 
 # ---- recovery from constructed torn states -------------------------------------------------
 
-def _route_recover(d, plan, ledger):
+def _route_recover(plan, ledger):
     ok = harness_merge.recover_journals(plan)
     check("torn: recover_journals(primary) returns True", ok is True, repr(ok))
     return {LEDGER: S1, PLAN: P1}
 
 
-def _route_update_primary(d, plan, ledger):
+def _route_update_primary(plan, ledger):
     seen = []
     harness_merge.locked_update(plan, appending(seen))
     check("torn: locked_update(primary) transform sees the after image", seen == [P1], repr(seen))
     return {LEDGER: S1, PLAN: P1 + MINE}
 
 
-def _route_update_secondary(d, plan, ledger):
+def _route_update_secondary(plan, ledger):
     seen = []
     harness_merge.locked_update(ledger, appending(seen))
     check("torn: locked_update(secondary) transform sees the after image", seen == [S1], repr(seen))
@@ -289,7 +291,7 @@ def case_torn_states_converge():
     for state, plan_bytes, ledger_bytes in TORN_STATES:
         for route, fn in ROUTES:
             d, plan, ledger = pair_dir(plan_bytes, ledger_bytes, J1)
-            expected = fn(d, plan, ledger)
+            expected = fn(plan, ledger)
             check(f"torn [{state}] via {route}: converges, journal removed",
                   snapshot(d) == expected, repr(snapshot(d)))
             again = harness_merge.recover_journals(plan)
@@ -329,8 +331,7 @@ def case_diverged_member():
 
 def case_truncated_journal():
     d, plan, ledger = pair_dir(P0, S0)
-    whole = journal_bytes(J1)
-    write(plan + SUFFIX, whole[: len(whole) // 2])
+    write(plan + SUFFIX, TRUNCATED)
     before = snapshot(d)
     result = outcome(harness_merge.recover_journals, plan)
     check("unreadable: a truncated journal refuses with code 5 naming JOURNAL UNREADABLE",
@@ -474,8 +475,7 @@ def case_interleave_membership_change():
     the generation re-read under the primary's lock does not: recover_journals(X) returns
     False and writes nothing."""
     d, plan, _ = pair_dir(P0, S0)
-    whole = journal_bytes(J1)
-    write(plan + SUFFIX, whole[: len(whole) // 2])
+    write(plan + SUFFIX, TRUNCATED)
     x = os.path.join(d, "x.txt")
     write(x, b"x0\n")
     after_wrapper = {}
@@ -543,15 +543,16 @@ MISBOUND = (
     ("a journal binding a sibling in feature.json's place", [(PLAN, P0, P1), (BRIEF, B0, B1)]),
     ("a three-member journal", [(PLAN, P0, P1), (LEDGER, S0, S1), (BRIEF, B0, B1)]),
 )
+MISBOUND_ROUTES = (
+    ("recover_journals(primary)", lambda plan: harness_merge.recover_journals(plan, timeout=0.2)),
+    ("locked_update(primary)",
+     lambda plan: harness_merge.locked_update(plan, appending(), timeout=0.2)),
+)
 
 
 def case_misbound_journal_refuses():
     for label, members in MISBOUND:
-        for route, op in (
-                ("recover_journals(primary)",
-                 lambda plan: harness_merge.recover_journals(plan, timeout=0.2)),
-                ("locked_update(primary)",
-                 lambda plan: harness_merge.locked_update(plan, appending(), timeout=0.2))):
+        for route, op in MISBOUND_ROUTES:
             d, plan, _ = pair_dir(P0, S0, members)
             write(os.path.join(d, BRIEF), B0)
             before = snapshot(d)
@@ -638,7 +639,7 @@ def case_the_real_journal_recovers_beside_foreign_ones():
         for route, fn in ROUTES:
             d, plan, ledger = pair_dir(plan_bytes, ledger_bytes, J1)
             foreign = _plant_foreign(d)
-            expected = fn(d, plan, ledger)
+            expected = fn(plan, ledger)
             check(f"foreign: torn [{state}] via {route} beside every foreign journal converges, "
                   "the real journal removed, the foreign files untouched",
                   snapshot(d) == dict(expected, **foreign), repr(snapshot(d)))
@@ -653,8 +654,7 @@ def case_an_unreadable_real_journal_still_refuses():
     """Fail closed is kept for the one real name: a truncated plan.yaml journal beside every
     foreign one refuses exit 5 naming the REAL journal, for the pair's routes and a third file."""
     d, plan, ledger = pair_dir(P0, S0)
-    whole = journal_bytes(J1)
-    write(plan + SUFFIX, whole[: len(whole) // 2])
+    write(plan + SUFFIX, TRUNCATED)
     _plant_foreign(d)
     before = snapshot(d)
     routes = [(route, op) for route, op, _, _ in FOREIGN_ROUTES]
@@ -716,8 +716,7 @@ def case_pair_is_the_amendment_pair():
         primary, secondary = (ledger, plan) if swap else (plan, brief)
         result = outcome(harness_merge.locked_pair_update, primary, appending(), secondary,
                          appending())
-        check(f"pair: {label} raises ValueError", result[0] == "error"
-              and result[1].startswith("ValueError"), repr(result))
+        check(f"pair: {label} raises ValueError", raised(result, "ValueError"), repr(result))
         check(f"pair: {label} writes nothing and leaves no journal",
               snapshot(d) == {BRIEF: B0, LEDGER: S0, PLAN: P0}, repr(snapshot(d)))
 
@@ -754,28 +753,28 @@ def _probe(call, timeout=5):
     """`call` in a fresh interpreter, bounded: a hang (a FIFO open, a recovery loop) is a
     'timeout' result rather than a stuck suite. ('exited', code, output) | ('timeout',)."""
     try:
-        r = subprocess.run([sys.executable, "-c", _PROBE.format(bin_dir=BIN_DIR, call=call)],
+        r = subprocess.run([sys.executable, "-c", _PROBE.format(bin_dir=str(BIN), call=call)],
                            capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return ("timeout",)
     return ("exited", r.returncode, r.stdout + r.stderr)
 
 
-def _dangling(journal, d):
-    os.symlink(os.path.join(d, "gone"), journal)
+def _dangling(journal):
+    os.symlink(os.path.join(os.path.dirname(journal), "gone"), journal)
 
 
-def _fifo(journal, d):
+def _fifo(journal):
     os.mkfifo(journal)
 
 
-def _linked(journal, d):
-    target = os.path.join(tempfile.mkdtemp(), "elsewhere")
+def _linked(journal):
+    target = os.path.join(tempfile.mkdtemp(dir=TMP.name), "elsewhere")
     write(target, journal_bytes(J1))
     os.symlink(target, journal)
 
 
-def _directory(journal, d):
+def _directory(journal):
     os.mkdir(journal)
 
 
@@ -783,18 +782,14 @@ _LOCKED_UPDATE = "harness_merge.locked_update({target!r}, lambda b: b'x')"
 _RECOVER = "harness_merge.recover_journals({target!r})"
 
 NON_REGULAR = (
-    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
-    ("a dangling symlink", _dangling, PLAN + SUFFIX, "locked_update(feature.json)",
-     _LOCKED_UPDATE, LEDGER),
-    ("a symlink to a well-formed journal", _linked, PLAN + SUFFIX, "recover_journals(plan)",
-     _RECOVER, PLAN),
-    ("a FIFO", _fifo, PLAN + SUFFIX, "recover_journals(plan)", _RECOVER, PLAN),
-    ("a directory", _directory, PLAN + SUFFIX, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
-    ("a directory", _directory, PLAN + SUFFIX, "locked_update(feature.json)", _LOCKED_UPDATE,
-     LEDGER),
-    ("a directory", _directory, PLAN + SUFFIX, "recover_journals(plan)", _RECOVER, PLAN),
-    ("a directory", _directory, PLAN + SUFFIX, "recover_journals(feature.json)", _RECOVER,
-     LEDGER),
+    ("a dangling symlink", _dangling, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
+    ("a dangling symlink", _dangling, "locked_update(feature.json)", _LOCKED_UPDATE, LEDGER),
+    ("a symlink to a well-formed journal", _linked, "recover_journals(plan)", _RECOVER, PLAN),
+    ("a FIFO", _fifo, "recover_journals(plan)", _RECOVER, PLAN),
+    ("a directory", _directory, "locked_update(plan)", _LOCKED_UPDATE, PLAN),
+    ("a directory", _directory, "locked_update(feature.json)", _LOCKED_UPDATE, LEDGER),
+    ("a directory", _directory, "recover_journals(plan)", _RECOVER, PLAN),
+    ("a directory", _directory, "recover_journals(feature.json)", _RECOVER, LEDGER),
 )
 
 
@@ -805,10 +800,10 @@ def _entries(d):
 
 
 def case_non_regular_journal_refuses():
-    for label, make, entry, route, call, target in NON_REGULAR:
+    for label, make, route, call, target in NON_REGULAR:
         d, plan, _ = pair_dir(P0, S0)
-        journal = os.path.join(d, entry)
-        make(journal, d)
+        journal = plan + SUFFIX
+        make(journal)
         before = _entries(d)
         result = _probe(call.format(target=os.path.join(d, target)))
         check(f"entry: {label} via {route} refuses with code 5 naming JOURNAL UNREADABLE and "
@@ -964,11 +959,7 @@ CASES = (
 def main():
     for case in CASES:
         run_case(case)
-    failed = [r for r in RESULTS if not r[1]]
-    if failed:
-        print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")
-        sys.exit(1)
-    print(f"PASS - {len(RESULTS)}/{len(RESULTS)} checks passed")
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

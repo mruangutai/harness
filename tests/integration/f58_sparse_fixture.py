@@ -20,11 +20,11 @@ import contextlib
 import json
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from git_support import git  # noqa: E402
 from harness_config_support import build_config  # noqa: E402
 
 # Non-feature paths every record-bearing checkout must keep. Fixture assertions import this; the
@@ -44,31 +44,6 @@ HARNESS_FEATURES = ("FEAT-1-alpha", "FEAT-2-beta")
 RECORDLESS_FEATURE = "BUG-3-gamma"          # a landed directory with no feature.json
 FLEET_SEGMENT = "kaya"
 FLEET_FEATURES = ("FEAT-10-kaya-app",)
-
-
-def _env():
-    env = dict(os.environ)
-    env.update({
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
-        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
-    })
-    env.pop("GIT_DIR", None)
-    env.pop("GIT_WORK_TREE", None)
-    return env
-
-
-ENV = _env()
-
-
-def git(cwd, *args, check=True):
-    """Run git in `cwd` under the isolated environment; returns the CompletedProcess."""
-    proc = subprocess.run(["git", *args], cwd=cwd, env=ENV, capture_output=True, text=True)
-    if check and proc.returncode != 0:
-        raise AssertionError(f"git {' '.join(args)} in {cwd} exited {proc.returncode}: "
-                             f"{proc.stderr.strip()}")
-    return proc
 
 
 def feature_json(feature_id, branch):

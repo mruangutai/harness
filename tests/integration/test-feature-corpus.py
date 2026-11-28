@@ -23,6 +23,7 @@ sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(HERE.parent))
 from harness_config_support import build_config  # noqa: E402
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 import layout_migration  # noqa: E402
 import factory_config  # noqa: E402
@@ -42,13 +43,13 @@ GITHUB_ON = json.dumps(build_config({"github": {"sync": True, "repo": "o/r", "bo
 
 def repair(checkout):
     proc = subprocess.run([sys.executable, str(BIN / "worktree-state.py"), "--repair",
-                           "--checkout", checkout], env=F.ENV, capture_output=True, text=True)
+                           "--checkout", checkout], env=G.ENV, capture_output=True, text=True)
     assert proc.returncode == 0, proc.stdout + proc.stderr
     return checkout
 
 
 def hook(script, checkout, payload, extra_env=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout,
+    env = dict(G.ENV, HARNESS_PROJECT_DIR=checkout,
                GH_BIN="/nonexistent-gh", **(extra_env or {}))
     return subprocess.run([sys.executable, str(BIN / script)], input=json.dumps(payload),
                           env=env, capture_output=True, text=True, cwd=checkout)
@@ -90,7 +91,7 @@ class CrossCheckoutReads(Case):
             path = owner_dir / rel if rel == "BRIEF.md" else owner_dir / "notes" / rel
             with open(path, "rb") as fh:                      # an ordinary absolute read
                 got = fh.read()
-            want = F.git(self.fx.owner, "show", f"HEAD:{path.relative_to(self.fx.owner)}").stdout
+            want = G.git(self.fx.owner, "show", f"HEAD:{path.relative_to(self.fx.owner)}").stdout
             self.assertEqual(got.decode(), want)
 
     def test_harness_feature_worktree(self):
@@ -171,7 +172,7 @@ class MergeGate(Case):
                               json.dumps(doc) + "\n"}, "receipt")
         wt = repair(self.fx.add_worktree(ACTIVE))
         # FEAT-2225: the gate must read the merge's changed paths, so the ref has to exist.
-        F.git(wt, "branch", "feat/FEAT-2-beta")
+        G.git(wt, "branch", "feat/FEAT-2-beta")
         proc = self.merge(wt, "feat/FEAT-2-beta")
         self.assertEqual(decision(proc), (None, ""), proc.stdout + proc.stderr)
 
@@ -261,7 +262,7 @@ class BranchCreateGate(Case):
 
     def test_a_broken_layout_denies(self):
         wt = repair(self.fx.add_worktree(ACTIVE))
-        F.git(wt, "sparse-checkout", "set", "--cone", "src", ".harness/notes")
+        G.git(wt, "sparse-checkout", "set", "--cone", "src", ".harness/notes")
         verdict, reason = decision(self.branch(wt, "feat/FEAT-2-beta"))
         self.assertEqual(verdict, "deny")
         self.assertIn("cone (3)", reason)
@@ -377,7 +378,7 @@ class FactoryClaim(Case):
         wt = repair(self.fx.add_worktree(ACTIVE))
         self.assertFalse(os.path.exists(os.path.join(wt, base)))
         proc = subprocess.run([sys.executable, "-c", self.PROBE.format(bin=str(BIN))],
-                              env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), cwd=wt,
+                              env=dict(G.ENV, HARNESS_PROJECT_DIR=wt), cwd=wt,
                               capture_output=True, text=True)
         self.assertEqual(proc.stdout.split("\n")[:2], ["None", "77"], proc.stdout + proc.stderr)
 
@@ -397,7 +398,7 @@ class DecisionAnchors(Case):
             fh.write(self.DOC)
         return lambda: subprocess.run(
             [sys.executable, str(BIN / "check-decision-anchors.py"), "--file", doc],
-            env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True, text=True, cwd=wt)
+            env=dict(G.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True, text=True, cwd=wt)
 
     def test_another_landed_features_file_is_counted_in_the_main_corpus(self):
         proc = self.anchors()()
@@ -419,7 +420,7 @@ class Discovery(Case):
     def test_validate_feature_json_scans_every_landed_record(self):
         wt = repair(self.fx.add_worktree(ACTIVE))
         proc = subprocess.run([sys.executable, str(BIN / "validate-feature-json.py")],
-                              env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True,
+                              env=dict(G.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True,
                               text=True, cwd=wt)
         self.assertIn("— 3 file(s)", proc.stderr)          # FEAT-1, FEAT-2, FEAT-10
 
@@ -427,14 +428,14 @@ class Discovery(Case):
         wt = repair(self.fx.add_worktree(ACTIVE))
         F.write_files(wt, {".harness/harness/features/FEAT-2-beta/BRIEF.md": "# BRIEF FEAT-2-beta\n"})
         proc = subprocess.run([sys.executable, str(BIN / "validate-feature-json.py")],
-                              env=dict(F.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True,
+                              env=dict(G.ENV, HARNESS_PROJECT_DIR=wt), capture_output=True,
                               text=True, cwd=wt)
         self.assertEqual(proc.returncode, 3, proc.stderr)
         self.assertIn("cannot establish the feature corpus", proc.stderr)
 
     def routes(self, checkout):
         proc = subprocess.run([sys.executable, str(BIN / "check-plan-routes.py")],
-                              env=dict(F.ENV, HARNESS_PROJECT_DIR=checkout), capture_output=True,
+                              env=dict(G.ENV, HARNESS_PROJECT_DIR=checkout), capture_output=True,
                               text=True, cwd=checkout)
         return proc.returncode, proc.stdout + proc.stderr
 

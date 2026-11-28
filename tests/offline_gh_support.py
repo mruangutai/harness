@@ -3,16 +3,26 @@
 
     offline_gh_env(fake_path, tmp)   -> (env, sentinel_log)
     assert_sentinel_unused(sentinel_log)
+    offline_environ(fake_path, tmp, extra=None)   context manager, yields env
 
 `env` is a copy of os.environ with every inherited GH_* variable removed (gh host/token config and
 any retired override), FACTORY_GH set to `fake_path`, and PATH prefixed by a fresh directory under
 `tmp` that holds only an executable `gh` sentinel. The sentinel appends its argv to `sentinel_log`
 and exits 97 without network access, so any dispatch that ignores FACTORY_GH and reaches the
 default binary is recorded rather than sent to GitHub. FACTORY_GH is the only binary override.
+
+offline_environ is the in-process form: for the `with` block os.environ is REPLACED (clear=True)
+by offline_gh_env's env plus any `extra` variables, and the env dict is yielded. When the block
+completes normally the sentinel is checked and AssertionError propagates if the default binary was
+dispatched; the caller turns that into its own failure, e.g.
+`try: with offline_environ(fake, tmp): ... except AssertionError as e: check(name, False, str(e))`.
+An exception raised inside the block propagates without the sentinel check.
 """
+import contextlib
 import os
 import shlex
 import tempfile
+from unittest import mock
 
 _SENTINEL = """#!/bin/sh
 printf '%s\\n' "$*" >> {log}
@@ -44,3 +54,14 @@ def assert_sentinel_unused(sentinel_log):
         logged = handle.read()
     if logged:
         raise AssertionError(f"default gh binary was dispatched: {logged.strip()!r}")
+
+
+@contextlib.contextmanager
+def offline_environ(fake_path, tmp, extra=None):
+    """os.environ confined to offline_gh_env's env (plus `extra`) for the block; then the sentinel
+    must be unused."""
+    env, sentinel_log = offline_gh_env(fake_path, tmp)
+    env.update(extra or {})
+    with mock.patch.dict(os.environ, env, clear=True):
+        yield env
+    assert_sentinel_unused(sentinel_log)

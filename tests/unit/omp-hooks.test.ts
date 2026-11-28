@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, spyOn, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
@@ -75,6 +75,17 @@ const toolApi = (tools: Map<string, any> = new Map()) => ({
   zod: fakeZod,
   registerTool(tool: { name: string }) { tools.set(tool.name, tool); },
 });
+
+// A bare host that records each registered handler by event name.
+function mockHost(runner?: Parameters<typeof registerHarnessHooks>[1]) {
+  const handlers = new Map<string, Function>();
+  registerHarnessHooks({
+    on(name: string, handler: Function) { handlers.set(name, handler); },
+    events: { on: () => () => {} },
+    ...toolApi(),
+  }, runner);
+  return handlers;
+}
 
 // FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
@@ -310,7 +321,7 @@ describe("OMP task lifecycle adapter", () => {
         });
         return answer({ ok: true, outcome: "created" });
       }
-      if (script === "inflight_registry.py" && args[0] === "release-run") {
+      if (script === "inflight_registry.py" && (args[0] === "release-run" || args[0] === "find-run")) {
         const agentId = option(args, "--agent-id");
         const found = [...lineageClaims.values()].filter((claimRecord) =>
           claimRecord.agentId === agentId);
@@ -318,17 +329,8 @@ describe("OMP task lifecycle adapter", () => {
           return { blocked: true, stdout: JSON.stringify({ ok: false, cause: "not-found", retryable: false,
             message: `no live claim is bound to run ${agentId}` }) };
         }
-        active.delete(String(agentId));
+        if (args[0] === "release-run") active.delete(String(agentId));
         return { blocked: false, stdout: JSON.stringify({ ok: true, feature: found[0].feature, root: "/repo" }) };
-      }
-      if (script === "inflight_registry.py" && args[0] === "find-run") {
-        const agentId = option(args, "--agent-id");
-        const found = [...lineageClaims.values()].filter((claimRecord) =>
-          claimRecord.agentId === agentId);
-        return found.length === 1
-          ? { blocked: false, stdout: JSON.stringify({ ok: true, feature: found[0].feature, root: "/repo" }) }
-          : { blocked: true, stdout: JSON.stringify({ ok: false, cause: "not-found", retryable: false,
-            message: `no live claim is bound to run ${agentId}` }) };
       }
       if (script === "inflight_registry.py" && args[0] === "authorize") {
         const agent = option(args, "--agent");
@@ -358,11 +360,11 @@ describe("OMP task lifecycle adapter", () => {
         return { blocked: false, stdout: "" };
       }
       if (script === "inflight_registry.py" && args[0] === "release") {
-        const agentIndex = args.indexOf("--agent-id");
-        if (agentIndex >= 0) active.delete(args[agentIndex + 1]);
-        const claimIndex = args.indexOf("--claim-id");
-        if (claimIndex >= 0 && args[claimIndex + 1] === "claim-1") active.delete("agent-a");
-        if (claimIndex >= 0 && args[claimIndex + 1] === "claim-2") active.delete("agent-b");
+        const agentId = option(args, "--agent-id");
+        if (agentId !== undefined) active.delete(agentId);
+        const claimId = option(args, "--claim-id");
+        if (claimId === "claim-1") active.delete("agent-a");
+        if (claimId === "claim-2") active.delete("agent-b");
         return { blocked: false, stdout: "" };
       }
       if (script === "validate-digest.py" && args[0] === "--distill-authority") {
@@ -390,11 +392,16 @@ describe("OMP task lifecycle adapter", () => {
     return { handlers, calls, runner, settle, tools };
   }
 
+  const leadCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+  // A ctx with no agent: the shape OMP hands a hook outside any task.
+  const bareCtx = () => ({ cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+  // A describe-level predicate: the registry reconcile calls a session made.
+  const reconciled = (call: { script: string; args: string[] }) =>
+    call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+
   async function start(
     handlers: Map<string, Function>,
-    ctx: Record<string, unknown> = ompContext(
-      "/repo", "LeadOne", "OrchestratorOne", "parent-session",
-    ),
+    ctx: Record<string, unknown> = leadCtx(),
     agent = "harness-eng-lead",
   ) {
     await handlers.get("before_agent_start")?.({
@@ -411,7 +418,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("injects context through the native Python hook", async () => {
     const { handlers, calls } = fixture();
-    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+    const ctx = leadCtx();
     const result = await handlers.get("before_agent_start")?.({
       prompt: "HARNESS-FEATURE: FEAT-90-long-run\nlead it",
       systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
@@ -439,9 +446,9 @@ describe("OMP task lifecycle adapter", () => {
   // included. The extension no longer refuses a `model` field, and never strips one to slip it
   // past native policy: it reaches dispatch-guard and the revised call unchanged.
   const MODEL_DISPATCHES: Array<[string, () => Record<string, unknown>, string, Record<string, unknown>]> = [
-    ["a governed lead, flat", () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session"),
+    ["a governed lead, flat", leadCtx,
       "harness-eng-lead", { agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa", model: "opus" }],
-    ["a governed lead, batch", () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session"),
+    ["a governed lead, batch", leadCtx,
       "harness-eng-lead", { tasks: [{ agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa", model: "opus" }] }],
     ["the main session", () => ompContext("/repo", "Main", undefined, "main-session"),
       "", { agent: "harness-orchestrator", task: "HARNESS-FEATURE: FEAT-90-long-run\nrun", model: "opus" }],
@@ -528,12 +535,7 @@ describe("OMP task lifecycle adapter", () => {
     expect(parentAttach).toBeDefined();
     expect(parentAttach?.args).not.toContain("--agent-id");
 
-    const childHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { childHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const childHandlers = mockHost(runner);
     const childCtx = ompContext("/repo", "OrchestratorOne", "Main", "orchestrator-session");
     await start(childHandlers, childCtx, "harness-orchestrator");
     expect(await childHandlers.get("tool_call")?.({
@@ -569,12 +571,7 @@ describe("OMP task lifecycle adapter", () => {
     expect(parentAttach?.args).toContain("LeadOne");
     expect(parentAttach?.args).not.toContain("BackendOne");
 
-    const childHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { childHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const childHandlers = mockHost(runner);
     const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
 
@@ -630,12 +627,7 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, parentCtx);
 
-    const childHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { childHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const childHandlers = mockHost(runner);
     const childCtx = ompContext("/repo", "BackendOne", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
     await childHandlers.get("tool_call")?.({
@@ -648,12 +640,7 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, childCtx);
 
-    const goodHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { goodHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const goodHandlers = mockHost(runner);
     const goodCtx = ompContext("/repo", "DataOne", "BackendOne", "grandchild-session");
     await start(goodHandlers, goodCtx, "harness-data-engineer");
     expect(await goodHandlers.get("tool_call")?.({
@@ -662,12 +649,7 @@ describe("OMP task lifecycle adapter", () => {
       input: { input: "[schema.sql#A1B2]\nPUT 1.=1:\n+select 1;" },
     }, goodCtx)).toBeUndefined();
 
-    const siblingHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { siblingHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const siblingHandlers = mockHost(runner);
     const siblingCtx = ompContext("/repo", "DataOne", "LeadOne", "sibling-session");
     await start(siblingHandlers, siblingCtx, "harness-data-engineer");
     const blocked = await siblingHandlers.get("tool_call")?.({
@@ -681,12 +663,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("fails closed when runtime lineage authorization cannot run", async () => {
     const { runner } = fixture();
-    const childHandlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { childHandlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, runner);
+    const childHandlers = mockHost(runner);
     const childCtx = ompContext("/repo", "AuthorizeError", "LeadOne", "child-session");
     await start(childHandlers, childCtx, "harness-backend-dev");
     expect(await childHandlers.get("tool_call")?.({
@@ -699,7 +676,7 @@ describe("OMP task lifecycle adapter", () => {
   test("blocks an empty structured yield instead of taking the hook's empty-message pass-through", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     await handlers.get("task:subagent:lifecycle")?.({
       status: "idle", agentId: "agent-a", jobId: "job-a",
     }, ctx);
@@ -734,7 +711,7 @@ describe("OMP task lifecycle adapter", () => {
           { agent: "harness-dev-ops", task: "deny" },
         ],
       },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     expect(result).toEqual({ block: true, reason: "denied" });
     expect(calls.some((call) =>
       call.script === "inflight_registry.py"
@@ -748,7 +725,7 @@ describe("OMP task lifecycle adapter", () => {
     await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "gh issue close 12" },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     const scripts = calls.map((call) => call.script);
     expect(scripts.indexOf("gh-close-gate.py")).toBeGreaterThan(-1);
     expect(scripts.indexOf("gh-close-gate.py")).toBeLessThan(scripts.indexOf("branch-create-gate.py"));
@@ -769,7 +746,7 @@ describe("OMP task lifecycle adapter", () => {
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
   });
@@ -784,7 +761,7 @@ describe("OMP task lifecycle adapter", () => {
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "git status --porcelain" },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     expect(calls.some((call) => call.script === "plan-sign-gate.py")).toBe(true);
     // Not blocked. #1103 also merges HARNESS_AGENT_TYPE into every allowed bash call's env
     // (asserted on its own below), so this no longer stays `undefined` — it now carries a
@@ -805,7 +782,7 @@ describe("OMP task lifecycle adapter", () => {
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "echo hi", env: { EXISTING: "kept" } },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     expect(result?.input?.env).toEqual({
       EXISTING: "kept",
       HARNESS_AGENT_TYPE: "harness-eng-lead",
@@ -822,7 +799,7 @@ describe("OMP task lifecycle adapter", () => {
     const result = await handlers.get("tool_call")?.({
       toolName: "bash",
       input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
-    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    }, bareCtx());
     expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
     expect(result?.input).toBeUndefined();
   });
@@ -830,7 +807,7 @@ describe("OMP task lifecycle adapter", () => {
   test("releases settled blocking results before the parent resumes", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+    const ctx = leadCtx();
     const input = {
       context: "shared",
       tasks: [
@@ -888,7 +865,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("forwards no pin when the assignment carries none", async () => {
     const { handlers, calls } = fixture();
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     await start(handlers);
     await handlers.get("tool_call")?.({
       toolName: "yield", input: { data: PASS_DIGEST },
@@ -901,7 +878,7 @@ describe("OMP task lifecycle adapter", () => {
   // stop-hook re-run flag, and validate-digest.py no longer reads it as a pass-through.
   test("FEAT-2397: the yield payload carries no legacy stop_hook_active field", async () => {
     const { handlers, calls } = fixture();
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     await start(handlers);
     await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, ctx);
     const validation = calls.find((call) => call.script === "validate-digest.py");
@@ -936,7 +913,7 @@ describe("OMP task lifecycle adapter", () => {
 
   test("forwards no mission when the assignment carries none", async () => {
     const { handlers, calls } = fixture();
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     await start(handlers);
     await handlers.get("tool_call")?.({
       toolName: "yield", input: { data: PASS_DIGEST },
@@ -950,7 +927,7 @@ describe("OMP task lifecycle adapter", () => {
   test("a guard pass-through with no claim receipt allows the dispatch", async () => {
     const { handlers } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     expect(await handlers.get("tool_call")?.({
       toolName: "task",
       toolCallId: "call-passthrough",
@@ -961,7 +938,7 @@ describe("OMP task lifecycle adapter", () => {
   test("a claimless dispatch in a batch does not roll back its siblings' claims", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const ctx = bareCtx();
     expect((await handlers.get("tool_call")?.({
       toolName: "task",
       toolCallId: "call-mixed",
@@ -983,9 +960,7 @@ describe("OMP task lifecycle adapter", () => {
   test("a tool result echoing another feature's marker cannot re-key the session", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
-    const reconciled = (call: { script: string; args: string[] }) =>
-      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const ctx = bareCtx();
     const before = calls.filter(reconciled).length;
     await handlers.get("message_end")?.({
       message: {
@@ -999,9 +974,7 @@ describe("OMP task lifecycle adapter", () => {
   test("a later user message cannot re-key the captured feature", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
-    const reconciled = (call: { script: string; args: string[] }) =>
-      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const ctx = bareCtx();
     const before = calls.filter(reconciled).length;
     await handlers.get("message_update")?.({
       message: {
@@ -1024,11 +997,6 @@ describe("OMP task lifecycle adapter", () => {
   // that emptied that array would have kept the suite green while silently
   // disabling the shape gate on every file an agent edits.
   // -------------------------------------------------------------------------
-  const editCtx = {
-    cwd: "/repo",
-    sessionManager: { getSessionId: () => "parent-session" },
-  };
-
   const editResult = (patch: unknown) => ({
     toolName: "edit",
     toolCallId: "call-edit",
@@ -1048,7 +1016,7 @@ describe("OMP task lifecycle adapter", () => {
     const path = ".harness/harness/features/FEAT-91-context-advisory-fixture/feature.json";
     await handlers.get("tool_result")?.(
       editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "2026-08-29-01-product",`),
-      editCtx,
+      bareCtx(),
     );
     const post = calls.filter((call) =>
       call.script === "check-domain.py" && call.args.includes("--post"));
@@ -1082,19 +1050,14 @@ describe("OMP task lifecycle adapter", () => {
   } = {}) {
     const forbidden = options.forbidden ?? FORBIDDEN;
     const { calls, runner } = fixture({ featureRoot: options.featureRoot });
-    const handlers = new Map<string, Function>();
-    registerHarnessHooks({
-      on(name: string, handler: Function) { handlers.set(name, handler); },
-      events: { on: () => () => {} },
-      ...toolApi(),
-    }, async (cwd, script, args, payload) => {
+    const handlers = mockHost(async (cwd, script, args, payload) => {
       const result = await runner(cwd, script, args, payload);
       const target = (objectPayload(payload).tool_input as Record<string, unknown> | undefined)?.file_path;
       return script === "check-domain.py" && target === forbidden
         ? { blocked: true, reason: `${forbidden} is outside your domain`, stdout: "" }
         : result;
     });
-    const ctx = ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+    const ctx = leadCtx();
     await start(handlers, ctx);
     const lookups = () => calls.filter((call) =>
       call.script === "inflight_registry.py" && call.args[0] === "feature-root");
@@ -1242,7 +1205,7 @@ describe("OMP task lifecycle adapter", () => {
     await start(handlers);
     await handlers.get("tool_result")?.(
       editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
-      editCtx,
+      bareCtx(),
     );
     expect(postPaths(calls)).toEqual(["a/one.json", "b/two.yaml"]);
   });
@@ -1252,7 +1215,7 @@ describe("OMP task lifecycle adapter", () => {
     await start(handlers);
     await handlers.get("tool_result")?.(
       editResult("[src/old.ts#BEEF]\nMV src/new.ts"),
-      editCtx,
+      bareCtx(),
     );
     expect(postPaths(calls)).toEqual(["src/old.ts", "src/new.ts"]);
   });
@@ -1261,7 +1224,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const result = await handlers.get("tool_result")?.(
-      editResult({ sections: ["a/one.json"] }), editCtx);
+      editResult({ sections: ["a/one.json"] }), bareCtx());
     // extractEditPaths returns [] for any non-string input, so `.map()` spawns
     // nothing. The gate genuinely cannot run: no path was extracted, so there is
     // no file to check. What S2 fixes is that the absence is now ANNOUNCED rather
@@ -1279,7 +1242,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers } = fixture();
     await start(handlers);
     const result = await handlers.get("tool_result")?.(
-      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x"), editCtx);
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x"), bareCtx());
     // The gate ran, so there is nothing to announce. If this reddens, every edit
     // in every session just started carrying a notice.
     expect(result).toBeUndefined();
@@ -1299,7 +1262,7 @@ describe("OMP task lifecycle adapter", () => {
     await start(handlers);
     const path = ".harness/harness/features/FEAT-91-context-advisory-fixture/feature.json";
     const blocked = await handlers.get("tool_call")?.(
-      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
+      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), bareCtx());
     const pre = calls.filter((call) =>
       call.script === "check-domain.py" && !call.args.includes("--post"));
     expect(pre.length).toBe(1);
@@ -1314,7 +1277,7 @@ describe("OMP task lifecycle adapter", () => {
     await start(handlers);
     await handlers.get("tool_call")?.(
       editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
-      editCtx);
+      bareCtx());
     expect(calls
       .filter((call) => call.script === "check-domain.py" && !call.args.includes("--post"))
       .map((call) => (call.payload as any).tool_input.file_path))
@@ -1325,7 +1288,7 @@ describe("OMP task lifecycle adapter", () => {
     const { handlers, calls } = fixture();
     await start(handlers);
     const blocked = await handlers.get("tool_call")?.(
-      editResult({ sections: ["a/one.json"] }), editCtx);
+      editResult({ sections: ["a/one.json"] }), bareCtx());
     // MEASURED, not assumed: the preventive gate spawns nothing and the edit is
     // allowed through. Blocking instead would be a fail-closed enforcement change
     // -- it would refuse every edit whose payload shape the extractor cannot read
@@ -1604,7 +1567,7 @@ describe("OMP task lifecycle adapter", () => {
     ];
     for (const [name, answer] of answers) {
       let failing = true;
-      const { pre, lookups } = await rootedHooks((args) => (failing ? answer() : worktreeAnswer()));
+      const { pre, lookups } = await rootedHooks(() => (failing ? answer() : worktreeAnswer()));
       const refused = await pre("read", { path: "src/a.ts" });
       expect([name, refused?.block]).toEqual([name, true]);
       expect(refused.reason).toContain("feature-root");
@@ -1691,7 +1654,6 @@ describe("OMP task lifecycle adapter", () => {
 
   // --- FEAT-1928: the hook is the one schema authority for a harness dispatch, and a yield's
   // `data` object is the digest the validator receives.
-  const leadCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
   const mainCtx = () => ompContext("/repo", "Main", undefined, "main-session");
   const guardCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "dispatch-guard.py");
@@ -2450,7 +2412,6 @@ describe("OMP task lifecycle adapter", () => {
   const HELD_RUN_START = (script: string, args: string[]) => script === "inflight_registry.py" && args[0] === "run-start"
     ? { blocked: true, stdout: JSON.stringify({ ok: false, cause: "lineage", retryable: false, message: "held by the BUG-2566 fixture" }) }
     : undefined;
-  const personaCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
   async function stalePersona(held = false) {
     const hooks = fixture({ staleCheck, ...(held ? { gate: HELD_RUN_START } : {}) });
     await start(hooks.handlers);
@@ -2461,7 +2422,6 @@ describe("OMP task lifecycle adapter", () => {
     await hooks.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
     return hooks;
   }
-  const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
   const BLOCKED_DIGEST = { VERDICT: "BLOCKED", DIGEST: { headline: "stale hook" }, artifact: "none" };
 
   const STALE_PERSONA_CALLS: Array<[string, string, Record<string, unknown>]> = [
@@ -2479,14 +2439,14 @@ describe("OMP task lifecycle adapter", () => {
   test.each(STALE_PERSONA_CALLS)("BUG-2566 SC-02: a stale persona's %s is refused before any policy call", async (_label, toolName, input) => {
     const { handlers, calls } = await stalePersona();
     const before = calls.length;
-    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, personaCtx());
+    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, leadCtx());
     expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
   });
 
   test("BUG-2566 SC-02: a stale held persona's read is refused as stale, not as held", async () => {
     const { handlers, calls } = await stalePersona(true);
     const before = calls.length;
-    const result = await handlers.get("tool_call")?.({ toolName: "read", toolCallId: "call-stale", input: { path: "a" } }, personaCtx());
+    const result = await handlers.get("tool_call")?.({ toolName: "read", toolCallId: "call-stale", input: { path: "a" } }, leadCtx());
     expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
   });
 
@@ -2510,7 +2470,7 @@ describe("OMP task lifecycle adapter", () => {
   test.each(STALE_BLOCKED_YIELDS)("BUG-2566 SC-02: a stale persona's BLOCKED yield (%s) reaches validation once", async (_label, held, data) => {
     const { handlers, calls } = await stalePersona(held);
     const before = calls.filter((call) => call.script === "validate-digest.py").length;
-    const result = await handlers.get("tool_call")?.({ toolName: "yield", toolCallId: "call-blocked", input: { data } }, personaCtx());
+    const result = await handlers.get("tool_call")?.({ toolName: "yield", toolCallId: "call-blocked", input: { data } }, leadCtx());
     const validations = calls.filter((call) => call.script === "validate-digest.py");
     expect(String(result?.reason ?? "")).not.toContain("stale-fixture-reason");
     expect(validations.length - before).toBe(1);
@@ -3221,8 +3181,8 @@ describe("spend advisory injection", () => {
   test("over the plan budget: one SPEND line naming spend, budget and phase; isError absent", async () => {
     const { handlers, ctx } = wakeFixture(checkout({ runs: runsSpanning(135) }));
     await asOrchestratorOn(handlers, ctx);
-    const result = await handlers.get("tool_result")?.(wake(), ctx);
-    const line = patched(result).texts.at(-1) ?? "";
+    const { texts, hasIsError } = patched(await handlers.get("tool_result")?.(wake(), ctx));
+    const line = texts.at(-1) ?? "";
     expect(line.startsWith("SPEND: ")).toBe(true);
     expect(line).toContain("135 wall-clock minutes");
     expect(line).toContain("48213 tokens");
@@ -3230,9 +3190,9 @@ describe("spend advisory injection", () => {
     expect(line).toContain("budgets.plan_phase_warn_minutes = 90");
     expect(line).toContain("1.50x");
     expect(line).toContain("ADVISES and never refuses (DEC-198)");
-    expect(patched(result).hasIsError).toBe(false);
+    expect(hasIsError).toBe(false);
     // Exactly ONE advisory line was appended to the one content part.
-    expect(patched(result).texts.length).toBe(2);
+    expect(texts.length).toBe(2);
   });
 
   test("under the plan budget: nothing is appended", async () => {
@@ -3485,10 +3445,6 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     return { handlers, emit };
   }
 
-  function ctxFor(root: string, agentId: string, parentAgentId?: string) {
-    return ompContext(root, agentId, parentAgentId);
-  }
-
   async function begin(
     s: ReturnType<typeof session>, ctx: Record<string, unknown>, agent: string, prompt: string,
   ) {
@@ -3523,7 +3479,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
 
   async function lead(w: ReturnType<typeof world>) {
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead", "Orch");
+    const ctx = ompContext(w.root, "Lead", "Orch");
     seed(w.root, [{ agent: "harness-eng-lead", agent_id: "Lead", parent_agent_id: "Orch",
       claim_id: "lead-claim" }]);
     await begin(s, ctx, "harness-eng-lead", ASSIGN);
@@ -3542,7 +3498,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     expect(governed(w.root).map((row) => row.agent_id)).toEqual([undefined]);
 
     const child = session(w.runner);
-    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    const childCtx = ompContext(w.root, "Lead.Dev", "Lead");
     await begin(child, childCtx, "harness-backend-dev", ASSIGN);
     expect(governed(w.root).map((row) => [row.agent_id, row.parent_agent_id]))
       .toEqual([["Lead.Dev", "Lead"]]);
@@ -3556,7 +3512,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     const w = world();
     const parent = await lead(w);
     const child = session(w.runner);
-    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    const childCtx = ompContext(w.root, "Lead.Dev", "Lead");
     await begin(child, childCtx, "harness-backend-dev", ASSIGN);
     await child.handlers.get("agent_start")?.({ type: "agent_start" }, childCtx);
     await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
@@ -3573,7 +3529,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   test("a woken run's writes are held until its wake has reclaimed", async () => {
     const w = world();
     const child = session(w.runner);
-    const childCtx = ctxFor(w.root, "Lead.Dev", "Lead");
+    const childCtx = ompContext(w.root, "Lead.Dev", "Lead");
     seed(w.root, [{ agent: "harness-backend-dev", parent_agent_id: "Lead", claim_id: "r" }]);
     await begin(child, childCtx, "harness-backend-dev", ASSIGN);
     await child.handlers.get("agent_end")?.({ messages: [] }, childCtx);
@@ -3588,7 +3544,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   // the run is lives in the session file's session_init entry (system prompt + assignment).
   function revivedCtx(root: string, id: string, parentId: string, agent: string | null, task: string) {
     const systemPrompt = agent ? `persona\nHARNESS_AGENT_ID: ${agent}` : "plain system prompt";
-    const base = ctxFor(root, id, parentId) as Record<string, any>;
+    const base = ompContext(root, id, parentId) as Record<string, any>;
     return {
       ...base,
       sessionManager: {
@@ -3642,7 +3598,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     const w = world();
     seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
     const revived = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const ctx = ompContext(w.root, "Lead.Qa", "Lead");
     await begin(revived, ctx, "harness-qa", "continue where you left off");
     expect(await revived.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
     await revived.handlers.get("tool_call")?.({
@@ -3676,7 +3632,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     const w = world();
     seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Other", parent_agent_id: "Lead" }]);
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const ctx = ompContext(w.root, "Lead.Qa", "Lead");
     const injected = await begin(s, ctx, "harness-qa", "continue");
     expect(String(injected?.message?.content)).toMatch(/not-found/);
     await expectHeld(s, ctx, /not-found/);
@@ -3691,7 +3647,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     seed(w.root, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
     seed(linked, [{ agent: "harness-qa", agent_id: "Lead.Qa", parent_agent_id: "Lead" }]);
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const ctx = ompContext(w.root, "Lead.Qa", "Lead");
     await begin(s, ctx, "harness-qa", "continue");
     await expectHeld(s, ctx, /ambiguous/);
   });
@@ -3701,7 +3657,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     mkdirSync(join(w.root, ".harness"), { recursive: true });
     writeFileSync(join(w.root, ".harness", ".inflight-claims.json"), "{not json");
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const ctx = ompContext(w.root, "Lead.Qa", "Lead");
     await begin(s, ctx, "harness-qa", ASSIGN);
     await expectHeld(s, ctx, /unreadable[\s\S]*cannot succeed/);
     expect(readFileSync(join(w.root, ".harness", ".inflight-claims.json"), "utf8"))
@@ -3713,7 +3669,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     mkdirSync(join(w.root, ".harness"), { recursive: true });
     writeFileSync(join(w.root, ".harness", ".inflight-claims.json"), "{not json");
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Qa", "Lead");
+    const ctx = ompContext(w.root, "Lead.Qa", "Lead");
     await begin(s, ctx, "harness-qa", ASSIGN);
     const pass = await s.handlers.get("tool_call")?.({
       toolName: "yield", input: { data: JSON.stringify(PASS_DIGEST) },
@@ -3732,7 +3688,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     const w = world();
     seed(w.root, [{ agent: "harness-pm", agent_id: "Lead.Pm", parent_agent_id: "Lead" }]);
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Pm-2", "Lead");
+    const ctx = ompContext(w.root, "Lead.Pm-2", "Lead");
     await begin(s, ctx, "harness-pm", ASSIGN);
     await expectHeld(s, ctx, /Lead\.Pm[\s\S]*retry can succeed/);
     expect(rows(w.root).map((row) => row.agent_id)).toEqual(["Lead.Pm"]);
@@ -3747,7 +3703,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     }, parent.ctx))?.block).toBeUndefined();
     expect(governed(w.root)).toEqual([]);
     const child = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Dev", "Lead");
+    const ctx = ompContext(w.root, "Lead.Dev", "Lead");
     await begin(child, ctx, "harness-backend-dev", ASSIGN);
     expect(governed(w.root).map((row) => row.agent_id)).toEqual(["Lead.Dev"]);
     expect(await child.handlers.get("tool_call")?.(write(), ctx)).toBeUndefined();
@@ -3777,7 +3733,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     ];
     for (const [id, agent] of started) {
       const child = session(w.runner);
-      const ctx = ctxFor(w.root, id, "Lead");
+      const ctx = ompContext(w.root, id, "Lead");
       await begin(child, ctx, agent, ASSIGN);
       expect(await child.handlers.get("tool_call")?.(write(`src/${id}.ts`), ctx)).toBeUndefined();
     }
@@ -3816,7 +3772,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
       toolName: "task", toolCallId: "pair", input,
     }, parent.ctx);
     const child = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Check", "Lead");
+    const ctx = ompContext(w.root, "Lead.Check", "Lead");
     await begin(child, ctx, "harness-qa", ASSIGN);
     await parent.s.handlers.get("tool_result")?.({
       toolName: "task", toolCallId: "pair", input, content: [],
@@ -3849,9 +3805,9 @@ describe("BUG-1898 run-start claims on the real registry", () => {
       ] },
     }, parent.ctx);
     const check = session(w.runner);
-    await begin(check, ctxFor(w.root, "Lead.Check", "Lead"), "harness-qa", ASSIGN);
+    await begin(check, ompContext(w.root, "Lead.Check", "Lead"), "harness-qa", ASSIGN);
     const dev = session(w.runner);
-    await begin(dev, ctxFor(w.root, "Lead.Dev", "Lead"), "harness-backend-dev", ASSIGN);
+    await begin(dev, ompContext(w.root, "Lead.Dev", "Lead"), "harness-backend-dev", ASSIGN);
     expect(governed(w.root).map((row) => row.agent_id).sort()).toEqual(["Lead.Check", "Lead.Dev"]);
 
     await parent.s.emit("task:subagent:lifecycle", {
@@ -3869,7 +3825,7 @@ describe("BUG-1898 run-start claims on the real registry", () => {
   test("a governed run with no runtime parent id is held, never authorized", async () => {
     const w = world();
     const s = session(w.runner);
-    const ctx = ctxFor(w.root, "Lead.Dev");
+    const ctx = ompContext(w.root, "Lead.Dev");
     await begin(s, ctx, "harness-backend-dev", ASSIGN);
     const verdict = await s.handlers.get("tool_call")?.(write(), ctx);
     expect(verdict?.block).toBe(true);
@@ -4395,17 +4351,15 @@ describe("FEAT-2337 async bounded policy runtime", () => {
     ["a malformed object line", "inject-expertise.py", "{not json\n", undefined],
   ];
   test.each(DECODES)("FEAT-2397: %s is decoded once, carrying its context", (_label, script, stdout, context) => {
-    const realParse = JSON.parse;
-    let decodes = 0;
-    JSON.parse = ((...args: Parameters<typeof JSON.parse>) => {
-      decodes += 1;
-      return realParse(...args);
-    }) as typeof JSON.parse;
+    // mockRestore clears the recorded calls, so the count is read before it.
+    const parse = spyOn(JSON, "parse");
     let result: Answer;
+    let decodes: number;
     try {
       result = hooks.classifyPolicyRun(script, {}, { status: 0, signal: null, stdout, stderr: "" });
     } finally {
-      JSON.parse = realParse;
+      decodes = parse.mock.calls.length;
+      parse.mockRestore();
     }
     expect([decodes, result.context]).toEqual([1, context]);
   });

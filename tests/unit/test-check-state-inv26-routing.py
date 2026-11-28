@@ -9,36 +9,28 @@ escaped GhError, never on a missing name.
 
     ./test-check-state-inv26-routing.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-from harness_config_support import build_config, write_config  # noqa: E402
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import os
+import sys
 import tempfile
 import types
+from unittest import mock
+
+from check_support import Checks  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
 
 import artifact_accessors  # noqa: E402
 import factory_gh  # noqa: E402
 import gh_board  # noqa: E402
 from check_state import board  # noqa: E402
 
-FAILURES = []
+C = Checks()
+check = C.check
 _STATIONS = ["backlog", "plan", "ready", "building", "review", "done"]
 _OWNER = ("org/repo", {"owner": "org", "number": 3, "station_field": "status",
                        "stations": _STATIONS})
 _PROD = ("org/prod", {"owner": "org", "number": 9, "station_field": "status",
                       "stations": _STATIONS})
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
 
 
 class _Ctx:
@@ -103,21 +95,19 @@ def _modules(cards, bindings, fail=None):
     return gb, fs, log
 
 
-def _run(features, cards, bindings=None, fail=None, owner_sync=True, gh_ok=True):
-    gb, fs, log = _modules(cards, bindings if bindings is not None else {"org/prod": _PROD}, fail)
-    real_load = board.harness_boundary.load_repo_module
+def _run(features, cards, fail=None, owner_sync=True, gh_ok=True):
+    gb, fs, log = _modules(cards, {"org/prod": _PROD}, fail)
+    modules = {"gh_board": gb, "feature_record.binding": fs}
     with tempfile.TemporaryDirectory() as root:
-        cj = build_config({"github": {"sync": owner_sync, "repo": _OWNER[0], "board": _OWNER[1]}})
-        os.makedirs(os.path.join(root, ".harness"))
-        write_config(os.path.join(root, ".harness", "harness.json"), cj)
+        # Written before the patch: building the config loads repo modules of its own.
+        cj = write_config(os.path.join(root, ".harness", "harness.json"),
+                          {"github": {"sync": owner_sync, "repo": _OWNER[0], "board": _OWNER[1]}})
         ctx = _Ctx(root, cj, features, gh_ok)
-        board.harness_boundary.load_repo_module = {"gh_board": gb, "feature_record.binding": fs}.get
-        try:
-            bad, _warn = board.inv_26(ctx)
-        except factory_gh.GhError as error:
-            bad = [f"ESCAPED GhError: {error}"]
-        finally:
-            board.harness_boundary.load_repo_module = real_load
+        with mock.patch.object(board.harness_boundary, "load_repo_module", modules.get):
+            try:
+                bad, _warn = board.inv_26(ctx)
+            except factory_gh.GhError as error:
+                bad = [f"ESCAPED GhError: {error}"]
     return bad, log, ctx
 
 
@@ -194,11 +184,8 @@ def main():
     case_unresolvable_binding()
     case_offline_records_nothing()
     case_nothing_in_flight_probes_nothing()
-    if FAILURES:
-        print(f"\n{len(FAILURES)} FAILURE(S): {FAILURES}")
-        return 1
-    return 0
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

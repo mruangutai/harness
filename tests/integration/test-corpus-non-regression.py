@@ -38,7 +38,9 @@ ROOT = HERE.parents[1]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 import feature_corpus as fc  # noqa: E402
 
 OUTCOMES = ("converted", "skipped-dirty", "excluded")
@@ -77,7 +79,7 @@ def finding_keys(output):
 
 def verify(checkout, bin_dir=BIN):
     proc = subprocess.run([sys.executable, os.path.join(bin_dir, "worktree-state.py"), "--verify",
-                           "--json", "--checkout", checkout], env=F.ENV,
+                           "--json", "--checkout", checkout], env=G.ENV,
                           capture_output=True, text=True)
     return proc.returncode, json.loads(proc.stdout)
 
@@ -104,9 +106,9 @@ class Retention(unittest.TestCase):
         bin_dir, _hooks = F.install_hooks(clone, ROOT)
         self.fx.commit_owner({".harness/harness/features/FEAT-2-beta/BRIEF.md": "# v2\n",
                               "newtop/file.txt": "new\n"}, "main moves")
-        F.git(clone, "pull", "-q", "--no-rebase", "origin", "main")
+        G.git(clone, "pull", "-q", "--no-rebase", "origin", "main")
         self.assertEqual(F.feature_dirs_on_disk(clone), ALL_FEATURES)
-        self.assertEqual(F.git(clone, "sparse-checkout", "list", check=False).returncode, 128,
+        self.assertEqual(G.git(clone, "sparse-checkout", "list", check=False).returncode, 128,
                          "the plain clone gained a sparse-checkout")
         self.assertEqual(verify(clone, bin_dir)[0], 0)
 
@@ -115,7 +117,7 @@ class AuditFindings(unittest.TestCase):
     def test_a_fresh_clone_still_reports_every_baseline_finding(self):
         with F.sparse_fixture() as fx:
             clone = fx.clone()
-            env = dict(F.ENV, HARNESS_PROJECT_DIR=clone)
+            env = dict(G.ENV, HARNESS_PROJECT_DIR=clone)
             proc = subprocess.run([sys.executable, str(BIN / "check-state.py")], env=env,
                                   cwd=clone, capture_output=True, text=True)
         now = finding_keys(proc.stdout + proc.stderr)
@@ -200,7 +202,7 @@ def _digest(checkout):
 
 def _repair(checkout):
     return subprocess.run([sys.executable, str(BIN / "worktree-state.py"), "--repair",
-                           "--checkout", checkout], env=F.ENV, capture_output=True,
+                           "--checkout", checkout], env=G.ENV, capture_output=True,
                           text=True).returncode
 
 
@@ -208,7 +210,7 @@ def build_manifest(fx):
     """Convert a synthetic owner's checkouts the way T-06 converted the real ones and return the
     manifest it records: one planning worktree converted, one with uncommitted work skipped as
     dirty, one code-only probe excluded. Every exit and digest is observed, never written in."""
-    head = F.git(fx.owner, "rev-parse", "HEAD").stdout.strip()
+    head = G.git(fx.owner, "rev-parse", "HEAD").stdout.strip()
     active, busy = F.HARNESS_FEATURES
     path = fx.add_worktree(active)
     converted = {"path": path, "outcome": "converted", "active_feature": active, "head": head,
@@ -249,7 +251,7 @@ def live_findings(doc):
         if not os.path.isdir(path):
             skipped.append(f"{path} no longer exists")
             continue
-        head = F.git(path, "rev-parse", "HEAD", check=False).stdout.strip()
+        head = G.git(path, "rev-parse", "HEAD", check=False).stdout.strip()
         if head != entry.get("head"):
             skipped.append(f"{path} moved from {str(entry.get('head'))[:12]} to {head[:12]}")
             continue

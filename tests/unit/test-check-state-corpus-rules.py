@@ -6,14 +6,11 @@ caller produces and graded on what it decides. The case that matters most is the
 a report whose own exit is dirty (8) while it also carries a structural finding must refuse,
 because dirty outranks every structural code in worktree-state.py's exit.
 """
-import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
-import feature_corpus as fc  # noqa: E402
-from check_state import corpus  # noqa: E402
+import unit_support  # noqa: F401  (puts bin/ on sys.path)
+import feature_corpus as fc
+from check_state import corpus
 
 
 def report(*codes):
@@ -56,8 +53,7 @@ class NameSets(unittest.TestCase):
     def test_missing_refuses_with_counts_sorted_names_and_remedy(self):
         refusal, notes = corpus.name_set_findings(["h/C", "h/A", "k/B"], ["h/A", "x/Z"], "REMEDY")
         self.assertEqual(notes, [])
-        self.assertEqual(len(refusal), 1)
-        line = refusal[0]
+        (line,) = refusal
         self.assertIn("reaches 1 of 3", line)
         self.assertIn("missing: h/C, k/B", line)
         self.assertIn("unexpected: x/Z", line)

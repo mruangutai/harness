@@ -9,14 +9,10 @@ cannot forge a line; and the repair command is the exact runner invocation.
 """
 from contextlib import redirect_stderr
 from io import StringIO
-from pathlib import Path
-import sys
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
-import harness_boundary  # noqa: E402
+from unit_support import BIN
+import harness_boundary
 
 vd = harness_boundary.load_repo_module("validate_digest_receipt_report", str(BIN / "validate-digest.py"))
 

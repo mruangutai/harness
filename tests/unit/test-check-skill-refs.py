@@ -9,6 +9,8 @@
    cited skill lacks, a name that is neither skill nor agent, and the `.claude/skills/`
    spelling in instruction prose. Every planted defect names its file.
 """
+from unit_support import ROOT, BIN
+
 import importlib.util
 import os
 import shutil
@@ -16,23 +18,28 @@ import sys
 import tempfile
 from pathlib import Path
 
-TESTS_DIR = Path(__file__).resolve().parent
-ROOT = TESTS_DIR.parents[1]
-BIN_DIR = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN_DIR))
 import feature_corpus  # noqa: E402
+from check_support import Checks
 
-spec = importlib.util.spec_from_file_location("check_skill_refs", BIN_DIR / "check-skill-refs.py")
+spec = importlib.util.spec_from_file_location("check_skill_refs", BIN / "check-skill-refs.py")
 refs = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(refs)
 
-failures = []
+C = Checks()
+check = C.check
 
+UAT = "harness-uat/SKILL.md"
 
-def check(name, cond, detail=""):
-    print(f"{'ok  ' if cond else 'FAIL'} {name}" + (f": {detail}" if not cond and detail else ""))
-    if not cond:
-        failures.append(name)
+# Each defect class: the line planted in UAT, and the text its finding must carry.
+CASES = {
+    "deleted_dec": ("History: DEC-210.", "cites DEC-210"),
+    "unimplemented_inv": ("Backlog it too (INV-20).", "cites INV-20"),
+    "missing_path": ("Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/no-such-file.md`.",
+                     "no-such-file.md"),
+    "missing_heading": ("Per `harness-code-review` § Nonexistent Heading.", "§ Nonexistent Heading"),
+    "unknown_name": ("See `harness-review`.", "names `harness-review`"),
+    "claude_spelling": ("Open `.claude/skills/harness-brief/SKILL.md`.", "spells the skills tree"),
+}
 
 
 def copy_tree(dst: Path) -> None:
@@ -57,51 +64,48 @@ def plant(dst: Path, rel: str, text: str) -> None:
         fh.write("\n" + text + "\n")
 
 
+def restore(dst: Path, rel: str) -> None:
+    """Put one planted file back to the committed copy, so the next scenario starts clean."""
+    shutil.copy2(ROOT / ".claude" / "skills" / rel, dst / ".claude" / "skills" / rel)
+
+
+def check_defect_classes(dst: Path) -> None:
+    for line, _ in CASES.values():
+        plant(dst, UAT, line)
+    findings = refs.scan(dst)
+    joined = "\n".join(findings)
+    for name, (_, needle) in CASES.items():
+        check(f"catches_{name}", needle in joined, f"{needle!r} not in findings")
+    check("every_finding_names_the_planted_file",
+          all(f.startswith(UAT + ":") for f in findings), joined)
+
+
+def check_package_numbers(dst: Path) -> None:
+    """FEAT-69: the invariants live in check_state/*.py beside the entry. A number only a family
+    module spells is implemented; an unspelled one is still not; spelling a number twice in a
+    skill is one finding, not two."""
+    plant(dst, "harness/bin/check_state/host.py", "# INV-777: spelled in a family module only")
+    plant(dst, UAT, "Graded by INV-777; INV-20 twice (INV-20).")
+    findings = refs.scan(dst)
+    joined = "\n".join(findings)
+    check("package_only_number_is_implemented", not any("INV-777" in f for f in findings), joined)
+    check("unspelled_number_is_still_a_finding", sum("cites INV-20" in f for f in findings) == 1, joined)
+
+
 def main() -> int:
     clean = refs.scan(ROOT)
     check("committed_tree_is_clean", not clean, "; ".join(clean[:5]))
 
+    # One copy serves both scenarios: the first plants only UAT, which is restored before the
+    # second plants, so each scan sees exactly its own plants.
     with tempfile.TemporaryDirectory() as tmp:
         dst = Path(tmp)
         copy_tree(dst)
-        plant(dst, "harness-uat/SKILL.md", "History: DEC-210.")
-        plant(dst, "harness-uat/SKILL.md", "Backlog it too (INV-20).")
-        plant(dst, "harness-uat/SKILL.md", "Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/no-such-file.md`.")
-        plant(dst, "harness-uat/SKILL.md", "Per `harness-code-review` § Nonexistent Heading.")
-        plant(dst, "harness-uat/SKILL.md", "See `harness-review`.")
-        plant(dst, "harness-uat/SKILL.md", "Open `.claude/skills/harness-brief/SKILL.md`.")
-        findings = refs.scan(dst)
-        joined = "\n".join(findings)
-        expected = {
-            "deleted_dec": "cites DEC-210",
-            "unimplemented_inv": "cites INV-20",
-            "missing_path": "no-such-file.md",
-            "missing_heading": "§ Nonexistent Heading",
-            "unknown_name": "names `harness-review`",
-            "claude_spelling": "spells the skills tree",
-        }
-        for name, needle in expected.items():
-            check(f"catches_{name}", needle in joined, f"{needle!r} not in findings")
-        check("every_finding_names_the_planted_file",
-              all(f.startswith("harness-uat/SKILL.md:") for f in findings), joined)
+        check_defect_classes(dst)
+        restore(dst, UAT)
+        check_package_numbers(dst)
 
-    # FEAT-69: the invariants live in check_state/*.py beside the entry. A number only a
-    # family module spells is implemented; an unspelled one is still not; spelling a number
-    # twice in a skill is one finding, not two.
-    with tempfile.TemporaryDirectory() as tmp:
-        dst = Path(tmp)
-        copy_tree(dst)
-        plant(dst, "harness/bin/check_state/host.py", "# INV-777: spelled in a family module only")
-        plant(dst, "harness-uat/SKILL.md", "Graded by INV-777; INV-20 twice (INV-20).")
-        findings = refs.scan(dst)
-        check("package_only_number_is_implemented", not any("INV-777" in f for f in findings), "\n".join(findings))
-        check("unspelled_number_is_still_a_finding", sum("cites INV-20" in f for f in findings) == 1, "\n".join(findings))
-
-    if failures:
-        print(f"\n{len(failures)} failure(s): {failures}")
-        return 1
-    print("\nall checks passed")
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":

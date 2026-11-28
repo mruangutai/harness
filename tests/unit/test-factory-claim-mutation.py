@@ -7,8 +7,8 @@ they are green today and would go red if factory_claim stopped resolving feature
 per repository and fell back to one fixed segment for every candidate, the exact defect
 BUG-1290 reported.
 
-It runs the real suite in-process twice via `runpy.run_path`, unmutated then mutated, and
-never spawns a subprocess or imports a test framework. The mutant is a proxy object
+It runs the real suite in-process via `runpy.run_path`, unmutated then mutated, and never
+spawns a subprocess; each mutant is swapped in with `mock.patch.object`. The mutant is a proxy object
 substituted for factory_claim's `factory_config` module attribute: it delegates every
 name to the real module except `features_root`, whose wrapper DISCARDS the repo_name
 argument it is called with and always resolves through one fixed owner-qualified fleet
@@ -19,25 +19,22 @@ monkeypatch rather than replacing it (measured during BUG-1290's second fix cycl
 
 A second, independent arm below proves the operator's literal BUG-1290 directive at a different
 seam: under a mutation collapsing the issue-map cache key from (repo, feature) down to feature
-alone, the real suite must PRINT `FAIL  BUG-1290 5b`, not merely capture that verdict the way 5g
+alone, the real suite must PRINT `FAIL BUG-1290 5b`, not merely capture that verdict the way 5g
 (test-factory-claim.py) already does internally — B-27's lesson was that an unreached mutant
 "proving" a red case is fail-open in disguise, so this arm carries its own reached-marker too.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import TESTS
 
 import contextlib
 import io
 import runpy
 import sys
+from unittest import mock
 
 import factory_claim
 import factory_config
 
-SUITE_PATH = _anchor_os.path.join(_anchor_tests, "test-factory-claim.py")
+SUITE_PATH = str(TESTS / "unit" / "test-factory-claim.py")
 CASES = ("5a", "5b", "5c")
 FIXED_FLEET_NAME = "acme/harness"  # owner-qualified; segment is "harness".
 
@@ -58,24 +55,21 @@ class _MutantFactoryConfig:
     `contextlib.redirect_stdout` in this file or in the suite ever retargets."""
 
     def __init__(self, real_module):
-        object.__setattr__(self, "_real", real_module)
-        object.__setattr__(self, "_reached", False)
+        self._real = real_module
+        self._reached = False
 
     def __getattr__(self, name):
-        real = object.__getattribute__(self, "_real")
+        real = self._real
         if name != "features_root":
             return getattr(real, name)
 
         def _fixed_features_root(repo_name):
-            if not object.__getattribute__(self, "_reached"):
+            if not self._reached:
                 print("MUTANT ACTIVE", file=sys.__stdout__)
-                object.__setattr__(self, "_reached", True)
+                self._reached = True
             return real.features_root(FIXED_FLEET_NAME)
 
         return _fixed_features_root
-
-    def reached(self):
-        return object.__getattribute__(self, "_reached")
 
 
 def _run_suite():
@@ -91,10 +85,10 @@ def _run_suite():
 
 
 def _case_line(output, status, case_id):
-    """The single line check() printed for `case_id` at `status` ("ok" or "FAIL"), or
+    """The single line check() printed for `case_id` at `status` ("PASS" or "FAIL"), or
     None if no such line exists — status and name are two independent fields of the
     same marker, so this looks for their exact concatenation, not either alone."""
-    prefix = ("ok    " if status == "ok" else "FAIL  ") + f"BUG-1290 {case_id}:"
+    prefix = f"{status} BUG-1290 {case_id}:"
     for line in output.splitlines():
         if line.startswith(prefix):
             return line
@@ -103,7 +97,7 @@ def _case_line(output, status, case_id):
 
 def _baseline():
     output = _run_suite()
-    missing = [c for c in CASES if _case_line(output, "ok", c) is None]
+    missing = [c for c in CASES if _case_line(output, "PASS", c) is None]
     if missing:
         for case_id in missing:
             print(f"BASELINE MISSING: {case_id}")
@@ -114,24 +108,21 @@ def _baseline():
 
 
 def _mutate_and_run():
-    real = factory_claim.factory_config
-    mutant = _MutantFactoryConfig(real)
-    factory_claim.factory_config = mutant
-    try:
+    mutant = _MutantFactoryConfig(factory_claim.factory_config)
+    with mock.patch.object(factory_claim, "factory_config", mutant):
         output = _run_suite()
-    finally:
-        factory_claim.factory_config = real
-    return output, mutant.reached()
+    return output, mutant._reached
 
 
-def _mutation_proof():
-    output, reached = _mutate_and_run()
+def _prove(label, output, reached, cases, unreached, passed):
+    """Prints the verdict of one mutant arm and returns whether it passed: the mutant must
+    have been reached, and every case in `cases` must print its FAIL line."""
     if not reached:
-        print("MUTANT NEVER REACHED")
-        print("MUTATION PROOF: INCOMPLETE")
+        print(unreached)
+        print(f"{label} PROOF: INCOMPLETE")
         return False
     missing = []
-    for case_id in CASES:
+    for case_id in cases:
         line = _case_line(output, "FAIL", case_id)
         if line is None:
             missing.append(case_id)
@@ -139,10 +130,10 @@ def _mutation_proof():
             print(line)
     if missing:
         for case_id in missing:
-            print(f"MUTATION MISSING: {case_id}")
-        print("MUTATION PROOF: INCOMPLETE")
+            print(f"{label} MISSING: {case_id}")
+        print(f"{label} PROOF: INCOMPLETE")
         return False
-    print("MUTATION PROOF: 3/3 cases reddened")
+    print(f"{label} PROOF: {passed}")
     return True
 
 
@@ -150,13 +141,13 @@ def _mutate_and_run_key_collapse():
     """Patches factory_claim._BlockerCache with a class collapsing the issue-map cache key from
     (repo, feature) to feature alone — every repository's lookup for a given feature id then
     routes through whichever repository was seen first, the exact defect B-3's (repo, feature)
-    keying closed. Runs the real suite, restores the real class in a finally — same shape as
+    keying closed. Runs the real suite with the real class restored afterwards — same shape as
     `_mutate_and_run()`."""
     real = factory_claim._BlockerCache
 
     class _KeyCollapsingBlockerCache(real):
         """The operator's literal BUG-1290 directive, proved at the issue-map-cache seam: under
-        this collapsed key the real suite must PRINT `FAIL  BUG-1290 5b`, not merely capture that
+        this collapsed key the real suite must PRINT `FAIL BUG-1290 5b`, not merely capture that
         verdict the way test-factory-claim.py's 5g does internally — B-27's fail-open lesson is
         why `_reached` below is asserted, not assumed."""
 
@@ -173,38 +164,23 @@ def _mutate_and_run_key_collapse():
                 _KeyCollapsingBlockerCache._reached = True
             return super().issue_number(canonical, feature, task_id)
 
-    factory_claim._BlockerCache = _KeyCollapsingBlockerCache
-    try:
+    with mock.patch.object(factory_claim, "_BlockerCache", _KeyCollapsingBlockerCache):
         output = _run_suite()
-    finally:
-        factory_claim._BlockerCache = real
     return output, _KeyCollapsingBlockerCache._reached
-
-
-def _key_collapse_proof():
-    """Asserts the real suite PRINTS `FAIL  BUG-1290 5b` under the key-collapse mutant — the
-    literal requirement of the operator's directive, guarded by the reached-marker so an
-    unreached mutant cannot "prove" a red case it never caused (B-27)."""
-    output, reached = _mutate_and_run_key_collapse()
-    if not reached:
-        print("MUTANT NEVER REACHED (key-collapse arm)")
-        print("KEY-COLLAPSE PROOF: INCOMPLETE")
-        return False
-    line = _case_line(output, "FAIL", "5b")
-    if line is None:
-        print("KEY-COLLAPSE MISSING: 5b")
-        print("KEY-COLLAPSE PROOF: INCOMPLETE")
-        return False
-    print(line)
-    print("KEY-COLLAPSE PROOF: FAIL BUG-1290 5b printed")
-    return True
 
 
 def main():
     if not _baseline():
         sys.exit(1)
-    features_root_ok = _mutation_proof()
-    key_collapse_ok = _key_collapse_proof()
+    features_root_ok = _prove(
+        "MUTATION", *_mutate_and_run(), CASES,
+        "MUTANT NEVER REACHED", "3/3 cases reddened")
+    # Asserts the real suite PRINTS `FAIL BUG-1290 5b` under the key-collapse mutant, the
+    # literal requirement of the operator's directive, guarded by the reached-marker so an
+    # unreached mutant cannot "prove" a red case it never caused (B-27).
+    key_collapse_ok = _prove(
+        "KEY-COLLAPSE", *_mutate_and_run_key_collapse(), ("5b",),
+        "MUTANT NEVER REACHED (key-collapse arm)", "FAIL BUG-1290 5b printed")
     sys.exit(0 if (features_root_ok and key_collapse_ok) else 1)
 
 

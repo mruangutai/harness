@@ -13,35 +13,27 @@ cpr()).
 
 Runnable directly with python3, no pytest.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import inflight_registry
-import os
+from unit_support import ROOT as _ROOT, BIN as _BIN
+import contextlib
+import io
 import json
+import os
 import shutil
 import sys
 import tempfile
 import time
+from unittest import mock
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-BIN = BIN_DIR
+import inflight_registry
+from check_support import Checks
+
+ROOT = str(_ROOT)
+BIN_DIR = str(_BIN)
 SCRIPT = os.environ.get("HARNESS_BOUNDARY_BIN") or os.path.join(
     BIN_DIR, "harness_boundary.py")
 
-failures = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def hb():
@@ -100,7 +92,8 @@ def case_resolve_root_strict():
     mod = hb()
     tmp_override = tempfile.mkdtemp()
     tmp_derived = tempfile.mkdtemp()
-    old_env = os.environ.get("HARNESS_PROJECT_DIR")
+    env = mock.patch.dict(os.environ)
+    env.start()
     try:
         bin_dir = os.path.join(tmp_derived, "a", "b", "c", "bin")
         os.makedirs(bin_dir)
@@ -117,10 +110,7 @@ def case_resolve_root_strict():
         bare_override = tempfile.mkdtemp()
         write_marker(tmp_derived)
         os.environ["HARNESS_PROJECT_DIR"] = bare_override
-        import io
-        import contextlib
-        buf = io.StringIO()
-        with contextlib.redirect_stderr(buf):
+        with contextlib.redirect_stderr(io.StringIO()) as buf:
             got2 = mod.resolve_root(bin_dir, strict=True)
         check("resolve_root_strict_bad_override_falls_through_to_derived",
               got2 == tmp_derived, f"expected {tmp_derived!r}, got {got2!r}")
@@ -137,11 +127,7 @@ def case_resolve_root_strict():
         no_marker_derived_root = os.path.abspath(
             os.path.join(no_marker_derived_bin, "..", "..", "..", ".."))
         os.environ["HARNESS_PROJECT_DIR"] = no_marker_override
-        raised = None
-        try:
-            mod.resolve_root(no_marker_derived_bin, strict=True)
-        except ValueError as e:
-            raised = e
+        raised = _raises(lambda: mod.resolve_root(no_marker_derived_bin, strict=True), ValueError)
         check("resolve_root_strict_neither_carries_marker_raises",
               raised is not None
               and no_marker_override in str(raised)
@@ -149,10 +135,7 @@ def case_resolve_root_strict():
               f"expected ValueError naming both candidates, got {raised!r}")
         shutil.rmtree(no_marker_override, ignore_errors=True)
     finally:
-        if old_env is None:
-            os.environ.pop("HARNESS_PROJECT_DIR", None)
-        else:
-            os.environ["HARNESS_PROJECT_DIR"] = old_env
+        env.stop()
         shutil.rmtree(tmp_override, ignore_errors=True)
         shutil.rmtree(tmp_derived, ignore_errors=True)
 
@@ -167,7 +150,8 @@ def case_resolve_root_override_normalises_relative():
     mod = hb()
     tmp_override = tempfile.mkdtemp()
     tmp_derived = tempfile.mkdtemp()
-    old_env = os.environ.get("HARNESS_PROJECT_DIR")
+    env = mock.patch.dict(os.environ)
+    env.start()
     old_cwd = os.getcwd()
     try:
         write_marker(tmp_override)
@@ -194,10 +178,7 @@ def case_resolve_root_override_normalises_relative():
               f"absolute override -> {absolute_got!r}, relative override -> {relative_got!r}")
     finally:
         os.chdir(old_cwd)
-        if old_env is None:
-            os.environ.pop("HARNESS_PROJECT_DIR", None)
-        else:
-            os.environ["HARNESS_PROJECT_DIR"] = old_env
+        env.stop()
         shutil.rmtree(tmp_override, ignore_errors=True)
         shutil.rmtree(tmp_derived, ignore_errors=True)
 
@@ -288,9 +269,9 @@ def case_worktree_for_feature():
     try:
         short = make_worktree(mod, tmp, "FEAT-X")
 
+        exact = mod.worktree_for_feature(tmp, "FEAT-X")
         check("worktree_for_feature_exact_basename_match",
-              mod.worktree_for_feature(tmp, "FEAT-X") == short,
-              f"expected {short!r}, got {mod.worktree_for_feature(tmp, 'FEAT-X')!r}")
+              exact == short, f"expected {short!r}, got {exact!r}")
 
         check("worktree_for_feature_short_form_prefix_match",
               mod.worktree_for_feature(tmp, "FEAT-X-thing") == short,
@@ -315,11 +296,8 @@ def case_worktree_for_feature():
     try:
         make_worktree(mod, tmp2, "FEAT-X")
         make_worktree(mod, tmp2, "FEAT")
-        raised = None
-        try:
-            mod.worktree_for_feature(tmp2, "FEAT-X-thing")
-        except mod.AmbiguousWorktree as e:
-            raised = e
+        raised = _raises(lambda: mod.worktree_for_feature(tmp2, "FEAT-X-thing"),
+                         mod.AmbiguousWorktree)
         check("worktree_for_feature_two_candidates_raises_ambiguous",
               raised is not None and "FEAT, FEAT-X" in str(raised),
               f"expected AmbiguousWorktree naming both FEAT and FEAT-X, got {raised!r}")
@@ -359,8 +337,7 @@ def _fake_checker(root, script):
     write_marker(root)
     bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
     os.makedirs(bin_dir, exist_ok=True)
-    with open(os.path.join(bin_dir, "check-state.py"), "w") as fh:
-        fh.write(script)
+    _script(bin_dir, "check-state.py", script)
 
 
 _PROBE_CHECKER = (
@@ -376,30 +353,25 @@ _PROBE_CHECKER = (
 def _changed_state_root_checks(mod, tmp):
     plan = os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "plan.yaml")
     flat = os.path.join(tmp, ".harness", "features", "BUG-7-x", "feature.json")
+    got_plan, got_flat = mod.changed_state_root(plan), mod.changed_state_root(flat)
     check("changed_state_root: canonical repo-tier plan.yaml derives the checkout",
-          mod.changed_state_root(plan) == tmp, mod.changed_state_root(plan))
+          got_plan == tmp, got_plan)
     check("changed_state_root: canonical flat feature.json derives the checkout",
-          mod.changed_state_root(flat) == tmp, mod.changed_state_root(flat))
+          got_flat == tmp, got_flat)
     for other in (os.path.join(tmp, "scratch", "plan.yaml"),
                   os.path.join(tmp, ".harness", "harness", "features", "notes", "plan.yaml"),
                   os.path.join(tmp, ".harness", "harness", "features", "FEAT-7-x", "BRIEF.md")):
+        got = mod.changed_state_root(other)
         check(f"changed_state_root: {os.path.relpath(other, tmp)} derives NO checkout",
-              mod.changed_state_root(other) is None, mod.changed_state_root(other))
+              got is None, got)
     return plan
-
-
-def _with_env(key, value, fn):
-    os.environ[key] = value
-    try:
-        return fn()
-    finally:
-        del os.environ[key]
 
 
 def _changed_state_spawn_checks(mod, tmp, elsewhere, plan):
     """The spawn itself: which checker, in which cwd, with which environment."""
     _fake_checker(tmp, _PROBE_CHECKER)
-    rows = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+    with mock.patch.dict(os.environ, {"HARNESS_PROJECT_DIR": elsewhere}):
+        rows = mod.changed_state_feedback(plan)
     check("feedback forwards BOTH streams' rows from the derived checkout's checker",
           "FAIL INV-3 something" in rows and "warn row" in rows, rows)
     detail = [r for r in rows if r.startswith("argv=")]
@@ -419,15 +391,17 @@ def case_changed_state_feedback():
         plan = _changed_state_root_checks(mod, tmp)
         # No checker at the derived checkout: silent, whatever the environment says.
         _fake_checker(elsewhere, "import sys; sys.stdout.write('WRONG TREE\\n')")
-        silent = _with_env("HARNESS_PROJECT_DIR", elsewhere, lambda: mod.changed_state_feedback(plan))
+        with mock.patch.dict(os.environ, {"HARNESS_PROJECT_DIR": elsewhere}):
+            silent = mod.changed_state_feedback(plan)
         check("feedback is silent when the derived checkout carries no checker, even with "
               "HARNESS_PROJECT_DIR pointing at one (PF-e27f2ac2)", silent == [], silent)
         _changed_state_spawn_checks(mod, tmp, elsewhere, plan)
-        nested = _with_env("HARNESS_CHANGED_FEEDBACK", "1", lambda: mod.changed_state_feedback(plan))
+        with mock.patch.dict(os.environ, {"HARNESS_CHANGED_FEEDBACK": "1"}):
+            nested = mod.changed_state_feedback(plan)
         check("a writer inside a feedback run never re-enters the loop", nested == [], nested)
         _fake_checker(tmp, "")
-        check("a clean --changed run (no output) yields no rows",
-              mod.changed_state_feedback(plan) == [], mod.changed_state_feedback(plan))
+        clean = mod.changed_state_feedback(plan)
+        check("a clean --changed run (no output) yields no rows", clean == [], clean)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(elsewhere, ignore_errors=True)
@@ -476,9 +450,14 @@ def case_feature_artifact_checkout_mismatch_ambiguous():
 
 def _script(tmp, name, body):
     path = os.path.join(tmp, name)
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write(body)
     return path
+
+
+def _read(path):
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
 
 
 def case_load_repo_module_registration():
@@ -604,11 +583,8 @@ def case_load_repo_module_failures():
 # ============================== BUG-1304 claim set ==============================
 
 def _bug1304_unreadable(mod, owner, agent, destination):
-    try:
-        mod.claim_worktrees(owner, agent, destination)
-    except inflight_registry.UnreadableRegistry as error:
-        return error
-    return None
+    return _raises(lambda: mod.claim_worktrees(owner, agent, destination),
+                   inflight_registry.UnreadableRegistry)
 
 
 def case_bug1304_short_claim():
@@ -716,11 +692,7 @@ def case_bug1304_ambiguous_claim():
         make_worktree(mod, owner, "FEAT")
         make_worktree(mod, owner, "FEAT-X")
         write_claims(owner, [live_claim(agent, "FEAT-X-thing")])
-        raised = None
-        try:
-            mod.claim_worktrees(owner, agent, owner)
-        except mod.AmbiguousWorktree as error:
-            raised = error
+        raised = _raises(lambda: mod.claim_worktrees(owner, agent, owner), mod.AmbiguousWorktree)
         check("bug1304: ambiguous feature worktrees propagate",
               raised is not None and "FEAT, FEAT-X" in str(raised), repr(raised))
     finally:
@@ -787,17 +759,6 @@ def case_bug1304_refusal_text():
     check("feat2225: repository-tier expertise refusal names the repository tier and segment",
           "tier: repository" in repository_refusal and "repository: harness" in repository_refusal,
           repository_refusal)
-
-
-def case_bug1304_claim_set():
-    case_bug1304_short_claim()
-    case_bug1304_owner_claim()
-    case_bug1304_unresolved_and_empty_claims()
-    case_bug1304_multiple_claims()
-    case_runtime_lineage_filters_claim_worktrees()
-    case_bug1304_ambiguous_claim()
-    case_bug1304_unreadable_claims()
-    case_bug1304_refusal_text()
 
 
 def run_case(fn):
@@ -975,37 +936,11 @@ def _raiser(exc):
 
 def _escapes(fn, exc_type=RuntimeError):
     """True when fn() raises exc_type -- the shape every "unrelated defect escapes" claim takes."""
-    try:
-        fn()
-    except exc_type:
-        return True
-    return False
-
-
-class _patched:
-    """Temporarily rebind `name` on `holder`; the shim every boundary probe below needs."""
-    def __init__(self, holder, name, value):
-        self.holder, self.name, self.value = holder, name, value
-    def __enter__(self):
-        self.real = getattr(self.holder, self.name)
-        setattr(self.holder, self.name, self.value)
-    def __exit__(self, *exc):
-        setattr(self.holder, self.name, self.real)
+    return _raises(fn, exc_type) is not None
 
 
 def _captured_stderr():
-    import io, contextlib
-    err = io.StringIO()
-    ctx = contextlib.redirect_stderr(err)
-
-    class _Capture:
-        def __enter__(self):
-            ctx.__enter__()
-            return err
-
-        def __exit__(self, *exc):
-            return ctx.__exit__(*exc)
-    return _Capture()
+    return contextlib.redirect_stderr(io.StringIO())
 
 
 def _hook_guard_verdict(mod, fail):
@@ -1038,9 +973,9 @@ def case_hook_guard_contract():
     for exc in (KeyboardInterrupt, SystemExit):
         check(f"hook_guard_lets_{exc.__name__}_escape",
               _escapes(lambda e=exc: mod.hook_guard(_raiser(e(3)), "x-hook"), exc))
+    sources = {h: _read(os.path.join(BIN_DIR, h)) for h in _HOOKS}
     callers = [h for h in _HOOKS
-               if any(f"{fn}(" in open(os.path.join(BIN, h)).read()
-                      for fn in ("hook_guard", "run_hook_body"))]
+               if any(f"{fn}(" in sources[h] for fn in ("hook_guard", "run_hook_body"))]
     # FEAT-65: the five hooks whose classification routes an own-failure path through the
     # guard call it (three through run_hook_body); the typed-only programs — the two
     # authoritative direct commands (SC-09/SC-10) and the four DEC-234 gates — do not.
@@ -1055,14 +990,14 @@ def case_run_hook_body_contract():
     open (or closed) verdict, and the body's own SystemExit passes through."""
     mod = hb()
     tmp = tempfile.mkdtemp()
-    path = os.path.join(tmp, "hookish.py")
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("import os, sys\n"
-                 "if __name__ == '__main__':\n    raise RuntimeError('bootstrap ran twice')\n"
-                 "mode = os.environ.get('HOOKISH_MODE')\n"
-                 "if mode == 'raise':\n    raise RuntimeError('body defect')\n"
-                 "if mode == 'exit':\n    sys.exit(5)\n")
-    os.environ["HOOKISH_MODE"] = "ok"
+    path = _script(tmp, "hookish.py",
+                   "import os, sys\n"
+                   "if __name__ == '__main__':\n    raise RuntimeError('bootstrap ran twice')\n"
+                   "mode = os.environ.get('HOOKISH_MODE')\n"
+                   "if mode == 'raise':\n    raise RuntimeError('body defect')\n"
+                   "if mode == 'exit':\n    sys.exit(5)\n")
+    env = mock.patch.dict(os.environ, {"HOOKISH_MODE": "ok"})
+    env.start()
     try:
         check("run_hook_body_returns_0_when_the_body_falls_off",
               mod.run_hook_body(path, "hookish", "hookish_body") == 0)
@@ -1080,25 +1015,16 @@ def case_run_hook_body_contract():
         check("run_hook_body_lets_the_bodys_SystemExit_escape",
               _escapes(lambda: mod.run_hook_body(path, "hookish", "hookish_body"), SystemExit))
     finally:
-        os.environ.pop("HOOKISH_MODE", None)
+        env.stop()
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+@contextlib.contextmanager
 def _captured_streams():
     """(stdout, stderr) StringIO pair captured together for the unavailable-outcome probes."""
-    import io, contextlib
-    out, err = io.StringIO(), io.StringIO()
-    stack = contextlib.ExitStack()
-
-    class _Capture:
-        def __enter__(self):
-            stack.enter_context(contextlib.redirect_stdout(out))
-            stack.enter_context(contextlib.redirect_stderr(err))
-            return out, err
-
-        def __exit__(self, *exc):
-            return stack.__exit__(*exc)
-    return _Capture()
+    with contextlib.redirect_stdout(io.StringIO()) as out, \
+            contextlib.redirect_stderr(io.StringIO()) as err:
+        yield out, err
 
 
 def _unavailable_lines(text):
@@ -1182,9 +1108,7 @@ def _f2274_system_exit_checks(mod):
 
 def _f2274_run_hook_body_checks(mod):
     tmp = tempfile.mkdtemp()
-    path = os.path.join(tmp, "hookish.py")
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("raise RuntimeError('body defect')\n")
+    path = _script(tmp, "hookish.py", "raise RuntimeError('body defect')\n")
     try:
         with _captured_streams() as (out, _err):
             rc = mod.run_hook_body(path, "label", "hookish_body")
@@ -1217,13 +1141,12 @@ def _feat64_pointer_read_checks(mod, tmp):
         if str(a[0]).endswith("gitdir"):
             raise RuntimeError("unrelated")
         return orig(*a, **k)
-    with _patched(builtins, "open", boom):
+    with mock.patch.object(builtins, "open", boom):
         check("linked_worktrees_lets_an_unrelated_RuntimeError_escape",
               _escapes(lambda: mod.linked_worktrees(tmp)))
 
 
 def _feat64_fleet_checks(mod, tmp):
-    import io, contextlib
     fdir = os.path.join(tmp, ".harness", "factory"); os.makedirs(fdir)
     with open(os.path.join(fdir, "fleet.yaml"), "w") as fh:
         fh.write("schema: factory-fleet/1\nrepos: [\n")
@@ -1236,7 +1159,7 @@ def _feat64_fleet_checks(mod, tmp):
         code = e.code
     check("resolve_fleet_blocks_exit_2_on_a_fleet_that_does_not_load",
           code == 2 and "does not load" in err.getvalue(), f"{code} {err.getvalue()[:120]}")
-    with _patched(mod.artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
+    with mock.patch.object(mod.artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
         with contextlib.redirect_stderr(io.StringIO()):
             check("resolve_fleet_lets_an_unrelated_RuntimeError_escape",
                   _escapes(lambda: mod.resolve_fleet(tmp, "x-hook")))
@@ -1250,7 +1173,7 @@ def case_feat64_lib_boundaries_are_typed():
     try:
         _feat64_pointer_read_checks(mod, tmp)
         os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
-        with _patched(mod.artifact_accessors, "manifest_domains", _raiser(RuntimeError("unrelated"))):
+        with mock.patch.object(mod.artifact_accessors, "manifest_domains", _raiser(RuntimeError("unrelated"))):
             check("run_dir_grant_globs_lets_an_unrelated_RuntimeError_escape",
                   _escapes(lambda: mod.run_dir_grant_globs(tmp)))
         _feat64_fleet_checks(mod, tmp)
@@ -1357,7 +1280,14 @@ CASES = (
     case_feature_artifact_checkout_mismatch_ambiguous,
     case_load_repo_module_registration,
     case_load_repo_module_failures,
-    case_bug1304_claim_set,
+    case_bug1304_short_claim,
+    case_bug1304_owner_claim,
+    case_bug1304_unresolved_and_empty_claims,
+    case_bug1304_multiple_claims,
+    case_runtime_lineage_filters_claim_worktrees,
+    case_bug1304_ambiguous_claim,
+    case_bug1304_unreadable_claims,
+    case_bug1304_refusal_text,
     case_real_keeps_one_namespace_when_unresolvable,
     case_run_identity_pattern,
     case_tests_are_target_side_control_plane_only,
@@ -1380,11 +1310,7 @@ def main():
     for case in CASES:
         run_case(case)
 
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":
