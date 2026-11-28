@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2622-practicality-rule",
   "branch": "feat/FEAT-2622-practicality-rule",
   "pr": null,
-  "review_sha": "d131c231d3e4f278019a8acdffd4706e6f622cee",
+  "review_sha": "edcda5be091e5b1aa6dcc7021e410aae56de0222",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -36,6 +36,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T05:21:55+00:00"
+    },
+    {
+      "id": "2026-11-28-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T05:25:59+00:00"
     }
   ],
   "judgements": [
@@ -45,6 +52,13 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "adds an exposure field to the digest finding schema and a refusal rule to validate-digest.py, which are enforcement surfaces"
+    },
+    {
+      "at": "2026-11-28T05:25:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-validate-c1.md",
+      "reason": "validate run 02 FAIL: MF-1..MF-5 fixed main-session-direct, re-pinned; rework round 1 of 2"
     }
   ],
   "mission": "plan",
