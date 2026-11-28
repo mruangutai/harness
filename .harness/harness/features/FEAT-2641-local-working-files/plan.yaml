@@ -3,12 +3,9 @@ feature: FEAT-2641-local-working-files
 approval:
   date: '2026-11-28'
   approved_by: operator
-  status: pending
-  reset_at: '2026-11-28T14:26:09+00:00'
-  reset_reason: apply T-12
-  resume_station: building
+  status: approved
 drafted_at: '2026-11-28T02:57:10Z'
-status: plan
+status: building
 source_issues: [2641]
 
 panel:
