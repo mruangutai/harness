@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -172,6 +172,8 @@ describe("OMP task lifecycle adapter", () => {
     distillAuthority?: (payload: Record<string, unknown>) => PolicyAnswer;
     // FEAT-2274: a gate's own answer, ahead of every default below; undefined falls through.
     gate?: (script: string, args: string[], payload: PolicyPayload) => PolicyAnswer | undefined;
+    // BUG-2566: the stale-hook check; undefined keeps the module's own.
+    staleCheck?: () => string | undefined;
   } = {}) {
     const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
@@ -384,7 +386,7 @@ describe("OMP task lifecycle adapter", () => {
       if (script === "merge-gate.py" && options.mergeGate) return options.mergeGate(objectPayload(payload));
       return { blocked: false, stdout: "" };
     };
-    registerHarnessHooks(pi, runner);
+    registerHarnessHooks(pi, runner, options.staleCheck);
     return { handlers, calls, runner, settle, tools };
   }
 
@@ -2439,6 +2441,93 @@ describe("OMP task lifecycle adapter", () => {
       expect(await spawn(handlers, { agent: "task", invocationKind: "eval" })).toBeUndefined();
     }
   });
+
+  // BUG-2566 (D-02): a stale process refuses every governed call before any policy runs; only a
+  // persona's BLOCKED yield passes, through the unchanged held-run and yield validation path.
+  const STALE = "stale-fixture-reason restart omp";
+  const STALE_PERSONA = `${STALE} While this process is stale, you may yield only a BLOCKED digest that names this cause.`;
+  const staleCheck = () => STALE;
+  const HELD_RUN_START = (script: string, args: string[]) => script === "inflight_registry.py" && args[0] === "run-start"
+    ? { blocked: true, stdout: JSON.stringify({ ok: false, cause: "lineage", retryable: false, message: "held by the BUG-2566 fixture" }) }
+    : undefined;
+  const personaCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+  async function stalePersona(held = false) {
+    const hooks = fixture({ staleCheck, ...(held ? { gate: HELD_RUN_START } : {}) });
+    await start(hooks.handlers);
+    return hooks;
+  }
+  async function staleMain() {
+    const hooks = fixture({ staleCheck });
+    await hooks.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    return hooks;
+  }
+  const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
+  const BLOCKED_DIGEST = { VERDICT: "BLOCKED", DIGEST: { headline: "stale hook" }, artifact: "none" };
+
+  const STALE_PERSONA_CALLS: Array<[string, string, Record<string, unknown>]> = [
+    ["read", "read", { path: "a" }],
+    ["write", "write", { path: "a", content: "x" }],
+    ["edit", "edit", { path: "a", edits: [] }],
+    ["bash", "bash", { command: "ls" }],
+    ["task", "task", { agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa" }],
+    ["yield of a PASS object", "yield", { data: PASS_DIGEST }],
+    ["yield of an array", "yield", { data: [PASS_DIGEST] }],
+    ["yield of a PASS object's JSON text", "yield", { data: JSON.stringify(PASS_DIGEST) }],
+    ["yield of malformed text", "yield", { data: "not json" }],
+    ["data-less finalize", "yield", { type: "result" }],
+  ];
+  test.each(STALE_PERSONA_CALLS)("BUG-2566 SC-02: a stale persona's %s is refused before any policy call", async (_label, toolName, input) => {
+    const { handlers, calls } = await stalePersona();
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, personaCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
+  });
+
+  test("BUG-2566 SC-02: a stale held persona's read is refused as stale, not as held", async () => {
+    const { handlers, calls } = await stalePersona(true);
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName: "read", toolCallId: "call-stale", input: { path: "a" } }, personaCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
+  });
+
+  const STALE_MAIN_CALLS: Array<[string, string, Record<string, unknown>]> = [
+    ["task", "task", { agent: "harness-orchestrator", task: "HARNESS-FEATURE: FEAT-90-long-run\nrun" }],
+    ["merge Bash", "bash", { command: "echo merge" }],
+  ];
+  test.each(STALE_MAIN_CALLS)("BUG-2566 SC-02: a stale Main %s is refused with the bare reason", async (_label, toolName, input) => {
+    const { handlers, calls } = await staleMain();
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, mainCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE }, 0]);
+  });
+
+  const STALE_BLOCKED_YIELDS: Array<[string, boolean, unknown]> = [
+    ["ready run, object", false, BLOCKED_DIGEST],
+    ["ready run, JSON text", false, JSON.stringify(BLOCKED_DIGEST)],
+    ["held run, object", true, BLOCKED_DIGEST],
+    ["held run, JSON text", true, JSON.stringify(BLOCKED_DIGEST)],
+  ];
+  test.each(STALE_BLOCKED_YIELDS)("BUG-2566 SC-02: a stale persona's BLOCKED yield (%s) reaches validation once", async (_label, held, data) => {
+    const { handlers, calls } = await stalePersona(held);
+    const before = calls.filter((call) => call.script === "validate-digest.py").length;
+    const result = await handlers.get("tool_call")?.({ toolName: "yield", toolCallId: "call-blocked", input: { data } }, personaCtx());
+    const validations = calls.filter((call) => call.script === "validate-digest.py");
+    expect(String(result?.reason ?? "")).not.toContain("stale-fixture-reason");
+    expect(validations.length - before).toBe(1);
+    const last = validations[validations.length - 1];
+    expect([last.args, payloadOf(last)?.digest_object]).toEqual([["--hook"], BLOCKED_DIGEST]);
+  });
+
+  const MAIN_UNGOVERNED: Array<[string, Record<string, unknown>]> = [
+    ["read", { path: "a" }],
+    ["edit", { path: "a", edits: [] }],
+    ["write", { path: "a", content: "x" }],
+    ["bash", { command: "git status" }],
+  ];
+  test.each(MAIN_UNGOVERNED)("BUG-2566 SC-03: a stale Main %s is not checked", async (toolName, input) => {
+    const { handlers } = await staleMain();
+    expect(await handlers.get("tool_call")?.({ toolName, toolCallId: "call-main", input }, mainCtx())).toBeUndefined();
+  });
 });
 
 // FEAT-2274 (C3): how one gate process's end is read. Broad gates report their own failure as
@@ -4354,5 +4443,147 @@ describe("FEAT-2337 async bounded policy runtime", () => {
   test.each(MALFORMED)("FEAT-2397: %s fails loudly and is never delivered", async (_label, stdout) => {
     const session = host({}, { "inject-expertise.py": { answer: injected(stdout), after: 0 } });
     await expect(session.begin()).rejects.toThrow("inject-expertise.py returned invalid JSON");
+  });
+});
+
+// BUG-2566 (D-01, D-03): the loaded hook module is fingerprinted by content at module load. Each
+// case imports its own copied tree, whose hook module was loaded at the fixed mtime M seconds.
+describe("BUG-2566 stale hook fingerprint", () => {
+  const REPO = join(import.meta.dir, "..", "..");
+  const M = 1800000000;
+  const H = ".omp/extensions/harness-hooks.ts";
+  const S = ".agents/skills/harness/schemas/digest";
+  type StaleModule = { staleHookRefusal: () => string | undefined };
+
+  async function staleTree(): Promise<{ root: string; module: StaleModule }> {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "bug2566-")));
+    cpSync(join(REPO, ".omp", "extensions"), join(root, ".omp", "extensions"), { recursive: true });
+    cpSync(join(REPO, ".claude", "skills", "harness", "schemas", "digest"), join(root, S), { recursive: true });
+    utimesSync(join(root, H), M, M);
+    // A dynamic import on purpose: each case loads a fresh copy of the module from its own temp
+    // root, which is the module-load boundary under test; no static path exists.
+    return { root, module: await import(join(root, H)) as StaleModule };
+  }
+
+  function expectStale(reason: string | undefined) {
+    expect(typeof reason).toBe("string");
+    expect(reason).not.toContain("\n");
+    expect(reason).toContain("restart omp");
+    expect(reason).toContain(H);
+  }
+
+  test("BUG-2566 SC-01: an untouched loaded module is not stale", async () => {
+    const { module } = await staleTree();
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-01: an appended comment line makes the module stale", async () => {
+    const { root, module } = await staleTree();
+    writeFileSync(join(root, H), `${readFileSync(join(root, H), "utf8")}// changed\n`);
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a deleted module is stale", async () => {
+    const { root, module } = await staleTree();
+    rmSync(join(root, H));
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a same-size byte change with the load-time mtime restored is stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    const bytes = readFileSync(path);
+    const size = statSync(path).size;
+    const changed = Buffer.from(bytes);
+    changed[changed.length - 1] = changed[changed.length - 1] === 0x20 ? 0x0a : 0x20;
+    writeFileSync(path, changed);
+    utimesSync(path, M, M);
+    expect(statSync(path).size).toBe(size);
+    expect(statSync(path).mtimeMs).toBe(M * 1000);
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a module replaced by a FIFO is stale and never blocks", async () => {
+    const { root } = await staleTree();
+    const probe = join(root, "fifo-probe.ts");
+    writeFileSync(probe, [
+      'import { rmSync } from "node:fs";',
+      'import { spawnSync } from "node:child_process";',
+      `const module = await import(${JSON.stringify(join(root, H))});`,
+      `rmSync(${JSON.stringify(join(root, H))});`,
+      `spawnSync("mkfifo", [${JSON.stringify(join(root, H))}]);`,
+      "console.log(JSON.stringify(module.staleHookRefusal()));",
+      "",
+    ].join("\n"));
+    const child = spawnSync(process.execPath, [probe], { encoding: "utf8", timeout: 5000, killSignal: "SIGKILL" });
+    expect([child.signal, child.error, child.status]).toEqual([null, undefined, 0]);
+    expectStale(JSON.parse(child.stdout));
+  }, 15000);
+
+  test("BUG-2566 SC-04: a touched mtime with unchanged bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    utimesSync(join(root, H), M + 5, M + 5);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a rewrite with identical bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    writeFileSync(path, readFileSync(path));
+    utimesSync(path, M + 5, M + 5);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a change restored to the original bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    const original = readFileSync(path);
+    writeFileSync(path, Buffer.concat([original, Buffer.from("// changed\n")]));
+    expectStale(module.staleHookRefusal());
+    writeFileSync(path, original);
+    utimesSync(path, M + 10, M + 10);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a changed digest schema file is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, S, "common.json");
+    writeFileSync(path, `${readFileSync(path, "utf8")}\n`);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a removed digest schema file is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    rmSync(join(root, S, "harness-pm.json"));
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a new extension module this process never loaded is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    writeFileSync(join(root, ".omp", "extensions", "digest-schema.ts"), "export {};\n");
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: edits to another checkout leave this one fresh", async () => {
+    const a = await staleTree();
+    const b = await staleTree();
+    writeFileSync(join(b.root, H), `${readFileSync(join(b.root, H), "utf8")}// changed\n`);
+    expect(a.module.staleHookRefusal()).toBeUndefined();
+    expectStale(b.module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-05: the check on the real module has a median under 5 ms", () => {
+    const check = (hooks as unknown as StaleModule).staleHookRefusal;
+    const results: Array<string | undefined> = [];
+    for (let i = 0; i < 20; i += 1) results.push(check());
+    const durations: number[] = [];
+    for (let i = 0; i < 200; i += 1) {
+      const begun = performance.now();
+      results.push(check());
+      durations.push(performance.now() - begun);
+    }
+    durations.sort((x, y) => x - y);
+    expect(results.every((result) => result === undefined)).toBe(true);
+    expect(durations[100]).toBeLessThan(5);
   });
 });

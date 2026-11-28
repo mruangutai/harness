@@ -1,6 +1,19 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
-import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, type Stats } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { createHash } from "node:crypto";
+import {
+  closeSync,
+  constants,
+  existsSync,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  type Stats,
+} from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
@@ -16,6 +29,8 @@ const REVIEW_PIN_MARKER = /^HARNESS-REVIEW-PIN: ([0-9a-f]{7,40})$/gm;
 // spelling on `harness_mission: distill` rather than teaching them to fabricate a pass.
 const MISSION_MARKER = /^HARNESS-MISSION: ([a-z]+)$/gm;
 const BIN = ".agents/skills/harness/bin";
+// The word prefilter shared by mainMergeGate and the BUG-2566 stale check; no g flag, so test keeps no state.
+const MERGE_COMMAND_PREFILTER = /\bmerge\b/;
 
 // THE GATE DIRECTORY IS DERIVED FROM THIS FILE, NOT FROM ANY CALLER (FEAT-42, panel B-1).
 // This module ships at <root>/.omp/extensions/harness-hooks.ts, so <root> is two levels up.
@@ -36,6 +51,77 @@ export function gateRoot(): string {
 // not exported and had no coverage at all, which is how B-1 survived four review passes.
 export function gatePath(script: string): string {
   return join(gateRoot(), BIN, script);
+}
+
+// BUG-2566: OMP imports this module once per process, so a long-running session keeps enforcing
+// the code it loaded. The fingerprint covers exactly the hook modules this process loaded from
+// .omp/extensions, which after BUG-2565 is this module alone; a module later added to
+// .omp/extensions must be added to HOOK_FINGERPRINT_MODULES. The digest schema directory and the
+// agent definitions are deliberately not fingerprinted: this module reads neither after BUG-2565,
+// and OMP rediscovers agent definitions on every task spawn (D-03). The fingerprint is taken at
+// module load and compared by content on every governed call (D-01: stat only classifies an
+// entry's kind and never shortcuts the comparison; a regular file is hashed through the one
+// nonblocking descriptor whose fstat confirms it is a regular file, so a FIFO swapped in after
+// the stat cannot block). An absent module is a recorded state.
+type HookFingerprint = Readonly<Record<string, string>>;
+
+function entryState(path: string): string {
+  try {
+    if (!statSync(path).isFile()) return "not-a-file";
+    const fd = openSync(path, constants.O_RDONLY | constants.O_NONBLOCK);
+    try {
+      if (!fstatSync(fd).isFile()) return "not-a-file";
+      return createHash("sha256").update(readFileSync(fd)).digest("hex");
+    } finally {
+      closeSync(fd);
+    }
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    if (code === "ENOENT" || code === "ENOTDIR") return "absent";
+    return `unreadable:${typeof code === "string" ? code : String((error as Error)?.message ?? error)}`;
+  }
+}
+
+function hookFingerprint(modules: readonly string[]): HookFingerprint {
+  return Object.freeze(Object.fromEntries(modules.map((path) => [path, entryState(path)])));
+}
+
+const HOOK_MODULE = fileURLToPath(import.meta.url);
+const HOOK_FINGERPRINT_MODULES: readonly string[] = [HOOK_MODULE];
+const LOADED_HOOK_FINGERPRINT = hookFingerprint(HOOK_FINGERPRINT_MODULES);
+const HOOK_LOADED_AT = new Date().toISOString();
+
+function staleHookReason(
+  loaded: HookFingerprint,
+  current: HookFingerprint,
+  root: string,
+  loadedAt: string,
+): string | undefined {
+  const keys = [...new Set([...Object.keys(loaded), ...Object.keys(current)])];
+  const changed = keys
+    .filter((key) => (loaded[key] ?? "absent") !== (current[key] ?? "absent"))
+    .sort()
+    .map((key) => relative(root, key));
+  if (!changed.length) return undefined;
+  return `Harness refuses this call: the Harness hook code this omp process loaded at ${loadedAt} `
+    + `no longer matches ${changed.join(", ")} on disk; restart omp to load the current hooks.`;
+}
+
+export function staleHookRefusal(): string | undefined {
+  return staleHookReason(LOADED_HOOK_FINGERPRINT, hookFingerprint(HOOK_FINGERPRINT_MODULES), gateRoot(), HOOK_LOADED_AT);
+}
+
+function isBlockedYieldData(data: unknown): boolean {
+  let value = data;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return false;
+    }
+  }
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    && (value as Record<string, unknown>).VERDICT === "BLOCKED";
 }
 
 type Dict = Record<string, unknown>;
@@ -1236,7 +1322,11 @@ export function spendAdvisoryFor(
     : undefined;
 }
 
-export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPolicy): void {
+export function registerHarnessHooks(
+  pi: any,
+  policyRunner: PolicyRunner = runPolicy,
+  staleCheck: () => string | undefined = staleHookRefusal,
+): void {
   let currentAgent: string | undefined;
   let currentFeature: string | undefined;
   let expertiseInjected = false;
@@ -1548,7 +1638,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   // could not answer is read as the narrow gate it is (FEAT-2337, DEC-100): classifyPolicyRun
   // refuses only a command merge_ref's port guards, so Main and governed runs share one reading.
   const mainMergeGate = async (cwd: string, command: string, ctx: any): Promise<{ block: true; reason: string } | undefined> => {
-    if (!/\bmerge\b/.test(command)) return undefined;
+    if (!MERGE_COMMAND_PREFILTER.test(command)) return undefined;
     const result = await policyRunner(cwd, "merge-gate.py", [], {
       ...basePayload("Main", "PreToolUse", cwd, ctx),
       tool_name: "Bash",
@@ -1697,6 +1787,26 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     };
     const mutates = ["write", "edit", "ast_edit", "bash", "expertise_apply"].includes(toolName);
     sessionCwd = text(ctx.cwd) || sessionCwd;
+    const ompMainTask = !currentAgent
+      && toolName === "task"
+      && agentId === "Main"
+      && !parentAgentId;
+    // BUG-2566 D-02: the stale refusal outranks every other check; only a persona's BLOCKED yield
+    // passes, as in a held run; Main's other calls are never checked.
+    const governedCall = Boolean(currentAgent) || ompMainTask
+      || (toolName === "bash" && MERGE_COMMAND_PREFILTER.test(text(input.command)));
+    const blockedYield = Boolean(currentAgent) && toolName === "yield" && isBlockedYieldData(input.data);
+    if (governedCall && !blockedYield) {
+      const stale = staleCheck();
+      if (stale !== undefined) {
+        return {
+          block: true,
+          reason: currentAgent
+            ? `${stale} While this process is stale, you may yield only a BLOCKED digest that names this cause.`
+            : stale,
+        };
+      }
+    }
     if (toolName === "task" && !agentId) {
       return { block: true, reason: MISSING_CAPABILITY };
     }
@@ -1705,10 +1815,6 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       return { block: true, reason: heldReason() };
     }
     if (!currentAgent && toolName === "bash") return mainMergeGate(ctx.cwd, text(input.command), runtimeCtx);
-    const ompMainTask = !currentAgent
-      && toolName === "task"
-      && agentId === "Main"
-      && !parentAgentId;
     if (!currentAgent && !ompMainTask) return;
     const policyAgent = currentAgent || "Main";
     let revisedInput: Dict | undefined;
