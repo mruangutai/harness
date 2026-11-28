@@ -12,14 +12,11 @@ asks for a cleanup.
 
 ## Procedure
 
-1. **Audit:** run both tiers — the repository tier carries its own 40-line budget and the checker
-   applies it by path, so an audit that reads one tier reports clean over the other.
+1. **Audit:** one call names both tiers; the checker applies each tier's own line budget by path,
+   and an empty tier directory adds nothing.
 
    ```
-   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
-   for d in <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/; do
-     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py "$d"
-   done
+   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.py <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/ <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/
    ```
 
    Files reported `OK` are done — do not touch them.

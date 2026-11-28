@@ -363,13 +363,46 @@ def _validate_plan_verify_shape(doc, tasks, path):
     """Row 86: a `pending` plan's task `verify:` must be MANUAL em-dash prose or the start
     of a runnable command. Gated on `approval.status == "pending"` — see the block comment
     above `_VERIFY_BARE_COMMANDS` for why an approved plan is never re-checked here."""
-    approval = doc.get("approval")
-    if not isinstance(approval, dict) or approval.get("status") != "pending":
+    if not _is_pending(doc):
         return
     for t in tasks:
         finding = _verify_shape_finding(t)
         if finding is not None:
             raise PlanSchemaError(path, finding)
+
+
+def _is_pending(doc):
+    approval = doc.get("approval")
+    return isinstance(approval, dict) and approval.get("status") == "pending"
+
+
+# #2618: a folded `verify: >` scalar loads with its newlines collapsed, so the string a lead
+# carries verbatim and the one a member cross-checks against the plan text differ, and a correct
+# task returns BLOCKED. The constructed str has lost the style, so it is read from the composed
+# node tree. Pending plans only, for the same reason as row 86 above: signed text is frozen.
+def _mapping_value(node, key):
+    if not isinstance(node, yaml.MappingNode):
+        return None
+    return next((v for k, v in node.value if getattr(k, "value", None) == key), None)
+
+
+def _folded_verify_ids(text):
+    """Ids (or 'no id') of the tasks whose verify: is a folded block scalar ('>', '>-', '>+')."""
+    tasks = _mapping_value(yaml.compose(text, Loader=_StrictSafeLoader), "tasks")
+    items = tasks.value if isinstance(tasks, yaml.SequenceNode) else []
+    return [getattr(_mapping_value(t, "id"), "value", "no id") for t in items
+            if getattr(_mapping_value(t, "verify"), "style", None) == ">"]
+
+
+def refuse_folded_verify(doc, path):
+    """Raise PlanSchemaError when a pending plan file at `path` writes a folded verify:."""
+    if not _is_pending(doc):
+        return
+    with open(path, encoding="utf-8") as f:
+        folded = _folded_verify_ids(f.read())
+    if folded:
+        raise PlanSchemaError(path, f"tasks[] ({', '.join(folded)}) verify: is a folded block "
+                                    "scalar, which collapses its newlines; use a literal '|' block")
 
 
 

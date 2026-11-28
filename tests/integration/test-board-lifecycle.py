@@ -231,6 +231,11 @@ case "$*" in
       touch "$FAKE_STATE"
     fi
     exit 0 ;;
+  *"projectsV2(first:"*)
+    # #2618: board_lifecycle._titled_boards -- the owner's projects titled '<repo> board', read
+    # before a create so a retry adopts the board an unrecorded earlier create made.
+    echo "$REPO_PROJECTS_JSON"
+    exit 0 ;;
   *"repositories(first:"*)
     # Fix cycle c1, MUST-FIX 1: board_lifecycle._project_linked_repos's own linkage-guard query
     # -- a unique marker ("repositories(first:") no other query in this fixture sends, matched
@@ -283,6 +288,19 @@ _RESOLVE_EXISTS = json.dumps(
                                    "projectV2": {"id": "PVT_PROJ", "title": "Board"}}}})
 _RESOLVE_ABSENT = json.dumps(
     {"data": {"repositoryOwner": {"__typename": "User", "projectV2": None}}})
+
+
+def _repo_projects_json(projects, has_next_page=False):
+    """#2618: the owner's title search, as (number, title) pairs. GitHub's search is fuzzy, so
+    the answer may carry near-miss titles the module must filter out."""
+    return json.dumps({"data": {"user": {"projectsV2": {
+        "nodes": [{"id": f"PVT_{n}", "number": n, "title": t} for n, t in projects],
+        "pageInfo": {"hasNextPage": has_next_page}}}}})
+
+
+# A near-miss title the fuzzy search returns that must never be adopted.
+_REPO_PROJECTS_DECOYS = [(6, "acme/widget board (old)")]
+_REPO_PROJECTS_NONE = _repo_projects_json([])
 
 
 def _linked_repos_json(names, has_next_page=False, end_cursor=None):
@@ -387,7 +405,7 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
               options=None, issues=None, stations=None, workflows=None, fail_match=None,
               item_id=None, fake_state=None, issues_after=None, stations_after=None,
               workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None,
-              label_create_stderr=None):
+              label_create_stderr=None, repo_projects=_REPO_PROJECTS_NONE):
     """The stub environment `run` forks with, built once so a SECOND entry point can reuse it.
 
     Extracted for T-04: `audit_findings` is a library function, so its contract -- what it
@@ -416,6 +434,7 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["CONTENTS_B64"] = contents_b64 or ""
     env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
     env["LABEL_CREATE_STDERR"] = label_create_stderr or ""
+    env["REPO_PROJECTS_JSON"] = repo_projects
     env.pop("HARNESS_GH_COST_LOG", None)
     return env, tmp, log_path, sentinel_log
 
@@ -642,6 +661,73 @@ with tempfile.TemporaryDirectory() as base:
           "never the DECLARED 9",
           len(probe_calls) == 1 and number_arg(probe_calls[0]) == "42",
           f"probe_calls={probe_calls!r}")
+
+# ---------------- #2618: a retry adopts the linked board an unrecorded create made -----------
+# The declared number does not resolve, so before this fix every such run created a board. Each
+# case asserts the lookup query was really sent, so a pass is never a lookup that did not run.
+
+def _lookups(log):
+    return [l for l in log if "projectsV2(first:" in l]
+
+
+def _creates(log):
+    return [l for l in log if "createProjectV2(" in l and "createProjectV2Field" not in l]
+
+
+with tempfile.TemporaryDirectory() as base:
+    # ADOPT-ONE. The adopted board carries GitHub's default Status options plus two declared
+    # stations; it must be widened (union, Todo/In Progress kept), never exactly replaced.
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    existing = _GITHUB_DEFAULT_OPTIONS + ["Backlog", "Plan"]
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_SINGLE_SELECT,
+                 options=_options_json(existing),
+                 repo_projects=_repo_projects_json(_REPO_PROJECTS_DECOYS + [(17, "acme/widget board")]))
+    updates = [l for l in log if "updateProjectV2Field" in l]
+    union = existing + [s for s in _ALL_SIX if s not in existing]
+    check("2618 adopt-one: exits 3, the create path's record-the-number signal",
+          r.returncode == 3, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("2618 adopt-one: reports the adopted number for the operator to record",
+          "record number 17" in r.stdout and "42" not in r.stdout, repr(r.stdout))
+    check("2618 adopt-one: the search ran and no board was created or linked",
+          len(_lookups(log)) == 1 and _creates(log) == []
+          and not any("linkProjectV2ToRepository" in l for l in log), repr(log))
+    check("2618 adopt-one: the linkage guard and the field probe read the ADOPTED number",
+          [number_arg(l) for l in log if "repositories(first:" in l or "ProjectV2IterationField" in l]
+          == ["17", "17", "17"], repr(log))
+    check("2618 adopt-one: options are WIDENED to the union, never exactly replaced -- GitHub's "
+          "Todo and In Progress survive",
+          len(updates) == 1 and _expected_options_literal(union) in updates[0]
+          and _expected_options_literal(_ALL_SIX) not in updates[0], repr(updates))
+
+for label, projects, linked in (
+        ("several candidates", [(17, "acme/widget board"), (18, "acme/widget board")],
+         _LINKED_REPOS_DEFAULT),
+        ("one candidate whose link is unproven", [(17, "acme/widget board")],
+         _LINKED_REPOS_UNLINKED)):
+    with tempfile.TemporaryDirectory() as base:
+        root = os.path.join(base, "root")
+        write_root(root, default_github())
+        r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
+                     repo_projects=_repo_projects_json(projects), linked_repos=linked)
+        check(f"2618 refuse ({label}): exits 2 with zero mutations",
+              r.returncode == 2 and len(_lookups(log)) == 1 and mutation_calls(log) == [],
+              f"rc={r.returncode} stderr={r.stderr!r} log={log!r}")
+        check(f"2618 refuse ({label}): names every candidate board",
+              all(str(n) in r.stderr for n, _t in projects), repr(r.stderr))
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
+                 repo_projects=_repo_projects_json(_REPO_PROJECTS_DECOYS))
+    check("2618 create-when-none: the search ran, found no adoptable board, and created one",
+          r.returncode == 3 and len(_lookups(log)) == 1 and len(_creates(log)) == 1
+          and "record number 42" in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r} log={log!r}")
+    check("2618 create-when-none: the search is sent BEFORE the create",
+          _lookups(log) and _creates(log) and log.index(_lookups(log)[0]) < log.index(_creates(log)[0]),
+          repr(log))
 
 # ---------------- case 5c (fix cycle c2, SC-01): create + link succeed, the FIELD creation
 # fails -- exit 4, and stderr names the created number so a retry cannot duplicate the board ---

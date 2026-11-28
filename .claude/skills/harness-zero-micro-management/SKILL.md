@@ -21,8 +21,8 @@ state file is not executing; writing a deliverable is.
    it — `verify:` is preloaded into no member's context. The member cross-checks your string
    against the plan (`plan.yaml`, or `PLAN.md` on the pre-DEC-182 format) and returns `BLOCKED`
    on a mismatch, so a paraphrase stops the task rather than silently verifying something else.
-   `verify:` must be a literal `|` block in `plan.yaml` (DEC-182): a folded `>` scalar collapses
-   newlines, so your string and the member's differ and a correct task returns `BLOCKED`.
+   `verify:` is a literal `|` block in `plan.yaml` (DEC-182); `load_plan` refuses a folded `>`
+   on a pending plan.
    When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`;
    `dispatch-guard.py` refuses its absence at exit 2. You hold no shell either: use the value
    supplied on your own dispatch, and if it is absent return `VERDICT: BLOCKED` rather than guess.
