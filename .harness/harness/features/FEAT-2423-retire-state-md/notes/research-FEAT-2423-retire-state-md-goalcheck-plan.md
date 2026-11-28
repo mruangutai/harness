@@ -131,3 +131,42 @@ INV-38..41, INV-3/4 and INV-35/3/4/34/32/44 do not match, while INV-1..5, INV-3/
 - `--root <worktree>`: 7 tasks, 38 anchors resolved, 40 failures. All 40 are the sparse-checkout STATE.md
   anchors in T-06 and T-07 (Q-05), and there is no budget VIOLATION.
 - `--root /Users/molchairuangutai/GitHub/harness`: 7 tasks, 78 anchors resolved, 0 failures.
+
+## Re-grade after c1 rulings (run 2026-11-28-02-plan-product)
+
+**Verdict: PASS.** The plan delivers the operator's stated intent (the grilling `## Destination` and `## Settled`) as
+narrowed by `notes/answers-2026-11-28-plan-c1.md`. All four perspectives pass. Every narrowing still standing is one
+the operator ruled, and no unruled narrowing was found.
+
+**Evidence base.** plan.yaml and BRIEF.md (approval `pending`). A fresh census at main `260742cd` (the earlier
+grades were at `3c490116`) ran `git grep -l -I -E 'STATE\.md|STATE_MD|state_md' HEAD` outside `.harness/*/features/**`,
+`.harness/logs/**` and `council/**`. It found 39 live files:
+
+- 36 are in a task's `files:`.
+- `BUILD.md` is history (GC-03).
+- The two Expertise files are SC-11 (Q-04).
+
+`git ls-tree` at HEAD lists 40 tracked `features/*/STATE.md`. The `files:` of T-06 (19) and T-07 (21, including
+kaya) match that set exactly in both directions. The live in-flight branches that add a copy are FEAT-2641,
+FEAT-2688 and BUG-2524, all three under Q-02. FEAT-2643's branch adds none. The other branches that carry copies
+are stale pre-deletion branches, not in-flight features.
+
+`git grep 'org\.html'` outside feature records and logs prints nothing, so T-04 deletes no live link target.
+`plan-merge.py check --root <main checkout>` gives 7 tasks, 80 anchors and 0 failures.
+
+| Perspective | Grade | Carried by |
+|---|---|---|
+| operator | **pass** | SC-01 (T-03 deletes the template; T-06 and T-07 delete all 40 tracked copies, the kaya one under Q-03), SC-10 (T-04 rewrites SPEC and README and deletes org.html by operator direction), SC-11 (Expertise G-01 and G-05 are dropped at distillation as a ship condition, under Q-04, so a task is deliberately not the carrier), and SC-02 in support (T-03 points open questions at the latest accepted run digest, D-01). "Nothing on main still tells anyone": every live mention in the census is owned. Historical mentions stay under GC-03 (DEC-205). Run-01's two partials are closed by ruling, not by a plan change. |
+| orchestrator | **pass** | SC-02; T-03. Unchanged from run 01: step 1 reads the plan.yaml station and approval, the feature.json runs (the PENDING entry) and the latest accepted digest's open_questions using D-01's verbatim definition. Step 4 re-reads at wake, step 6 drops the status-file write, and succession.md's disk-only path names the same records. T-04 SPEC §10.1 and T-05 DEC-129 carry the same definition. |
+| code maintainer | **pass** | SC-03 to SC-08; T-01, T-02, T-03 and T-07. The retired numbers go to `RETIRED` (SC-04, T-01), and the live INV-2/INV-5 prose is gated (T-01 verify, run-01 remediation). Under Q-06, T-02 now removes the name from both `prior-*` fixtures, and T-07's terminal verify greps all of `tests/` for the name and for a quoted bare `STATE` with no exclusion. Neither stray-file test remains in the plan. One narrowing is ruled: "behave the same with a stray copy" is now proven only by deleting the rules (SC-05, inspection). The generic INV-7/15/37/46 reads are not shown to ignore a stray copy. BRIEF `## Verification gaps` declares this as the direct consequence of Q-06, so it is a ruled narrowing, not a gap. |
+| reader | **pass** | SC-09; T-05. Unchanged: each amend and strike row in `decisions_affected` (DEC-45 strike; DEC-71, 95, 120, 129, 138, 150, 159, 180, 181, 182, 199, 201 amends) has replacement text in T-05's intent. The verify checks the DEC-45 STRUCK heading, the absence of Amended-by in DEC-129 and DEC-150, the D-01 definition in DEC-129, an index tail of 30 words or fewer, and a clean index diff. |
+
+**Advisory (not a gap, no question):** T-07's verify fails closed if a merge adds a tracked copy before this feature
+builds. That is the right behaviour under Q-02, but the executor must then `git rm` the copy rather than read the
+failure as a T-07 defect.
+
+## Principles applied (re-grade)
+
+- No craft leaf was read this run, so none is cited. Grading used pm Expertise P-03: the ownership census is
+  re-based on the tree at HEAD, not on the plan's own `files:` lists. It also used P-04: each tracked copy is
+  matched one by one against T-06 and T-07, not by count.

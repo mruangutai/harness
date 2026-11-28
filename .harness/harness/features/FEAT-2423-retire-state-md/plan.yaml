@@ -1,23 +1,26 @@
 schema: plan/1
 feature: FEAT-2423-retire-state-md
 approval:
-  status: pending
+  date: '2026-11-28'
+  approved_by: operator
+  status: approved
 drafted_at: '2026-11-28T15:45:25Z'
-status: plan
+status: ready
 source_issues:
 - 2423
 panel:
-  last_run: 2026-11-28-01-plan-product
-  cycle: 1
+  last_run: 2026-11-28-02-plan-product
+  cycle: 2
   readers:
   - reader: scope
     status: ran
     persona: harness-code-reviewer
     reason: none
   - reader: should-not-exist
-    status: ran
+    status: skipped
     persona: fable-advisor
-    reason: none
+    reason: host skip; c1 rulings narrow scope and add no build task, so no material
+      scope change warrants the reader (dispatch authorised it only on one)
   - reader: design
     status: ran
     persona: harness-ui-reviewer
@@ -128,6 +131,50 @@ panel:
       vs_today: regression
       control: harness
     resolved_by: T-04
+  - id: PF-9961f1ba6f7e9dd7a9506958c6039a48
+    severity: high
+    reader: scope
+    kind: substance
+    summary: SC-03 and T-07 exempt live executable fixtures despite the operator's Q-06 ruling.
+    disposition: resolved
+    exposure:
+      trigger: routine
+      vs_today: no_worse
+      control: harness
+    resolved_by: T-02
+  - id: PF-fce20df5d8aeac331cc94401285c9c8e
+    severity: high
+    reader: scope
+    kind: substance
+    summary: The latest non-PENDING run is not necessarily the latest accepted digest (D-01, SC-10).
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-03
+  - id: PF-e1cac20dacf30fc6b8f4318ef6d02915
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-02's new SC-06 witness can pass on the wrong denial or miss an indented stale routing line.
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-02
+  - id: PF-11b88f825f6b9f7e1770b3e2b3a4acb9
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-01's numeric-range grep does not implement its range claim.
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-01
 lanes:
   resolved_at: 36ee67e584e521a1576b54cc67da734f515571bf
   rows:
@@ -157,13 +204,13 @@ lanes:
     reason: Same feature-wide routing.
   - surface: .harness/harness/docs/**
     lane: main-session-direct
-    reason: SPEC, org.html, DECISIONS and its regenerated index change with the gates.
+    reason: SPEC, DECISIONS and its regenerated index change with the gates; one retired reference page is deleted.
   - surface: .harness/*/features/*/STATE.md
     lane: main-session-direct
     reason: Deleting other features' records from a sparse feature worktree.
 decisions:
 - id: D-01
-  choice: 'Retire STATE.md outright: the orchestrator reads plan.yaml status and approval.status, feature.json runs (the open run is the PENDING entry) and the latest run digest''s open_questions with handed answers notes; no replacement file and no feature.json field.'
+  choice: 'Retire STATE.md outright: the orchestrator reads plan.yaml status and approval.status, feature.json runs (the open run is the PENDING entry) and the latest accepted run digest''s open_questions with handed answers notes; no replacement file and no feature.json field. The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions. A refused return is skipped by its refusal marker (feature_record/runs.py _is_refused, DEC-156), never by its BLOCKED verdict.'
   because: 12 of the 15 newest copies were stale while plan.yaml said done, main-session-direct features have no reader, and a second status channel drifts.
   dec: DEC-129
 - id: D-02
@@ -415,28 +462,27 @@ tasks:
     python3 tests/integration/test-checker-structure-locks.py
     python3 tests/integration/test-structure-audit-single-pass.py
     python3 tests/unit/test-check-state-shipped-ctx.py
-    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check_state .claude/skills/harness/bin/structure_audit.py .claude/skills/harness/bin/harness_yaml.py tests/integration/test-check-state-plans.py tests/integration/test-check-state-entry.py tests/integration/test-check-state-shipped.py tests/integration/test-check-state-records.py tests/integration/test-harness-yaml.py tests/unit/test-check-state-shipped-ctx.py || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check_state .claude/skills/harness/bin/structure_audit.py .claude/skills/harness/bin/harness_yaml.py tests/integration/test-check-state-table.py tests/integration/test-check-state-plans.py tests/integration/test-check-state-entry.py tests/integration/test-check-state-shipped.py tests/integration/test-check-state-records.py tests/integration/test-harness-yaml.py tests/unit/test-check-state-shipped-ctx.py || rc=$?; test "$rc" -eq 1
     python3 - <<'PY'
-    import ast, re, subprocess, sys
-    f, fn = 'tests/integration/test-check-state-table.py', 'case_stray_status_file_is_inert'
-    src = open(f, encoding='utf-8').read()
-    spans = [(n.lineno, n.end_lineno) for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef) and n.name == fn]
-    hits = [i for i, l in enumerate(src.splitlines(), 1) if re.search(r'STATE\.md|STATE_MD|state_md', l)]
-    bad = [h for h in hits if not any(a <= h <= b for a, b in spans)]
-    print(spans, hits, bad); inert_ok = bool(spans and hits and not bad)
-    p = subprocess.run(['git', 'grep', '-n', '-I', '-E', r'INV-(2|5)([^0-9]|$)|INV-([0-9]+/)+(2|5)([^0-9]|$)|INV-[1-5]\.\.([2-9]|[1-9][0-9])([^0-9]|$)', '--', '.claude/skills/harness/bin', 'tests', ':(exclude)tests/integration/fixtures/prior-*', ':(exclude)tests/integration/test-check-state-table.py'], capture_output=True, text=True)
-    inv = p.stdout.splitlines(); live = [h for h in inv if not re.match(r'\.claude/skills/harness/bin/check_state/table\.py:[0-9]+:\s+"INV-(2|5)": "DEC-129 ', h)]
-    print('git grep exit', p.returncode, p.stderr.strip(), 'retired', len(inv) - len(live), 'live', len(live), *live, sep='\n'); sys.exit(2 if p.returncode not in (0, 1) else 0 if inert_ok and p.returncode == 0 and not live and len(inv) == 2 else 1)
+    import re, subprocess, sys
+    p = subprocess.run(['git', 'grep', '-n', '-I', '-E', r'INV-(2|5)([^0-9]|$)|INV-([0-9]+/)+(2|5)([^0-9]|$)|INV-[0-9]+\.\.[0-9]+', '--', '.claude/skills/harness/bin', 'tests', ':(exclude)tests/integration/fixtures/prior-*', ':(exclude)tests/integration/test-check-state-table.py'], capture_output=True, text=True)
+    def names(text):
+        if re.search(r'INV-(2|5)([^0-9]|$)|INV-([0-9]+/)+(2|5)([^0-9]|$)', text):
+            return True
+        return any(int(lo) <= n <= int(hi) for lo, hi in re.findall(r'INV-([0-9]+)\.\.([0-9]+)', text) for n in (2, 5))
+    hits = [h for h in p.stdout.splitlines() if names(h.split(':', 2)[2])]
+    retired = [h for h in hits if re.match(r'\.claude/skills/harness/bin/check_state/table\.py:[0-9]+:\s+"INV-(2|5)": "DEC-129 ', h)]
+    live = [h for h in hits if h not in retired]
+    print('git grep exit', p.returncode, p.stderr.strip(), 'retired', len(retired), 'live', len(live), *live, sep='\n'); sys.exit(2 if p.returncode not in (0, 1) else 0 if not live and len(retired) == 2 else 1)
     PY
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
 
-    T-01 retires INV-2, INV-5 and the STATE.md half of INV-23 from check-state (plan D-02). FEAT-2643 edits check_state/ctx.py#is_shipped, check_state/plan.py#_inv32_shape and check_state/feature_record.py#inv_33: if it has merged, rebase onto main first and preserve its changes.
+    T-01 retires INV-2, INV-5 and the STATE.md half of INV-23 from check-state (plan D-02). FEAT-2643 edits check_state/ctx.py#is_shipped, check_state/plan.py#_inv32_shape and check_state/feature_record.py#inv_33. By operator ruling Q-01 (notes/answers-2026-11-28-plan-c1.md) this build starts only after FEAT-2643 has merged: rebase onto main first and preserve its changes.
 
     Tests first, in tests/integration/test-check-state-table.py.
-    (1) case_retired_numbers: run check-state.py --list against the file's existing fixture root; assert the INV-2 line and the INV-5 line each read retired and cite DEC-129. Import check_state.table from the subject bin directory and assert no name is both an INVARIANTS row and a RETIRED key, and no name occurs twice across the two. Update the file's existing --list case in place rather than adding a parallel one: the active-row assertion expects INV-44 at rows[-8], because two more retired rows now follow the active ones; the retired-numbers assertion expects rows[-7:] to be INV-2, INV-5, INV-9, INV-10, INV-13, INV-28, INV-30, each of those lines marked retired; and a new assertion requires the --list INV-23 line to name the feature.json path glob and path:CLAUDE.md and no status file.
-    (2) case_stray_status_file_is_inert, written as def case_stray_status_file_is_inert(): and called once at module level, because it is the only place in this file allowed to name the status file: build one fixture feature with the file's existing helpers (a pending plan.yaml carrying T-01, a BRIEF.md). Write STATE.md in it holding a '## Current' line, a '## Bogus Section' line, the token T-99 and 200 filler lines. Run check-state.py, delete that file, run again with identical arguments. Assert equal exit codes, equal stdout, and that no stdout line contains the file's name.
-    Show both cases failing at the base commit (INV-2 and INV-5 listed active; INV-5 and INV-23 lines naming the file), then passing.
+    (1) case_retired_numbers: run check-state.py --list against the file's existing fixture root; assert the INV-2 line and the INV-5 line each read retired and cite DEC-129. Import check_state.table from the subject bin directory and assert no name is both an INVARIANTS row and a RETIRED key, and no name occurs twice across the two. Update the file's existing --list case in place rather than adding a parallel one: the active-row assertion expects INV-44 at rows[-8], because two more retired rows now follow the active ones; the retired-numbers assertion expects rows[-7:] to be INV-2, INV-5, INV-9, INV-10, INV-13, INV-28, INV-30, each of those lines marked retired; and a new assertion requires the --list INV-23 line's read sources to be exactly two, the feature.json path glob and path:CLAUDE.md, compared as a set so the case never spells a third name.
+    Show case_retired_numbers failing at the base commit (INV-2 and INV-5 listed active; the INV-23 line carrying three read sources), then passing. No test, fixture or test data names the retired status file, including by string construction or split literals (operator ruling Q-06): the retirement is proven by deleting the code that read it (SC-05), never by a test that writes the file.
 
     Production.
     - check_state/table.py: delete the INV-2 row with its state-has-goal group, the INV-5 row and the _STATE_MD constant; drop the inv_2 and inv_5 imports. The INV-23 row reads (_FEATURE_JSON, "path:CLAUDE.md") with contract "feature.json and CLAUDE.md stay within their line budgets (notes)". Add to RETIRED, keeping its order by number: "INV-2": "DEC-129 — the per-feature status file is retired; INV-1 grades a feature's goal of record" and "INV-5": "DEC-129 — the per-feature status file is retired; nothing names plan tasks outside the plan".
@@ -455,13 +501,14 @@ tasks:
     - test-check-state-records.py and test-harness-yaml.py: reword the comments that name the file.
     - test-checker-structure-locks.py: retarget both reparse mutants from inv_2 to inv_1, mutating the 'def inv_1(ctx, feat):' docstring opener and asserting 'inv_1' or 'INV-1 ' in every finding, so neither mutant's assertion names inv_2 or 'INV-2 '.
 
-    No live INV-2 or INV-5 mention survives under .claude/skills/harness/bin or tests: not bare, not inside a slash list such as INV-3/4/5 or INV-1/2/6, and not inside a numeric range spanning 2 or 5. Three exemptions only: the two RETIRED entries this task adds to check_state/table.py, the frozen byte-identical tests/integration/fixtures/prior-* fixtures, and tests/integration/test-check-state-table.py, whose case_retired_numbers asserts the retired lines. The final python verify block enforces this alongside its status-file check: it fails on any git grep error (exit other than 0 or 1), fails when the two RETIRED entries are absent (the positive control, so git grep exit 1 is also a failure), and fails on any other hit. At the base commit it lists 25 live mentions across brief.py, ctx.py, feature_record.py, plan.py, table.py, harness_yaml.py, structure_audit.py, test-check-state-plans.py and test-checker-structure-locks.py.
+    No live INV-2 or INV-5 mention survives under .claude/skills/harness/bin or tests: not bare, not inside a slash list such as INV-3/4/5 or INV-1/2/6, and not inside a numeric range spanning 2 or 5. The declared grammar is three forms: bare INV-N, a slash list INV-a/b/c, and a range INV-a..b; the verify parses each range's two endpoints and flags it when a <= 2 <= b or a <= 5 <= b, so INV-1..100 and INV-1..5 are hits while INV-3..4 and INV-6..8 are not. Three exemptions only: the two RETIRED entries this task adds to check_state/table.py, the tests/integration/fixtures/prior-* fixtures, copies of earlier gate revisions whose INV numbers describe that revision (T-02 removes only the retired file's name from two of them), and tests/integration/test-check-state-table.py, whose case_retired_numbers asserts the retired lines. The final python verify block enforces this: it fails on any git grep error (exit other than 0 or 1), fails unless exactly the two RETIRED entries match (the positive control, so git grep exit 1 is also a failure), and fails on any other hit, a spanning range included. At the base commit 3c490116 it lists 25 live mentions (measured with this grammar) across brief.py, ctx.py, feature_record.py, plan.py, table.py, harness_yaml.py, structure_audit.py, test-check-state-plans.py and test-checker-structure-locks.py.
 
-    Done when the file's name appears in these files only inside case_stray_status_file_is_inert, no live INV-2 or INV-5 mention survives as above, and every verify command exits 0.
+    Done when the file's name appears in none of these files, no live INV-2 or INV-5 mention survives as above, and every verify command exits 0.
 - id: T-02
   title: Remove the STATE.md shape rule from check-domain
   traces:
   - SC-03
+  - SC-05
   - SC-06
   - SC-07
   change_type: logic
@@ -476,34 +523,27 @@ tasks:
   - tests/integration/test-check-domain-approval.py
   - tests/integration/test-check-domain-post.py
   - tests/integration/test-check-domain-worktree.py
+  - tests/integration/fixtures/prior-check-domain.fixture
+  - tests/integration/fixtures/prior-check-plan-routes.py.fixture
   verify: |
     set -e -o pipefail
     python3 tests/integration/test-check-domain-approval.py
     python3 tests/integration/test-check-domain-post.py
     python3 tests/integration/test-check-domain-worktree.py
+    python3 tests/integration/test-check-domain-claims.py
     python3 tests/integration/test-check-plan-routes.py
-    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/check-plan-routes.py tests/integration/test-check-domain-approval.py tests/integration/test-check-domain-worktree.py || rc=$?; test "$rc" -eq 1
-    python3 - <<'PY'
-    import ast, re, sys
-    f, fn = 'tests/integration/test-check-domain-post.py', 'run_retired_status_file_is_ungated'
-    src = open(f, encoding='utf-8').read()
-    spans = [(n.lineno, n.end_lineno) for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef) and n.name == fn]
-    hits = [i for i, l in enumerate(src.splitlines(), 1) if re.search(r'STATE\.md|STATE_MD|state_md', l)]
-    bad = [h for h in hits if not any(a <= h <= b for a, b in spans)]
-    print(spans, hits, bad)
-    sys.exit(0 if spans and hits and not bad else 1)
-    PY
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/check-plan-routes.py tests/integration/test-check-domain-approval.py tests/integration/test-check-domain-post.py tests/integration/test-check-domain-worktree.py tests/integration/fixtures/prior-check-domain.fixture tests/integration/fixtures/prior-check-plan-routes.py.fixture || rc=$?; test "$rc" -eq 1
+    grep -q -F 'def run_budget_denials_route_to_live_records' tests/integration/test-check-domain-post.py
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
 
     T-02 removes the STATE.md shape rule from check-domain.py. It depends on T-01, because test-check-state-entry.py compared the two gates' budgets until T-01 removed that row.
 
-    Tests first. Add one function, def run_retired_status_file_is_ungated():, to tests/integration/test-check-domain-post.py and call it from that file's main() beside the other run_ functions. It drives BIN/check-domain.py as a subprocess against a temporary fixture project built with the file's existing check_domain_support helpers (fixture, fire_write_payload, fire_post), including whatever claim fixtures a governed write needs. It is the only place in this file allowed to name the status file.
-    (a) A PreToolUse Write by agent harness-orchestrator of a 200-line payload holding '## Current' and '## Bogus Section' to .harness/harness/features/FEAT-90-fixture/STATE.md exits 0 with empty stderr.
-    (b) The same file reached through the PostToolUse Bash sweep exits 0.
-    (c) Controls in the same fixture each exit 2: an over-budget feature.json, a 70-line notes/handoff-plan.md, and an 81-line CLAUDE.md.
-    (d) No control denial contains the word STATE.
-    Show (a), (b) and (d) failing at the base commit, then passing.
+    Tests first. Add one function, def run_budget_denials_route_to_live_records():, to tests/integration/test-check-domain-post.py and call it from that file's main() beside the other run_ functions. It drives BIN/check-domain.py as a subprocess against a temporary fixture project built with the file's existing check_domain_support helpers (fixture, fire_write_payload, fire_post), including whatever claim fixtures a governed write needs. Neither it nor any other test, fixture or test data names the retired status file, including by string construction or split literals (operator ruling Q-06): deleting the rule is the proof that the file is ungated (SC-05), and this case proves the surviving rules (SC-06).
+    (a) A PreToolUse Write by agent harness-orchestrator of an over-budget, otherwise schema-valid .harness/harness/features/FEAT-90-fixture/feature.json, shaped like the existing feature.json budget cases in tests/integration/test-check-domain-approval.py, exits 2; its stderr contains the feature.json budget diagnostic 'It is data a script parses, not a journal.' and no feature.json schema problem; and one of its stderr lines, stripped of leading and trailing whitespace, equals the ROUTING sentence set below.
+    (b) Every payload in (b) is otherwise valid and written by an agent allowed to write it, so exit 2 can come only from its budget. In the same fixture root, built with check_domain_support._handoff_done_when_fixture: a Write, through fire_write_payload as _handoff_line_cap_cases does, of the 70-line notes/handoff-build.md that _handoff_text(valid, trust_lines=60) produces, where valid is the same valid Done when body _handoff_line_cap_cases receives, exits 2, its stderr contains 'handoff note is 70 lines — cap is 60.' and contains neither 'missing required section' nor a Done when validator problem. A Write of an 81-line CLAUDE.md, by the agent the file's existing CLAUDE.md budget cases use, exits 2 and its stderr contains 'CLAUDE.md is 81 lines — budget is 80 (DEC-181).' Assert each budget's own diagnostic, never exit 2 alone.
+    (c) Strip every stderr line of (a) and (b) of leading and trailing whitespace before selecting; every stripped line that starts with Routing: equals that same ROUTING sentence, and (a) yields at least one such line.
+    Show (a) failing at the base commit, where the feature.json denial carries the old routing sentence, then passing.
 
     Production, check-domain.py.
     - Delete RE_STATE_MD, _rule_state_md, its SHAPE_RULES row, its SHAPE_PATTERNS entry and the status-file entry of _SWEEP_PATTERNS.
@@ -518,7 +558,12 @@ tasks:
     - test-check-domain-post.py: delete the status-file sweep row.
     - test-check-domain-worktree.py: the eeabc59 two-level worktree budget case and the sweep/clean-tracked cases use the old file as their over-budget subject. Retarget each to the feature's feature.json, with an over-budget payload shaped like the existing feature.json budget cases in test-check-domain-approval.py. Keep every outcome: SHAPE refusals at the main checkout and at one and two worktree levels, still asserting DEC-150 where the feature.json denial carries it and otherwise its budget sentence, never exit code alone; a committed clean-tracked file skipped; modified and untracked files reported. Rewrite the docstrings to match.
 
-    Done when the file's name appears in check-domain.py, check-plan-routes.py and these tests only inside run_retired_status_file_is_ungated in tests/integration/test-check-domain-post.py, and every verify command exits 0.
+    Fixtures (operator ruling Q-06: no test exceptions). tests/integration/fixtures/prior-check-domain.fixture is the pre-change hook that tests/integration/test-check-domain-claims.py installs as bug1304_pre_change_hook to show the prior hook allowed the issue-1304 claim-set writes the current guard refuses; tests/integration/fixtures/prior-check-plan-routes.py.fixture is the prior validator that write_prior_route_validator in tests/integration/test-check-plan-routes.py restores for case_27b_prior_revision_false_ok. Neither test hashes or byte-pins either fixture and no decision freezes them; commit ef8306c1 last edited the hook fixture to keep it importable. Remove the retired name from both, writing no split, generated or encoded spelling of it:
+    - prior-check-domain.fixture: delete RE_STATE_MD, its SHAPE_PATTERNS entry, its _SWEEP_PATTERNS entry and its shape-rule block (the branch that budgets the file at 120 lines and allows only two sections); drop the file from the _orphan_basename tuple, leaving plan.yaml, BRIEF.md and feature.json; set the fixture's ROUTING constant to the same sentence check-domain.py's ROUTING gets above; rewrite every comment and docstring naming the file so none does, deleting measurements whose subject was the file without restating them for another file. Change no other line: the domain, claim-set and every other shape branch stay byte-identical.
+    - prior-check-plan-routes.py.fixture: the per-task budget comment's peer list becomes 'feature.json (300), handoff (60) and CLAUDE.md (80) all govern'. Change no other line.
+    Behavioural controls kept: test-check-domain-claims.py's prior-hook cases never write the retired file, and the plan-routes fixture change is comment-only, so neither control's observation can move. Edit neither test file for this; both exit 0 in this task's verify on the edited fixtures.
+
+    Done when the file's name appears in none of check-domain.py, check-plan-routes.py, these tests and the two prior-* fixtures, and every verify command exits 0.
 - id: T-03
   title: Switch the orchestrator playbook, templates and agent bodies off STATE.md
   traces:
@@ -557,15 +602,20 @@ tasks:
     test ! -e .claude/skills/harness/templates/STATE.md
     rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/SKILL.md .claude/skills/harness/references .claude/skills/harness/templates .omp .harness/team-config.yaml .claude/skills/harness/bin/feature_record tests/unit/test-answers-provenance.py tests/integration/test-validate-feature-json.py || rc=$?; test "$rc" -eq 1
     rc=0; git grep -n -I -w STATE -- .claude/skills/harness/templates || rc=$?; test "$rc" -eq 1
-    git grep -q -F 'latest accepted run digest' -- .claude/skills/harness/SKILL.md
+    python3 - <<'PY'
+    import sys
+    canon = 'The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions.'
+    text = ' '.join(open('.claude/skills/harness/SKILL.md', encoding='utf-8').read().split())
+    sys.exit(0 if ' '.join(canon.split()) in text else 1)
+    PY
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
 
     T-03 retires the file from the orchestrator playbook, references, templates, agent bodies, team-config comments and the feature-record redirect sentence (plan D-01). The open run is the feature.json runs entry whose verdict is PENDING (feature_record/runs.py run-start writes it).
 
     - .claude/skills/harness/SKILL.md, The loop:
-      - Step 1: "your feature's `STATE.md` and `feature.json`, plus the" becomes "your feature's `plan.yaml` `status` (the station) and `approval.status`, its `feature.json` `runs` (the open run is the entry whose `verdict` is `PENDING`), and the `open_questions` of the latest accepted run digest: `runs/<run-id>/digest.md` of the newest `runs` entry whose `verdict` is not `PENDING`, read with only the `notes/answers-*.md` paths you were handed. When no such entry exists (a first entry, or no return accepted yet), no digest has been accepted: record that, never read it as a digest with no open questions. Plus the". "instantiate both files from" becomes "instantiate `feature.json` from".
-      - Step 4: "re-read `STATE.md` and `feature.json`, verify its artifact" becomes "re-read `plan.yaml`'s station and approval and `feature.json`, verify its artifact (read the returned digest's `open_questions` only once that check passes: a `PENDING` run with no verified digest has returned nothing to read)".
+      - Step 1: "your feature's `STATE.md` and `feature.json`, plus the" becomes "your feature's `plan.yaml` `status` (the station) and `approval.status`, its `feature.json` `runs` (the open run is the entry whose `verdict` is `PENDING`), and the `open_questions` of the latest accepted run digest, read with only the `notes/answers-*.md` paths you were handed. The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions. Plus the". The sentence beginning "The latest accepted run digest is" is this plan's one definition (D-01): write it verbatim, with no markup added inside it, because the verify matches it whitespace-normalized. A refused return is skipped by its refusal marker, never by its BLOCKED verdict, so an older accepted digest is still found. "instantiate both files from" becomes "instantiate `feature.json` from".
+      - Step 4: "re-read `STATE.md` and `feature.json`, verify its artifact" becomes "re-read `plan.yaml`'s station and approval and `feature.json`, verify its artifact (read the returned digest's `open_questions` only once that check passes: a `PENDING` run with no verified digest has returned nothing to read, and a return closed as refused has no accepted digest)".
       - Step 6: "**Three writes are separate, after close-run:** REPLACE `STATE.md`'s `## Current` (values, never narrative, DEC-150); the phase handoff note at a seam; the commit." becomes "**Two writes are separate, after close-run:** the phase handoff note at a seam; the commit."
     - references/succession.md:
       - Replace the sentence recording each station transition as a log entry with "A station transition is recorded by the station write itself, the playbook's verb rule."
@@ -586,7 +636,7 @@ tasks:
 
     Done when every verify command exits 0.
 - id: T-04
-  title: Rewrite SPEC, the .harness README and org.html without STATE.md
+  title: Rewrite SPEC and the .harness README without STATE.md, and delete org.html
   traces:
   - SC-08
   - SC-10
@@ -602,12 +652,17 @@ tasks:
   - .harness/harness/docs/org.html
   verify: |
     set -e -o pipefail
-    rc=0; git grep -n -I -w STATE -- .harness/README.md .harness/harness/docs/SPEC.md .harness/harness/docs/org.html || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -w STATE -- .harness/README.md .harness/harness/docs/SPEC.md || rc=$?; test "$rc" -eq 1
     git grep -q -F 'plan.yaml' -- .harness/harness/docs/SPEC.md
-    git grep -q -F 'latest accepted run digest' -- .harness/harness/docs/SPEC.md
-    git grep -q -F 'features/&lt;F&gt;/plan.yaml' -- .harness/harness/docs/org.html
-    git grep -q -F 'PENDING' -- .harness/harness/docs/org.html
-    git grep -q -F 'open_questions' -- .harness/harness/docs/org.html
+    python3 - <<'PY'
+    import sys
+    canon = 'The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions.'
+    text = ' '.join(open('.harness/harness/docs/SPEC.md', encoding='utf-8').read().split())
+    sys.exit(0 if ' '.join(canon.split()) in text else 1)
+    PY
+    out=$(git ls-files -- .harness/harness/docs/org.html)
+    test -z "$out"
+    test ! -e .harness/harness/docs/org.html
     python3 tests/unit/test-answers-provenance.py
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
@@ -623,15 +678,15 @@ tasks:
     - §2.3: the single-writer bullet becomes: each feature's `feature.json` is owned by that feature's orchestrator, its `plan.yaml` station is written only through plan-merge verbs, and the lead's consolidated DIGEST carries a per-member log block, so per-member granularity survives in the run digest without a second writer.
     - §2.4: the opening sentence and first bullet become: live state files hold no history; `plan.yaml` carries the station, `feature.json` the run ledger, and narrative goes to run digests and notes/. Keep the logs, pruning and PLAN.md bullets. The logs bullet is the surviving home of DEC-45's separation rule.
     - §2.5:
-      - Pause/resume: `plan.yaml` (station and approval), `feature.json` (runs, the open run) and the latest accepted run digest's `open_questions` are the handoff artifacts, re-read at every /harness entry.
+      - Pause/resume: `plan.yaml` (station and approval), `feature.json` (runs, the open run) and the latest accepted run digest's `open_questions` (as §10.1 defines it) are the handoff artifacts, re-read at every /harness entry.
       - The commit policy list drops the status file and reads `BRIEF.md` / `plan.yaml` (legacy `PLAN.md`) / `notes/` / `logs/` / `expertise/`.
     - The templates list drops the status file.
     - §10.1:
-      - Step 1 reads "`BRIEF.md`, `plan.yaml`, `feature.json` and the latest accepted run digest's `open_questions` (no digest accepted yet is recorded as such, never as no open questions)".
+      - Step 1 reads "`BRIEF.md`, `plan.yaml`, `feature.json` and the latest accepted run digest's `open_questions`", followed by this plan's one definition (D-01), verbatim and with no markup added inside it: "The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions."
       - Step 5 "log to `STATE`" becomes "close the run in `feature.json`".
     - §10.2: "In exchange, `STATE.md` sees a uniform stream" becomes "In exchange, the orchestrator sees a uniform stream". The flow diagram line "orchestrator logs to STATE" becomes "orchestrator closes the run".
     - §10.5: the worktree callout says a feature's station and open run stay singular within a flow.
-    - §10.6: ad-hoc mode reads "the orchestrator reads `plan.yaml`, `feature.json` and the latest accepted run digest".
+    - §10.6: ad-hoc mode reads "the orchestrator reads `plan.yaml`, `feature.json` and the latest accepted run digest (§10.1)".
     - §15:
       - The single-operator sentence becomes "`plan.yaml`, `feature.json` and the run digests are per-feature, each feature has exactly one orchestrator, and `logs/` is written only by the main session."
       - The worktree table's first row says a feature's station and open run being singular is correct within a worktree.
@@ -642,12 +697,7 @@ tasks:
     - The orchestrator-ownership bullet reads "that flow's `feature.json`, and the".
     - The template list drops the status file.
 
-    .harness/harness/docs/org.html:
-    - Drop the status file from the orchestrator card.
-    - Delete the status-file table row, and make the remaining artifact rows say where a resumed feature's live state is (plan D-01), keeping each row's Written by cell and the table markup:
-      - The features/<F>/PLAN.md row becomes features/<F>/plan.yaml (legacy PLAN.md), described as: Decisions, fully specified tasks each carrying a change_type, and the feature's station (status) and approval.
-      - The features/<F>/feature.json row's description becomes: Execution facts: branch, pinned review SHA, cycles used, and the runs ledger, where the open run is the entry whose verdict is PENDING.
-      - The runs/<r>/digest.md row's description becomes: The lead's collated report, the team digest on disk; the latest accepted one carries the feature's open_questions.
+    .harness/harness/docs/org.html: delete it with git rm (operator direction, notes/answers-2026-11-28-plan-c1.md); do not rewrite it. Nothing live links to it: at main ca0c1a6e, git grep names it only in shipped feature records, which stay as historical record (DEC-205).
 
     Done when every verify command exits 0.
 - id: T-05
@@ -684,6 +734,9 @@ tasks:
     bad += [s for s in ('INV-1..5', 'INV-4/5', 'INV-3/4/5 must keep') if s in sec('DEC-129') + sec('DEC-182')]
     bad += [s for s in ('INV-23 sweeps the same budgets', 'Now 200, 120,', 'exactly as for the four', 'Run directories are gitignored')
             if s in sec('DEC-180') + sec('DEC-181') + sec('DEC-199')]
+    canon = 'The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions.'
+    if ' '.join(canon.split()) not in ' '.join(sec('DEC-129').split()):
+        bad.append('DEC-129 accepted-digest definition')
     idx = open('.harness/harness/docs/DECISIONS-INDEX.md', encoding='utf-8').read()
     for d in ('DEC-45', 'DEC-129', 'DEC-150'):
         tail = re.search(r'^- ' + d + r' @.*? :: (.*)$', idx, re.M).group(1)
@@ -699,11 +752,11 @@ tasks:
 
     - DEC-45 (strike, DEC-188, operator ruling to keep a strike record):
       - Heading: "## DEC-45 — STRUCK 2026-11-28".
-      - Body: the entry recorded that the per-feature status file held only Current and Open Questions with the activity stream in dated logs/ files. It is struck under DEC-188 on the operator's word, because 12 of the 15 newest copies still described a finished feature as in progress and main-session-direct features had no reader. Live state is plan.yaml, feature.json and the latest run digest, as DEC-129 states. The logs/ separation is unchanged and lives in SPEC §2.4. DEC-45's number is retired, not reused.
+      - Body: the entry recorded that the per-feature status file held only Current and Open Questions with the activity stream in dated logs/ files. It is struck under DEC-188 on the operator's word, because 12 of the 15 newest copies still described a finished feature as in progress and main-session-direct features had no reader. Live state is plan.yaml, feature.json and the latest accepted run digest, as DEC-129 states. The logs/ separation is unchanged and lives in SPEC §2.4. DEC-45's number is retired, not reused.
     - DEC-71: "would put un-assessed work into the feature's record."; "In exchange the orchestrator sees a uniform stream of consolidated DIGESTs".
     - DEC-95: "a feature's station and open run being singular is *correct within a worktree*".
     - DEC-120: the "moves per-feature" paragraph becomes: "**Live state is per-feature.** A project-level status file would give N orchestrators N writers, so there is none: a feature's station and approval live in its plan.yaml, its runs in its feature.json, each with one writer per feature. The trade the operator accepted: no single file answers \"what is happening right now\" — the main session lists in-flight features from features/*/feature.json, which is cheap because the index is small." Keep the feature.yaml sentence after it only if still true; otherwise drop it.
-    - DEC-129: "`BRIEF.md`, `plan.yaml` (legacy `PLAN.md`) and `DESIGN.md` join `feature.json` in `.harness/features/<FEAT>/`", then a new sentence: "The directory holds no status file: live state is the plan.yaml station and approval, the feature.json runs and the latest run digest's open_questions; a second copy drifted from them and was retired." "INV-1..5 are per-feature now, and INV-4/5 accept both task formats after the smoke showed heading-style tasks made INV-4 silently vacuous" becomes "INV-1, INV-3 and INV-4 are per-feature, and INV-4 accepts both task formats after the smoke showed heading-style tasks made it silently vacuous".
+    - DEC-129: "`BRIEF.md`, `plan.yaml` (legacy `PLAN.md`) and `DESIGN.md` join `feature.json` in `.harness/features/<FEAT>/`", then a new sentence: "The directory holds no status file: live state is the plan.yaml station and approval, the feature.json runs and the latest accepted run digest's open_questions; a second copy drifted from them and was retired.", followed by this plan's one definition (D-01), verbatim and with no markup added inside it: "The latest accepted run digest is runs/<run-id>/digest.md of the last feature.json runs entry that is closed (its verdict is not PENDING) and not refused (it carries no refusal mapping and no legacy return_disposition: refused); a BLOCKED verdict without either marker is accepted. When no entry qualifies, no digest has been accepted: record that as none accepted, never as an accepted digest with no open questions." "INV-1..5 are per-feature now, and INV-4/5 accept both task formats after the smoke showed heading-style tasks made INV-4 silently vacuous" becomes "INV-1, INV-3 and INV-4 are per-feature, and INV-4 accepts both task formats after the smoke showed heading-style tasks made it silently vacuous".
     - DEC-138 table row: "a second status channel competes with the run digests and plan.yaml and drifts from them".
     - DEC-150:
       - "The spec was already right — feature.yaml is data a script parses — but nothing enforced it, and the playbook itself taught the opposite: it told the orchestrator to append per-member roll-ups to a status file."
@@ -815,13 +868,14 @@ tasks:
     test ! -e .claude/skills/harness/templates/STATE.md
     rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills .omp .harness/team-config.yaml || rc=$?; test "$rc" -eq 1
     rc=0; git grep -n -I -w STATE -- .claude/skills/harness/templates || rc=$?; test "$rc" -eq 1
-    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- tests ':(exclude)tests/integration/fixtures/prior-*' ':(exclude)tests/integration/test-check-state-table.py' ':(exclude)tests/integration/test-check-domain-post.py' || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- tests || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -E "[\"']STATE[\"']" -- tests || rc=$?; test "$rc" -eq 1
     git grep -q -F 'feature.json' -- .claude/skills/harness/SKILL.md
   intent: |
     Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
 
-    T-07 deletes the remaining tracked status files: the FEAT-* features on main, plus the kaya-segment copy, which the operator rules on at signature (BRIEF Q-03). If the operator keeps that copy, the main session amends T-07 with plan-merge amend before building: it removes the kaya anchor from files: and, in verify:, replaces test -z "$out" with test "$out" = .harness/kaya/features/FEAT-01-kaya-platform/STATE.md, so the gate and SC-01's retained variant name the same inventory. Use the same procedure as T-06: git rm --sparse -q -- with exactly this task's files: list, stop on any refusal, then commit.
+    T-07 deletes the remaining tracked status files: the FEAT-* features on main, plus the kaya-segment copy (operator ruling Q-03, notes/answers-2026-11-28-plan-c1.md). Use the same procedure as T-06: git rm --sparse -q -- with exactly this task's files: list, stop on any refusal, then commit.
 
-    This is the terminal task, so its verify also grades the cumulative change set: no tracked status file anywhere under .harness; no mention left in skills, agents, the team-config or the templates; and under tests/ no line names the file outside the frozen prior-* fixtures and the two retirement cases whose placement T-01 and T-02 verify. Every check is bound by set -e, and a git error is never read as an empty listing.
+    This is the terminal task, so its verify also grades the cumulative change set: no tracked status file anywhere under .harness; no mention left in skills, agents, the team-config or the templates; and under tests/ no line names the file, the prior-* fixtures included (T-02 removes the name from the two that carried it), and no test string literal is the bare token STATE, the split-literal form of the name (operator ruling Q-06). Every check is bound by set -e, and a git error is never read as an empty listing.
 
     Done when every verify command exits 0.
