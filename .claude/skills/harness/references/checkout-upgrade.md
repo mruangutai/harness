@@ -35,7 +35,7 @@ its default branch, every Harness reader refuses that member.
   would delete the reasoning behind the only write-scope guarantee. `upgrade-config.py`
   prints the exact new entries and **exits 1**; the main session MUST relay them and add
   them by hand, preserving the existing globs and their comments.
-- **Working files checklist (DEC-260): the ignore merge in an existing checkout.** Each
+- **Working files checklist (DEC-262): the ignore merge in an existing checkout.** Each
   feature's `notes/`, `runs/` and `observations/` and the project `.harness/notes/` are local
   working files, never committed. The operator runs this once per checkout:
   1. Pause teams, distill and worktree removal in this checkout.
@@ -60,9 +60,9 @@ its default branch, every Harness reader refuses that member.
   An in-flight branch that still tracks its own working files brings them back as tracked files
   when it merges main (in the Harness repository its `test-working-files-untracked.py` unit test
   goes red); its repair is the same `git rm -r --cached --sparse` command run on that branch and
-  committed alone (DEC-260).
+  committed alone (DEC-262).
 - **Re-run the checklist above for an existing checkout that pulls a snippet change** (the
-  PyYAML `.pyyaml-bootstrap` entry, or the DEC-260 working-file rules). `merge-gitignore.py --check`
+  PyYAML `.pyyaml-bootstrap` entry, or the DEC-262 working-file rules). `merge-gitignore.py --check`
   reads its rule list from the snippet and reports obsolete Harness rules, so the check
   correctly goes red on already-initialised projects until the merge is re-run. The merge is
   idempotent and preserves the project's own ignore rules.

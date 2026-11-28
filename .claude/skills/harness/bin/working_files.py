@@ -1,5 +1,5 @@
 """working_files.py — the one owner of a feature's local working files and of the project-note
-path contract (FEAT-2641 D-05, DEC-260).
+path contract (FEAT-2641 D-05, DEC-262).
 
 A feature's notes/, runs/ and observations/ directories, and the .harness/notes/ files its
 feature.json `project_notes` list claims, are local working files: ignored, never committed, and
@@ -8,7 +8,7 @@ clean and GATE 2b, gh-sync.py abandon, reject and skip-distill, plan-merge.py
 set-feature-station and merge-gate.py merge-distill - goes through this module, so each deletes
 the same bounded set and tells the operator the same retry command.
 
-Cleanup never follows a symlink and stays physically inside the feature (DEC-260): a symlinked
+Cleanup never follows a symlink and stays physically inside the feature (DEC-262): a symlinked
 working directory or project note is unlinked; a feature directory that is a symlink or sits
 under one below its checkout, and a symlinked .harness/notes parent, refuse before anything is
 removed; and every removal runs through the directory handles opened while validating, so a

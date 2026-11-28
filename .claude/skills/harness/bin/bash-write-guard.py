@@ -818,7 +818,7 @@ def _worktree_destination(args, sub):
 
 
 # --- NATIVE WORKTREE REMOVAL KEEPS WORKING FILES (FEAT-2641 T-11, ruling E4) -----------
-# notes/, runs/ and observations/ are ignored (DEC-260), and `git worktree remove` deletes an
+# notes/, runs/ and observations/ are ignored (DEC-262), and `git worktree remove` deletes an
 # ignored file without counting the tree dirty, so an unforced native removal would silently
 # drop a feature's undistilled working files that feature-worktree.py remove's GATE 2b keeps.
 # The same count (working_files.untracked_counts) refuses it here; every failure refuses.
@@ -894,7 +894,7 @@ def _native_remove_gate(args):
     if not counted:
         return
     print(f"bash-write-guard: BLOCKED — `git worktree remove {operand}` would delete untracked "
-          f"working files git cannot see (DEC-260 D-08).", file=sys.stderr)
+          f"working files git cannot see (DEC-262 D-08).", file=sys.stderr)
     for _feature, rel, counts in counted:
         for d, count in counts.items():
             print(f"  {rel}/{d}/ ({count} files)", file=sys.stderr)

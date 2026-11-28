@@ -49,7 +49,7 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    the `mission` judgement in the same act, so a mission never exists without its entry (INV-40).
    Record each `.harness/notes/` path your dispatch hands you as made for this feature (the
    grilling artifact, its facts file) with `feature-record.py project-note --file <feature.json>
-   --path <path>`; cleanup deletes only those (DEC-260).
+   --path <path>`; cleanup deletes only those (DEC-262).
    No `## Mission` is not an intake: return `BLOCKED` naming it.
    **The approval gate depends on your mission.** On **ship**, BRIEF's `## Approval` *and*
    `plan.yaml`'s `approval.status` must both read `approved`, else `BLOCKED` at step 0. On **plan**

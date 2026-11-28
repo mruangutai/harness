@@ -11,11 +11,7 @@ inflight_registry.OMP_UNVERIFIED_TTL_SECONDS — reading the module's own (possi
 constant to build the fixture would make the assertion self-referential and unable to
 diverge from a mutant (P-05). It must match the module's shipped default.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN
 import contextlib
 import io
 import json
@@ -27,12 +23,11 @@ import subprocess
 import sys
 import tempfile
 import time
+from unittest import mock
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-MODULE_DIR = os.environ.get("INFLIGHT_REGISTRY_DIR") or HERE
+from check_support import Checks
+
+MODULE_DIR = os.environ.get("INFLIGHT_REGISTRY_DIR") or str(BIN)
 sys.path.insert(0, MODULE_DIR)
 
 import inflight_registry  # noqa: E402
@@ -41,12 +36,26 @@ CLI = os.path.join(MODULE_DIR, "inflight_registry.py")
 
 ASSUMED_OMP_BACKSTOP_SECONDS = 86400
 
-RESULTS = []
+C = Checks()
+check = C.check
 
 
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
-    print(("PASS" if ok else "FAIL") + f" - {name}" + (f" ({detail})" if detail and not ok else ""))
+@contextlib.contextmanager
+def _supervisor():
+    """A live supervisor pid for the duration of the block; it is dead once the block exits."""
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        yield proc.pid
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def _dead_pid():
+    """The pid of a child that has already exited."""
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    proc.wait()
+    return proc.pid
 
 
 def _read_raw(root):
@@ -125,10 +134,8 @@ def case_3_staleness_live_claim():
     """A claim whose supervisor process has exited is stale (DEC-204), whatever its age."""
     root = tempfile.mkdtemp()
     now = time.time()
-    dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
-                          capture_output=True, text=True, check=True)
     _write_raw(root, {"schema_version": 2, "claims": [
-        _bug1304_claim("harness-pm", "legacy", now - 1, supervisor_pid=int(dead.stdout))]})
+        _bug1304_claim("harness-pm", "legacy", now - 1, supervisor_pid=_dead_pid())]})
     claim, expired = inflight_registry.live_claim(root, "harness-pm", now=now)
     check("case3: stale claim is treated as absent", claim is None, claim)
     check("case3: live_claim reports one expired", expired == 1, expired)
@@ -285,11 +292,7 @@ def case_7_concurrency(trials=20):
 
 
 def case_8_corrupt_registry():
-    root = tempfile.mkdtemp()
-    path = os.path.join(root, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write("{")
+    root, path = _registry_case_root("{")
 
     ok = True
     detail = ""
@@ -441,9 +444,7 @@ def case_16_omp_claim_lives_with_supervisor():
     check("case16: an old OMP claim stays live while its supervisor lives", claim is not None, claim)
     check("case16: the live OMP claim is not counted expired", expired == 0, expired)
 
-    proc = subprocess.Popen([sys.executable, "-c", "pass"])
-    dead_pid = proc.pid
-    proc.wait()
+    dead_pid = _dead_pid()
     inflight_registry.claim(
         root,
         "harness-frontend-dev",
@@ -741,19 +742,16 @@ def case_19b_runtime_lineage_authorization():
 
 def case_20_reconcile_only_target_feature():
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    dead_pid = proc.pid
-    for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
-        inflight_registry.claim(
-            root,
-            "harness-backend-dev",
-            "harness-eng-lead",
-            root,
-            feature=feature,
-            supervisor_pid=dead_pid,
-        )
-    proc.terminate()
-    proc.wait()
+    with _supervisor() as dead_pid:
+        for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
+            inflight_registry.claim(
+                root,
+                "harness-backend-dev",
+                "harness-eng-lead",
+                root,
+                feature=feature,
+                supervisor_pid=dead_pid,
+            )
     removed = inflight_registry.reconcile(root, feature="FEAT-43-alpha")
     data = _read_raw(root)
     features = [claim.get("feature") for claim in data.get("claims", [])]
@@ -763,19 +761,16 @@ def case_20_reconcile_only_target_feature():
 
 def case_21_live_query_does_not_expire_another_feature():
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    supervisor_pid = proc.pid
-    for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
-        inflight_registry.claim(
-            root,
-            "harness-backend-dev",
-            "harness-eng-lead",
-            root,
-            feature=feature,
-            supervisor_pid=supervisor_pid,
-        )
-    proc.terminate()
-    proc.wait()
+    with _supervisor() as supervisor_pid:
+        for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
+            inflight_registry.claim(
+                root,
+                "harness-backend-dev",
+                "harness-eng-lead",
+                root,
+                feature=feature,
+                supervisor_pid=supervisor_pid,
+            )
     claim, expired = inflight_registry.live_claim(
         root, "harness-backend-dev", feature="FEAT-43-alpha"
     )
@@ -804,11 +799,10 @@ def case_22_recycled_supervisor_pid_is_not_alive():
     TTL, so nothing aged it out and `reconcile` kept it too.
     """
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    try:
+    with _supervisor() as supervisor_pid:
         inflight_registry.claim(
             root, "harness-backend-dev", "harness-eng-lead", root,
-            feature="FEAT-43-alpha", supervisor_pid=proc.pid,
+            feature="FEAT-43-alpha", supervisor_pid=supervisor_pid,
         )
         recorded = _read_raw(root)["claims"][0].get("supervisor_started_at")
         check("case22: the claim pins the supervisor start time",
@@ -822,9 +816,6 @@ def case_22_recycled_supervisor_pid_is_not_alive():
         check("case22: reconcile also clears it, so recovery does not need the operator",
               inflight_registry.reconcile(root, feature="FEAT-43-alpha") == 0
               and _read_raw(root)["claims"] == [], _read_raw(root))
-    finally:
-        proc.terminate()
-        proc.wait()
 
 
 def case_23_verified_claim_never_ages_out():
@@ -834,11 +825,10 @@ def case_23_verified_claim_never_ages_out():
     not be expired at OMP_UNVERIFIED_TTL_SECONDS when identity is verifiable.
     """
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    try:
+    with _supervisor() as supervisor_pid:
         inflight_registry.claim(
             root, "harness-backend-dev", "harness-eng-lead", root,
-            feature="FEAT-43-alpha", supervisor_pid=proc.pid,
+            feature="FEAT-43-alpha", supervisor_pid=supervisor_pid,
         )
         ancient = time.time() - (inflight_registry.OMP_UNVERIFIED_TTL_SECONDS * 10)
         _rewrite_claims(root, lambda c: c.__setitem__("started_at", ancient))
@@ -847,9 +837,6 @@ def case_23_verified_claim_never_ages_out():
         )
         check("case23: a verified supervisor keeps its claim at any age",
               claim is not None and expired == 0, (claim, expired))
-    finally:
-        proc.terminate()
-        proc.wait()
 
 
 def case_24_unverifiable_claim_cannot_strand_forever():
@@ -859,11 +846,10 @@ def case_24_unverifiable_claim_cannot_strand_forever():
     every recovery path and refuses its parent's yield through the held-child gate.
     """
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    try:
+    with _supervisor() as supervisor_pid:
         inflight_registry.claim(
             root, "harness-backend-dev", "harness-eng-lead", root,
-            feature="FEAT-43-alpha", supervisor_pid=proc.pid,
+            feature="FEAT-43-alpha", supervisor_pid=supervisor_pid,
         )
         _rewrite_claims(root, lambda c: c.pop("supervisor_started_at", None))
         fresh, _ = inflight_registry.live_claim(
@@ -878,9 +864,6 @@ def case_24_unverifiable_claim_cannot_strand_forever():
         )
         check("case24: past the backstop it expires even though the pid is alive",
               stale is None and expired == 1, (stale, expired))
-    finally:
-        proc.terminate()
-        proc.wait()
 
 
 def case_25_stranded_child_does_not_hold_its_parent():
@@ -893,11 +876,10 @@ def case_25_stranded_child_does_not_hold_its_parent():
     lead and then the orchestrator out of reporting.
     """
     root = tempfile.mkdtemp()
-    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-    try:
+    with _supervisor() as supervisor_pid:
         receipt = inflight_registry.claim_with_receipt(
             root, "harness-backend-dev", "harness-eng-lead", root,
-            feature="FEAT-43-alpha", supervisor_pid=proc.pid,
+            feature="FEAT-43-alpha", supervisor_pid=supervisor_pid,
         )
         bound = inflight_registry.attach_runtime_identity(
             root, "harness-backend-dev", "FEAT-43-alpha", claim_id=receipt["claim_id"],
@@ -912,9 +894,6 @@ def case_25_stranded_child_does_not_hold_its_parent():
         _rewrite_claims(root, lambda c: c.__setitem__("supervisor_started_at", 1))
         released = inflight_registry.live_claims(root, None, parent_agent_id="EngLead")
         check("case25: a stranded child no longer holds its parent", released == [], released)
-    finally:
-        proc.terminate()
-        proc.wait()
 
 
 def case_26_start_time_read_pins_the_c_locale():
@@ -937,25 +916,18 @@ def case_26_start_time_read_pins_the_c_locale():
     src = open(os.path.join(MODULE_DIR, "inflight_registry.py"), encoding="utf-8").read()
     check("case26: the ps read is the only subprocess in the module",
           src.count("subprocess.run(") == 1, src.count("subprocess.run("))
-    inflight_registry.subprocess.run = spy
-    try:
+    with mock.patch.object(inflight_registry.subprocess, "run", spy):
         inflight_registry._START_TIME_CACHE.clear()
         inflight_registry._read_process_start_time(os.getpid())
-    finally:
-        inflight_registry.subprocess.run = real_run
     if captured:  # /proc hosts never reach the ps branch; skip rather than fail there
         check("case26: the ps child is pinned to the C locale",
               captured.get("LC_ALL") == "C" and captured.get("LC_TIME") == "C", captured)
 
-    previous = os.environ.get("LC_TIME")
-    os.environ["LC_TIME"] = "fr_FR.UTF-8"
     try:
-        inflight_registry._START_TIME_CACHE.clear()
-        under_hostile_locale = inflight_registry._process_start_time(os.getpid())
+        with mock.patch.dict(os.environ, {"LC_TIME": "fr_FR.UTF-8"}):
+            inflight_registry._START_TIME_CACHE.clear()
+            under_hostile_locale = inflight_registry._process_start_time(os.getpid())
     finally:
-        os.environ.pop("LC_TIME", None)
-        if previous is not None:
-            os.environ["LC_TIME"] = previous
         inflight_registry._START_TIME_CACHE.clear()
     check("case26: our own start time still reads under a non-English LC_TIME",
           isinstance(under_hostile_locale, int), under_hostile_locale)
@@ -971,24 +943,14 @@ def case_27_non_finite_start_time_cannot_strand_the_registry():
     """
     for literal in ("NaN", "Infinity", "-Infinity"):
         root = tempfile.mkdtemp()
-        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
-        try:
+        with _supervisor() as supervisor_pid:
             inflight_registry.claim(
                 root, "harness-backend-dev", "harness-eng-lead", root,
-                feature="FEAT-43-alpha", supervisor_pid=proc.pid,
+                feature="FEAT-43-alpha", supervisor_pid=supervisor_pid,
             )
-            path = os.path.join(root, inflight_registry.REGISTRY_REL)
-            raw = open(path, encoding="utf-8").read()
-            payload = json.loads(raw)
-            payload["claims"][0]["supervisor_started_at"] = 0
-            open(path, "w", encoding="utf-8").write(
-                json.dumps(payload).replace('"supervisor_started_at": 0',
-                                            f'"supervisor_started_at": {literal}')
-            )
+            _rewrite_claims(root, lambda c: c.__setitem__("supervisor_started_at", float(literal)))
             check(f"case27: {literal} survives json.loads, so the corruption guard misses it",
-                  not math.isfinite(
-                      json.load(open(path, encoding="utf-8"))["claims"][0]["supervisor_started_at"]
-                  ), literal)
+                  not math.isfinite(_read_raw(root)["claims"][0]["supervisor_started_at"]), literal)
             # The contract is NOT "expire on sight". A non-finite value means identity is
             # UNPROVABLE, which is the backstop's job — same as a missing key. What must
             # never happen again is the raise, whose escape into each caller's broad
@@ -1007,9 +969,6 @@ def case_27_non_finite_start_time_cannot_strand_the_registry():
             )
             check(f"case27: and past the backstop it clears, so {literal} cannot strand",
                   stale is None and expired == 1, (literal, stale, expired))
-        finally:
-            proc.terminate()
-            proc.wait()
 
 
 def case_28_featureless_claim_still_gets_a_remedy():
@@ -1026,10 +985,7 @@ def case_28_featureless_claim_still_gets_a_remedy():
           f"--feature {inflight_registry.LEGACY_FEATURE}" in cmd, cmd)
     root = tempfile.mkdtemp()
     inflight_registry.claim(root, "harness-pm", "harness-orchestrator", root)
-    data = _read_raw(root)
-    del data["claims"][0]["feature"]
-    with open(os.path.join(root, inflight_registry.REGISTRY_REL), "w", encoding="utf-8") as handle:
-        json.dump(data, handle)
+    _rewrite_claims(root, lambda c: c.pop("feature"))
     check("case28: and the selector it prints actually matches that claim",
           inflight_registry.release(
               root, agent="harness-pm", feature=inflight_registry.LEGACY_FEATURE
@@ -1168,10 +1124,8 @@ def case_36_live_claims_read_only_and_binding_horizon():
     check("case36: live_claims is byte-for-byte read only", before == after)
 
     root = tempfile.mkdtemp()
-    dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
-                          capture_output=True, text=True, check=True)
     _write_raw(root, {"schema_version": 2, "claims": [
-        _bug1304_claim(agent, "FEAT-dead", now - 10, supervisor_pid=int(dead.stdout)),
+        _bug1304_claim(agent, "FEAT-dead", now - 10, supervisor_pid=_dead_pid()),
     ]})
     check("case36: a claim whose supervisor is gone does not bind",
           inflight_registry.live_claims(root, agent, now=now) == [])
@@ -1202,11 +1156,7 @@ def case_37_live_claims_refuses_unreadable_registry():
         ("unsupported mapping", '{"schema_version": 99, "claims": []}'),
     )
     for label, payload in shapes:
-        root = tempfile.mkdtemp()
-        path = os.path.join(root, inflight_registry.REGISTRY_REL)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.write(payload)
+        root, path = _registry_case_root(payload)
         raised = None
         try:
             inflight_registry.live_claims(root, agent)
@@ -1305,32 +1255,6 @@ def case_38c_released_child_cannot_take_a_sibling_receipt():
     check("case38c: authorize never binds a pending repository receipt",
           stolen is False and rows and not rows[0].get("agent_id"), (stolen, rows))
     shutil.rmtree(root, ignore_errors=True)
-
-
-CASES = (
-    case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
-    case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
-    case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
-    case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
-    case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
-    case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
-    case_17_targeted_release_keeps_other_feature, case_18_v1_registry_fails_closed,
-    case_19_attach_and_release_by_runtime_identity, case_19b_runtime_lineage_authorization,
-    case_20_reconcile_only_target_feature,
-    case_21_live_query_does_not_expire_another_feature,
-    case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
-    case_24_unverifiable_claim_cannot_strand_forever,
-    case_25_stranded_child_does_not_hold_its_parent,
-    case_26_start_time_read_pins_the_c_locale,
-    case_27_non_finite_start_time_cannot_strand_the_registry,
-    case_28_featureless_claim_still_gets_a_remedy,
-    case_29_non_omp_claim_is_expired,
-    case_34_children_refusal_names_suspension, case_35_feature_root_cli,
-    case_36_live_claims_read_only_and_binding_horizon,
-    case_37_live_claims_refuses_unreadable_registry,
-    case_38_run_start_binds_repository_receipt, case_38b_repository_binding_refusals,
-    case_38c_released_child_cannot_take_a_sibling_receipt,
-)
 
 
 # ---------------------------------------------------------------------------------------
@@ -1442,11 +1366,7 @@ def case_39a_run_start_one_pm_conflict_is_retryable():
 
 
 def case_39b_run_start_leaves_an_unreadable_registry_as_found():
-    root = tempfile.mkdtemp()
-    path = os.path.join(root, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(path))
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write("{not json")
+    root, path = _registry_case_root("{not json")
     corrupt = _bug1898_start(root, BUG1898_DEV, "Lead.Dev")
     with open(path, encoding="utf-8") as handle:
         after = handle.read()
@@ -1529,81 +1449,46 @@ def case_41_run_start_cli_resolves_the_feature_worktree():
           r.stdout + r.stderr)
 
 
-CASES = CASES + (
-    case_38a_run_start_creates_then_reuses,
-    case_38b_run_start_binds_the_unique_receipt,
-    case_38c_run_start_never_picks_an_ambiguous_receipt,
-    case_38d_run_start_ignores_another_parents_receipt,
-    case_38e_run_start_parallel_persona_keeps_two_claims,
-    case_38f_run_start_refuses_a_crossed_lineage,
-    case_39a_run_start_one_pm_conflict_is_retryable,
-    case_39b_run_start_leaves_an_unreadable_registry_as_found,
-    case_40a_find_run_places_a_unique_match,
-    case_40b_find_run_refuses_missing_and_ambiguous,
-    case_40c_find_run_refuses_any_unreadable_registry,
-    case_41_run_start_cli_resolves_the_feature_worktree,
-)
-
-
-def _feat65_ps_probe_checks(inflight_registry):
+def _feat65_ps_probe_checks():
     """The ps probe absorbs only its own classes and still answers None on them."""
-    real_run = inflight_registry.subprocess.run
     if os.path.exists("/proc"):
         return
-    def _raise_os(*a, **k):
-        raise OSError("FEAT-65 ps unavailable")
-    inflight_registry.subprocess.run = _raise_os
-    try:
+    with mock.patch.object(inflight_registry.subprocess, "run",
+                           side_effect=OSError("FEAT-65 ps unavailable")):
         check("feat65: a failing ps probe still answers None",
               inflight_registry._read_process_start_time(os.getpid()) is None)
-    finally:
-        inflight_registry.subprocess.run = real_run
-
-    def _raise_rt(*a, **k):
-        raise RuntimeError("FEAT-65 injected")
-    inflight_registry.subprocess.run = _raise_rt
-    try:
-        inflight_registry._read_process_start_time(os.getpid())
-        check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
-    except RuntimeError:
-        check("feat65: an unrelated defect in the ps probe escapes", True)
-    finally:
-        inflight_registry.subprocess.run = real_run
+    with mock.patch.object(inflight_registry.subprocess, "run",
+                           side_effect=RuntimeError("FEAT-65 injected")):
+        try:
+            inflight_registry._read_process_start_time(os.getpid())
+            check("feat65: an unrelated defect in the ps probe escapes", False, "returned")
+        except RuntimeError:
+            check("feat65: an unrelated defect in the ps probe escapes", True)
 
 
-def _feat65_feature_root_checks(inflight_registry, root):
+def _feat65_feature_root_checks(root):
     """feature_root absorbs the lookup's own AmbiguousWorktree/OSError; a defect escapes."""
-    real_lookup = inflight_registry.harness_boundary.worktree_for_feature
-
-    def _ambiguous(owner_root, feature):
-        raise inflight_registry.harness_boundary.AmbiguousWorktree("FEAT-65 two candidates")
-    inflight_registry.harness_boundary.worktree_for_feature = _ambiguous
-    try:
+    boundary = inflight_registry.harness_boundary
+    with mock.patch.object(boundary, "worktree_for_feature",
+                           side_effect=boundary.AmbiguousWorktree("FEAT-65 two candidates")):
         check("feat65: an ambiguous worktree lookup falls back to the owner root",
               inflight_registry.feature_root(root, "FEAT-65-x") == root)
-    finally:
-        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
-
-    def _defect(owner_root, feature):
-        raise RuntimeError("FEAT-65 injected")
-    inflight_registry.harness_boundary.worktree_for_feature = _defect
-    try:
-        inflight_registry.feature_root(root, "FEAT-65-x")
-        check("feat65: an unrelated lookup defect escapes feature_root", False, "returned")
-    except RuntimeError:
-        check("feat65: an unrelated lookup defect escapes feature_root", True)
-    finally:
-        inflight_registry.harness_boundary.worktree_for_feature = real_lookup
+    with mock.patch.object(boundary, "worktree_for_feature",
+                           side_effect=RuntimeError("FEAT-65 injected")):
+        try:
+            inflight_registry.feature_root(root, "FEAT-65-x")
+            check("feat65: an unrelated lookup defect escapes feature_root", False, "returned")
+        except RuntimeError:
+            check("feat65: an unrelated lookup defect escapes feature_root", True)
 
 
 def case_feat65_typed_probes():
     """FEAT-65 SC-10 and the settled probe tuples: the process-identity probes and the feature
     worktree lookup absorb only their producers' classes; anything else is loud — and the
     direct command has no entrypoint guard, so the same defect is a traceback, nonzero."""
-    import inflight_registry
     root = tempfile.mkdtemp()
-    _feat65_ps_probe_checks(inflight_registry)
-    _feat65_feature_root_checks(inflight_registry, root)
+    _feat65_ps_probe_checks()
+    _feat65_feature_root_checks(root)
     mbin = os.path.join(tempfile.mkdtemp(), "bin")
     shutil.copytree(os.path.dirname(inflight_registry.__file__), mbin)
     with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as handle:
@@ -1618,17 +1503,49 @@ def case_feat65_typed_probes():
           f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
 
 
-CASES = CASES + (case_feat65_typed_probes,)
+CASES = (
+    case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
+    case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
+    case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
+    case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
+    case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
+    case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
+    case_17_targeted_release_keeps_other_feature, case_18_v1_registry_fails_closed,
+    case_19_attach_and_release_by_runtime_identity, case_19b_runtime_lineage_authorization,
+    case_20_reconcile_only_target_feature,
+    case_21_live_query_does_not_expire_another_feature,
+    case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
+    case_24_unverifiable_claim_cannot_strand_forever,
+    case_25_stranded_child_does_not_hold_its_parent,
+    case_26_start_time_read_pins_the_c_locale,
+    case_27_non_finite_start_time_cannot_strand_the_registry,
+    case_28_featureless_claim_still_gets_a_remedy,
+    case_29_non_omp_claim_is_expired,
+    case_34_children_refusal_names_suspension, case_35_feature_root_cli,
+    case_36_live_claims_read_only_and_binding_horizon,
+    case_37_live_claims_refuses_unreadable_registry,
+    case_38_run_start_binds_repository_receipt, case_38b_repository_binding_refusals,
+    case_38c_released_child_cannot_take_a_sibling_receipt,
+    case_38a_run_start_creates_then_reuses,
+    case_38b_run_start_binds_the_unique_receipt,
+    case_38c_run_start_never_picks_an_ambiguous_receipt,
+    case_38d_run_start_ignores_another_parents_receipt,
+    case_38e_run_start_parallel_persona_keeps_two_claims,
+    case_38f_run_start_refuses_a_crossed_lineage,
+    case_39a_run_start_one_pm_conflict_is_retryable,
+    case_39b_run_start_leaves_an_unreadable_registry_as_found,
+    case_40a_find_run_places_a_unique_match,
+    case_40b_find_run_refuses_missing_and_ambiguous,
+    case_40c_find_run_refuses_any_unreadable_registry,
+    case_41_run_start_cli_resolves_the_feature_worktree,
+    case_feat65_typed_probes,
+)
 
 
 def main():
     for case in CASES:
         case()
-    failed = [r for r in RESULTS if not r[1]]
-    if failed:
-        print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")
-        sys.exit(1)
-    print(f"PASS - {len(RESULTS)}/{len(RESULTS)} checks passed")
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

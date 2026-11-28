@@ -37,7 +37,7 @@ second writer and no second lock lifetime:
 
 member-ops applies ordinary ops to the persona's own file beneath the feature checkout and persists
 notes/expertise-receipt-<sha256(runtime id)>.json beside the feature: a local working file, never
-committed, removed by the post-merge cleanup (DEC-260).
+committed, removed by the post-merge cleanup (DEC-262).
 verify-receipt is read-only. replay rebuilds each touched file from the main blob and replays the
 PR's active receipt batches. Their stdout is one JSON object; extra exit codes:
     13 replay refused (changed/vanished original, independent callers, cap, candidate) — the JSON

@@ -34,7 +34,7 @@ VERBS
                 deciding it, from --by / --reason, in the same locked write — so a mission
                 never exists without the entry check-state.py INV-40 demands (SC-21).
   project-note  record a .harness/notes/<name> path this feature owns in project_notes; the
-                working-file cleanup deletes only those (DEC-260). Refuses (exit 2), writing
+                working-file cleanup deletes only those (DEC-262). Refuses (exit 2), writing
                 nothing, any other path; a repeat call prints PRESENT and changes no byte.
   pin-review    write review_sha as the full id of --sha (default HEAD), resolved in the
                 feature's repository; refuses (exit 2), writing nothing, a sha that is not a

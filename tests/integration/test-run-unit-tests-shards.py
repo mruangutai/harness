@@ -6,6 +6,10 @@ document; the checkout is never executed against. Witnesses: deterministic compl
 weighted (not round-robin) partition, equal-weight tie breaking, unknown-file inclusion, empty
 shards, malformed arguments, and completed-versus-selected manifest records.
 """
+from integration_support import ROOT, BIN
+
+from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import json
 import math
 import os
@@ -17,40 +21,35 @@ import subprocess
 import tempfile
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tests/
-from git_support import MAINTENANCE_OFF, commit_all, init_repo
+from check_support import Checks
+from git_support import MAINTENANCE_OFF, checked_git, commit_all, git_out, init_repo
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ".claude/skills/harness/bin"
+BIN_REL = ".claude/skills/harness/bin"
 DURATIONS = "tests/integration/integration-durations.json"
 BIN_FILES = ("run-unit-tests.py", "harness_boundary.py", "run_identity.py",
              "artifact_accessors.py", "suite_layout.py", "run_pool.py")
-failures = []
+C = Checks()
+check = C.check
 
 
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
-
-
-def git(root, *args):
-    return subprocess.run(["git", *args], cwd=root, check=True, capture_output=True,
-                          text=True).stdout.strip()
-
-
-def _git(args, cwd):
-    git(cwd, *args)
-
-
+@contextlib.contextmanager
 def fixture(integration, weights, unit=("test-u1.py",), default=1.0, failing=()):
-    """Private git repo: copied runner, named test files, isolated weight document."""
-    root = Path(tempfile.mkdtemp())
-    (root / ".harness").mkdir()
+    """Private git repo: copied runner, named test files, isolated weight document.
+
+    The repo is <tmp>/repo, so a case's manifest goes in <tmp> (outside the repo and its bin
+    tree) and is removed with the rest of the directory."""
+    with tempfile.TemporaryDirectory() as outer:
+        root = Path(outer) / "repo"
+        build_repo(root, integration, weights, unit, default, failing)
+        yield root
+
+
+def build_repo(root, integration, weights, unit, default, failing):
+    (root / ".harness").mkdir(parents=True)
     (root / ".harness/team-config.yaml").write_text("teams: []\n")
-    (root / BIN).mkdir(parents=True)
+    (root / BIN_REL).mkdir(parents=True)
     for name in BIN_FILES:
-        shutil.copy2(ROOT / BIN / name, root / BIN / name)
+        shutil.copy2(BIN / name, root / BIN_REL / name)
     for kind, names in (("unit", unit), ("integration", integration)):
         (root / "tests" / kind).mkdir(parents=True)
         for name in names:
@@ -60,14 +59,13 @@ def fixture(integration, weights, unit=("test-u1.py",), default=1.0, failing=())
            "source_commit": "0" * 40, "default_seconds": default,
            "weights": {f"tests/integration/{k}": v for k, v in weights.items()}}
     (root / DURATIONS).write_text(json.dumps(doc))
-    init_repo(root, "main", identity=("t@example.com", "t"), config=MAINTENANCE_OFF, git=_git)
-    commit_all(root, "f", git=_git)
-    return root
+    init_repo(root, "main", config=MAINTENANCE_OFF, git=checked_git)
+    commit_all(root, "f", git=checked_git)
 
 
 def run(root, *args):
     env = dict(os.environ, HARNESS_PROJECT_DIR=str(root))
-    return subprocess.run([str(root / BIN / "run-unit-tests.py"), *args], cwd=root, env=env,
+    return subprocess.run([str(root / BIN_REL / "run-unit-tests.py"), *args], cwd=root, env=env,
                           text=True, capture_output=True, timeout=60)
 
 
@@ -81,12 +79,11 @@ def shard_sets(root, kind, count):
             for i in range(1, count + 1)]
 
 
-def with_fixture(build, body):
-    root = build()
-    try:
-        body(root)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+def run_with_manifest(root, shard):
+    """Run one integration shard with --manifest outside the repo; ({} when none was written)."""
+    manifest = root.parent / "m.json"
+    proc = run(root, "--kind", "integration", "--shard", shard, "--manifest", str(manifest))
+    return proc, (json.loads(manifest.read_text()) if manifest.is_file() else {})
 
 
 INTEG = [f"test-i{n:02d}.py" for n in range(1, 8)]
@@ -133,16 +130,13 @@ def case_unknown(root):
 
 
 def case_empty(root):
-    manifest = root.parent / f"{root.name}-empty.json"
-    proc = run(root, "--kind", "integration", "--shard", "3/3", "--manifest", str(manifest))
-    data = json.loads(manifest.read_text()) if manifest.is_file() else {}
+    proc, data = run_with_manifest(root, "3/3")
     check("empty shard succeeds without invoking the pool",
           proc.returncode == 0 and "pool:" not in proc.stdout and selected(proc) == [],
           proc.stdout + proc.stderr)
     check("empty shard writes an empty completed-file manifest",
           data.get("selected_files") == [] and data.get("completed_files") == []
           and data.get("runner_exit") == 0 and data.get("shard_index") == 3, repr(data))
-    manifest.unlink(missing_ok=True)
 
 
 BAD_ARGS = [
@@ -164,15 +158,16 @@ BAD_ARGS = [
 
 
 def case_bad_args(root):
-    for label, args in BAD_ARGS:
-        proc = run(root, *args)
+    with ThreadPoolExecutor() as pool:
+        procs = list(pool.map(lambda args: run(root, *args), [args for _, args in BAD_ARGS]))
+    for (label, _), proc in zip(BAD_ARGS, procs):
         check(f"rejects {label} before tests run",
               proc.returncode == 2 and re.search(r"shard|manifest", proc.stderr)
               and "RAN " not in proc.stdout, proc.stdout + proc.stderr)
-    inside = run(root, "--shard", "1/1", "--manifest", str(root / BIN / "m.json"))
+    inside = run(root, "--shard", "1/1", "--manifest", str(root / BIN_REL / "m.json"))
     check("rejects a manifest inside the watched bin tree",
           inside.returncode == 2 and "manifest" in inside.stderr
-          and not (root / BIN / "m.json").exists(), inside.stderr)
+          and not (root / BIN_REL / "m.json").exists(), inside.stderr)
     either = run(root, "--shard", "1/1", "--kind", "unit")
     check("--kind accepted after --shard",
           either.returncode == 0 and selected(either) == ["tests/unit/test-u1.py"],
@@ -180,9 +175,7 @@ def case_bad_args(root):
 
 
 def case_manifest(root):
-    manifest = root.parent / f"{root.name}-m.json"
-    proc = run(root, "--kind", "integration", "--shard", "1/1", "--manifest", str(manifest))
-    data = json.loads(manifest.read_text()) if manifest.is_file() else {}
+    proc, data = run_with_manifest(root, "1/1")
     records = {r.get("path"): r.get("returncode") for r in data.get("completed_files", [])}
     expected = {"tests/integration/test-a.py": 0, "tests/integration/test-b.py": 1}
     check("failing shard exits nonzero", proc.returncode == 1, proc.stdout + proc.stderr)
@@ -191,15 +184,14 @@ def case_manifest(root):
     check("manifest identity fields",
           data.get("schema") == 1 and data.get("kind") == "integration"
           and data.get("shard_index") == 1 and data.get("shard_count") == 1
-          and data.get("tested_commit") == git(root, "rev-parse", "HEAD")
+          and data.get("tested_commit") == git_out(root, "rev-parse", "HEAD")
           and data.get("selected_files") == sorted(expected)
           and data.get("runner_exit") == 1, repr(data))
-    manifest.unlink(missing_ok=True)
 
 
 def case_checked_in_document():
     doc = json.loads((ROOT / DURATIONS).read_text())
-    weights = doc.get("weights") if isinstance(doc, dict) else None
+    weights = doc.get("weights")
     numbers = list(weights.values()) if isinstance(weights, dict) else []
 
     def positive(value):
@@ -222,24 +214,27 @@ def case_checked_in_document():
 
 
 def main():
-    with_fixture(lambda: fixture(INTEG, {n: float(i + 1) for i, n in enumerate(INTEG)}),
-                 case_completeness)
+    with fixture(INTEG, {n: float(i + 1) for i, n in enumerate(INTEG)}) as root:
+        case_completeness(root)
     weighted = {"test-a.py": 10.0, "test-f.py": 6.0,
                 **{f"test-{c}.py": 1.0 for c in "bcde"}}
-    with_fixture(lambda: fixture(sorted(weighted), weighted), case_weighted)
+    with fixture(sorted(weighted), weighted) as root:
+        case_weighted(root)
     ties = {f"test-{c}.py": 2.0 for c in "abcd"}
-    with_fixture(lambda: fixture(sorted(ties), ties), case_ties)
-    with_fixture(lambda: fixture(["test-new.py", "test-old.py"],
-                                 {"test-old.py": 3.0, "test-gone.py": 99.0}, default=5.0),
-                 case_unknown)
-    with_fixture(lambda: fixture(["test-a.py"], {"test-a.py": 1.0}), case_empty)
-    with_fixture(lambda: fixture(["test-a.py"], {"test-a.py": 1.0}), case_bad_args)
-    with_fixture(lambda: fixture(["test-a.py", "test-b.py"], {}, failing=("test-b.py",)),
-                 case_manifest)
+    with fixture(sorted(ties), ties) as root:
+        case_ties(root)
+    with fixture(["test-new.py", "test-old.py"],
+                 {"test-old.py": 3.0, "test-gone.py": 99.0}, default=5.0) as root:
+        case_unknown(root)
+    # case_empty writes only outside the repo, and case_bad_args reads nothing it wrote.
+    with fixture(["test-a.py"], {"test-a.py": 1.0}) as root:
+        case_empty(root)
+        case_bad_args(root)
+    with fixture(["test-a.py", "test-b.py"], {}, failing=("test-b.py",)) as root:
+        case_manifest(root)
     case_checked_in_document()
-    print(f"\n{len(failures)} failed")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

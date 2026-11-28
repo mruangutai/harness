@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for bin/working_files.py (FEAT-2641 T-03 and T-11, DEC-260): the project-note path
+"""Unit tests for bin/working_files.py (FEAT-2641 T-03 and T-11, DEC-262): the project-note path
 contract, target ordering, clean's symlink, containment and refusal rules, and the untracked
 working-file counts both removal gates share. Plain script: one ok/FAIL line per check, exit 1 on
 any FAIL."""

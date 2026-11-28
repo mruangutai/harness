@@ -40,19 +40,9 @@ factory_workspace.py import neither factory_gh nor gh_issues), so the SC-10 "bad
 case is authored only for factory_decompose.py, factory_claim.py and factory_land.py. This is
 reported explicitly rather than silently narrowing "every one of the five" from the intent text.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import BIN
 import json
 import os
-
-import factory_config
-from harness_config_support import build_config, write_config
-from offline_gh_support import assert_sentinel_unused, offline_gh_env
-import re
 import stat
 import subprocess
 import sys
@@ -60,9 +50,13 @@ import tempfile
 
 import yaml
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+import factory_config
+from check_support import Checks
+from factory_support import fleet, repo
+from harness_config_support import build_config, write_config
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
+
+BIN_DIR = str(BIN)
 TOOLS = {
     "config": os.path.join(BIN_DIR, "factory_config.py"),
     "decompose": os.path.join(BIN_DIR, "factory_decompose.py"),
@@ -71,18 +65,8 @@ TOOLS = {
     "land": os.path.join(BIN_DIR, "factory_land.py"),
 }
 
-FAILS = 0
-RAN = 0
-
-
-def check(name, cond, detail=""):
-    global FAILS, RAN
-    RAN += 1
-    if cond:
-        print(f"ok    {name}")
-    else:
-        FAILS += 1
-        print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+C = Checks()
+check = C.check
 
 
 # --------------------------------------------------------------------------
@@ -534,6 +518,14 @@ def read_state(path):
         return json.load(f)
 
 
+def read_lines(path, parse=str.strip):
+    """Every non-blank line of a call log, parsed; [] when the log was never written."""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        return [parse(line) for line in f if line.strip()]
+
+
 def make_root(base):
     """A temp root with the .harness/harness/docs/SPEC.md probe and the team-config.yaml
     MARKER the HARNESS_PROJECT_DIR redirection needs (harness_boundary.resolve_root()).
@@ -548,17 +540,11 @@ def make_root(base):
     return root
 
 
-def fleet_dict(workspace_root, repo=REPO, default_branch=DEFAULT_BRANCH):
+def fleet_dict(workspace_root, name=REPO, default_branch=DEFAULT_BRANCH):
     """The board no longer lives here (T-02/T-03) — it is read remotely, through
     `factory_config.product_config`, and served by the fake gh's `contents` endpoint from
     `state["product_configs"]` (see `default_product_configs` above)."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [{
-            "name": repo, "default_branch": default_branch,
-        }],
-        "workspace_root": workspace_root,
-    }
+    return fleet(workspace_root, [repo(name, default_branch)])
 
 
 def base_env(root, gh_bin=None, git_bin=None, gh_state=None):
@@ -972,10 +958,7 @@ with tempfile.TemporaryDirectory() as td:
 
     # GAP 3 (iii), the other half — the recorded git commands include a checkout of the claimed
     # branch. Read via the recorder wired into _FAKE_GIT_OK_SRC (FACTORY_GIT_LOG).
-    log_after_workspace = []
-    if os.path.exists(git_log):
-        with open(git_log, encoding="utf-8") as f:
-            log_after_workspace = [l.strip() for l in f if l.strip()]
+    log_after_workspace = read_lines(git_log)
     branch = p2.get("branch")
     check(
         "(F) workspace: recorded git commands include a checkout of factory/issue-<n>",
@@ -1006,10 +989,7 @@ with tempfile.TemporaryDirectory() as td:
 
     # GAP 3 (ii): land pushes the claimed branch — asserted against the recorded git commands,
     # not merely inferred from a successful exit.
-    log_after_land = []
-    if os.path.exists(git_log):
-        with open(git_log, encoding="utf-8") as f:
-            log_after_land = [l.strip() for l in f if l.strip()]
+    log_after_land = read_lines(git_log)
     check(
         "(F) land: recorded git commands include a push of factory/issue-<n> to origin",
         any(
@@ -1112,12 +1092,12 @@ else:
         check("(G1) -b --track form: workspace exits 0 against real git",
               r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
         if r.returncode == 0:
+            head = rev_parse(checkout, genv)
             check("(G1) -b --track form: HEAD equals origin's factory/issue-1",
-                  rev_parse(checkout, genv) == origin_issue_sha,
-                  (rev_parse(checkout, genv), origin_issue_sha))
+                  head == origin_issue_sha, (head, origin_issue_sha))
+            upstream = upstream_of(checkout, genv, "factory/issue-1")
             check("(G1) -b --track form: local branch tracks origin/factory/issue-1",
-                  upstream_of(checkout, genv, "factory/issue-1") == "origin/factory/issue-1",
-                  upstream_of(checkout, genv, "factory/issue-1"))
+                  upstream == "origin/factory/issue-1", upstream)
         not_ignored("(G1)", r)
 
     # --- (G2) the -B ... --track form (factory_workspace.py:97): a local factory/issue-<n>
@@ -1170,12 +1150,12 @@ else:
         check("(G2) -B --track form: workspace exits 0 against real git",
               r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
         if r.returncode == 0:
+            head = rev_parse(checkout, genv)
             check("(G2) -B --track form: HEAD force-aligned onto origin's factory/issue-2",
-                  rev_parse(checkout, genv) == origin_issue_sha,
-                  (rev_parse(checkout, genv), origin_issue_sha))
+                  head == origin_issue_sha, (head, origin_issue_sha))
+            upstream = upstream_of(checkout, genv, "factory/issue-2")
             check("(G2) -B --track form: local branch now tracks origin/factory/issue-2",
-                  upstream_of(checkout, genv, "factory/issue-2") == "origin/factory/issue-2",
-                  upstream_of(checkout, genv, "factory/issue-2"))
+                  upstream == "origin/factory/issue-2", upstream)
         not_ignored("(G2)", r)
 
     check(f"(G) live-git smoke check ran against a real git binary ({real_git}, {git_version})", True)
@@ -1222,14 +1202,7 @@ with tempfile.TemporaryDirectory() as td:
     # The board no longer lives in either repos[] entry (T-02/T-03) — each repository's own
     # board is read remotely, and the two are registered separately below so a call landing on
     # the served repository's contents endpoint can never see the other's.
-    fleet_two = {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {"name": REPO, "default_branch": DEFAULT_BRANCH},
-            {"name": other_repo, "default_branch": "main"},
-        ],
-        "workspace_root": workspace_root,
-    }
+    fleet_two = fleet(workspace_root, [repo(REPO, DEFAULT_BRANCH), repo(other_repo, "main")])
     fleet_path = os.path.join(td, "fleet", "fleet.yaml")
     write_yaml(fleet_path, fleet_two)
     cwd = os.path.join(td, "cwd")
@@ -1279,10 +1252,7 @@ with tempfile.TemporaryDirectory() as td:
           r4.returncode == 0, f"code={r4.returncode} stderr={r4.stderr!r}")
     not_ignored("(H) land", r4)
 
-    calls = []
-    if os.path.exists(call_log):
-        with open(call_log, encoding="utf-8") as f:
-            calls = [json.loads(l) for l in f if l.strip()]
+    calls = read_lines(call_log, json.loads)
     check("(H) at least one gh call was recorded (anti-vacuum)", len(calls) > 0, calls)
 
     board_numbers_seen = set()
@@ -1309,28 +1279,39 @@ with tempfile.TemporaryDirectory() as td:
 # BOTH the forked process's own exit status and the argv/query text GH_CALL_LOG recorded for it —
 # never the return value alone, per the plan's "assert on argv and variables" instruction.
 # ============================================================================
-def run_factory_gh_call(td, script, gh_state=None):
-    """Fork `python3 -c <script>` with factory_gh importable (cwd=BIN_DIR puts it on
-    sys.path[0]), FACTORY_GH pointed at the stub, and GH_CALL_LOG recording every argv the stub
-    receives. Returns (CompletedProcess, [argv, ...])."""
+def run_forked(td, argv, gh_state=None, root=None):
+    """Fork `python3 <argv>` from cwd=BIN_DIR (which puts factory_gh on sys.path[0]) with
+    FACTORY_GH pointed at the stub, GH_CALL_LOG recording every argv the stub receives, and
+    HARNESS_PROJECT_DIR set to `root` when one is given. Returns (CompletedProcess, [argv, ...])."""
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
     state_path = gh_state or write_state(os.path.join(td, "gh_state.json"))
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env, sentinel_log = offline_gh_env(gh, td)
+    if root is not None:
+        env["HARNESS_PROJECT_DIR"] = root
     env["GH_STATE"] = state_path
     env["GH_CALL_LOG"] = call_log
     env.pop("HARNESS_GH_COST_LOG", None)
     r = subprocess.run(
-        [sys.executable, "-c", script], cwd=BIN_DIR, env=env,
+        [sys.executable] + argv, cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
     assert_sentinel_unused(sentinel_log)
-    calls = []
-    if os.path.exists(call_log):
-        with open(call_log, encoding="utf-8") as f:
-            calls = [json.loads(l) for l in f if l.strip()]
-    return r, calls
+    return r, read_lines(call_log, json.loads)
+
+
+def run_factory_gh_call(td, script, gh_state=None):
+    """Fork `python3 -c <script>` through run_forked."""
+    return run_forked(td, ["-c", script], gh_state)
+
+
+def lifecycle_root(td):
+    """A make_root temp root whose harness.json syncs acme/widget onto default_board()."""
+    root = make_root(td)
+    write_config(os.path.join(root, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
+    return root
 
 
 with tempfile.TemporaryDirectory() as td:
@@ -1404,27 +1385,9 @@ with tempfile.TemporaryDirectory() as td:
 BOARD_LIFECYCLE = os.path.join(BIN_DIR, "board_lifecycle.py")
 
 with tempfile.TemporaryDirectory() as td:
-    root = make_root(td)
-    write_config(os.path.join(root, ".harness", "harness.json"),
-                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
-    gh = os.path.join(td, "fake_gh.py")
-    write_exec(gh, _FAKE_GH_SRC)
+    root = lifecycle_root(td)
     state_path = write_state(os.path.join(td, "gh_state.json"))
-    call_log = os.path.join(td, "gh_call_log.jsonl")
-    env, sentinel_log = offline_gh_env(gh, td)
-    env["HARNESS_PROJECT_DIR"] = root
-    env["GH_STATE"] = state_path
-    env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
-    r = subprocess.run(
-        [sys.executable, BOARD_LIFECYCLE, "provision"], cwd=BIN_DIR, env=env,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
-    )
-    assert_sentinel_unused(sentinel_log)
-    calls = []
-    if os.path.exists(call_log):
-        with open(call_log, encoding="utf-8") as f:
-            calls = [json.loads(l) for l in f if l.strip()]
+    r, calls = run_forked(td, [BOARD_LIFECYCLE, "provision"], state_path, root)
     check("(J) board_lifecycle.py provision: forked process exits 0 against a complete board",
           r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     check("(J) board_lifecycle.py provision: reports its own verdict on stdout (anti-vacuum — "
@@ -1448,28 +1411,14 @@ with tempfile.TemporaryDirectory() as td:
 # ============================================================================
 
 with tempfile.TemporaryDirectory() as td:
-    root = make_root(td)
-    write_config(os.path.join(root, ".harness", "harness.json"),
-                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
-    gh = os.path.join(td, "fake_gh.py")
-    write_exec(gh, _FAKE_GH_SRC)
+    root = lifecycle_root(td)
     # ONE fixture carrying exactly one finding: a closed issue with a null close reason (REASON)
     # — the class that needs no board-item fixture at all, since it never consults station.
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={
         "900": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
                 "assignees": [], "stateReason": None},
     })
-    call_log = os.path.join(td, "gh_call_log.jsonl")
-    env, sentinel_log = offline_gh_env(gh, td)
-    env["HARNESS_PROJECT_DIR"] = root
-    env["GH_STATE"] = state_path
-    env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
-    r = subprocess.run(
-        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
-    )
-    assert_sentinel_unused(sentinel_log)
+    r, calls = run_forked(td, [BOARD_LIFECYCLE, "audit"], state_path, root)
     check("(K) board_lifecycle.py audit: forked process exits 1 against a fixture carrying "
           "one finding (the EXIT STATUS, not an in-process SystemExit catch)",
           r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1487,11 +1436,7 @@ with tempfile.TemporaryDirectory() as td:
 # ============================================================================
 
 with tempfile.TemporaryDirectory() as td:
-    root = make_root(td)
-    write_config(os.path.join(root, ".harness", "harness.json"),
-                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
-    gh = os.path.join(td, "fake_gh.py")
-    write_exec(gh, _FAKE_GH_SRC)
+    root = lifecycle_root(td)
     # plan.yaml: active station `review`; feature.json records parent #950 but the board reads
     # Backlog, so the shared active-card projection must report the mismatch.
     # THE STATION IS IN plan.yaml AS OF FEAT-41 T-07; feature.json keeps the github block, which
@@ -1505,17 +1450,7 @@ with tempfile.TemporaryDirectory() as td:
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })
-    call_log = os.path.join(td, "gh_call_log.jsonl")
-    env, sentinel_log = offline_gh_env(gh, td)
-    env["HARNESS_PROJECT_DIR"] = root
-    env["GH_STATE"] = state_path
-    env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
-    r = subprocess.run(
-        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
-    )
-    assert_sentinel_unused(sentinel_log)
+    r, calls = run_forked(td, [BOARD_LIFECYCLE, "audit"], state_path, root)
     check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a plan.yaml "
           "active station disagreeing with its parent card (the EXIT STATUS, not an in-process "
           "SystemExit catch)",
@@ -1539,30 +1474,12 @@ with tempfile.TemporaryDirectory() as td:
 # ============================================================================
 
 with tempfile.TemporaryDirectory() as td:
-    root = make_root(td)
-    write_config(os.path.join(root, ".harness", "harness.json"),
-                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
-    gh = os.path.join(td, "fake_gh.py")
-    write_exec(gh, _FAKE_GH_SRC)
+    root = lifecycle_root(td)
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={
         "960": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
                 "assignees": [], "stateReason": None},
     })
-    call_log = os.path.join(td, "gh_call_log.jsonl")
-    env, sentinel_log = offline_gh_env(gh, td)
-    env["HARNESS_PROJECT_DIR"] = root
-    env["GH_STATE"] = state_path
-    env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
-    r = subprocess.run(
-        [sys.executable, BOARD_LIFECYCLE, "reconcile"], cwd=BIN_DIR, env=env,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
-    )
-    assert_sentinel_unused(sentinel_log)
-    calls = []
-    if os.path.exists(call_log):
-        with open(call_log, encoding="utf-8") as f:
-            calls = [json.loads(l) for l in f if l.strip()]
+    r, calls = run_forked(td, [BOARD_LIFECYCLE, "reconcile"], state_path, root)
     check("(M) board_lifecycle.py reconcile with NO flags: exits 0 (the dry-run default, "
           "even though a fixable REASON finding is present)",
           r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1585,31 +1502,13 @@ with tempfile.TemporaryDirectory() as td:
 # ============================================================================
 
 with tempfile.TemporaryDirectory() as td:
-    root = make_root(td)
-    write_config(os.path.join(root, ".harness", "harness.json"),
-                 {"github": {"sync": True, "repo": "acme/widget", "board": default_board()}})
-    gh = os.path.join(td, "fake_gh.py")
-    write_exec(gh, _FAKE_GH_SRC)
+    root = lifecycle_root(td)
     old_title = "T-9 — Add the retitle command"
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={
         "970": {"title": old_title, "state": "OPEN", "labels": [], "assignees": [],
                 "milestone": "FEAT-INTEG-RETITLE"},
     })
-    call_log = os.path.join(td, "gh_call_log.jsonl")
-    env, sentinel_log = offline_gh_env(gh, td)
-    env["HARNESS_PROJECT_DIR"] = root
-    env["GH_STATE"] = state_path
-    env["GH_CALL_LOG"] = call_log
-    env.pop("HARNESS_GH_COST_LOG", None)
-    r = subprocess.run(
-        [sys.executable, BOARD_LIFECYCLE, "retitle"], cwd=BIN_DIR, env=env,
-        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
-    )
-    assert_sentinel_unused(sentinel_log)
-    calls = []
-    if os.path.exists(call_log):
-        with open(call_log, encoding="utf-8") as f:
-            calls = [json.loads(l) for l in f if l.strip()]
+    r, calls = run_forked(td, [BOARD_LIFECYCLE, "retitle"], state_path, root)
     check("(N) board_lifecycle.py retitle with NO flags: exits 0 (the dry-run default, even "
           "though a pending rename is present)",
           r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -1620,11 +1519,10 @@ with tempfile.TemporaryDirectory() as td:
           "gh -- --apply was never defaulted to",
           not any(argv[:2] == ["issue", "edit"] and "--title" in argv for argv in calls),
           calls)
+    issue_970 = read_state(state_path)["issues"]["970"]
     check("(N) board_lifecycle.py retitle with NO flags: the issue's title on the stub's own "
           "state is untouched by the preview",
-          read_state(state_path)["issues"]["970"]["title"] == old_title,
-          read_state(state_path)["issues"]["970"])
+          issue_970["title"] == old_title, issue_970)
 
 
-print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

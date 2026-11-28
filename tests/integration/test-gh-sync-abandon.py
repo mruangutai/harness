@@ -7,12 +7,7 @@ subprocess invocations are unchanged. Shared fixtures live in gh_sync_support.py
 
     ./test-gh-sync-abandon.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import os
 import re
@@ -30,16 +25,48 @@ from gh_sync_support import (
 from harness_config_support import write_config
 
 
+def _reason(tmp, text, name="reason.txt"):
+    """Write TEXT to TMP/NAME and return the path: the --reason-file every case passes."""
+    path = os.path.join(tmp, name)
+    with open(path, "w") as target:
+        target.write(text)
+    return path
+
+
+def _env(tmp):
+    """gh-sync's env bound to TMP's fake gh."""
+    return {"FACTORY_GH": os.path.join(tmp, "gh")}
+
+
+def _would_numbers(stdout):
+    """The first #N of every `gh-sync: would ` line, in order."""
+    return [int(m.group(1)) for m in
+            (re.search(r"#(\d+)", l) for l in stdout.splitlines()
+             if l.startswith("gh-sync: would "))
+            if m]
+
+
+def _written_numbers(log):
+    """The number of every issue/milestone close and issue comment in LOG, in order."""
+    out = []
+    for l in log:
+        m = (re.search(r"issues/(\d+) -f state=closed", l)
+             or re.search(r"milestones/(\d+) -f state=closed", l)
+             or re.search(r"^issue comment (\d+) ", l))
+        if m:
+            out.append(int(m.group(1)))
+    return out
+
+
 def _label_create_failure_run(tmp, feat_name, args):
     """H1 (FEAT-2452 c1): a board-wired feature whose `label create` fails with a 403 that is
     not gh's existing-label reply; runs `gh-sync ARGS[0] <feat> ARGS[1:] --reason-file --yes`."""
     install_gh(tmp, label_create_fails(FAKE_GH_STATIONS))
     feat = stage_station(tmp, feat_name, [("T-01", "pending"), ("T-02", "pending")],
                          issues={"T-01": 41, "T-02": 42}, parent=40, milestone=7)
-    reason = os.path.join(tmp, "reason.txt")
-    open(reason, "w").write("dropped")
+    reason = _reason(tmp, "dropped")
     result = run([args[0], feat, *args[1:], "--reason-file", reason, "--yes"], tmp,
-                 {"FACTORY_GH": os.path.join(tmp, "gh")})
+                 _env(tmp))
     return feat, result, calls(tmp)
 
 
@@ -113,9 +140,9 @@ def reject_label_create_failure_case():
 
 
 def main():
-    def _fail_on(patterns, message):
-        """FAKE_GH_STATIONS with a failure injected for every bash `case "$*"` pattern given."""
-        return FAKE_GH_STATIONS.replace(
+    def _fail_on(patterns, message, script=FAKE_GH_STATIONS):
+        """SCRIPT with a failure injected for every bash `case "$*"` pattern given."""
+        return script.replace(
             'case "$1 $2" in',
             'case "$*" in\n  %s) echo "%s" >&2; exit 1 ;;\nesac\ncase "$1 $2" in'
             % ("|".join(patterns), message), 1)
@@ -140,15 +167,13 @@ def main():
         # F1 (BUG-2161 c1): runs/ is pruned only once the station reads abandoned, so this
         # fixture needs the plan.yaml the station is written to.
         add_plan_station(featA, "FEAT-06-abandon-adopted")
-        reasonA = os.path.join(tmpA, "reason.txt")
-        open(reasonA, "w").write("budget cut — deprioritized this quarter")
+        reasonA = _reason(tmpA, "budget cut — deprioritized this quarter")
         runsA = os.path.join(featA, "runs")
         os.makedirs(os.path.join(runsA, "validate-c1-validator", "ui", "evidence"))
         open(os.path.join(runsA, "validate-c1-validator", "ui", "evidence", "shot.webp"), "wb").write(b"RIFF")
-        noteA = os.path.join(featA, "abandon-note.md")
-        open(noteA, "w").write("kept\n")
+        noteA = _reason(featA, "kept\n", "abandon-note.md")
         r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
-        check("abandon --yes removes the feature's runs/ evidence (#1996, DEC-260)",
+        check("abandon --yes removes the feature's runs/ evidence (#1996, DEC-262)",
               not os.path.exists(runsA) and f"gh-sync: removed {runsA}" in r.stdout, r.stdout + r.stderr)
         check("abandon removes only working files: the feature's other files stay",
               os.path.exists(noteA) and os.path.exists(os.path.join(featA, "feature.json")))
@@ -174,18 +199,11 @@ def main():
               str(logA))
         # T-08: each recorded sub-issue gets its OWN assertion — a fixture where one issue is
         # missed must still fail, so no count-only check over the three lines below.
-        check("abandon labels sub-issue #41 abandoned",
-              any(l.startswith("issue edit 41") and "--repo implentio/fake" in l
-                  and "--add-label abandoned" in l for l in logA),
-              str(logA))
-        check("abandon labels sub-issue #42 abandoned",
-              any(l.startswith("issue edit 42") and "--repo implentio/fake" in l
-                  and "--add-label abandoned" in l for l in logA),
-              str(logA))
-        check("abandon labels sub-issue #43 abandoned",
-              any(l.startswith("issue edit 43") and "--repo implentio/fake" in l
-                  and "--add-label abandoned" in l for l in logA),
-              str(logA))
+        for n in (41, 42, 43):
+            check(f"abandon labels sub-issue #{n} abandoned",
+                  any(l.startswith(f"issue edit {n}") and "--repo implentio/fake" in l
+                      and "--add-label abandoned" in l for l in logA),
+                  str(logA))
         # REVERSED BY T-05, with the clause above. An adopted parent now closes, so it is
         # labelled like every other issue this run closed.
         check("abandon labels the adopted parent it closed",
@@ -205,8 +223,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "created",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
-        reasonB = os.path.join(tmpB, "reason.txt")
-        open(reasonB, "w").write("cutting this")
+        reasonB = _reason(tmpB, "cutting this")
         r = run(["abandon", featB, "--reason-file", reasonB, "--yes"], tmpB)
         logB = calls(tmpB)
         # NARROWED: `issues/40` now also matches the DETACH call
@@ -240,8 +257,7 @@ def main():
             feature_id="FEAT-06-abandon-noorigin",
             github={"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}},
         )
-        reasonC = os.path.join(tmpC, "reason.txt")
-        open(reasonC, "w").write("cutting this too")
+        reasonC = _reason(tmpC, "cutting this too")
         r = run(["abandon", featC, "--reason-file", reasonC, "--yes"], tmpC)
         logC = calls(tmpC)
         docC = read_feature_json(os.path.join(featC, "feature.json"))
@@ -278,14 +294,11 @@ def main():
               r.returncode == 1 and all(l.startswith("auth") for l in logD),
               str(logD))
 
-        open(os.path.join(tmpD, "calls.log"), "w").close()
         notAFileD = os.path.join(tmpD, "no-such-reason.txt")
         r = run(["abandon", featD, "--reason-file", notAFileD], tmpD)
         check("abandon with a nonexistent reason path exits 1", r.returncode == 1, r.stdout)
 
-        open(os.path.join(tmpD, "calls.log"), "w").close()
-        unreadableD = os.path.join(tmpD, "unreadable.txt")
-        open(unreadableD, "w").write("cannot read this")
+        unreadableD = _reason(tmpD, "cannot read this", "unreadable.txt")
         os.chmod(unreadableD, 0o000)
         r = run(["abandon", featD, "--reason-file", unreadableD], tmpD)
         unreadable_result = r.returncode
@@ -299,7 +312,6 @@ def main():
         # OSError, so it escaped post_body_path's handler and surfaced as a traceback
         # rather than a clean caller error. Unlike the chmod case above this needs no
         # euid guard, so it holds as a regression test even when the suite runs as root.
-        open(os.path.join(tmpD, "calls.log"), "w").close()
         binaryD = os.path.join(tmpD, "binary-reason.md")
         open(binaryD, "wb").write(b"\x80\x81\xfe\xff not utf-8")
         r = run(["abandon", featD, "--reason-file", binaryD], tmpD)
@@ -318,8 +330,7 @@ def main():
             status="Review",
             github={"milestone": None, "parent": None, "attached": [], "issues": {"T-01": 41}},
         )
-        reasonE = os.path.join(tmpE, "reason.txt")
-        open(reasonE, "w").write("no milestone was ever recorded")
+        reasonE = _reason(tmpE, "no milestone was ever recorded")
         r = run(["abandon", featE, "--reason-file", reasonE, "--yes"], tmpE)
         logE = calls(tmpE)
         check("abandon with no recorded milestone never builds milestones/None",
@@ -339,8 +350,7 @@ def main():
         install_gh(tmpF)
         featF = stage(tmpF, feat_name="FEAT-06-abandon-skip")
         write_config(os.path.join(tmpF, ".harness", "harness.json"), {"github": {"sync": False}})
-        reasonF = os.path.join(tmpF, "reason.txt")
-        open(reasonF, "w").write("does not matter, sync is off")
+        reasonF = _reason(tmpF, "does not matter, sync is off")
         r = run(["abandon", featF, "--reason-file", reasonF, "--yes"], tmpF)
         check("abandon with sync disabled -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
@@ -372,80 +382,46 @@ def main():
                     "attached": ["T-01"], "issues": {"T-01": issue_num}},
         )
 
-    # --- ship records feature.json status Done
-    with tempfile.TemporaryDirectory() as tmpS:
-        install_gh(tmpS)
-        featS = stage(tmpS, feat_name="FEAT-23-ship-status")
-        fjS = os.path.join(featS, "feature.json")
-        _full_fixture(fjS, "FEAT-23-ship-status", "Review", 900141)
-        r = run(["ship", featS], tmpS)
-        check("ship records plan.yaml station done",
-              r.returncode == 0 and read_plan_station(featS) == "done",
-              f"rc={r.returncode} station={read_plan_station(featS)!r}")
-
-    # --- abandon records feature.json status Abandoned
-    with tempfile.TemporaryDirectory() as tmpT:
-        install_gh(tmpT)
-        featT = stage(tmpT, feat_name="FEAT-23-abandon-status")
-        fjT = os.path.join(featT, "feature.json")
-        _full_fixture(fjT, "FEAT-23-abandon-status", "Review", 900142)
-        reasonT = os.path.join(tmpT, "reason.txt")
-        open(reasonT, "w").write("cutting scope")
-        r = run(["abandon", featT, "--reason-file", reasonT, "--yes"], tmpT)
-        check("abandon records plan.yaml station abandoned",
-              r.returncode == 0 and read_plan_station(featT) == "abandoned",
-              f"rc={r.returncode} station={read_plan_station(featT)!r}")
-
-    # --- every other top-level key present before ship/abandon ran is unchanged afterward —
-    #     over the FULLY POPULATED fixture, so the claim quantifies over the real key set
-    with tempfile.TemporaryDirectory() as tmpU:
-        install_gh(tmpU)
-        featU = stage(tmpU, feat_name="FEAT-23-ship-keys")
-        fjU = os.path.join(featU, "feature.json")
-        _full_fixture(fjU, "FEAT-23-ship-keys", "Review", 900143)
-        before_docU = read_feature_json(fjU)
-        r = run(["ship", featU], tmpU)
-        after_docU = read_feature_json(fjU)
-        other_keys_U = [k for k in before_docU if k != "status"]
-        check("ship leaves every other top-level key unchanged",
-              r.returncode == 0
-              and all(after_docU.get(k) == before_docU.get(k) for k in other_keys_U)
-              and set(after_docU.keys()) == set(before_docU.keys()),
-              f"before={before_docU} after={after_docU}")
-
-    with tempfile.TemporaryDirectory() as tmpV:
-        install_gh(tmpV)
-        featV = stage(tmpV, feat_name="FEAT-23-abandon-keys")
-        fjV = os.path.join(featV, "feature.json")
-        _full_fixture(fjV, "FEAT-23-abandon-keys", "Review", 900144)
-        before_docV = read_feature_json(fjV)
-        reasonV = os.path.join(tmpV, "reason.txt")
-        open(reasonV, "w").write("cutting scope")
-        r = run(["abandon", featV, "--reason-file", reasonV, "--yes"], tmpV)
-        after_docV = read_feature_json(fjV)
-        other_keys_V = [k for k in before_docV if k != "status"]
-        check("abandon leaves every other top-level key unchanged",
-              r.returncode == 0
-              and all(after_docV.get(k) == before_docV.get(k) for k in other_keys_V)
-              and set(after_docV.keys()) == set(before_docV.keys()),
-              f"before={before_docV} after={after_docV}")
+    # --- ship records station done and abandon records station abandoned; every other top-level
+    #     key present before the run is unchanged afterward — over the FULLY POPULATED fixture, so
+    #     the claim quantifies over the real key set
+    for subS, nameS, issueS, stationS in (("ship", "FEAT-23-ship-status", 900141, "done"),
+                                          ("abandon", "FEAT-23-abandon-status", 900142,
+                                           "abandoned")):
+        with tempfile.TemporaryDirectory() as tmpS:
+            install_gh(tmpS)
+            featS = stage(tmpS, feat_name=nameS)
+            fjS = os.path.join(featS, "feature.json")
+            _full_fixture(fjS, nameS, "Review", issueS)
+            before_doc = read_feature_json(fjS)
+            extraS = (["--reason-file", _reason(tmpS, "cutting scope"), "--yes"]
+                      if subS == "abandon" else [])
+            r = run([subS, featS, *extraS], tmpS)
+            check(f"{subS} records plan.yaml station {stationS}",
+                  r.returncode == 0 and read_plan_station(featS) == stationS,
+                  f"rc={r.returncode} station={read_plan_station(featS)!r}")
+            after_doc = read_feature_json(fjS)
+            other_keys = [k for k in before_doc if k != "status"]
+            check(f"{subS} leaves every other top-level key unchanged",
+                  r.returncode == 0
+                  and all(after_doc.get(k) == before_doc.get(k) for k in other_keys)
+                  and set(after_doc.keys()) == set(before_doc.keys()),
+                  f"before={before_doc} after={after_doc}")
 
     # =============================================================================================
     # T-05 — abandon REPORTS AND ASKS, and the parent's origin is no longer recorded anywhere.
     # =============================================================================================
 
-    def _abandon_fixture(tmp, name="FEAT-40-abandon", parent=40, issues=None, milestone=7):
+    def _abandon_fixture(tmp, name="FEAT-40-abandon"):
         install_gh(tmp, FAKE_GH)
         feat = stage(tmp, feat_name=name)
         add_plan_station(feat, name, "review")
+        issues = {"T-01": 41, "T-02": 42}
         write_feature_json(
             os.path.join(feat, "feature.json"), feature_id=name,
-            github={"milestone": milestone, "parent": parent,
-                    "attached": list((issues or {"T-01": 41, "T-02": 42}).keys()),
-                    "issues": issues or {"T-01": 41, "T-02": 42}},
+            github={"milestone": 7, "parent": 40, "attached": list(issues), "issues": issues},
         )
-        reason = os.path.join(tmp, "reason.txt")
-        open(reason, "w").write("the operator's signed reason")
+        reason = _reason(tmp, "the operator's signed reason")
         write_validate_handoff(feat)
         return feat, reason
 
@@ -459,6 +435,7 @@ def main():
               and f"gh-sync: would remove {os.path.join(featA1, 'runs')}" in r.stdout, r.stdout)
         logA1 = calls(tmpA1)
         wouldA1 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
+        dry_numbers = _would_numbers(r.stdout)  # the --yes case below compares against these
         check("abandon dry run: exits 0", r.returncode == 0, r.stdout + r.stderr)
         # `load_config` runs `gh auth status` as a precondition before ANY subcommand, so the log
         # is not expected to be empty. The discriminating assertion is that no WRITE was attempted
@@ -492,26 +469,12 @@ def main():
               read_plan_station(featA1) != "abandoned",
               read_feature_json(os.path.join(featA1, "feature.json")))
 
-    # --- with --yes: it closes exactly what the dry run listed, in that order ------------------------
-    with tempfile.TemporaryDirectory() as tmpA2:
-        featA2, reasonA2 = _abandon_fixture(tmpA2)
-        dry = run(["abandon", featA2, "--reason-file", reasonA2], tmpA2)
-        dry_numbers = [int(m.group(1)) for m in
-                        (re.search(r"#(\d+)", l) for l in dry.stdout.splitlines()
-                         if l.startswith("gh-sync: would "))
-                        if m]
-
+    # --- with --yes: it closes exactly what the dry run above listed, in that order ----------------
     with tempfile.TemporaryDirectory() as tmpA3:
         featA3, reasonA3 = _abandon_fixture(tmpA3)
         r = run(["abandon", featA3, "--reason-file", reasonA3, "--yes"], tmpA3)
         logA3 = calls(tmpA3)
-        real_numbers = []
-        for l in logA3:
-            m = re.search(r"issues/(\d+) -f state=closed", l) or \
-                re.search(r"milestones/(\d+) -f state=closed", l) or \
-                re.search(r"^issue comment (\d+) ", l)
-            if m:
-                real_numbers.append(int(m.group(1)))
+        real_numbers = _written_numbers(logA3)
         check("abandon --yes: the numbers it actually closes, in order, equal the numbers the dry "
               "run listed - ONE renderer, so the operator confirms the list that executes",
               real_numbers == dry_numbers,
@@ -533,10 +496,8 @@ def main():
     # --- #13: a failing REST close keeps the continue policy: diagnostic, later writes, station ---
     with tempfile.TemporaryDirectory() as tmpA13:
         featA13, reasonA13 = _abandon_fixture(tmpA13)
-        install_gh(tmpA13, FAKE_GH.replace(
-            'case "$1 $2" in',
-            'case "$*" in\n  *"issues/41 -f state=closed"*) echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;\n'
-            'esac\ncase "$1 $2" in', 1))
+        install_gh(tmpA13, _fail_on(['*"issues/41 -f state=closed"*'], "HTTP 502: Bad Gateway",
+                                    script=FAKE_GH))
         r = run(["abandon", featA13, "--reason-file", reasonA13, "--yes"], tmpA13)
         logA13 = calls(tmpA13)
         check("#13 failing close API: exit 0, the failure is named with its diagnostic",
@@ -587,8 +548,7 @@ def main():
                    "github": {"repo": "implentio/fake", "milestone": 7, "parent": 40, "parent_origin": "adopted",
                               "attached": ["T-01"], "issues": {"T-01": 41}}},
                   open(fjA6, "w"), indent=2)
-        reasonA6 = os.path.join(tmpA6, "reason.txt")
-        open(reasonA6, "w").write("legacy reason")
+        reasonA6 = _reason(tmpA6, "legacy reason")
         r = run(["abandon", featA6, "--reason-file", reasonA6, "--yes"], tmpA6)
         ghA6 = (read_feature_json(fjA6).get("github") or {})
         check("legacy origin key: abandon reads the block without crashing",
@@ -604,8 +564,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpAB:
         install_gh(tmpAB, FAKE_GH_SHIP)
         featAB = stage_ship(tmpAB, "FEAT-40-abandon-backlog", {"T-01": 41, "T-02": 42}, parent=40)
-        reasonAB = os.path.join(tmpAB, "reason.txt")
-        open(reasonAB, "w").write("dropped")
+        reasonAB = _reason(tmpAB, "dropped")
         r = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
                 ship_env(tmpAB, "40=Review 41=Review 42=Review"))
         logAB = calls(tmpAB)
@@ -659,8 +618,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpAC:
         install_gh(tmpAC, FAKE_GH_SHIP)
         featAC = stage_ship(tmpAC, "FEAT-40-detach-fails", {"T-01": 41}, parent=40)
-        reasonAC = os.path.join(tmpAC, "reason.txt")
-        open(reasonAC, "w").write("dropped")
+        reasonAC = _reason(tmpAC, "dropped")
         r = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
                 ship_env(tmpAC, "40=Review 41=Review", SHIP_SUBISSUES_FAIL="40"))
         logAC = calls(tmpAC)
@@ -679,10 +637,9 @@ def main():
         install_gh(tmpAB, FAKE_GH_STATIONS)
         featAB = stage_station(tmpAB, "FEAT-40-abandon-backlog",
                                [("T-01", "pending")], issues={"T-01": 41}, parent=40)
-        reasonAB = os.path.join(tmpAB, "reason.txt")
-        open(reasonAB, "w").write("dropped")
+        reasonAB = _reason(tmpAB, "dropped")
         rAB = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
-                  {"FACTORY_GH": os.path.join(tmpAB, "gh")})
+                  _env(tmpAB))
         logAB = calls(tmpAB)
         editsAB = [l for l in logAB if "project item-edit" in l]
         check("abandon exits 0", rAB.returncode == 0, rAB.stdout + rAB.stderr)
@@ -712,10 +669,9 @@ def main():
         featAC = stage_station(tmpAC, "FEAT-40-abandon-label-fails",
                                [("T-01", "pending"), ("T-02", "pending")],
                                issues={"T-01": 41, "T-02": 42}, parent=40)
-        reasonAC = os.path.join(tmpAC, "reason.txt")
-        open(reasonAC, "w").write("dropped")
+        reasonAC = _reason(tmpAC, "dropped")
         rAC = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
-                  {"FACTORY_GH": os.path.join(tmpAC, "gh")})
+                  _env(tmpAC))
         logAC = calls(tmpAC)
         editsAC = [l for l in logAC if "project item-edit" in l]
         patchedAC = {re.search(r"issues/(\d+)", l).group(1) for l in logAC
@@ -741,15 +697,14 @@ def main():
         install_gh(tmp, FAKE_GH_STATIONS)
         feat = stage_station(tmp, name, [("T-01", "ready")],
                              issues={"T-01": 41}, parent=40, milestone=7)
-        reason = os.path.join(tmp, "reject-reason.txt")
-        open(reason, "w").write("source ticket is obsolete")
+        reason = _reason(tmp, "source ticket is obsolete", "reject-reason.txt")
         return feat, reason
 
     with tempfile.TemporaryDirectory() as tmpR0:
         featR0, reasonR0 = _reject_fixture(tmpR0, "FEAT-REJECT-INVALID")
         open(reasonR0, "w").write("first line\nsecond line")
         r = run(["reject", featR0, "--superseded-by", "0", "--reason-file", reasonR0, "--yes"],
-                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+                tmpR0, _env(tmpR0))
         _invalid_writes = lambda: [line for line in calls(tmpR0)
                                    if "state=closed" in line or "issue comment" in line
                                    or "issue edit" in line or "item-edit" in line
@@ -758,7 +713,7 @@ def main():
               r.returncode == 1 and _invalid_writes() == [],
               f"rc={r.returncode} log={calls(tmpR0)}")
         r = run(["reject", featR0, "--superseded-by", "none", "--reason-file", reasonR0, "--yes"],
-                tmpR0, {"FACTORY_GH": os.path.join(tmpR0, "gh")})
+                tmpR0, _env(tmpR0))
         check("reject multiline reason refuses before any mutation",
               r.returncode == 1 and _invalid_writes() == [],
               f"rc={r.returncode} log={calls(tmpR0)}")
@@ -766,7 +721,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpR1:
         featR1, reasonR1 = _reject_fixture(tmpR1, "FEAT-REJECT-REPORT")
         r = run(["reject", featR1, "--superseded-by", "88", "--reason-file", reasonR1], tmpR1,
-                {"FACTORY_GH": os.path.join(tmpR1, "gh")})
+                _env(tmpR1))
         logR1 = calls(tmpR1)
         writesR1 = [line for line in logR1 if "state=closed" in line or "issue comment" in line
                     or "issue edit" in line or "item-edit" in line or "label create" in line]
@@ -792,8 +747,7 @@ def main():
         featR2, reasonR2 = _reject_fixture(tmpR2, "FEAT-REJECT-NUMERIC")
         install_gh(tmpR2, FAKE_GH_STATION_TRACE)
         r = run(["reject", featR2, "--superseded-by", "88", "--reason-file", reasonR2, "--yes"],
-                tmpR2, {"FACTORY_GH": os.path.join(tmpR2, "gh"),
-                        "FAKE_PLAN": os.path.join(featR2, "plan.yaml")})
+                tmpR2, {**_env(tmpR2), "FAKE_PLAN": os.path.join(featR2, "plan.yaml")})
         logR2 = calls(tmpR2)
         closeR2 = next((i for i, line in enumerate(logR2) if "issues/40" in line and "state=closed" in line), None)
         backlogR2 = next((i for i, line in enumerate(logR2) if "ITEM_40" in line and "OPT_BACKLOG" in line), None)
@@ -813,7 +767,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpR3:
         featR3, reasonR3 = _reject_fixture(tmpR3, "FEAT-REJECT-NONE")
         r = run(["reject", featR3, "--superseded-by", "none", "--reason-file", reasonR3, "--yes"],
-                tmpR3, {"FACTORY_GH": os.path.join(tmpR3, "gh")})
+                tmpR3, _env(tmpR3))
         logR3 = calls(tmpR3)
         check("reject none: closes only parent without label/link or station mutation",
               r.returncode == 0 and any("issues/40" in line and "state=closed" in line for line in logR3)
@@ -831,15 +785,12 @@ def main():
         featR4, reasonR4 = _reject_fixture(tmpR4, "FEAT-REJECT-LABEL-FAILS")
         install_gh(tmpR4, FAKE_GH_STATIONS_LABEL_FAILS)
         r = run(["reject", featR4, "--superseded-by", "88", "--reason-file", reasonR4, "--yes"],
-                tmpR4, {"FACTORY_GH": os.path.join(tmpR4, "gh")})
+                tmpR4, _env(tmpR4))
         logR4 = calls(tmpR4)
         check("reject numeric, label fails: exits 1 naming the failed step",
               r.returncode == 1 and "not labelled `superseded`" in r.stderr, f"rc={r.returncode} {r.stderr}")
         check("reject numeric, label fails: reports the close and comment that landed and the steps not run",
-              "landed before the failure: close parent #40" in r.stderr
-              and "landed before the failure: post comment on parent #40" in r.stderr
-              and "NOT run: return parent #40 to backlog" in r.stderr
-              and "NOT run: close milestone #7" in r.stderr, r.stderr)
+              all(line in r.stderr for line in _REJECT_HALT_LINES[:4]), r.stderr)
         check("reject numeric, label fails: nothing after the label ran and the station is NOT rejected",
               not any("milestones/7" in line for line in logR4)
               and not any("ITEM_40" in line and "OPT_BACKLOG" in line for line in logR4)
@@ -860,9 +811,8 @@ def main():
         open(brief_path, "a").write("\n## Drafted\nA drafted paragraph the reject must keep.\n")
         brief_before = open(brief_path).read()
         plan_before = open(plan_path).read()
-        reasonR5 = os.path.join(tmpR5, "reject-reason.txt")
-        open(reasonR5, "w").write("already fixed by #1700")
-        envR5 = {"FACTORY_GH": os.path.join(tmpR5, "gh"), "FAKE_PLAN": plan_path}
+        reasonR5 = _reason(tmpR5, "already fixed by #1700", "reject-reason.txt")
+        envR5 = {**_env(tmpR5), "FAKE_PLAN": plan_path}
         r = run(["reject", featR5, "--superseded-by", "1700", "--reason-file", reasonR5], tmpR5, envR5)
         check("reject first-sync report: names the source ticket, no parent, and the station",
               r.returncode == 0 and "source ticket #1714" in r.stdout and "parent #" not in r.stdout
@@ -903,7 +853,7 @@ def main():
         featR7, reasonR7 = _reject_fixture(tmpR7, "FEAT-REJECT-NONE-COMMENT-FAILS")
         install_gh(tmpR7, FAKE_GH_STATIONS_COMMENT_FAILS)
         r = run(["reject", featR7, "--superseded-by", "none", "--reason-file", reasonR7, "--yes"],
-                tmpR7, {"FACTORY_GH": os.path.join(tmpR7, "gh")})
+                tmpR7, _env(tmpR7))
         logR7 = calls(tmpR7)
         check("reject none, comment fails: exits 1 naming the failed step and the close that landed",
               r.returncode == 1 and "reason not posted on #40" in r.stderr
@@ -920,10 +870,9 @@ def main():
         install_gh(tmpR6, FAKE_GH_STATIONS)
         featR6 = stage_station(tmpR6, "FEAT-REJECT-NOTHING", [], parent=None, milestone=None,
                                plan_station="plan")
-        reasonR6 = os.path.join(tmpR6, "reject-reason.txt")
-        open(reasonR6, "w").write("nothing to dispose")
+        reasonR6 = _reason(tmpR6, "nothing to dispose", "reject-reason.txt")
         r = run(["reject", featR6, "--superseded-by", "88", "--reason-file", reasonR6, "--yes"],
-                tmpR6, {"FACTORY_GH": os.path.join(tmpR6, "gh")})
+                tmpR6, _env(tmpR6))
         check("reject with neither parent nor source_issues: refused (exit 1) and no station write",
               r.returncode == 1 and "source_issues" in r.stdout + r.stderr
               and read_plan_station(featR6) != "rejected", f"rc={r.returncode} {r.stdout}{r.stderr}")
@@ -950,12 +899,8 @@ def main():
                         "attached": ["T-01"] if opened else [],
                         "issues": {"T-01": 41} if opened else {},
                         "source_issues": list(mirror)})
-        reason = os.path.join(tmp, "reason.txt")
-        open(reason, "w").write(SRC_REASON)
+        reason = _reason(tmp, SRC_REASON)
         return feat, reason
-
-    def _env(tmp):
-        return {"FACTORY_GH": os.path.join(tmp, "gh")}
 
     def _snapshot(feat):
         snap = {}
@@ -977,6 +922,10 @@ def main():
                     for l in log)
         comment = [l for l in log if l.startswith("issue comment %d " % n)]
         return {"close": close, "backlog": backlog, "label": label, "comment": comment}
+
+    def _disposed(log, n):
+        """All four per-source writes landed on #n."""
+        return all(v not in (None, False, []) for v in _src_ops(log, n).values())
 
     def _src_touched(log, n):
         ops = _src_ops(log, n)
@@ -1063,7 +1012,7 @@ def main():
               str(logO))
         check("that same issue is closed exactly once, and source #52 is fully disposed",
               sum(1 for l in logO if re.search(r"\bissues/41 -f state=closed", l)) == 1
-              and all(v not in (None, False, []) for v in _src_ops(logO, 52).values()),
+              and _disposed(logO, 52),
               str(logO))
     with tempfile.TemporaryDirectory() as tmpO2:
         featO2, reasonO2 = _src_fixture(tmpO2, "FEAT-2161-no-plan-no-label", opened=False,
@@ -1079,21 +1028,12 @@ def main():
         featS3, reasonS3 = _src_fixture(tmpS3, "FEAT-2161-dry-vs-real")
         dryS3 = run(["abandon", featS3, "--reason-file", reasonS3, "--close-sources"], tmpS3,
                     _env(tmpS3))
-        dry_numbers = [int(m.group(1)) for m in
-                       (re.search(r"#(\d+)", l) for l in dryS3.stdout.splitlines()
-                        if l.startswith("gh-sync: would "))
-                       if m]
+        dry_numbers = _would_numbers(dryS3.stdout)
     with tempfile.TemporaryDirectory() as tmpS4:
         featS4, reasonS4 = _src_fixture(tmpS4, "FEAT-2161-dry-vs-real")
         r = run(["abandon", featS4, "--reason-file", reasonS4, "--close-sources", "--yes"], tmpS4,
                 _env(tmpS4))
-        real_numbers = []
-        for l in calls(tmpS4):
-            m = (re.search(r"issues/(\d+) -f state=closed", l)
-                 or re.search(r"milestones/(\d+) -f state=closed", l)
-                 or re.search(r"^issue comment (\d+) ", l))
-            if m:
-                real_numbers.append(int(m.group(1)))
+        real_numbers = _written_numbers(calls(tmpS4))
         check("close-sources: the numbers actually written, in order, equal the numbers the dry "
               "run listed, sources included",
               51 in real_numbers and real_numbers == dry_numbers,
@@ -1112,8 +1052,7 @@ def main():
             check("abandon [%s]: exits 0" % comboK, r.returncode == 0, r.stdout + r.stderr)
             if sourcesK:
                 check("abandon [%s]: BOTH sources receive comment, close, backlog and label" % comboK,
-                      all(all(v not in (None, False, []) for v in _src_ops(logK, n).values())
-                          for n in (51, 52)), str(logK))
+                      all(_disposed(logK, n) for n in (51, 52)), str(logK))
             else:
                 check("abandon [%s]: ZERO source comments, closes, labels or board writes" % comboK,
                       not _src_touched(logK, 51) and not _src_touched(logK, 52), str(logK))
@@ -1151,10 +1090,9 @@ def main():
         check("unopened + close-sources: no SKIP, exits 0",
               r.returncode == 0 and "gh-sync: SKIP" not in r.stdout, r.stdout + r.stderr)
         for nU1 in (51, 52):
-            opsU1 = _src_ops(logU1, nU1)
             check("unopened + close-sources: plan-only source #%d is closed, reseated, labelled "
                   "and commented" % nU1,
-                  all(v not in (None, False, []) for v in opsU1.values()), str(logU1))
+                  _disposed(logU1, nU1), str(logU1))
         check("unopened + close-sources: the stale mirror's #99 is never touched",
               not _src_touched(logU1, 99), str(logU1))
         check("unopened + close-sources: records abandoned and prunes runs/",
@@ -1244,13 +1182,12 @@ def main():
         r = run(["abandon", featF1, "--reason-file", reasonF1, "--close-sources", "--yes"], tmpF1,
                 _env(tmpF1))
         logF1 = calls(tmpF1)
-        ops52 = _src_ops(logF1, 52)
         check("failed source close: exits 0, names #51 on stderr and in the FAILED summary",
               r.returncode == 0 and "could not close source #51" in r.stderr
               and "FAILED 1 of" in r.stdout and "#51 did not close" in r.stdout,
               r.stdout + r.stderr)
         check("failed source close: the LATER source #52 is still fully disposed",
-              all(v not in (None, False, []) for v in ops52.values()), str(logF1))
+              _disposed(logF1, 52), str(logF1))
         check("failed source close: #51 gets no backlog or label write (the close came first)",
               _src_ops(logF1, 51)["backlog"] is None and not _src_ops(logF1, 51)["label"],
               str(logF1))
@@ -1274,7 +1211,7 @@ def main():
               and _src_ops(logF2, 51)["backlog"] is not None, str(logF2))
         check("failed source comment and label: source #52 is fully disposed and the station "
               "is recorded",
-              all(v not in (None, False, []) for v in _src_ops(logF2, 52).values())
+              _disposed(logF2, 52)
               and read_plan_station(featF2) == "abandoned", str(logF2))
 
     # --- GC-01: a plan.yaml source that is ALSO the task issue or the parent gets ZERO writes
@@ -1316,7 +1253,7 @@ def main():
                   r.returncode == 0 and len(_src_ops(logGP, aliasG)["comment"]) == 1
                   and sum(1 for l in logGP if re.search(r"\bissues/%d -f state=closed" % aliasG, l)) == 1
                   and _src_ops(logGP, aliasG)["backlog"] is not None and _src_ops(logGP, aliasG)["label"]
-                  and all(v not in (None, False, []) for v in _src_ops(logGP, 52).values()),
+                  and _disposed(logGP, 52),
                   r.stdout + r.stderr + str(logGP))
 
     # --- F1: a refused station write must leave every working file in place and report the gap --
@@ -1336,7 +1273,7 @@ def main():
               and "gh-sync: FAILED" in r.stdout
               and not os.path.exists(os.path.join(featP, "plan.yaml")), r.stdout + r.stderr)
 
-    # --- DEC-260 D-05: abandon and reject clean the feature's local working files ---------------
+    # --- DEC-262 D-05: abandon and reject clean the feature's local working files ---------------
     def _wf_fixture(tmp, name, script=FAKE_GH_STATIONS):
         """A git-initialised owner carrying the harness marker, a feature with notes/, runs/ and
         observations/, a project note its project_notes lists and an unlisted one beside it."""
@@ -1366,7 +1303,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpW1:
         featW1, reasonW1, notesW1 = _wf_fixture(tmpW1, "FEAT-2641-abandon-clean")
         r = run(["abandon", featW1, "--reason-file", reasonW1, "--yes"], tmpW1, _env(tmpW1))
-        check("DEC-260: abandon --yes removes notes/, runs/, observations/ and the listed project "
+        check("DEC-262: abandon --yes removes notes/, runs/, observations/ and the listed project "
               "note, and leaves the unlisted note",
               r.returncode == 0 and read_plan_station(featW1) == "abandoned"
               and _cleaned(featW1, notesW1)
@@ -1376,7 +1313,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmpW2:
         featW2, reasonW2, notesW2 = _wf_fixture(tmpW2, "FEAT-2641-abandon-dry")
         r = run(["abandon", featW2, "--reason-file", reasonW2], tmpW2, _env(tmpW2))
-        check("DEC-260: the abandon dry run lists every working file it would remove and removes "
+        check("DEC-262: the abandon dry run lists every working file it would remove and removes "
               "nothing",
               r.returncode == 0 and _all_kept(featW2, notesW2)
               and all(f"gh-sync: would remove {p}" in r.stdout for p in _targets(featW2, notesW2))
@@ -1390,7 +1327,7 @@ def main():
         stationW3 = next((i for i, l in enumerate(linesW3)
                           if l == "gh-sync: would record feature station rejected"), None)
         removesW3 = [i for i, l in enumerate(linesW3) if l.startswith("gh-sync: would remove ")]
-        check("DEC-260: the reject numeric preview lists one remove line per working file, after "
+        check("DEC-262: the reject numeric preview lists one remove line per working file, after "
               "the station line, and removes nothing",
               r.returncode == 0 and stationW3 is not None and len(removesW3) == 4
               and all(i > stationW3 for i in removesW3)
@@ -1401,7 +1338,7 @@ def main():
         featW4, reasonW4, notesW4 = _wf_fixture(tmpW4, "FEAT-2641-reject-numeric")
         r = run(["reject", featW4, "--superseded-by", "88", "--reason-file", reasonW4, "--yes"],
                 tmpW4, _env(tmpW4))
-        check("DEC-260: reject numeric --yes records rejected and its station write removes the "
+        check("DEC-262: reject numeric --yes records rejected and its station write removes the "
               "working files, relayed by gh-sync",
               r.returncode == 0 and read_plan_station(featW4) == "rejected"
               and _cleaned(featW4, notesW4)
@@ -1416,7 +1353,7 @@ def main():
         os.remove(os.path.join(featW5, "plan.yaml"))
         r = run(["reject", featW5, "--superseded-by", "88", "--reason-file", reasonW5, "--yes"],
                 tmpW5, _env(tmpW5))
-        check("DEC-260: reject numeric with a refused station write exits 1 and removes nothing",
+        check("DEC-262: reject numeric with a refused station write exits 1 and removes nothing",
               r.returncode == 1 and _all_kept(featW5, notesW5)
               and not os.path.exists(os.path.join(featW5, "plan.yaml")), r.stdout + r.stderr)
 
@@ -1425,7 +1362,7 @@ def main():
                                                 script=FAKE_GH_STATIONS_LABEL_FAILS)
         r = run(["reject", featW6, "--superseded-by", "88", "--reason-file", reasonW6, "--yes"],
                 tmpW6, _env(tmpW6))
-        check("DEC-260: a failed reject step exits 1, writes no station and removes nothing",
+        check("DEC-262: a failed reject step exits 1, writes no station and removes nothing",
               r.returncode == 1 and read_plan_station(featW6) != "rejected"
               and _all_kept(featW6, notesW6), r.stdout + r.stderr)
 
@@ -1436,7 +1373,7 @@ def main():
             featW7, reasonW7, notesW7 = _wf_fixture(tmpW7, "FEAT-2641-reject-none")
             r = run(["reject", featW7, "--superseded-by", "none", "--reason-file", reasonW7] + yesW,
                     tmpW7, _env(tmpW7))
-            check(f"DEC-260: reject none {labelW} exits 0, removes nothing, leaves the station "
+            check(f"DEC-262: reject none {labelW} exits 0, removes nothing, leaves the station "
                   "unrejected and ends by saying set-feature-station removes them, with no remove "
                   "line and no clean command",
                   r.returncode == 0 and _all_kept(featW7, notesW7)
@@ -1449,7 +1386,7 @@ def main():
                     [sys.executable, os.path.join(BIN_DIR, "plan-merge.py"), "set-feature-station",
                      "--file", os.path.join(featW7, "plan.yaml"), "--station", "rejected"],
                     capture_output=True, text=True)
-                check("DEC-260: a following plan-merge.py set-feature-station --station rejected "
+                check("DEC-262: a following plan-merge.py set-feature-station --station rejected "
                       "removes them",
                       pm.returncode == 0 and read_plan_station(featW7) == "rejected"
                       and _cleaned(featW7, notesW7), pm.stdout + pm.stderr)

@@ -6,23 +6,32 @@ deep-layout shape cases, the clean-tracked sweep, BUG-895's wrong-checkout refus
 and B-2's cwd independence. The grant-parity block is a file of its own
 (test-check-domain-worktree-parity.py) because it alone is a ~6s serial run.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import json, os, shutil, subprocess, sys, tempfile, time
-from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
+import integration_support  # noqa: F401  (the sys.path seam: bin/ and tests/)
+import contextlib, json, os, shutil, subprocess, sys, tempfile, time  # noqa: E402
+from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,  # noqa: E402
     _legal_feature_json, drive, fire, fire_post, fixture, make_linked_worktree)
-from isolated_bin import isolated_bin
+from check_support import Checks  # noqa: E402
+from git_support import checked_git, commit_all, git, init_repo  # noqa: E402
+from isolated_bin import isolated_bin  # noqa: E402
 
 
-WT = []
+def _d(r, n=200):
+    """The failure detail every hook-verdict check prints: exit code and stderr head."""
+    return f"exit {r.returncode}: {r.stderr.strip()[:n]}"
 
 
-def wt(name, ok, detail=""):
-    WT.append((name, ok, detail))
+def _summary(C, label):
+    """Print the block's tally and return its FAIL count, the total drive() aggregates."""
+    print(f"\n{C.ran - len(C.failed)}/{C.ran} {label} cases passed.\n")
+    return len(C.failed)
+
+
+def _report(results, tag, label):
+    """Check each (name, ok, detail) under `[tag] name`; returns the FAIL count."""
+    C = Checks()
+    for name, ok, detail in results:
+        C.check(f"[{tag}] {name}", ok, detail)
+    return _summary(C, label)
 
 
 def run_worktree():
@@ -43,7 +52,8 @@ def run_worktree():
     — it exits 2 for the same reason `<root>/src/main.py` does. A shorter path would make
     the paired ALLOW cases fail against correct code.
     """
-    fails = 0
+    C = Checks()
+    wt = C.check
     tmp = tempfile.mkdtemp()
 
     # THE MAIN CHECKOUT. `.git` is a DIRECTORY, which is what makes it the owner.
@@ -70,36 +80,29 @@ def run_worktree():
     _linked(sib, "sib")
     _linked(legit, "wt")
 
-    def _fire(session_root, abs_target):
-        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-                   "tool_input": {"file_path": abs_target, "content": "x"}}
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True,
-                              env=_env(session_root))
-
     # --- TARGET-SIDE: a write INTO the sibling, from a session rooted in the checkout.
     # The sibling is outside root, so select_base returns None and no grant can reach
     # it — this case discriminates whatever the manifest says.
-    r = _fire(root, os.path.join(sib, "allowed", "x.txt"))
+    r = fire(root, os.path.join(sib, "allowed", "x.txt"))
     wt("a write INTO an out-of-place worktree is REFUSED, and the verdict names where "
        "worktrees belong",
        r.returncode == 2 and ".claude/worktrees" in r.stderr,
-       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       _d(r))
 
     # The PAIRED ALLOW, same fixture and same session. Without it the case above is
     # satisfied by a guard that refuses everything.
-    r = _fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
+    r = fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
     wt("the same session's in-domain write still PASSES",
-       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 0, _d(r))
 
     # --- ROOT-SIDE: the session is STANDING IN the out-of-place tree. The target is
     # deliberately control-plane and in-domain FOR THAT ROOT, so it exits 0 if the
     # root-side rule is absent and 2 only because of it. A target of sib/allowed/x.txt
     # would exit 2 from the ordinary glob rule with the root-side rule deleted, and
     # would prove nothing.
-    r = _fire(sib, os.path.join(sib, ".harness", "allowed", "x.txt"))
+    r = fire(sib, os.path.join(sib, ".harness", "allowed", "x.txt"))
     wt("a session ROOTED in an out-of-place worktree is REFUSED its own in-domain write",
-       r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 2, _d(r))
 
     # BOTH HALVES OF THE WORDING, on the SAME captured stderr. Presence alone passes
     # unchanged if the destructive sentence is re-added beside the location line, which
@@ -115,9 +118,9 @@ def run_worktree():
        f"stderr: {r.stderr.strip()[:300]}")
 
     # The PAIRED ALLOW for the root-side rule: same shape, legitimate location.
-    r = _fire(legit, os.path.join(legit, ".harness", "allowed", "x.txt"))
+    r = fire(legit, os.path.join(legit, ".harness", "allowed", "x.txt"))
     wt("a session rooted in a LEGITIMATE worktree is unaffected",
-       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 0, _d(r))
 
     # SC-07, AND IT WAS OWED — the goal-check found every fixture using `legit` as the
     # SESSION ROOT, where no stripping happens, so DEC-143's worktree-prefix rule was
@@ -127,16 +130,16 @@ def run_worktree():
     # .claude/worktrees/wt/.harness/allowed/x.txt, which NO glob in the fixture matches.
     # It is granted only because the prefix is stripped to .harness/allowed/x.txt first.
     # Delete the stripping and this case exits 2.
-    r = _fire(root, os.path.join(legit, ".harness", "allowed", "x.txt"))
+    r = fire(root, os.path.join(legit, ".harness", "allowed", "x.txt"))
     wt("SC-07: the legitimate worktree is writable FROM OUTSIDE it, through DEC-143's "
        "prefix stripping",
-       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 0, _d(r))
 
     # Ordinary scratch, outside any worktree — the change must not have widened.
     scratch = tempfile.mkdtemp()
-    r = _fire(root, os.path.join(scratch, "x.txt"))
+    r = fire(root, os.path.join(scratch, "x.txt"))
     wt("a scratch path outside any worktree still PASSES",
-       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 0, _d(r))
 
     # --- F-A, THE PANEL'S `high`: A POINTER THAT DOES NOT PARSE MUST REFUSE, NOT ALLOW.
     # Reproduced end to end before the fix: appending ONE 0xff byte to an otherwise valid
@@ -153,17 +156,17 @@ def run_worktree():
     ):
         with open(_ptr, "wb") as _f:
             _f.write(_payload)
-        r = _fire(root, os.path.join(sib, "allowed", "x.txt"))
+        r = fire(root, os.path.join(sib, "allowed", "x.txt"))
         wt(f"F-A: a .git pointer that is {_label} REFUSES the write (it must not read as "
            "not-a-worktree)",
-           r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+           r.returncode == 2, _d(r))
     # THE PAIRED ALLOW, restoring the valid pointer — without it every case above is
     # satisfied by a guard that refuses everything in this fixture.
     with open(_ptr, "wb") as _f:
         _f.write(_good)
-    r = _fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
+    r = fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
     wt("F-A: with the pointer restored, the in-domain write still PASSES",
-       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       r.returncode == 0, _d(r))
 
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06). An isolated copy carrying
     # check-domain.py and harness_yaml.py but NOT harness_boundary.py.
@@ -178,26 +181,21 @@ def run_worktree():
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": os.path.join(iso, ".harness", "allowed", "x.txt"),
-                              "content": "x"}}
-    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
-                       capture_output=True, text=True,
-                       env=_env(iso))
+    iso_target = os.path.join(iso, ".harness", "allowed", "x.txt")
+    iso_hook = os.path.join(isobin, "check-domain.py")
+    r = fire(iso, iso_target, hook=iso_hook)
     wt("a MISSING harness_boundary.py blocks the write and NAMES the module",
        r.returncode == 2 and "harness_boundary" in r.stderr,
-       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       _d(r))
 
     # The other half: without it the case above is satisfied by a guard that blocks
     # everything. The manifest is removed, so DEC-101's deliberate fail-open must still
     # fire — the module being absent must not convert it into a refusal.
     os.remove(os.path.join(iso, ".harness", "team-config.yaml"))
-    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
-                       capture_output=True, text=True,
-                       env=_env(iso))
+    r = fire(iso, iso_target, hook=iso_hook)
     wt("with the module absent AND no manifest, DEC-101 still fails OPEN, loudly",
        r.returncode == 0 and "enforcement OFF" in r.stderr,
-       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+       _d(r))
 
     # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Python puts the invoking
     # directory at sys.path[0] AHEAD of PYTHONPATH, so before the safe-path bootstrap a
@@ -219,7 +217,7 @@ def run_worktree():
     _clean = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
                             text=True, env=_env(ROOT), cwd=tempfile.gettempdir())
     wt("#556 control: from a clean cwd the out-of-domain write is REFUSED",
-       _clean.returncode == 2, f"exit {_clean.returncode}: {_clean.stderr.strip()[:200]}")
+       _clean.returncode == 2, _d(_clean))
     _hijack = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
                              text=True, env=_env(ROOT), cwd=_hostile)
     wt("#556: a harness_boundary.py in the CWD does not become the gate's resolver",
@@ -228,22 +226,7 @@ def run_worktree():
        f"clean={_clean.returncode} hijacked={_hijack.returncode}: "
        f"{_hijack.stderr.strip()[:200]}")
 
-    fails = 0
-    for name, ok, detail in WT:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(WT) - fails}/{len(WT)} worktree-boundary cases passed.\n")
-    return fails
-
-
-WDS = []
-
-
-def wds(name, ok, detail=""):
-    WDS.append((name, ok, detail))
+    return _summary(C, "worktree-boundary")
 
 
 def run_worktree_deep_shape():
@@ -269,7 +252,8 @@ def run_worktree_deep_shape():
         """The one spelling of where worktrees belong, from the module, never re-typed."""
         return _hbd.worktree_refusal_location(_hbd.real(owner_root))
 
-    fails = 0
+    C = Checks()
+    wds = C.check
     manifest_src = os.path.join(ROOT, ".harness", "team-config.yaml")
     with open(manifest_src, encoding="utf-8") as f:
         manifest_text = f.read()
@@ -279,14 +263,11 @@ def run_worktree_deep_shape():
 
     def shape_refusal(root, abs_target):
         os.makedirs(os.path.dirname(abs_target), exist_ok=True)
-        payload = {"agent_type": "harness-orchestrator", "tool_name": "Write",
-                   "tool_input": {"file_path": abs_target, "content": over}}
-        return fire_post(root, payload, flag=None)
+        return fire(root, abs_target, content=over, agent="harness-orchestrator")
 
     # --- THE PAIR THAT DISCRIMINATES: one-level must KEEP refusing on shape (it did at
     # eeabc59), two-level must START refusing on shape (it did not).
     d = fixture(manifest_text)
-    os.makedirs(os.path.join(d, ".git"))
     one = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "wt1"), "wt1")
     two = make_linked_worktree(
         d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
@@ -295,13 +276,13 @@ def run_worktree_deep_shape():
     wds("baseline: the main checkout refuses an over-budget STATE.md with the SHAPE "
         "reason naming DEC-150",
         r_root.returncode == 2 and "DEC-150" in r_root.stderr,
-        f"exit {r_root.returncode}: {r_root.stderr.strip()[:200]}")
+        _d(r_root))
 
     r_one = shape_refusal(d, os.path.join(one, state_rel))
     wds("SC-09: at ONE level the shape refusal still names DEC-150 (it did at eeabc59 "
         "and must not regress)",
         r_one.returncode == 2 and "DEC-150" in r_one.stderr,
-        f"exit {r_one.returncode}: {r_one.stderr.strip()[:200]}")
+        _d(r_one))
 
     r_two = shape_refusal(d, os.path.join(two, state_rel))
     wds("at TWO levels the write route refuses on SHAPE, naming DEC-150 — asserted on "
@@ -315,7 +296,6 @@ def run_worktree_deep_shape():
     # must be asserted, not left silent. A single-direction assertion here also passes
     # against a sweep that reaches nothing at all, which is why both halves are here.
     d2 = fixture(manifest_text)
-    os.makedirs(os.path.join(d2, ".git"))
     swept = make_linked_worktree(
         d2, os.path.join(d2, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
     bare = os.path.join(d2, ".claude", "worktrees", "harness", "FEAT-BARE")
@@ -355,24 +335,21 @@ def run_worktree_deep_shape():
     # allow-all escape produces; the refuse half alone is what a fail-closed guard
     # produces. Only the pair distinguishes them.
     d3 = fixture(manifest_text)
-    os.makedirs(os.path.join(d3, ".git"))
     inside = make_linked_worktree(
         d3, os.path.join(d3, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
     granted = os.path.join(inside, ".harness", "harness", "features", "FEAT-W", "BRIEF.md")
     os.makedirs(os.path.dirname(granted), exist_ok=True)
-    r_ok = fire_post(d3, {"agent_type": "harness-pm", "tool_name": "Write",
-                          "tool_input": {"file_path": granted, "content": "x"}}, flag=None)
+    r_ok = fire(d3, granted, agent="harness-pm")
     wds("SC-02b accept: a governed write inside <segment>/<repo>/<id> exits 0",
         r_ok.returncode == 0,
-        f"exit {r_ok.returncode}: {r_ok.stderr.strip()[:200]}")
+        _d(r_ok))
 
     # The sibling is a REAL linked worktree of the same root, in the wrong place.
     sib = os.path.join(os.path.dirname(d3), os.path.basename(d3) + "-sib")
     make_linked_worktree(d3, sib, "sib")
     sib_target = os.path.join(sib, ".harness", "harness", "features", "FEAT-W", "BRIEF.md")
     os.makedirs(os.path.dirname(sib_target), exist_ok=True)
-    r_sib = fire_post(d3, {"agent_type": "harness-pm", "tool_name": "Write",
-                           "tool_input": {"file_path": sib_target, "content": "x"}}, flag=None)
+    r_sib = fire(d3, sib_target, agent="harness-pm")
     _expected = _hb_where(d3)
     wds("SC-02b refuse: a linked worktree OUTSIDE the layout is refused, and the message "
         "NAMES where worktrees belong",
@@ -380,14 +357,7 @@ def run_worktree_deep_shape():
         f"exit {r_sib.returncode}, want the text {_expected!r} in: "
         f"{r_sib.stderr.strip()[:240]}")
 
-    for name, ok, detail in WDS:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(WDS) - fails}/{len(WDS)} deep-layout shape cases passed.\n")
-    return fails
+    return _summary(C, "deep-layout shape")
 
 
 def run_sweep_clean_tracked():
@@ -412,19 +382,7 @@ def run_sweep_clean_tracked():
     fails = 0
     d = tempfile.mkdtemp()
     try:
-        root = os.path.join(d, "owner")
-        os.makedirs(root)
-
-        def git(cwd, args):
-            r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
-            if r.returncode != 0:
-                raise RuntimeError("git %s: %s" % (" ".join(args), r.stderr))
-            return r
-
-        git(root, ["init", "-q"])
-        git(root, ["symbolic-ref", "HEAD", "refs/heads/main"])
-        git(root, ["config", "user.email", "t@example.com"])
-        git(root, ["config", "user.name", "T"])
+        root = init_repo(os.path.join(d, "owner"), "main", git=checked_git)
         os.makedirs(os.path.join(root, ".harness"))
         with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
             f.write(FIXTURE_MANIFEST)
@@ -437,11 +395,10 @@ def run_sweep_clean_tracked():
         with open(os.path.join(root, rel_state), "w") as f:
             f.write("# FEAT-OLD — STATE\n\n## Current\nshipped\n\n"
                     "## Illegal Section\nhistory that DEC-150 forbids\n")
-        git(root, ["add", "-A"])
-        git(root, ["commit", "-q", "-m", "the malformed file, committed"])
+        commit_all(root, "the malformed file, committed", git=checked_git)
 
         wt = os.path.join(root, ".claude", "worktrees", "harness", "FEAT-NEW")
-        git(root, ["worktree", "add", "-q", "-b", "feat/FEAT-NEW", wt])
+        git(root, "worktree", "add", "-q", "-b", "feat/FEAT-NEW", wt)
 
         # Every file in `wt` now carries a fresh mtime. Assert that, rather than trusting
         # it: if git ever stopped rewriting mtimes, this whole case would pass vacuously
@@ -476,10 +433,8 @@ def run_sweep_clean_tracked():
             # The sweep advances a high-water mark on every run, so a second sweep in the
             # same second sees nothing. Each case below removes the stamp first, or the
             # ordering of the cases would decide their results.
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(os.path.join(root, ".harness", ".shape-sweep-stamp"))
-            except OSError:
-                pass
 
         # CASE A — the committed file, materialised by `git worktree add`, is NOT reported.
         clear_stamp()
@@ -560,7 +515,7 @@ def run_sweep_clean_tracked():
                         os.path.join(d, "artifact_accessors.py"))
             # Restore case A's exact state: the committed file clean again, nothing else
             # of FEAT-OLD's on disk changed.
-            git(wt, ["checkout", "--", rel_state])
+            git(wt, "checkout", "--", rel_state)
             clear_stamp()
             base = len(inv_lines(sweep()))
             clear_stamp()
@@ -579,13 +534,16 @@ def run_sweep_clean_tracked():
     return fails
 
 
-def _bug895_fixture():
-    root = fixture("""schema_version: 1
+_BUG895_MANIFEST = """schema_version: 1
 teams:
   - name: harness-documentor
     domain:
       - { path: .harness/allowed/**, upsert: true }
-""")
+"""
+
+
+def _bug895_fixture():
+    root = fixture(_BUG895_MANIFEST)
     os.makedirs(os.path.join(root, ".harness", "allowed"), exist_ok=True)
     wt = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "OTHER"), "OTHER")
@@ -598,21 +556,15 @@ teams:
     # target (first segment `.harness`/`.claude`/`.agents`/`.omp`) can be granted at
     # all on a bare harness base with no product workspace configured.
     with open(os.path.join(wt, ".harness", "team-config.yaml"), "w") as f:
-        f.write("""schema_version: 1
-teams:
-  - name: harness-documentor
-    domain:
-      - { path: .harness/allowed/**, upsert: true }
-""")
+        f.write(_BUG895_MANIFEST)
     return root, wt
 
 
-def _bug895_wrong_checkout_case(root, wt):
+def _bug895_wrong_checkout_case(wt, r):
     """Issue #895: a session rooted in a worktree, writing into its own main
     checkout's copy of an identically-shaped allowed path, is refused by identity —
     not waved through as 'not our problem', which is how FEAT-40's ship write-back
     (commit 3952814) landed in main from a worktree session."""
-    r = fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"), agent="harness-documentor")
     ok = (r.returncode == 2 and "BLOCKED" in r.stderr and "is rooted in" in r.stderr
           and wt in r.stderr)
     return ("wrong-checkout: worktree session writing into main is refused",
@@ -652,8 +604,6 @@ def _bug895_mutant_hook():
     if start < 0 or end < 0 or end <= start:
         return None
     mutated = source[:start] + source[end:]
-    if mutated == source:
-        return None
     mbin = tempfile.mkdtemp(prefix="bug895-boundary-mutant-")
     shutil.copytree(HERE, mbin, dirs_exist_ok=True)
     with open(os.path.join(mbin, "harness_boundary.py"), "w", encoding="utf-8") as f:
@@ -667,11 +617,7 @@ def _bug895_red_case(root, wt, real_result):
         return ("wrong-checkout-red", False,
                 "INCONCLUSIVE: the wrong-checkout block anchors were not found by "
                 "their source text")
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": os.path.join(root, ".harness", "allowed", "x.txt"),
-                              "content": "x"}}
-    muted = subprocess.run([mutant_hook], input=json.dumps(payload),
-                           capture_output=True, text=True, env=_env(wt))
+    muted = fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"), hook=mutant_hook)
     ok = (real_result.returncode == 2 and muted.returncode == 0
           and "Traceback" not in muted.stderr)
     return ("wrong-checkout-red", ok,
@@ -682,23 +628,15 @@ def run_bug895_wrong_checkout_cases():
     """Issue #895: path-shape authorization now sees WHICH checkout a write lands
     in, not just whether the relative path shape matches a grant."""
     root, wt = _bug895_fixture()
-    wrong = _bug895_wrong_checkout_case(root, wt)
-    results = [
-        wrong,
+    # ONE real write into main, from the worktree session, feeds both the refusal case and
+    # the red proof's real half: same fixture, same payload, nothing written in between.
+    real = fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"), agent="harness-documentor")
+    return _report([
+        _bug895_wrong_checkout_case(wt, real),
         _bug895_own_checkout_case(wt),
         _bug895_scratch_case(wt),
-        _bug895_red_case(root, wt, fire(
-            wt, os.path.join(root, ".harness", "allowed", "x.txt"), agent="harness-documentor")),
-    ]
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [bug895] {name}")
-        else:
-            fails += 1
-            print(f"FAIL  [bug895] {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} bug895 wrong-checkout cases passed.")
-    return fails
+        _bug895_red_case(root, wt, real),
+    ], "bug895", "bug895 wrong-checkout")
 
 
 # ---------------------------------------------------------------------------
@@ -752,7 +690,7 @@ def _feat61_wrong_checkout():
 
 
 def _feat61_correct_checkout():
-    root, (expected,) = _feat61_root(FEAT61_FEATURE)
+    root, _ = _feat61_root(FEAT61_FEATURE)
     rel = os.path.join(".claude", "worktrees", FEAT61_FEATURE, FEAT61_REL)
     os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
     return _feat61_case("matching path inside its own worktree is allowed",
@@ -801,23 +739,14 @@ def _feat61_injected_core_failure():
 
 def run_feat61_feature_checkout_adapter():
     """FEAT-61 T-03: the tool route's feature-checkout binding through the shared core."""
-    results = [
+    return _report([
         _feat61_wrong_checkout(),
         _feat61_correct_checkout(),
         _feat61_absent_worktree(),
         _feat61_non_matching_path(),
         _feat61_ambiguous_worktree(),
         _feat61_injected_core_failure(),
-    ]
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [feat61] {name}")
-        else:
-            fails += 1
-            print(f"FAIL  [feat61] {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} FEAT-61 T-03 adapter cases passed.")
-    return fails
+    ], "feat61", "FEAT-61 T-03 adapter")
 
 
 # ---------------------------------------------------------------------------
@@ -885,15 +814,7 @@ def run_b2_cwd_independence():
         _b2_case(results, "granted agent writing harness docs",
                  {"tool_name": "Write", "agent_type": "harness-documentor",
                   "tool_input": {"content": "x"}}, 0, root, spec_rel)
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [b2] {name}")
-        else:
-            fails += 1
-            print(f"FAIL  [b2] {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} b2 cwd-independence cases passed.")
-    return fails
+    return _report(results, "b2", "b2 cwd-independence")
 
 
 def main():

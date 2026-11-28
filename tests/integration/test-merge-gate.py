@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Contract coverage for the Build-entry merge gate."""
+from integration_support import ROOT, BIN  # first: puts bin/ and tests/ on sys.path
 import json
 import os
 import shutil
@@ -7,19 +8,43 @@ import subprocess
 import sys
 import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from harness_config_support import build_config  # noqa: E402
+from check_support import Checks
+from git_support import checked_git, git, git_out, init_repo
+from harness_config_support import build_config, write_config
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+ROOT, BIN = str(ROOT), str(BIN)
 GATE = os.path.join(BIN, "merge-gate.py")
-fails = 0
+C = Checks()
+check = C.check
+PLAN = ("status: {status}\ntasks:\n  - id: T-01\n    title: Fixture task\n    change_type: test\n"
+        "    execution_mode: main-session-direct\n    files: [fixture.py]\n    status: ready\n"
+        "    verify: python3 test.py\n    intent: Exercise the merge gate fixture.\n")
 
 
-def check(name, condition, detail=""):
-    global fails
-    print(f"{'ok   ' if condition else 'FAIL '} {name}" + (f"\n      {detail}" if not condition else ""))
-    fails += not condition
+def write(path, content):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as stream:
+        stream.write(content if isinstance(content, str) else json.dumps(content))
+
+
+def fake_gh(path, body):
+    write(path, body)
+    os.chmod(path, 0o755)
+    return path
+
+
+def update_record(directory, **fields):
+    record = os.path.join(directory, "feature.json")
+    with open(record) as source:
+        document = json.load(source)
+    document.update(fields)
+    write(record, document)
+    return document
+
+
+def add_malformed_record(root):
+    write(os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed",
+                       "feature.json"), [])
 
 
 def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets", sync=True):
@@ -38,24 +63,10 @@ def fixture(feature="FEAT-9001-fixture-non-era", entry=None, repo="acme/widgets"
         document["github"]["build_entry"] = entry
         if repo:
             document["github"]["repo"] = repo
-    with open(os.path.join(directory, "feature.json"), "w") as f:
-        json.dump(document, f)
-    with open(os.path.join(directory, "plan.yaml"), "w") as f:
-        f.write(
-            "status: plan\n"
-            "tasks:\n"
-            "  - id: T-01\n"
-            "    title: Fixture task\n"
-            "    change_type: test\n"
-            "    execution_mode: main-session-direct\n"
-            "    files: [fixture.py]\n"
-            "    status: ready\n"
-            "    verify: python3 test.py\n"
-            "    intent: Exercise the merge gate fixture.\n")
-    subprocess.run(["git", "init", "-q", "-b", "feature/test"], cwd=root, check=True)
-    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
-    subprocess.run(["git", "commit", "--allow-empty", "-qm", "fixture"], cwd=root, check=True)
+    write(os.path.join(directory, "feature.json"), document)
+    write(os.path.join(directory, "plan.yaml"), PLAN.format(status="plan"))
+    init_repo(root, "feature/test", git=checked_git)
+    git(root, "commit", "--allow-empty", "-qm", "fixture")
     return root, directory
 
 
@@ -74,9 +85,7 @@ def gate(command, root, gh=None, env_extra=None):
 
 
 def denial(command, **kwargs):
-    root, directory = fixture(**kwargs)
-    result, decision, reason = gate(command, root)
-    return result, decision, reason, directory
+    return gate(command, fixture(**kwargs)[0])
 
 
 # FEAT-2337 (DEC-100): merge-gate.py is a narrow gate. This is the applicability its `merge_ref`
@@ -132,16 +141,10 @@ APPLICABILITY_CORPUS = [
 
 for provenance in (None, "elsewhere/wrong"):
     root, directory = fixture(entry="opened")
-    record = os.path.join(directory, "feature.json")
-    with open(record) as source:
-        document = json.load(source)
-    document["github"].update(parent=12)
-    if provenance is None:
-        document["github"].pop("repo")
-    else:
-        document["github"]["repo"] = provenance
-    with open(record, "w") as target:
-        json.dump(document, target)
+    github = {"build_entry": "opened", "parent": 12}
+    if provenance is not None:
+        github["repo"] = provenance
+    update_record(directory, github=github)
     r, d, reason = gate("git merge feature/test", root)
     if provenance is None:
         check("an unbound legacy mapping is proven by the owner binding that created it",
@@ -151,23 +154,18 @@ for provenance in (None, "elsewhere/wrong"):
               d == "deny" and "edit the github block of" in reason and "elsewhere/wrong" in reason, reason)
 
 root, directory = fixture(entry="opened", sync=False)
-record = os.path.join(directory, "feature.json")
-with open(record) as source:
-    document = json.load(source)
-document["factory"] = {"repo": "unknown/product", "issues": {"T-01": 51}}
-with open(record, "w") as target:
-    json.dump(document, target)
+update_record(directory, factory={"repo": "unknown/product", "issues": {"T-01": 51}})
 r, d, reason = gate("git merge feature/test", root)
 check("owner sync-off and factory claims cannot bypass an invalid authoritative binding",
       d == "deny", f"decision={d} reason={reason} stderr={r.stderr}")
 
-r, d, reason, _ = denial("git merge feature/test", entry="recovery-required")
+r, d, reason = denial("git merge feature/test", entry="recovery-required")
 check("T-05 recovery-required denies", r.returncode == 0 and d == "deny"
       and "needs its GitHub mirror recovery completed" in reason, reason)
-r, d, reason, _ = denial("git merge feature/test")
+r, d, reason = denial("git merge feature/test")
 check("T-05 non-era absent build_entry denies naming feature and re-run command",
       d == "deny" and "FEAT-9001-fixture-non-era" in reason and "gh-sync.py open" in reason, reason)
-r, d, reason, _ = denial("git merge feature/test", repo=None)
+r, d, reason = denial("git merge feature/test", repo=None)
 check("T-05 unpinned repo with sync on is an invalid config: the merge is denied with the loader's "
       "diagnosis and the repair command",
       d == "deny" and "github.repo" in reason and "upgrade-config.py" in reason, reason)
@@ -179,7 +177,7 @@ root, _ = fixture(sync=False)
 r, d, _ = gate("git merge feature/test", root)
 check("T-05 sync false allows", r.returncode == 0 and d is None)
 root, _ = fixture()
-subprocess.run(["git", "branch", "other"], cwd=root, check=True)
+git(root, "branch", "other")
 r, d, _ = gate("git merge other", root)
 check("T-05 branch matching no feature allows", r.returncode == 0 and d is None)
 r, d, reason = gate("git merge no-such-ref", root)
@@ -188,16 +186,13 @@ check("FEAT-2225 unreadable git merge ref denies rather than guessing non-distil
 r, d, _ = gate("git status", root)
 check("T-05 non-merge command allows", r.returncode == 0 and d is None)
 root, _ = fixture()
-fake_ok = os.path.join(root, "gh-ok")
-with open(fake_ok, "w") as f: f.write("#!/bin/sh\necho feature/test\n")
-os.chmod(fake_ok, 0o755)
+fake_ok = fake_gh(os.path.join(root, "gh-ok"), "#!/bin/sh\necho feature/test\n")
 r, d, _ = gate("/opt/homebrew/bin/gh pr merge 7", root, fake_ok)
 check("T-05 path-prefixed gh is still detected", d == "deny")
-r, d, _, _ = denial("bash -c 'git merge feature/test'")
+r, d, _ = denial("bash -c 'git merge feature/test'")
 check("T-05 bash -c wrapped merge is still detected", d == "deny")
 # FEAT-71: the receipt rule is uniform. An absent or recovery-required build_entry denies for
 # EVERY feature id: synthetic ones plus feature_id_probe_support.held_feature_ids(record_schema).
-sys.path.insert(0, BIN)
 from feature_record import schema as record_schema  # noqa: E402
 from feature_id_probe_support import held_feature_ids  # noqa: E402
 allowed = []
@@ -216,68 +211,42 @@ check("T-05 unresolvable gh falls back and denies a locally owed receipt",
       r.returncode == 0 and d == "deny" and "FEAT-9001-fixture-non-era" in reason
       and "gh-sync.py open" in reason,
       f"rc={r.returncode} stderr={r.stderr!r} reason={reason!r}")
-root, _ = fixture()
-fake = os.path.join(root, "gh-fail")
-with open(fake, "w") as f: f.write("#!/bin/sh\necho unavailable >&2\nexit 9\n")
-os.chmod(fake, 0o755)
-with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixture-non-era", "feature.json")) as f:
-    doc = json.load(f)
-doc["branch"] = "other"
-with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixture-non-era", "feature.json"), "w") as f:
-    json.dump(doc, f)
-bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
-os.makedirs(bad_directory)
-with open(os.path.join(bad_directory, "feature.json"), "w") as f:
-    json.dump([], f)
+root, directory = fixture()
+fake = fake_gh(os.path.join(root, "gh-fail"), "#!/bin/sh\necho unavailable >&2\nexit 9\n")
+update_record(directory, branch="other")
+add_malformed_record(root)
 r, d, reason = gate("gh pr merge 7", root, fake)
 check("FEAT-2225 gh outage with no matching feature denies: changed paths unreadable",
       d == "deny" and "could not be read" in reason, f"decision={d} reason={reason!r}")
-view_only_fails = os.path.join(root, "gh-view-fails")
-with open(view_only_fails, "w") as f:
-    f.write('#!/bin/sh\nif [ "$2" = diff ]; then echo src/ordinary.py; exit 0; fi\necho unavailable >&2\nexit 9\n')
-os.chmod(view_only_fails, 0o755)
+view_only_fails = fake_gh(os.path.join(root, "gh-view-fails"),
+                          '#!/bin/sh\nif [ "$2" = diff ]; then echo src/ordinary.py; exit 0; fi\n'
+                          'echo unavailable >&2\nexit 9\n')
 r, d, _ = gate("gh pr merge 7", root, view_only_fails)
 check("T-05 gh head outage with readable ordinary diff and no matching feature allows",
       d is None and "could not verify" in r.stderr, f"decision={d} stderr={r.stderr!r}")
-doc["branch"] = "feature/test"
-with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixture-non-era", "feature.json"), "w") as f:
-    json.dump(doc, f)
+update_record(directory, branch="feature/test")
 r, d, reason = gate("gh pr merge 7", root, fake)
 check("T-05 gh outage with a feature owing a receipt denies", d == "deny" and "could not verify" not in reason, reason)
 root, directory = fixture()
-with open(os.path.join(directory, "plan.yaml"), "w") as f:
-    f.write("")
+write(os.path.join(directory, "plan.yaml"), "")
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 empty plan fails closed", r.returncode == 0 and d == "deny"
       and "FEAT-9001-fixture-non-era" in reason, f"rc={r.returncode} reason={reason!r}")
 root, directory = fixture(entry="opened")
-bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
-os.makedirs(bad_directory)
-with open(os.path.join(bad_directory, "feature.json"), "w") as f:
-    json.dump([], f)
+add_malformed_record(root)
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 unrelated non-object feature record does not block healthy merge",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 root, directory = fixture(entry="opened")
-with open(os.path.join(directory, "feature.json")) as f:
-    doc = json.load(f)
-doc["branch"] = "other"
-with open(os.path.join(directory, "feature.json"), "w") as f:
-    json.dump(doc, f)
-bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
-os.makedirs(bad_directory)
-with open(os.path.join(bad_directory, "feature.json"), "w") as f:
-    json.dump([], f)
+update_record(directory, branch="other")
+add_malformed_record(root)
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 no-record branch ignores unrelated malformed record",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 root, directory = fixture()
 duplicate_id = "FEAT-9002-fixture-duplicate"
-duplicate_directory = os.path.join(root, ".harness", "harness", "features", duplicate_id)
-os.makedirs(duplicate_directory)
-with open(os.path.join(duplicate_directory, "feature.json"), "w") as f:
-    json.dump({"feature_id": duplicate_id, "branch": "feature/test",
-               "github": {"build_entry": "opened"}}, f)
+write(os.path.join(root, ".harness", "harness", "features", duplicate_id, "feature.json"),
+      {"feature_id": duplicate_id, "branch": "feature/test", "github": {"build_entry": "opened"}})
 r, d, reason = gate("git merge feature/test", root)
 _, repeated_d, repeated_reason = gate("git merge feature/test", root)
 check("T-05 duplicate valid records claiming the branch deny naming both",
@@ -286,10 +255,7 @@ check("T-05 duplicate valid records claiming the branch deny naming both",
       and "gh-sync.py" not in reason and reason == repeated_reason,
       f"rc={r.returncode} reason={reason!r} repeated={repeated_reason!r}")
 root, directory = fixture(entry="opened")
-bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
-os.makedirs(bad_directory)
-with open(os.path.join(bad_directory, "feature.json"), "w") as f:
-    json.dump([], f)
+add_malformed_record(root)
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 single owner plus unrelated malformed record still allows",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
@@ -317,34 +283,27 @@ for name, content in (
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 single owner ignores unreadable malformed non-object and different-branch noise",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
-for command, name in (
-    (f"git -C {root} merge feature/test", "T-05 git -C global flag merge is still detected"),
-    ("git -c core.pager=cat merge feature/test", "T-05 git -c config global flag merge is still detected"),
-    (f"git --work-tree {root} merge feature/test", "T-05 git --work-tree global flag merge is still detected"),
-    ("git merge --no-ff feature/test", "T-05 git --no-ff merge is still detected"),
-    ("git merge --squash feature/test", "T-05 git --squash merge is still detected"),
-    ("git merge -m message feature/test", "T-05 git -m merge is still detected"),
+# One owing root serves every row: the gate only reads it (the corpus below relies on the same).
+root, _ = fixture()
+for command, name, expected in (
+    (f"git -C {root} merge feature/test", "T-05 git -C global flag merge is still detected", "deny"),
+    ("git -c core.pager=cat merge feature/test", "T-05 git -c config global flag merge is still detected", "deny"),
+    (f"git --work-tree {root} merge feature/test", "T-05 git --work-tree global flag merge is still detected",
+     "deny"),
+    ("git merge --no-ff feature/test", "T-05 git --no-ff merge is still detected", "deny"),
+    ("git merge --squash feature/test", "T-05 git --squash merge is still detected", "deny"),
+    ("git merge -m message feature/test", "T-05 git -m merge is still detected", "deny"),
+    ("git merge -F /tmp/message feature/test", "T-05 merge -F detached value denies", "deny"),
+    ("git merge --cleanup strip feature/test", "T-05 merge --cleanup detached value denies", "deny"),
+    ("git --attr-source HEAD merge --no-ff feature/test",
+     "T-05 global --attr-source before merge is still detected", "deny"),
+    ("git merge --file /tmp/message", "T-05 merge with no identifiable ref denies", "deny"),
+    ("git merge --abort", "T-05 merge --abort on an owing branch allows", None),
+    ("git merge --continue", "T-05 merge --continue on an owing branch allows", None),
+    ("git merge --quit", "T-05 merge --quit on an owing branch allows", None),
 ):
-    root, _ = fixture()
     r, d, reason = gate(command, root)
-    check(name, r.returncode == 0 and d == "deny", f"rc={r.returncode} reason={reason!r}")
-for command, name in (
-    ("git merge -F /tmp/message feature/test", "T-05 merge -F detached value denies"),
-    ("git merge --cleanup strip feature/test", "T-05 merge --cleanup detached value denies"),
-    ("git --attr-source HEAD merge --no-ff feature/test", "T-05 global --attr-source before merge is still detected"),
-    ("git merge --file /tmp/message", "T-05 merge with no identifiable ref denies"),
-):
-    root, _ = fixture()
-    r, d, reason = gate(command, root)
-    check(name, r.returncode == 0 and d == "deny", f"rc={r.returncode} reason={reason!r}")
-for command, name in (
-    ("git merge --abort", "T-05 merge --abort on an owing branch allows"),
-    ("git merge --continue", "T-05 merge --continue on an owing branch allows"),
-    ("git merge --quit", "T-05 merge --quit on an owing branch allows"),
-):
-    root, _ = fixture()
-    r, d, reason = gate(command, root)
-    check(name, r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+    check(name, r.returncode == 0 and d == expected, f"rc={r.returncode} reason={reason!r}")
 
 root, _ = fixture()
 raw_payload = (
@@ -376,14 +335,21 @@ if d is not None:
 # FEAT-65: the two "could not evaluate … receipt" broad catches are gone; an unexpected defect
 # reaches hook_guard's CLOSED form — BLOCKED on stderr, exit 2, no decision JSON — so the
 # denial verdict is kept while the defect is named. Process control escapes the guard.
-def _feat65_fire(root, sibling, override):
-    mbin = os.path.join(tempfile.mkdtemp(), "bin")
-    shutil.copytree(BIN, mbin)
-    shutil.copytree(os.path.join(os.path.dirname(BIN), "schemas"),
-                    os.path.join(os.path.dirname(mbin), "schemas"))
-    with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
-        handle.write("\n\n" + override)
-    return subprocess.run([os.path.join(mbin, "merge-gate.py")],
+# One copy of bin/ serves all three fires: each rewrites schema.py from the pristine text, so an
+# earlier override never stacks under a later one.
+FEAT65_BASE = tempfile.mkdtemp()
+FEAT65_BIN = os.path.join(FEAT65_BASE, "bin")
+shutil.copytree(BIN, FEAT65_BIN)
+shutil.copytree(os.path.join(os.path.dirname(BIN), "schemas"), os.path.join(FEAT65_BASE, "schemas"))
+FEAT65_SCHEMA = os.path.join(FEAT65_BIN, "feature_record", "schema.py")
+with open(FEAT65_SCHEMA, encoding="utf-8") as handle:
+    FEAT65_PRISTINE = handle.read()
+
+
+def _feat65_fire(root, override):
+    with open(FEAT65_SCHEMA, "w", encoding="utf-8") as handle:
+        handle.write(FEAT65_PRISTINE + "\n\n" + override)
+    return subprocess.run([os.path.join(FEAT65_BIN, "merge-gate.py")],
                           input=json.dumps({"tool_input": {"command": "git merge feature/test"}}),
                           text=True, capture_output=True, cwd=root,
                           env=dict(os.environ, HARNESS_PROJECT_DIR=root))
@@ -391,18 +357,19 @@ def _feat65_fire(root, sibling, override):
 
 root, _ = fixture()
 sig = "def recovery_command_for(feat_dir, feature_doc=None):\n"
-r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise RuntimeError('FEAT-65 injected')\n")
+r = _feat65_fire(root, sig + "    raise RuntimeError('FEAT-65 injected')\n")
 check("FEAT-65: a receipt-evaluation defect is BLOCKED by the closed guard and named",
       r.returncode == 2 and r.stdout == "" and "RuntimeError: FEAT-65 injected" in r.stderr,
       f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise KeyboardInterrupt()\n")
+r = _feat65_fire(root, sig + "    raise KeyboardInterrupt()\n")
 check("FEAT-65: KeyboardInterrupt escapes the guard",
       r.returncode != 0 and "KeyboardInterrupt" in r.stderr and "failed internally" not in r.stderr,
       f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
-r = _feat65_fire(root, "feature_record/schema.py", sig + "    raise SystemExit(7)\n")
+r = _feat65_fire(root, sig + "    raise SystemExit(7)\n")
 check("FEAT-65: a deliberate SystemExit keeps its own exit code",
       r.returncode == 7 and "failed internally" not in r.stderr,
       f"rc={r.returncode} stderr={r.stderr[-200:]!r}")
+shutil.rmtree(FEAT65_BASE, ignore_errors=True)
 
 # FEAT-2225 T-04: distill candidates (changed Expertise paths) merge only through the locked
 # `merge-distill` executor. Fixtures: a bare origin, an owner checkout on main and a linked
@@ -414,9 +381,6 @@ DBRANCH = f"feat/{DFEAT}"
 CRAFT = ".harness/expertise/harness-backend-dev.md"
 WORKING_RULES = (".harness/*/features/*/notes/", ".harness/*/features/*/runs/",
                  ".harness/*/features/*/observations/", ".harness/notes/")
-PLAN = ("status: {status}\ntasks:\n  - id: T-01\n    title: Fixture task\n    change_type: test\n"
-        "    execution_mode: main-session-direct\n    files: [fixture.py]\n    status: ready\n"
-        "    verify: python3 test.py\n    intent: Exercise the merge gate fixture.\n")
 FAKE_GH = r'''#!/usr/bin/env python3
 import fcntl, json, os, subprocess, sys
 path = os.environ["FAKE_GH_STATE"]
@@ -472,23 +436,12 @@ else:
 '''
 
 
-def git(cwd, *args):
-    return subprocess.run(["git", "-C", cwd, *args], check=True, capture_output=True,
-                          text=True, timeout=30).stdout.strip()
-
-
-def write(path, content):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as stream:
-        stream.write(content if isinstance(content, str) else json.dumps(content))
-
-
 def seed_owner(owner, entry, repo):
     github = {"build_entry": entry, "repo": repo} if entry else {}
     feature_dir = os.path.join(owner, ".harness", "harness", "features", DFEAT)
     write(os.path.join(owner, ".harness", "team-config.yaml"), "agents: {}\n")
-    write(os.path.join(owner, ".harness", "harness.json"),
-          build_config({"github": {"sync": True, "repo": "acme/widgets"}}))
+    write_config(os.path.join(owner, ".harness", "harness.json"),
+                 {"github": {"sync": True, "repo": "acme/widgets"}})
     write(os.path.join(owner, ".gitignore"), "*.lock\n" + "".join(f"{rule}\n" for rule in WORKING_RULES))
     write(os.path.join(feature_dir, "feature.json"),
           {"feature_id": DFEAT, "branch": DBRANCH, "github": github})
@@ -508,16 +461,15 @@ def commit_push(wt, message):
     git(wt, "add", "-A")
     git(wt, "commit", "-qm", message)
     git(wt, "push", "-q", "origin", DBRANCH)
-    return git(wt, "rev-parse", "HEAD")
+    return git_out(wt, "rev-parse", "HEAD")
 
 
 def distill_fixture(entry="opened", repo="acme/widgets", apply=True):
     base = os.path.realpath(tempfile.mkdtemp())
     origin, owner, wt = (os.path.join(base, name) for name in ("origin.git", "owner", "wt"))
     git(base, "init", "-q", "--bare", "-b", "main", origin)
-    git(base, "init", "-q", "-b", "main", owner)
-    for key, value in (("user.email", "t@example.invalid"), ("user.name", "T"), ("commit.gpgsign", "false")):
-        git(owner, "config", key, value)
+    # Local identity and gpgsign=false: FAKE_GH's advance-main hook commits here under os.environ.
+    init_repo(owner, "main", config=(("commit.gpgsign", "false"),), git=checked_git)
     seed_owner(owner, entry, repo)
     git(owner, "add", "-A")
     git(owner, "commit", "-qm", "base")
@@ -530,9 +482,7 @@ def distill_fixture(entry="opened", repo="acme/widgets", apply=True):
     else:
         write(os.path.join(wt, "src", "ordinary.py"), "x = 1\n")
     head = commit_push(wt, "distill")
-    gh = os.path.join(base, "gh")
-    write(gh, FAKE_GH)
-    os.chmod(gh, 0o755)
+    gh = fake_gh(os.path.join(base, "gh"), FAKE_GH)
     fx = {"base": base, "owner": owner, "wt": wt, "gh": gh, "state": os.path.join(base, "gh-state.json"),
           "lock": os.path.join(owner, ".harness", "merge-distill.lock")}
     set_state(fx, head=head, branch=DBRANCH, files=[CRAFT], owner=owner, lock=fx["lock"])
@@ -595,7 +545,7 @@ def check_merged_at_head(fx, r):
 def check_distill_evidence(fx, r):
     evidence = json_or_empty(r.stdout)
     first = (evidence.get("files") or [{}])[0]
-    expected = {"head": gh_state(fx)["head"], "main": git(fx["owner"], "rev-parse", "main"),
+    expected = {"head": gh_state(fx)["head"], "main": git_out(fx["owner"], "rev-parse", "main"),
                 "destination": CRAFT, "sha256": blob_sha(fx, CRAFT)}
     actual = {"head": evidence.get("head"), "main": evidence.get("main"),
               "destination": first.get("destination"), "sha256": first.get("sha256")}
@@ -751,7 +701,7 @@ def _ledger_fixture():
 
 
 def case_distill_ledger_commits_working_files_stay_local():
-    """FEAT-2641 (DEC-260): a distill commits feature.json and the Expertise file only; its
+    """FEAT-2641 (DEC-262): a distill commits feature.json and the Expertise file only; its
     receipts, run records and observation logs stay local, and the merge removes them."""
     fx, feature_rel, working, claimed, unclaimed = _ledger_fixture()
     refused_before_merge("FEAT-2641 merge-distill refuses while the feature.json change is uncommitted",
@@ -759,19 +709,19 @@ def case_distill_ledger_commits_working_files_stay_local():
     check("FEAT-2641 a refused distill leaves every working file in place",
           all(os.path.exists(p) for p in working + [claimed, unclaimed]), working)
     git(fx["wt"], "add", "-A", "--", ".harness")
-    staged = set(git(fx["wt"], "diff", "--cached", "--name-only").splitlines())
+    staged = set(git_out(fx["wt"], "diff", "--cached", "--name-only").splitlines())
     check("FEAT-2641 git add stages feature.json and the Expertise file, no working file",
           staged == {f"{feature_rel}/feature.json", CRAFT}, f"staged={sorted(staged)}")
     git(fx["wt"], "commit", "-qm", "distill ledger")
     git(fx["wt"], "push", "-q", "origin", DBRANCH)
-    set_state(fx, head=git(fx["wt"], "rev-parse", "HEAD"), merges=[])
+    set_state(fx, head=git_out(fx["wt"], "rev-parse", "HEAD"), merges=[])
     r = distill(fx)
     merges = gh_state(fx).get("merges", [])
     check("FEAT-2641 the same distill merges once, at the new head, after its ledger is committed",
           r.returncode == 0 and len(merges) == 1
           and option_value(merges[0]["args"], "--match-head-commit") == gh_state(fx)["head"],
           f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
-    tree = git(fx["wt"], "ls-tree", "-r", "--name-only", gh_state(fx)["head"]).splitlines()
+    tree = git_out(fx["wt"], "ls-tree", "-r", "--name-only", gh_state(fx)["head"]).splitlines()
     check("FEAT-2641 the merged head tracks no notes/, runs/ or observations/ path",
           not any(f"/{d}/" in p for p in tree for d in ("notes", "runs", "observations")), tree)
     cleaned = json_or_empty(r.stdout).get("cleaned")
@@ -790,7 +740,7 @@ def case_distill_queued_merge_keeps_working_files():
     git(fx["wt"], "add", "-A", "--", ".harness")
     git(fx["wt"], "commit", "-qm", "distill ledger")
     git(fx["wt"], "push", "-q", "origin", DBRANCH)
-    set_state(fx, head=git(fx["wt"], "rev-parse", "HEAD"), merges=[], queued=True)
+    set_state(fx, head=git_out(fx["wt"], "rev-parse", "HEAD"), merges=[], queued=True)
     r = distill(fx)
     merges = gh_state(fx).get("merges", [])
     evidence = json_or_empty(r.stdout)
@@ -832,5 +782,4 @@ def case_applicability_corpus():
 
 case_applicability_corpus()
 
-print("ALL PASSED" if not fails else f"{fails} FAILED")
-sys.exit(bool(fails))
+sys.exit(C.report())

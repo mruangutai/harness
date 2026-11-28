@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DEC-260: a feature's notes/, runs/ and observations/, and .harness/notes/, are local
+"""DEC-262: a feature's notes/, runs/ and observations/, and .harness/notes/, are local
 working files. None is tracked, the repository .gitignore ignores each class, and the
 committed record (plan.yaml, feature.json, BRIEF.md, STATE.md) stays un-ignored."""
 import re

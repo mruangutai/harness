@@ -6,7 +6,7 @@ and every obsolete rule Harness once shipped, without modifying the target;
 normal mode removes the obsolete rules and appends only missing rules under a
 marker block (DEC-112).
 
-OBSOLETE RULES (BUG-2399, DEC-260). Harness once shipped three run rules: a
+OBSOLETE RULES (BUG-2399, DEC-262). Harness once shipped three run rules: a
 broad run-directory ignore in two spellings, and later a run-UI-only rule.
 All three are replaced by the snippet's four working-file directory rules
 (a feature's notes/, runs/ and observations/, and .harness/notes/). Only those
@@ -51,7 +51,7 @@ USAGE = "usage: merge-gitignore.py <project-root> [--check]"
 HEADER = (
     "# --- harness ---\n"
     "# A feature's notes/, runs/ and observations/ and .harness/notes/ are local working\n"
-    "# files, never committed (DEC-260). Everything else under .harness/ is committed on\n"
+    "# files, never committed (DEC-262). Everything else under .harness/ is committed on\n"
     "# purpose - it is the record of what shipped.\n"
 ).encode("utf-8")
 FOOTER = b"# --- end harness ---\n"
@@ -176,7 +176,7 @@ def _report_appended(target, missing):
 def _report_obsolete(target, obsolete):
     if not obsolete:
         return
-    print(f"merge-gitignore: OBSOLETE in {target} (superseded by the working-file rules, DEC-260):",
+    print(f"merge-gitignore: OBSOLETE in {target} (superseded by the working-file rules, DEC-262):",
           file=sys.stderr)
     for rule in obsolete:
         print(f"  x {rule.decode('utf-8')}", file=sys.stderr)

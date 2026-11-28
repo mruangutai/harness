@@ -8,18 +8,13 @@ subprocess invocations are unchanged. Shared fixtures live in gh_sync_support.py
 
     ./test-gh-sync-record.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+import integration_support  # noqa: F401  (first: puts bin/ and tests/ on sys.path)
 import os
 import re
-import subprocess
 import sys
 import tempfile
 
+from git_support import checked_git, commit_all, git_out, init_repo
 from gh_sync_support import (
     FAKE_GH_STATIONS, add_plan_station, calls, check, install_gh, read_feature_json,
     read_plan_station, report, run, stage, stage_station, write_feature_json,
@@ -53,14 +48,14 @@ exit 0
 """
 
 
-def _pr_fixture(path, feat_name, branch, pr, status="Review", github=None):
+def _pr_fixture(path, feat_name, branch, pr, github=None):
     """A minimal, schema-shaped feature.json carrying `branch` and `pr` (T-03, FEAT-26) —
     the two fields record-pr reads and writes. `github` is added only when a case needs
     one (the ship case, so cmd_ship's milestone/parent close has something to act on).
 
-    `status` is written to the sibling plan.yaml as the feature's station (FEAT-41 T-07), not
-    into feature.json — ship reads it from there and writes it back through the verb."""
-    add_plan_station(os.path.dirname(path), feat_name, str(status).lower())
+    The station `review` is written to the sibling plan.yaml (FEAT-41 T-07), not into
+    feature.json — ship reads it from there and writes it back through the verb."""
+    add_plan_station(os.path.dirname(path), feat_name, "review")
     fields = dict(
         feature_id=feat_name, branch=branch, pr=pr,
         review_sha="none", cycles_used=1, max_total_cycles=10, runs=[],
@@ -70,25 +65,36 @@ def _pr_fixture(path, feat_name, branch, pr, status="Review", github=None):
     write_feature_json(path, **fields)
 
 
+def _ship_feature(tmp, feat_name, origin="adopted"):
+    """A no-board `stage()` ship fixture whose feature.json records milestone 7, parent #40 and
+    T-01 as #41. `origin` is the recorded parent_origin; None leaves the key out entirely. The
+    github dict is built fresh per call because write_feature_json adds "repo" to it."""
+    install_gh(tmp)
+    feat = stage(tmp, feat_name=feat_name)
+    github = {"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}}
+    if origin is not None:
+        github["parent_origin"] = origin
+    write_feature_json(os.path.join(feat, "feature.json"), feature_id=feat_name, github=github)
+    write_validate_handoff(feat)  # the rewrite above drops stage()'s validator PASS run
+    return feat
+
+
+def _edited_items(tmp):
+    """The `project item-edit` lines in tmp's gh log, and the ITEM_ ids they name."""
+    edits = [l for l in calls(tmp) if "project item-edit" in l]
+    return edits, {next(p for p in l.split() if p.startswith("ITEM_")) for l in edits}
+
+
 def main():
     # --- ship: a created parent closes completed, milestone patched closed AFTER the parent close
     with tempfile.TemporaryDirectory() as tmpG:
-        install_gh(tmpG)
-        featG = stage(tmpG, feat_name="FEAT-07-ship-created")
+        featG = _ship_feature(tmpG, "FEAT-07-ship-created", origin="created")
         add_plan_station(featG, "FEAT-07-ship-created", "review")
-        write_feature_json(
-            os.path.join(featG, "feature.json"),
-            feature_id="FEAT-07-ship-created",
-            github={"milestone": 7, "parent": 40, "parent_origin": "created",
-                    "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featG)  # the rewrite above drops stage()'s validator PASS run
         r = run(["ship", featG], tmpG)
         logG = calls(tmpG)
         close40G = [l for l in logG if l.startswith("issue close 40")]
         patch40G = [l for l in logG if re.search(r"\bissues/40\b", l)]
-        close_idxG = [i for i, l in enumerate(logG) if l.startswith("issue close 40")]
-        ms_idxG = [i for i, l in enumerate(logG) if "milestones/7" in l and "state=closed" in l]
+        ms_closedG = any("milestones/7" in l and "state=closed" in l for l in logG)
         # T-04 REVERSES BOTH ASSERTIONS THAT STOOD HERE. They read "ship closes a created parent
         # completed" and "ship's parent close carries an explicit --reason completed (T-08)".
         # `ship` now closes NOTHING (DEC-203 item 2): it writes the done station and GitHub's own
@@ -97,14 +103,13 @@ def main():
         #
         # THIS FIXTURE HAS NO BOARD (`stage`, not `stage_station`), so it is also the no-board
         # path: no card can be moved, and the issue lifecycle must still run to completion.
-        docG = read_feature_json(os.path.join(featG, "feature.json"))
         check("ship closes NO issue, whatever the recorded parent_origin (DEC-203)",
               r.returncode == 0 and not close40G and not patch40G, str(logG))
         check("ship with no board configured says so, in one line",
               "no board configured" in r.stdout, repr(r.stdout))
         check("ship with no board configured STILL closes the milestone -- the issue lifecycle "
               "runs to completion",
-              bool(ms_idxG), str(logG))
+              ms_closedG, str(logG))
         check("ship with no board configured STILL records the terminal station",
               read_plan_station(featG) == "done", read_plan_station(featG))
 
@@ -123,15 +128,7 @@ def main():
 
     # --- ship: an adopted parent is left open; the milestone still closes regardless (labelled here)
     with tempfile.TemporaryDirectory() as tmpH:
-        install_gh(tmpH)
-        featH = stage(tmpH, feat_name="FEAT-07-ship-adopted")
-        write_feature_json(
-            os.path.join(featH, "feature.json"),
-            feature_id="FEAT-07-ship-adopted",
-            github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
-                    "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featH)
+        featH = _ship_feature(tmpH, "FEAT-07-ship-adopted")
         r = run(["ship", featH], tmpH)
         logH = calls(tmpH)
         check("ship leaves an adopted parent open",
@@ -145,14 +142,7 @@ def main():
     # --- ship: a parent with no recorded origin at all is left open (the specified default);
     #     the milestone still closes (inline, unlabelled — the discriminating case lives above)
     with tempfile.TemporaryDirectory() as tmpI:
-        install_gh(tmpI)
-        featI = stage(tmpI, feat_name="FEAT-07-ship-noorigin")
-        write_feature_json(
-            os.path.join(featI, "feature.json"),
-            feature_id="FEAT-07-ship-noorigin",
-            github={"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featI)
+        featI = _ship_feature(tmpI, "FEAT-07-ship-noorigin", origin=None)
         r = run(["ship", featI], tmpI)
         logI = calls(tmpI)
         docI = read_feature_json(os.path.join(featI, "feature.json"))
@@ -168,15 +158,7 @@ def main():
     # --- ship --body-file posts once, on an adopted parent, so the UNCONDITIONALITY of the
     #     comment (vs. the conditional close) is what is being checked
     with tempfile.TemporaryDirectory() as tmpJ:
-        install_gh(tmpJ)
-        featJ = stage(tmpJ, feat_name="FEAT-07-ship-bodyfile")
-        write_feature_json(
-            os.path.join(featJ, "feature.json"),
-            feature_id="FEAT-07-ship-bodyfile",
-            github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
-                    "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featJ)
+        featJ = _ship_feature(tmpJ, "FEAT-07-ship-bodyfile")
         bodyJ = os.path.join(tmpJ, "body.txt")
         open(bodyJ, "w").write("ship review notes, signed")
         r = run(["ship", featJ, "--body-file", bodyJ], tmpJ)
@@ -189,15 +171,7 @@ def main():
 
     # --- ship without --body-file posts nothing
     with tempfile.TemporaryDirectory() as tmpK:
-        install_gh(tmpK)
-        featK = stage(tmpK, feat_name="FEAT-07-ship-nobodyfile")
-        write_feature_json(
-            os.path.join(featK, "feature.json"),
-            feature_id="FEAT-07-ship-nobodyfile",
-            github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
-                    "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featK)
+        featK = _ship_feature(tmpK, "FEAT-07-ship-nobodyfile")
         r = run(["ship", featK], tmpK)
         logK = calls(tmpK)
         check("ship without --body-file posts nothing",
@@ -206,15 +180,7 @@ def main():
 
     # --- ship with an empty --body-file exits 1, before any gh call beyond auth status
     with tempfile.TemporaryDirectory() as tmpL:
-        install_gh(tmpL)
-        featL = stage(tmpL, feat_name="FEAT-07-ship-emptybodyfile")
-        write_feature_json(
-            os.path.join(featL, "feature.json"),
-            feature_id="FEAT-07-ship-emptybodyfile",
-            github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
-                    "attached": ["T-01"], "issues": {"T-01": 41}},
-        )
-        write_validate_handoff(featL)
+        featL = _ship_feature(tmpL, "FEAT-07-ship-emptybodyfile")
         emptyL = os.path.join(tmpL, "empty.txt")
         open(emptyL, "w").close()
         r = run(["ship", featL, "--body-file", emptyL], tmpL)
@@ -225,7 +191,6 @@ def main():
 
     # ---------- T-13: gh-sync.py status <feature-dir> <Status> ----------
     # Couples recording feature.json's phase status to the station writes that event implies.
-    # Every case points FACTORY_GH, the only binary override, at the fake.
 
     # --- an unknown Status value is refused, exit 2, before anything is recorded or written.
     with tempfile.TemporaryDirectory() as tmpSt1:
@@ -236,13 +201,14 @@ def main():
             issues={"T-01": 326},
             feature_status=None, plan_station="building",
         )
-        r = run(["status", featSt1, "Banana"], tmpSt1, {"FACTORY_GH": os.path.join(tmpSt1, "gh")})
+        r = run(["status", featSt1, "Banana"], tmpSt1)
+        logSt1 = calls(tmpSt1)
         check("status: an unknown value is refused with exit 2",
               r.returncode == 2, r.stdout + r.stderr)
         check("status: the refusal names the offending value",
               "Banana" in (r.stdout + r.stderr), r.stdout + r.stderr)
         check("status: an unknown value writes no station of any kind",
-              not any("item-edit" in l for l in calls(tmpSt1)), str(calls(tmpSt1)))
+              not any("item-edit" in l for l in logSt1), str(logSt1))
         check("status: an unknown value leaves plan.yaml's station unrecorded",
               read_plan_station(featSt1) == "building",
               read_feature_json(os.path.join(featSt1, "feature.json")))
@@ -268,10 +234,8 @@ def main():
             docSt2 = read_feature_json(pathSt2)
             docSt2["github"]["source_issues"] = [90, 40, 90, 41]
             write_feature_json(pathSt2, **docSt2)
-            r = run(["status", featSt2, _phase], tmpSt2,
-                    {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
-            editsSt2 = [l for l in calls(tmpSt2) if "project item-edit" in l]
-            idsSt2 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
+            r = run(["status", featSt2, _phase], tmpSt2)
+            editsSt2, idsSt2 = _edited_items(tmpSt2)
             optionsSt2 = {l.split("--single-select-option-id ")[1].split()[0].strip("\x01")
                           for l in editsSt2}
             check(f"status {_phase}: exits 0 and records local station first",
@@ -292,8 +256,7 @@ def main():
                 board=_board, sync=_sync, issues={"T-01": 41}, parent=40,
                 approval={"status": "approved"}, plan_station="plan",
             )
-            r = run(["status", featStLocal, "ready"], tmpStLocal,
-                    {"FACTORY_GH": os.path.join(tmpStLocal, "gh")})
+            r = run(["status", featStLocal, "ready"], tmpStLocal)
             check(f"status Ready, {_label}: retains local station and makes no remote write",
                   r.returncode == 0 and read_plan_station(featStLocal) == "ready"
                   and not any("item-edit" in line for line in calls(tmpStLocal)),
@@ -308,9 +271,8 @@ def main():
             [("T-01", "building")], issues={}, parent=40,
             approval={"status": "approved"},
         )
-        r = run(["status", featSt5, "ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
-        editsSt5 = [l for l in calls(tmpSt5) if "project item-edit" in l]
-        idsSt5 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt5}
+        r = run(["status", featSt5, "ready"], tmpSt5)
+        editsSt5, idsSt5 = _edited_items(tmpSt5)
         check("status Ready, zero sub-issues: exits 0", r.returncode == 0, r.stdout + r.stderr)
         check("status Ready, zero sub-issues: moves the recorded parent through projection",
               idsSt5 == {"ITEM_40"}, str(editsSt5))
@@ -327,13 +289,14 @@ def main():
             feature_status=None, plan_station="plan",
             approval=None,
         )
-        r = run(["status", featSt6, "ready"], tmpSt6, {"FACTORY_GH": os.path.join(tmpSt6, "gh")})
+        r = run(["status", featSt6, "ready"], tmpSt6)
+        logSt6 = calls(tmpSt6)
         check("status Ready, unsigned plan: refused with exit 2",
               r.returncode == 2, r.stdout + r.stderr)
         check("status Ready, unsigned plan: names the value ready in the refusal",
               "ready" in (r.stdout + r.stderr), r.stdout + r.stderr)
         check("status Ready, unsigned plan: no station write reaches the fake",
-              not any("item-edit" in l for l in calls(tmpSt6)), str(calls(tmpSt6)))
+              not any("item-edit" in l for l in logSt6), str(logSt6))
         check("status ready, unsigned plan: plan.yaml station is NOT recorded as ready",
               read_plan_station(featSt6) == "plan",
               read_feature_json(os.path.join(featSt6, "feature.json")))
@@ -349,13 +312,14 @@ def main():
             parent=40,
             feature_status=None, plan_station="building",
         )
-        r = run(["status", featSt7, "review"], tmpSt7, {"FACTORY_GH": os.path.join(tmpSt7, "gh")})
+        r = run(["status", featSt7, "review"], tmpSt7)
+        logSt7 = calls(tmpSt7)
         check("status Review, unfinished tasks: refused with exit 2",
               r.returncode == 2, r.stdout + r.stderr)
         check("status Review, unfinished tasks: names the value review in the refusal",
               "review" in (r.stdout + r.stderr), r.stdout + r.stderr)
         check("status Review, unfinished tasks: no station write reaches the fake",
-              not any("item-edit" in l for l in calls(tmpSt7)), str(calls(tmpSt7)))
+              not any("item-edit" in l for l in logSt7), str(logSt7))
         check("status Review, unfinished tasks: feature.json status is NOT recorded as Review",
               read_plan_station(featSt7) == "building",
               read_feature_json(os.path.join(featSt7, "feature.json")))
@@ -373,7 +337,7 @@ def main():
             parent=40,
             feature_status=None, plan_station="building",
         )
-        r = run(["status", featSt7b, "review"], tmpSt7b, {"FACTORY_GH": os.path.join(tmpSt7b, "gh")})
+        r = run(["status", featSt7b, "review"], tmpSt7b)
         check("status Review, task station outside the vocabulary: refused with exit 2",
               r.returncode == 2, r.stdout + r.stderr)
         check("status Review, task station outside the vocabulary: names the value, no traceback",
@@ -410,10 +374,8 @@ def main():
         docSt8 = read_feature_json(pathSt8)
         docSt8["github"]["source_issues"] = [90]
         write_feature_json(pathSt8, **docSt8)
-        r = run(["status", featSt8, "ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
-        logSt8 = calls(tmpSt8)
-        editsSt8 = [l for l in logSt8 if "project item-edit" in l]
-        ids8 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt8}
+        r = run(["status", featSt8, "ready"], tmpSt8)
+        editsSt8, ids8 = _edited_items(tmpSt8)
         check("status Ready, one write raises: process still exits 0", r.returncode == 0,
               r.stdout + r.stderr)
         check("status Ready, one write raises: ITEM_41's write was attempted (and is what failed)",
@@ -507,17 +469,16 @@ def main():
         install_gh(tmpPR6, FAKE_GH_PR_LIST)
         featPR6 = stage(tmpPR6, feat_name="FEAT-26-pr-ship")
         fjPR6 = os.path.join(featPR6, "feature.json")
-        _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None, status="Review",
+        _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None,
                     github={"milestone": 7, "parent": 40, "parent_origin": "created",
                             "attached": ["T-01"], "issues": {"T-01": 41}})
         write_validate_handoff(featPR6)
-        for argv in (["init", "-q", "-b", "main"], ["config", "user.email", "t@example.com"],
-                     ["config", "user.name", "t"], ["add", "-A"], ["commit", "-qm", "fixture"]):
-            subprocess.run(["git", *argv], cwd=tmpPR6, capture_output=True)
+        init_repo(tmpPR6, "main", git=checked_git)
+        commit_all(tmpPR6, "fixture", git=checked_git)
         strayPR6 = os.path.join(tmpPR6, "operator-wip.txt")
         with open(strayPR6, "w") as handle:
             handle.write("staged by the operator, not ship's to commit\n")
-        subprocess.run(["git", "add", strayPR6], cwd=tmpPR6, capture_output=True)
+        checked_git(["add", strayPR6], tmpPR6)
         r = run(["ship", featPR6], tmpPR6, {"PR_LIST_JSON": '[{"number": 55}]'})
         docPR6 = read_feature_json(fjPR6)
         check("ship records the pr in feature.json and the station in plan.yaml",
@@ -525,14 +486,12 @@ def main():
               and read_plan_station(featPR6) == "done",
               f"rc={r.returncode} pr={docPR6.get('pr')} "
               f"station={read_plan_station(featPR6)!r}")
-        dirtyPR6 = subprocess.run(
-            ["git", "status", "--porcelain", "--", fjPR6, os.path.join(featPR6, "plan.yaml")],
-            cwd=tmpPR6, capture_output=True, text=True).stdout.strip()
+        dirtyPR6 = git_out(tmpPR6, "status", "--porcelain", "--", fjPR6,
+                           os.path.join(featPR6, "plan.yaml"))
         check("#1853: after ship feature.json and plan.yaml are CLEAN against HEAD — the pr record is committed too",
               dirtyPR6 == "", f"dirty={dirtyPR6!r}; out={r.stdout[-400:]!r}")
-        filesPR6 = sorted(os.path.basename(p) for p in subprocess.run(
-            ["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpPR6,
-            capture_output=True, text=True).stdout.split())
+        filesPR6 = sorted(os.path.basename(p) for p in git_out(
+            tmpPR6, "show", "--name-only", "--format=", "HEAD").split())
         check("#1853: the commit carries exactly ship's two files and not the operator's staged one",
               filesPR6 == ["feature.json", "plan.yaml"], f"files={filesPR6}")
 

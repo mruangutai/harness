@@ -6,18 +6,15 @@ never a real `.harness/expertise/*.md` or `.harness/*/expertise/*.md` file. Reso
 the same way test-feature-worktree.py resolves its own, so a copy of the source under test can be
 swapped in without editing this file:
 
-    CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-merge.py")
+    CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(BIN_DIR, "expertise-merge.py")
 
 Case 1 is deliberately never routed through the CLI: it reproduces today's naive whole-file
 write directly, so it stays red proof of the DEC-95 loss regardless of what this tool does.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import ast
-import hashlib
+from integration_support import ROOT, BIN
+import ast  # noqa: E402
+import functools  # noqa: E402
+import hashlib  # noqa: E402
 import importlib.util
 import json
 import os
@@ -27,15 +24,16 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-merge.py")
-CHECK_EXPERTISE_BIN = os.path.join(HERE, "check-expertise.py")
+from check_support import Checks  # noqa: E402
+
+ROOT = str(ROOT)
+BIN_DIR = str(BIN)
+CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(BIN_DIR, "expertise-merge.py")
+CHECK_EXPERTISE_BIN = os.path.join(BIN_DIR, "check-expertise.py")
 sys.path.insert(0, os.path.dirname(os.path.abspath(CLI)))
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 _expertise_merge_spec = importlib.util.spec_from_file_location("expertise_merge_it_under_test", CLI)
@@ -50,40 +48,50 @@ LINE_BREAKING_CHARS = tuple(
     if len(("a" + chr(c) + "b").splitlines()) > 1
 )
 
-RESULTS = []
+C = Checks()
+_CHECK_LOCK = threading.Lock()
 
 
 def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+    """C.check under a lock: the pooled cases call this from four threads at once."""
+    with _CHECK_LOCK:
+        return C.check(name, ok, detail)
 
 
-def write_file(path, sections):
-    """Write a starting Expertise file. sections: [(heading, [(id, text), ...]), ...]."""
-    base = os.path.basename(path)
-    if base.endswith(".md"):
-        base = base[:-3]
-    lines = [f"# Expertise — {base}"]
+def render(sections, title=None):
+    """Expertise text: an optional '# Expertise — <title>' line, then '## name' / '- id: text'.
+    sections: [(heading, [(id, text), ...]), ...]."""
+    lines = [] if title is None else [f"# Expertise — {title}"]
     for name, entries in sections:
         lines.append(f"## {name}")
-        for eid, text in entries:
-            lines.append(f"- {eid}: {text}")
-    content = "\n".join(lines) + "\n"
+        lines.extend(f"- {eid}: {text}" for eid, text in entries)
+    return "\n".join(lines) + "\n"
+
+
+def _write_text(path, content):
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     return content
+
+
+def write_file(path, sections):
+    """Write a starting Expertise file, titled with the path's basename less any .md."""
+    base = os.path.basename(path)
+    return _write_text(path, render(sections, base[:-3] if base.endswith(".md") else base))
 
 
 def write_entries(path, sections):
     """Write a proposal entries file — no title line, same section/entry line format."""
-    lines = []
-    for name, entries in sections:
-        lines.append(f"## {name}")
-        for eid, text in entries:
-            lines.append(f"- {eid}: {text}")
-    content = "\n".join(lines) + "\n"
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-    return content
+    return _write_text(path, render(sections))
+
+
+def file_sha(path):
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+def check_expertise(path):
+    return subprocess.run([sys.executable, CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
 
 
 def target(root, stem):
@@ -138,7 +146,7 @@ def case_green_union(root):
     for eid in ("P-01", "P-02", "P-03", "P-04"):
         check(f"case2: {eid} present after both applies", f"- {eid}:" in content, content)
 
-    r3 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    r3 = check_expertise(path)
     check(
         "case2: check-expertise.py still accepts the merged file",
         r3.returncode == 0,
@@ -467,7 +475,7 @@ def case_replace_at_capacity(root):
         content,
     )
 
-    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    r2 = check_expertise(path)
     check(
         "case11: check-expertise.py still accepts the written file",
         r2.returncode == 0,
@@ -495,7 +503,7 @@ def case_removal(root):
     for eid in ("G-01", "G-02", "G-04", "G-05"):
         check(f"case12: {eid} is still present", f"- {eid}:" in content, content)
 
-    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    r2 = check_expertise(path)
     check(
         "case12: check-expertise.py still accepts the written file",
         r2.returncode == 0,
@@ -508,7 +516,7 @@ def case_missing_target(root):
     10, writes nothing, and the file stays writable afterward."""
     path = target(root, "case13")
     original = write_file(path, [("Patterns", [("P-01", "one")])])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     ops_path = write_ops(
         os.path.join(root, "case13_ops.json"),
         [{"op": "replace", "target": "P-99", "section": "Patterns", "entry": "does not exist"}],
@@ -521,7 +529,7 @@ def case_missing_target(root):
     check("case13: combined output carries the id P-99", "P-99" in combined, combined)
     check("case13: combined output carries the section Patterns", "Patterns" in combined, combined)
 
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check("case13: file sha256 is unchanged", after == before, (before, after))
     check(
         "case13: file content is byte identical to before",
@@ -544,7 +552,7 @@ def case_ambiguous_target(root):
     # (b) — a base file whose Patterns section carries P-04 twice.
     path_b = target(root, "case14b")
     write_file(path_b, [("Patterns", [("P-01", "one"), ("P-04", "four-a"), ("P-04", "four-b")])])
-    before_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    before_b = file_sha(path_b)
     ops_b = write_ops(
         os.path.join(root, "case14b_ops.json"),
         [{"op": "replace", "target": "P-04", "section": "Patterns", "entry": "new text"}],
@@ -556,13 +564,13 @@ def case_ambiguous_target(root):
     check("case14: (b) combined output carries the id P-04", "P-04" in combined_b, combined_b)
     check("case14: (b) combined output carries the section Patterns", "Patterns" in combined_b, combined_b)
     check("case14: (b) combined output carries a reason", "reason=" in combined_b, combined_b)
-    after_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    after_b = file_sha(path_b)
     check("case14: (b) file sha256 is unchanged", after_b == before_b, (before_b, after_b))
 
     # (c) — two ops in one proposal naming the same section and id.
     path_c = target(root, "case14c")
     write_file(path_c, [("Patterns", [("P-01", "one"), ("P-02", "two")])])
-    before_c = hashlib.sha256(open(path_c, "rb").read()).hexdigest()
+    before_c = file_sha(path_c)
     ops_c = write_ops(
         os.path.join(root, "case14c_ops.json"),
         [
@@ -577,7 +585,7 @@ def case_ambiguous_target(root):
     check("case14: (c) combined output carries the id P-01", "P-01" in combined_c, combined_c)
     check("case14: (c) combined output carries the section Patterns", "Patterns" in combined_c, combined_c)
     check("case14: (c) combined output carries a reason", "reason=" in combined_c, combined_c)
-    after_c = hashlib.sha256(open(path_c, "rb").read()).hexdigest()
+    after_c = file_sha(path_c)
     check("case14: (c) file sha256 is unchanged", after_c == before_c, (before_c, after_c))
 
 
@@ -587,7 +595,7 @@ def case_atomic_failure(root):
     every op has resolved."""
     path = target(root, "case15")
     write_file(path, [("Patterns", [("P-01", "one"), ("P-02", "two"), ("P-03", "three")])])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     ops_path = write_ops(
         os.path.join(root, "case15_ops.json"),
         [
@@ -599,7 +607,7 @@ def case_atomic_failure(root):
 
     r = run_ops(path, ops_path)
     check("case15: atomic failure exits non-zero", r.returncode != 0, r.stdout + r.stderr)
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check(
         "case15: file sha256 equals the sha256 taken before the invocation",
         after == before,
@@ -663,8 +671,10 @@ def _harvest_contract_verbs(normalised):
     return [tok.strip() for tok in matches[0].split("|")]
 
 
+@functools.lru_cache(maxsize=None)
 def _harvest_help_verbs():
-    """A SECOND, independent source of candidate verbs: the ops parser's own --ops help text,
+    """Memoised: the tool is the same on every contract_drift call (a raise is not cached).
+    A SECOND, independent source of candidate verbs: the ops parser's own --ops help text,
     which is what makes ACCEPTED - CONTRACT able to fail at all."""
     r = subprocess.run([sys.executable, CLI, "ops", "--help"], capture_output=True, text=True)
     m = re.search(r"list of ([\w/]+) ops", r.stdout)
@@ -672,38 +682,41 @@ def _harvest_help_verbs():
         raise _ContractHarvestError(
             f"the ops --help text did not name a slash-separated verb list: {r.stdout!r}"
         )
-    return m.group(1).split("/")
+    return tuple(m.group(1).split("/"))
+
+
+@functools.lru_cache(maxsize=None)
+def _probe_verb_accepted(verb):
+    """Probe one candidate verb with a well-formed single op against its own throwaway fixture.
+    The probe op carries a target and section that EXIST in that fixture, so a refusal is
+    attributable to the verb, never to a missing key. Memoised per verb; a raise is not cached."""
+    tmp = tempfile.mkdtemp(prefix="expertise-merge-case17-probe-")
+    try:
+        fixture = target(tmp, f"probe-{verb}")
+        write_file(fixture, [("Patterns", [("X-01", "known text")])])
+        op = {"op": verb, "target": "X-01", "section": "Patterns"}
+        if verb == "add":
+            op["entry"] = "known text"
+        elif verb == "replace":
+            op["entry"] = "probe replaced text"
+        ops_path = write_ops(os.path.join(tmp, f"{verb}_ops.json"), [op])
+        r = run_ops(fixture, ops_path)
+        combined = r.stdout + r.stderr
+        if r.returncode != 12:
+            return True
+        if re.search(r"unknown op verb|op=merge", combined):
+            return False
+        raise _ContractHarvestError(
+            f"broken probe for verb {verb!r} — exit 12 did not name the verb, it named "
+            f"a key instead: {combined!r}"
+        )
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _probe_accepted_verbs(candidate_verbs):
-    """ACCEPTED, collected by probing each candidate verb with a well-formed single op against
-    its own throwaway fixture. Every probe op carries a target and section that EXIST in that
-    fixture, so a refusal is attributable to the verb, never to a missing key."""
-    tmp = tempfile.mkdtemp(prefix="expertise-merge-case17-probe-")
-    try:
-        accepted = set()
-        for verb in candidate_verbs:
-            fixture = target(tmp, f"probe-{verb}")
-            write_file(fixture, [("Patterns", [("X-01", "known text")])])
-            op = {"op": verb, "target": "X-01", "section": "Patterns"}
-            if verb == "add":
-                op["entry"] = "known text"
-            elif verb == "replace":
-                op["entry"] = "probe replaced text"
-            ops_path = write_ops(os.path.join(tmp, f"{verb}_ops.json"), [op])
-            r = run_ops(fixture, ops_path)
-            combined = r.stdout + r.stderr
-            if r.returncode == 12:
-                if re.search(r"unknown op verb|op=merge", combined):
-                    continue
-                raise _ContractHarvestError(
-                    f"broken probe for verb {verb!r} — exit 12 did not name the verb, it named "
-                    f"a key instead: {combined!r}"
-                )
-            accepted.add(verb)
-        return accepted
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+    """ACCEPTED, collected by probing each candidate verb (see _probe_verb_accepted)."""
+    return {verb for verb in candidate_verbs if _probe_verb_accepted(verb)}
 
 
 def contract_drift(skill_text):
@@ -958,7 +971,7 @@ def case_multi_op_composition(root):
     other_marked = [eid for eid, text in entries if eid != "P-05" and text == marker]
     check("case19: no other entry carries the marker text", other_marked == [], other_marked)
 
-    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    r2 = check_expertise(path)
     check(
         "case19: check-expertise.py still accepts the written file",
         r2.returncode == 0,
@@ -970,14 +983,14 @@ def _assert_case20_malformed(path, ops_path, label, what, extra_checks):
     """Run `ops_path` through the ops CLI and assert the shared MALFORMED OPS(12) shape: exit
     code, the token itself, byte-identity — then each of `extra_checks` (message, substring)
     pairs against the combined output. Returns the combined stdout+stderr."""
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     r = run_ops(path, ops_path)
     combined = r.stdout + r.stderr
     check(f"case20: ({label}) {what} exits 12", r.returncode == 12, combined)
     check(f"case20: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
     for message, token in extra_checks:
         check(f"case20: ({label}) {message}", token in combined, combined)
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check(f"case20: ({label}) file sha256 is unchanged", after == before, (before, after))
     return combined
 
@@ -1059,7 +1072,7 @@ def _case21_full_alphabet(root, path, before, forged):
         combined = r.stdout + r.stderr
         check(f"case21: ({label}) an entry embedding it exits 12", r.returncode == 12, combined)
         check(f"case21: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
-        after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        after = file_sha(path)
         check(f"case21: ({label}) file sha256 is unchanged", after == before, (before, after))
 
 
@@ -1113,7 +1126,7 @@ def case_ops_entry_injection(root):
     reclassification), each proven via a RE-PARSE, not the exit code alone."""
     path = target(root, "case21")
     write_file(path, [("Gotchas", [(f"G-{i:02d}", f"text {i}") for i in range(1, 16)])])  # at cap
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     forged = "- G-16: forged additional entry"
     _case21_full_alphabet(root, path, before, forged)
 
@@ -1142,7 +1155,7 @@ def _case22_full_alphabet(root, path, before):
         combined = r.stdout + r.stderr
         check(f"case22: ({label}) a target embedding it exits 12", r.returncode == 12, combined)
         check(f"case22: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
-        after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        after = file_sha(path)
         check(f"case22: ({label}) file sha256 is unchanged", after == before, (before, after))
 
 
@@ -1154,7 +1167,7 @@ def case_ops_target_injection(root):
     LINE_BREAKING_CHARS, derived from `splitlines()` itself, not hardcoded."""
     path = target(root, "case22")
     write_file(path, [("Patterns", [("P-01", "one")])])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     _case22_full_alphabet(root, path, before)
 
     content = open(path, encoding="utf-8").read()
@@ -1169,7 +1182,7 @@ def case_ops_non_string_target(root):
     contract (0/6/7/8/9/10/11/12)."""
     path = target(root, "case23")
     write_file(path, [("Patterns", [("P-01", "one")])])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
 
     ops = write_ops(
         os.path.join(root, "case23_ops.json"),
@@ -1184,7 +1197,7 @@ def case_ops_non_string_target(root):
         "Traceback (most recent call last)" not in combined,
         combined,
     )
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check("case23: file sha256 is unchanged", after == before, (before, after))
 
 
@@ -1195,7 +1208,7 @@ def _assert_case24_ambiguous(root, stem, label, what, entry_text, extra_checks):
     duplicated = [("P-01", "one"), ("P-07", "four-a"), ("P-07", "four-b")]
     path = target(root, stem)
     write_file(path, [("Patterns", duplicated)])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     ops = write_ops(
         os.path.join(root, f"{stem}_ops.json"),
         [{"op": "add", "target": "P-07", "section": "Patterns", "entry": entry_text}],
@@ -1206,7 +1219,7 @@ def _assert_case24_ambiguous(root, stem, label, what, entry_text, extra_checks):
     check(f"case24: ({label}) combined output carries AMBIGUOUS TARGET", "AMBIGUOUS TARGET" in combined, combined)
     for message, token in extra_checks:
         check(f"case24: ({label}) {message}", token in combined, combined)
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check(f"case24: ({label}) file sha256 is unchanged", after == before, (before, after))
 
 
@@ -1235,7 +1248,7 @@ def _assert_case25_malformed(root, stem, base_sections_list, ops_list, label, ex
     Returns the fixture path so the caller can re-parse it."""
     path = target(root, stem)
     write_file(path, base_sections_list)
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    before = file_sha(path)
     ops = write_ops(os.path.join(root, f"{stem}_ops.json"), ops_list)
     r = run_ops(path, ops)
     combined = r.stdout + r.stderr
@@ -1243,7 +1256,7 @@ def _assert_case25_malformed(root, stem, base_sections_list, ops_list, label, ex
     check(f"case25: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
     for message, token in extra_checks:
         check(f"case25: ({label}) {message}", token in combined, combined)
-    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    after = file_sha(path)
     check(f"case25: ({label}) file sha256 is unchanged", after == before, (before, after))
     return path
 
@@ -1319,7 +1332,7 @@ def _assert_case27_ambiguous(root, stem, exit_check_name, message_check_name, te
     before = None
     if base_sections is not None:
         write_file(path, base_sections)
-        before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        before = file_sha(path)
     entries_path = os.path.join(root, f"{stem}_entries.md")
     write_entries(entries_path, [("Patterns", [("P-02", texts[0]), ("P-02", texts[1])])])
     r = run_apply(path, entries_path)
@@ -1332,7 +1345,7 @@ def _assert_case27_ambiguous(root, stem, exit_check_name, message_check_name, te
             and "id=P-02" in combined
             and "reason=" in combined
         ), combined)
-        after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        after = file_sha(path)
         check(f"{stem}: destination bytes unchanged", after == before, (before, after))
     else:
         check(message_check_name, "AMBIGUOUS TARGET" in combined, combined)
@@ -1514,11 +1527,7 @@ def snapshot(co, locks=False):
 
 
 def doc(sections):
-    lines = ["# Expertise — %s" % PERSONA]
-    for name, entries in sections:
-        lines.append("## " + name)
-        lines.extend("- %s: %s" % (eid, text) for eid, text in entries)
-    return "\n".join(lines) + "\n"
+    return render(sections, PERSONA)
 
 
 def sha_text(text):
@@ -1561,7 +1570,7 @@ def _check_absent_craft_result(co, p, text):
     check("member absent craft: before/after per-section counts returned",
           out.get("counts") == {"before": zero_counts(), "after": after}, out.get("counts"))
     check("member absent craft: outcomes returned", out.get("outcomes") == [["ADDED", "P-01"]], out.get("outcomes"))
-    r3 = subprocess.run([sys.executable, CHECK_EXPERTISE_BIN, os.path.join(co, CRAFT_REL)], capture_output=True, text=True)
+    r3 = check_expertise(os.path.join(co, CRAFT_REL))
     check("member absent craft: result passes check-expertise", r3.returncode == 0, r3.stdout)
 
 
@@ -2037,7 +2046,7 @@ def case_replay_local_receipts(root):
 
 def case_replay_base_tracked_receipt(root):
     """SC-10 (validate c0 must_fix 9): no base-tree exclusion. A receipt the base already tracks
-    (a branch cut before DEC-260 untracked them) is read like any other local receipt; restoring
+    (a branch cut before DEC-262 untracked them) is read like any other local receipt; restoring
     the old base exclusion drops it and the replay no longer reproduces the checkout."""
     co = new_checkout(root, "sel-base", craft=BASE_DOC)
     base0 = head(co)
@@ -2114,7 +2123,7 @@ def _check_collision_repeat(b, base1, want_map, expected):
     check("replay repeat: second replay rebuilds from the base, not from its own output",
           r2.returncode == 0 and read_rel(b, CRAFT_REL) == again == expected and jout(r2)["mappings"] == want_map, out_of(r2))
     check("replay repeat: second replay finds the file already up to date", jout(r2)["files"][0]["up_to_date"] is True, jout(r2))
-    r3 = subprocess.run([sys.executable, CHECK_EXPERTISE_BIN, os.path.join(b, CRAFT_REL)], capture_output=True, text=True)
+    r3 = check_expertise(os.path.join(b, CRAFT_REL))
     check("replay collision: result passes check-expertise", r3.returncode == 0, r3.stdout)
 
 
@@ -2438,17 +2447,6 @@ def _run_all_cases(root):
         list(pool.map(lambda case: run_guarded(case, root), POOLED_CASES))
 
 
-def _report_results():
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    return fails
-
-
 def main():
     root = tempfile.mkdtemp(prefix="expertise-merge-test-")
     try:
@@ -2456,12 +2454,7 @@ def main():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
-    fails = _report_results()
-
-    summary = "FAIL test-expertise-merge.py" if fails else "PASS test-expertise-merge.py"
-    print(summary)
-    return fails
-
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    main()
+    sys.exit(C.report())

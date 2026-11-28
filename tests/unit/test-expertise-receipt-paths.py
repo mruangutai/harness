@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for expertise-merge.py receipt_paths (FEAT-2641 T-06, D-04, DEC-260): receipts are
+"""Unit tests for expertise-merge.py receipt_paths (FEAT-2641 T-06, D-04, DEC-262): receipts are
 local working files read from the feature's notes with no git call and no base exclusion. Plain
 script: one ok/FAIL line per check, exit 1 on any FAIL."""
 import importlib.util

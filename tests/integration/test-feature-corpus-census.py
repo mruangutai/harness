@@ -20,6 +20,8 @@ not detected. check-domain.py's post-write sweep is one (its patterns reach glob
 built from SWEEP_GLOBS). pathlib's Path.glob, os.listdir and os.scandir are not detected either:
 the census exists to catch an unresolved glob of the corpus, not to audit every directory read.
 """
+from integration_support import BIN  # noqa: E402 (first import: the path seam)
+
 import ast
 import os
 import re
@@ -29,8 +31,6 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
 VOCABULARY = ("owner-root", "active-feature", "checkout-local", "not-a-corpus-read")
 MARKER = re.compile(r"#\s*corpus-scope:\s*(\S+)")
 DYN = "<dyn>"
@@ -117,7 +117,7 @@ def statement_lines(tree):
     """`{line: first line of the innermost statement containing it}`."""
     first = {}
     for node in ast.walk(tree):
-        if isinstance(node, ast.stmt) and hasattr(node, "end_lineno"):
+        if isinstance(node, ast.stmt):
             for line in range(node.lineno, node.end_lineno + 1):
                 if line not in first or node.lineno > first[line]:
                     first[line] = node.lineno
@@ -136,12 +136,21 @@ def markers_for(lines, start, end):
     return found
 
 
+def _parse(text):
+    """The module's AST, or None when it cannot hold a site: no glob import, or no parse."""
+    if "glob" not in text:
+        return None
+    try:
+        return ast.parse(text)
+    except SyntaxError:
+        return None
+
+
 def detected_sites(path):
     """`[(line, markers)]` for every detected site in the Python file `path`."""
     text = Path(path).read_text(encoding="utf-8")
-    try:
-        tree = ast.parse(text)
-    except SyntaxError:
+    tree = _parse(text)
+    if tree is None:
         return []
     lines = text.splitlines()
     modules, functions = glob_names(tree)
@@ -156,7 +165,7 @@ def detected_sites(path):
                     and isinstance(func.value, ast.Name) and func.value.id in modules)
                    or (isinstance(func, ast.Name) and func.id in functions))
         if is_glob and enumerates_features(resolver.components(node.args[0])):
-            start = stmts.get(node.lineno, node.lineno)
+            start = stmts[node.lineno]
             sites.append((node.lineno, markers_for(lines, start, node.end_lineno)))
     return sorted(sites)
 
@@ -165,17 +174,16 @@ def census(bin_dir):
     """`{relative file: [(line, markers)]}` over every .py under `bin_dir`."""
     out = {}
     for path in sorted(Path(bin_dir).rglob("*.py")):
-        if "__pycache__" in path.parts:
-            continue
         sites = detected_sites(path)
         if sites:
             out[str(path.relative_to(bin_dir))] = sites
     return out
 
 
-def findings(bin_dir):
+def findings(bin_dir, sites_by_file):
+    """Marker violations over `sites_by_file`, a census of `bin_dir`."""
     bad = []
-    for rel, sites in census(bin_dir).items():
+    for rel, sites in sites_by_file.items():
         names_seam = "feature_corpus" in Path(bin_dir, rel).read_text(encoding="utf-8")
         for line, markers in sites:
             if len(markers) != 1 or markers[0] not in VOCABULARY:
@@ -188,12 +196,16 @@ def findings(bin_dir):
 
 
 class LiveTree(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.sites = census(BIN)                # the live tree is read-only: one scan serves both
+
     def test_every_detected_site_is_marked(self):
-        self.assertEqual(findings(BIN), [])
+        self.assertEqual(findings(BIN, self.sites), [])
 
     def test_the_census_is_not_vacuous(self):
         # A floor, not a figure: the scanner finding nothing would pass the assertion above.
-        self.assertTrue(census(BIN), "the census detected no site at all")
+        self.assertTrue(self.sites, "the census detected no site at all")
 
 
 class Discrimination(unittest.TestCase):
@@ -201,18 +213,25 @@ class Discrimination(unittest.TestCase):
         self.bin = Path(tempfile.mkdtemp(prefix="census-"))
         self.addCleanup(shutil.rmtree, self.bin, True)
 
-    def scan(self, source):
+    def probe(self, source):
         Path(self.bin, "probe.py").write_text(source)
-        return findings(self.bin), census(self.bin)
+
+    def bad(self, source):
+        self.probe(source)
+        return findings(self.bin, census(self.bin))
+
+    def sites(self, source):
+        self.probe(source)
+        return census(self.bin)
 
     def test_an_injected_unmarked_site_fails(self):
-        bad, _ = self.scan("import glob, os\n"
-                           "x = glob.glob(os.path.join(r, '.harness', '*', 'features', '*'))\n")
+        bad = self.bad("import glob, os\n"
+                       "x = glob.glob(os.path.join(r, '.harness', '*', 'features', '*'))\n")
         self.assertEqual(len(bad), 1)
         self.assertIn("probe.py:2 carries no marker", bad[0])
 
     def test_aliases_constants_and_locals_are_resolved(self):
-        _, sites = self.scan(
+        sites = self.sites(
             "import glob as _g\nfrom glob import iglob as walk\nimport os\n"
             "PAT = '.harness/*/features/*/feature.json'\n"
             "def f(r):\n"
@@ -221,7 +240,7 @@ class Discrimination(unittest.TestCase):
         self.assertEqual([line for line, _m in sites["probe.py"]], [7, 8, 9])
 
     def test_shapes_that_are_not_sites(self):
-        _, sites = self.scan(
+        sites = self.sites(
             "import glob, os, re\n"
             "# glob.glob('.harness/*/features/*')\n"
             "TEXT = 'plans = glob.glob(os.path.join(root, \".harness\", \"*\", \"features\", \"*\"))'\n"
@@ -231,22 +250,21 @@ class Discrimination(unittest.TestCase):
         self.assertEqual(sites, {})
 
     def test_one_valid_marker_passes_and_two_fail(self):
-        good, _ = self.scan("import glob\n# corpus-scope: checkout-local\n"
-                            "glob.glob('.harness/*/features/*')\n")
-        self.assertEqual(good, [])
-        two, _ = self.scan("import glob\n# corpus-scope: checkout-local\n"
-                           "glob.glob('.harness/*/features/*')  # corpus-scope: owner-root\n")
-        self.assertEqual(len(two), 1)
-        unknown, _ = self.scan("import glob\n# corpus-scope: everywhere\n"
-                               "glob.glob('.harness/*/features/*')\n")
-        self.assertEqual(len(unknown), 1)
+        cases = (("checkout-local", "", 0),
+                 ("checkout-local", "  # corpus-scope: owner-root", 1),
+                 ("everywhere", "", 1))
+        for above, trailing, expected in cases:
+            with self.subTest(above=above, trailing=trailing):
+                bad = self.bad(f"import glob\n# corpus-scope: {above}\n"
+                               f"glob.glob('.harness/*/features/*'){trailing}\n")
+                self.assertEqual(len(bad), expected)
 
     def test_an_owner_root_site_must_name_the_seam(self):
-        bad, _ = self.scan("import glob\n# corpus-scope: owner-root\n"
-                           "glob.glob('.harness/*/features/*')\n")
+        bad = self.bad("import glob\n# corpus-scope: owner-root\n"
+                       "glob.glob('.harness/*/features/*')\n")
         self.assertIn("does not name feature_corpus", bad[0])
-        ok, _ = self.scan("import glob, feature_corpus\n# corpus-scope: owner-root\n"
-                          "glob.glob('.harness/*/features/*')\n")
+        ok = self.bad("import glob, feature_corpus\n# corpus-scope: owner-root\n"
+                      "glob.glob('.harness/*/features/*')\n")
         self.assertEqual(ok, [])
 
 

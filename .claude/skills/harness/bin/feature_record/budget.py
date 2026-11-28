@@ -92,7 +92,7 @@ def cmd_set_mission(args):
 
 
 def cmd_project_note(args):
-    """Claim one `.harness/notes/<name>` path in project_notes (DEC-260); the working-file
+    """Claim one `.harness/notes/<name>` path in project_notes (DEC-262); the working-file
     cleanup deletes only the notes listed there. A repeat claim leaves the bytes unchanged."""
     try:
         path = validate_project_note(args.path)

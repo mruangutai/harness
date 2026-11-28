@@ -376,7 +376,7 @@ def cmd_set_feature_station(args):
 
 def _clean_rejected(plan_path):
     """Remove the feature's local working files once `rejected` has landed (FEAT-2641 D-05,
-    DEC-260). 0 when clean or nothing to clean; 10 when the station is recorded but cleanup
+    DEC-262). 0 when clean or nothing to clean; 10 when the station is recorded but cleanup
     failed, with the paths already removed and the retry command."""
     feature_dir = os.path.dirname(plan_path)
     removed = []

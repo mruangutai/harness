@@ -24,11 +24,8 @@ sides — never by string prefix. If it does not, this suite stops without creat
 resolution that escaped the fixture would create a real worktree and a real branch in this very
 checkout.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT as _ROOT, BIN
+import itertools
 import json
 import os
 import shutil
@@ -42,18 +39,18 @@ import yaml
 
 import harness_boundary
 from isolated_bin import isolated_bin
+from check_support import Checks, raises
+from git_support import git, checked_git, init_repo, commit_all, commit_files
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-CLI = os.environ.get("FEATURE_WORKTREE_BIN") or os.path.join(HERE, "feature-worktree.py")
+ROOT = str(_ROOT)
+CLI = os.environ.get("FEATURE_WORKTREE_BIN") or str(BIN / "feature-worktree.py")
 
-RESULTS = []
+C = Checks()
+check = C.check
 
 
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+def _out(r):
+    return f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}"
 
 
 def run_cli(args, fx):
@@ -62,21 +59,6 @@ def run_cli(args, fx):
     return subprocess.run(
         [sys.executable, CLI] + args, capture_output=True, text=True, env=env
     )
-
-
-def _git(cwd, args, check_ok=True):
-    r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
-    if check_ok and r.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)} in {cwd} failed: {r.stderr}")
-    return r
-
-
-def _init_repo(path, default_branch):
-    os.makedirs(path, exist_ok=True)
-    _git(path, ["init", "-q"])
-    _git(path, ["symbolic-ref", "HEAD", f"refs/heads/{default_branch}"])
-    _git(path, ["config", "user.email", "test@example.com"])
-    _git(path, ["config", "user.name", "Test"])
 
 
 def _is_under(path, root):
@@ -93,28 +75,20 @@ def build_fixture(root):
     workspace = os.path.join(root, "workspace")
     repoB = os.path.join(workspace, "repoB")
 
-    _init_repo(repoA, "main")
-    os.makedirs(os.path.join(repoA, ".harness", "harness", "docs"), exist_ok=True)
-    with open(os.path.join(repoA, ".harness", "harness", "docs", "SPEC.md"), "w") as f:
-        f.write("# fixture SPEC\n")
-    with open(os.path.join(repoA, ".harness", "team-config.yaml"), "w") as f:
-        f.write("agents: {}\n")
-    os.makedirs(os.path.join(repoA, ".harness", "factory"), exist_ok=True)
+    init_repo(repoA, "main", git=checked_git)
     fleet = {
         "schema": "factory-fleet/1",
         "repos": [{"name": "org/repoB", "default_branch": "master"}],
         "workspace_root": workspace,
     }
-    with open(os.path.join(repoA, ".harness", "factory", "fleet.yaml"), "w") as f:
-        yaml.safe_dump(fleet, f)
-    _git(repoA, ["add", "-A"])
-    _git(repoA, ["commit", "-q", "-m", "init"])
+    commit_files(repoA, {
+        ".harness/harness/docs/SPEC.md": "# fixture SPEC\n",
+        ".harness/team-config.yaml": "agents: {}\n",
+        ".harness/factory/fleet.yaml": yaml.safe_dump(fleet),
+    }, "init", git=checked_git)
 
-    _init_repo(repoB, "master")
-    with open(os.path.join(repoB, "README.md"), "w") as f:
-        f.write("repoB\n")
-    _git(repoB, ["add", "-A"])
-    _git(repoB, ["commit", "-q", "-m", "init"])
+    init_repo(repoB, "master", git=checked_git)
+    commit_files(repoB, {"README.md": "repoB\n"}, "init", git=checked_git)
 
     return {"repoA": repoA, "workspace": workspace, "repoB": repoB}
 
@@ -128,7 +102,7 @@ def run_guard(fx, root):
     check(
         "GUARD: path --repo harness --id FEAT-90 resolves inside the fixture directory",
         ok,
-        f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}",
+        _out(r),
     )
     return ok
 
@@ -143,34 +117,30 @@ WT = [
 
 def _expected_owner(fx, repo):
     if repo == "harness":
-        return fx["repoA"], "harness", "main", "repoA"
-    return fx["repoB"], "repoB", "master", "repoB"
+        owner_root, segment, default_branch, repo_key = fx["repoA"], "harness", "main", "repoA"
+    else:
+        owner_root, segment, default_branch, repo_key = fx["repoB"], "repoB", "master", "repoB"
+    return {"repo": repo, "owner_root": owner_root, "segment": segment,
+            "default_branch": default_branch, "repo_key": repo_key}
+
+
+def _tips(fx):
+    return {
+        "repoA": git(fx["repoA"], "rev-parse", "main").stdout.strip(),
+        "repoB": git(fx["repoB"], "rev-parse", "master").stdout.strip(),
+    }
 
 
 def create_four(fx):
     created = {}
     for repo, fid in WT:
-        r = run_cli(["create", "--repo", repo, "--id", fid], fx)
-        ok = r.returncode == 0
-        check(
-            f"create {repo} {fid} succeeds",
-            ok,
-            f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}",
-        )
-        dest = r.stdout.strip().splitlines()[-1] if ok and r.stdout.strip() else None
-        owner_root, segment, default_branch, repo_key = _expected_owner(fx, repo)
-        created[fid] = {
-            "repo": repo,
-            "owner_root": owner_root,
-            "segment": segment,
-            "default_branch": default_branch,
-            "repo_key": repo_key,
-            "dest": dest,
-        }
+        info, r = create_one(fx, repo, fid)
+        check(f"create {repo} {fid} succeeds", r.returncode == 0, _out(r))
+        created[fid] = info
     return created
 
 
-def case_layout(fx, created):
+def case_layout(created):
     for fid, info in created.items():
         expected = os.path.join(
             info["owner_root"], harness_boundary.WORKTREES_SEGMENT, info["segment"], fid
@@ -203,7 +173,7 @@ def case_conflation_guard(fx, created):
         )
 
 
-def case_isolation(fx, created):
+def case_isolation(created):
     for fid, info in created.items():
         with open(os.path.join(info["dest"], f"marker-{fid}.txt"), "w") as f:
             f.write(fid + "\n")
@@ -226,10 +196,10 @@ def case_isolation(fx, created):
             )
 
 
-def case_branch_isolation(fx, created):
+def case_branch_isolation(created):
     branches = {}
     for fid, info in created.items():
-        r = _git(info["dest"], ["rev-parse", "--abbrev-ref", "HEAD"], check_ok=False)
+        r = git(info["dest"], "rev-parse", "--abbrev-ref", "HEAD", check=False)
         branches[fid] = r.stdout.strip()
     for fid in created:
         expected = f"feat/{fid}"
@@ -248,12 +218,12 @@ def case_branch_isolation(fx, created):
             )
 
 
-def case_cut_point(fx, created, tips_before):
+def case_cut_point(created, tips_before):
     for fid, info in created.items():
         owner_root = info["owner_root"]
         default_branch = info["default_branch"]
         branch = f"feat/{fid}"
-        r = _git(owner_root, ["merge-base", branch, default_branch], check_ok=False)
+        r = git(owner_root, "merge-base", branch, default_branch, check=False)
         mb = r.stdout.strip()
         expected = tips_before[info["repo_key"]]
         check(
@@ -266,7 +236,7 @@ def case_cut_point(fx, created, tips_before):
 def case_clone_not_moved(fx):
     exists = os.path.isdir(fx["repoB"])
     git_dir = os.path.isdir(os.path.join(fx["repoB"], ".git"))
-    r = _git(fx["repoB"], ["rev-parse", "--abbrev-ref", "HEAD"], check_ok=False)
+    r = git(fx["repoB"], "rev-parse", "--abbrev-ref", "HEAD", check=False)
     branch = r.stdout.strip()
     check("REQ-07: workspace_root/repoB still exists", exists, fx["repoB"])
     check("REQ-07: workspace_root/repoB still holds its .git directory", git_dir, fx["repoB"])
@@ -284,7 +254,7 @@ def case_refuse_existing(fx, created):
     check(
         "create refuses an existing destination: second create for repoA FEAT-90 exits 3",
         r.returncode == 3,
-        f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}",
+        _out(r),
     )
     still_there = os.path.exists(marker)
     check(
@@ -323,16 +293,14 @@ def create_one(fx, repo, fid):
     the T-01 cases use, plus the raw subprocess result so a caller can assert on it."""
     r = run_cli(["create", "--repo", repo, "--id", fid], fx)
     dest = r.stdout.strip().splitlines()[-1] if r.returncode == 0 and r.stdout.strip() else None
-    owner_root, segment, default_branch, repo_key = _expected_owner(fx, repo)
-    info = {
-        "repo": repo,
-        "owner_root": owner_root,
-        "segment": segment,
-        "default_branch": default_branch,
-        "repo_key": repo_key,
-        "dest": dest,
-    }
-    return info, r
+    return {**_expected_owner(fx, repo), "dest": dest}, r
+
+
+def create_ok(fx, repo, fid):
+    """create_one for a case whose fixture needs the worktree: asserts the create succeeded."""
+    info, r = create_one(fx, repo, fid)
+    assert r.returncode == 0, f"fixture setup for {fid} failed: rc={r.returncode} stderr={r.stderr!r}"
+    return info
 
 
 def _commit_artifact(dest, segment, fid, content, message):
@@ -343,20 +311,18 @@ def _commit_artifact(dest, segment, fid, content, message):
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     with open(abs_path, "w") as f:
         f.write(content)
-    _git(dest, ["add", "-A"])
-    _git(dest, ["commit", "-q", "-m", message])
+    commit_all(dest, message, git=checked_git)
     return rel
 
 
 def _merge_into_default(owner_root, fid):
     """Merge feat/<fid> into whatever branch is currently checked out in owner_root — the
     default branch, since `create` never switches owner_root's own checkout."""
-    _git(owner_root, ["merge", "-q", f"feat/{fid}"])
+    git(owner_root, "merge", "-q", f"feat/{fid}")
 
 
 def case_remove_dirty_untracked(fx):
-    info, r = create_one(fx, "harness", "FEAT-94")
-    assert r.returncode == 0, f"fixture setup for FEAT-94 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-94")
     untracked = os.path.join(info["dest"], "untracked.txt")
     with open(untracked, "w") as f:
         f.write("scratch\n")
@@ -365,7 +331,7 @@ def case_remove_dirty_untracked(fx):
     check(
         "SC-07 refuse (untracked): remove exits 4",
         r2.returncode == 4,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         "SC-07 refuse (untracked): stdout names WOULD DISCARD untracked.txt",
@@ -380,8 +346,7 @@ def case_remove_dirty_untracked(fx):
 
 
 def case_remove_dirty_tracked(fx):
-    info, r = create_one(fx, "harness", "FEAT-95")
-    assert r.returncode == 0, f"fixture setup for FEAT-95 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-95")
     _commit_artifact(info["dest"], info["segment"], "FEAT-95", "landed\n", "add artifact")
     _merge_into_default(info["owner_root"], "FEAT-95")
 
@@ -393,7 +358,7 @@ def case_remove_dirty_tracked(fx):
     check(
         "SC-07 refuse (tracked): remove exits 4 on an otherwise fully landed tree",
         r2.returncode == 4,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         "SC-07 refuse (tracked): stdout names WOULD DISCARD .harness/team-config.yaml",
@@ -403,15 +368,14 @@ def case_remove_dirty_tracked(fx):
 
 
 def case_landed_refuse_then_allow(fx):
-    info, r = create_one(fx, "harness", "FEAT-96")
-    assert r.returncode == 0, f"fixture setup for FEAT-96 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-96")
     rel = _commit_artifact(info["dest"], info["segment"], "FEAT-96", "v1\n", "add artifact")
 
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-96"], fx)
     check(
         "SC-04 refuse: remove exits 5 when the artifact is unmerged",
         r2.returncode == 5,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         f"SC-04 refuse: stdout names MISSING {rel}",
@@ -429,7 +393,7 @@ def case_landed_refuse_then_allow(fx):
     check(
         "SC-04 allow: remove exits 0 once the artifact is landed",
         r3.returncode == 0,
-        f"rc={r3.returncode} stdout={r3.stdout!r} stderr={r3.stderr!r}",
+        _out(r3),
     )
     check(
         f"SC-04 allow: stdout names VERIFIED {rel}",
@@ -450,22 +414,20 @@ def case_landed_refuse_then_allow(fx):
 
 
 def case_landed_differs(fx):
-    info, r = create_one(fx, "harness", "FEAT-97")
-    assert r.returncode == 0, f"fixture setup for FEAT-97 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-97")
     rel = _commit_artifact(info["dest"], info["segment"], "FEAT-97", "v1\n", "add artifact")
     _merge_into_default(info["owner_root"], "FEAT-97")
 
     abs_path = os.path.join(info["dest"], rel)
     with open(abs_path, "w") as f:
         f.write("v2 - changed after landing\n")
-    _git(info["dest"], ["add", "-A"])
-    _git(info["dest"], ["commit", "-q", "-m", "change artifact, do not merge"])
+    commit_all(info["dest"], "change artifact, do not merge", git=checked_git)
 
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-97"], fx)
     check(
         "SC-04 differs: remove exits 5 when worktree and default-branch blobs differ",
         r2.returncode == 5,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         f"SC-04 differs: stdout names DIFFERS {rel}",
@@ -480,15 +442,14 @@ def case_landed_differs(fx):
 
 
 def case_no_artifact_directory(fx):
-    info, r = create_one(fx, "harness", "FEAT-98")
-    assert r.returncode == 0, f"fixture setup for FEAT-98 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-98")
     expected_dir = os.path.join(".harness", info["segment"], "features", "FEAT-98")
 
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-98"], fx)
     check(
         "no artifact directory at all: remove exits 5",
         r2.returncode == 5,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         f"no artifact directory at all: stdout names the directory {expected_dir}",
@@ -507,8 +468,7 @@ def case_behind_default_branch(fx):
     """`behind` refuses a worktree whose HEAD trails the default branch. FEAT-31's real
     incident: six commits behind, and the gap held expertise-merge.py and DEC-197 — a tool
     and a decision two of its own tasks needed. Nothing reported it."""
-    info, r = create_one(fx, "harness", "FEAT-81")
-    assert r.returncode == 0, f"fixture setup for FEAT-81 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-81")
     dest = info["dest"]
 
     # CASE A — freshly cut, so it is current by construction. This fixture has no origin,
@@ -518,23 +478,20 @@ def case_behind_default_branch(fx):
     check(
         "behind: a freshly cut worktree is current, exit 0",
         r0.returncode == 0 and "current with LOCAL main" in r0.stdout,
-        f"rc={r0.returncode} stdout={r0.stdout!r} stderr={r0.stderr!r}",
+        _out(r0),
     )
 
     # Move main forward by two commits, in the OWNER checkout, so the worktree trails it.
-    marker = os.path.join(fx["repoA"], "moved-ahead.txt")
     for n in (1, 2):
-        with open(marker, "w") as f:
-            f.write(f"commit {n}\n")
-        _git(fx["repoA"], ["add", "-A"])
-        _git(fx["repoA"], ["commit", "-q", "-m", f"main moves ahead {n}"])
+        commit_files(fx["repoA"], {"moved-ahead.txt": f"commit {n}\n"}, f"main moves ahead {n}",
+                     git=checked_git)
 
     # CASE B — now two behind. Exit 6, and the COUNT is named.
     r1 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
     check(
         "behind: two commits behind main exits 6",
         r1.returncode == 6,
-        f"rc={r1.returncode} stdout={r1.stdout!r} stderr={r1.stderr!r}",
+        _out(r1),
     )
     check(
         "behind: the refusal names the count, not just that it is behind",
@@ -560,12 +517,12 @@ def case_behind_default_branch(fx):
     )
 
     # CASE C — merging main in clears it. Proves the remedy the message prints works.
-    _git(dest, ["merge", "-q", "main", "-m", "pull main"])
+    git(dest, "merge", "-q", "main", "-m", "pull main")
     r2 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
     check(
         "behind: after the printed merge command, it is current again, exit 0",
         r2.returncode == 0 and "current with LOCAL main" in r2.stdout,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
 
     # CASE D — an absent worktree is exit 3, distinct from behind. A single non-zero code
@@ -593,36 +550,34 @@ def case_behind_default_branch(fx):
         return
     # The mutant runs from a complete private bin copy, so its sibling imports resolve
     # without exposing a transient executable in the shared live tree.
-    iso_root = tempfile.mkdtemp()
-    mutant = os.path.join(isolated_bin(iso_root), ".mutant-feature-worktree-behind.py")
-    with open(mutant, "w") as f:
-        f.write(mutant_text)
+    with tempfile.TemporaryDirectory() as iso_root:
+        mutant = os.path.join(isolated_bin(iso_root), ".mutant-feature-worktree-behind.py")
+        with open(mutant, "w") as f:
+            f.write(mutant_text)
 
-    # Put the worktree back to two-behind so the mutant faces the same input as CASE B.
-    _git(dest, ["reset", "-q", "--hard", "HEAD~1"])
-    env = dict(os.environ, HARNESS_PROJECT_DIR=fx["repoA"], FEATURE_WORKTREE_BIN=mutant)
-    rm = subprocess.run(
-        [sys.executable, mutant, "behind", "--repo", "harness", "--id", "FEAT-81"],
-        capture_output=True, text=True, env=env,
-    )
-    rb = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
-    try:
-        check(
-            f"behind RED: original refuses (rc={rb.returncode}) where the mutant passes "
-            f"(rc={rm.returncode}), so CASE B discriminates",
-            rb.returncode == 6 and rm.returncode == 0,
-            f"original rc={rb.returncode} stderr={rb.stderr!r} | mutant rc={rm.returncode} "
-            f"stdout={rm.stdout!r} stderr={rm.stderr!r}",
+        # Put the worktree back to two-behind so the mutant faces the same input as CASE B.
+        git(dest, "reset", "-q", "--hard", "HEAD~1")
+        env = dict(os.environ, HARNESS_PROJECT_DIR=fx["repoA"], FEATURE_WORKTREE_BIN=mutant)
+        rm = subprocess.run(
+            [sys.executable, mutant, "behind", "--repo", "harness", "--id", "FEAT-81"],
+            capture_output=True, text=True, env=env,
         )
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+        rb = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
+    check(
+        f"behind RED: original refuses (rc={rb.returncode}) where the mutant passes "
+        f"(rc={rm.returncode}), so CASE B discriminates",
+        rb.returncode == 6 and rm.returncode == 0,
+        f"original rc={rb.returncode} stderr={rb.stderr!r} | mutant rc={rm.returncode} "
+        f"stdout={rm.stdout!r} stderr={rm.stderr!r}",
+    )
+
 
 def case_undeclared_repo(fx):
     r = run_cli(["list", "--repo", "org/nope"], fx)
     check(
         "undeclared --repo org/nope exits 2",
         r.returncode == 2,
-        f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}",
+        _out(r),
     )
     check(
         "undeclared --repo org/nope names fleet.yaml on stderr",
@@ -668,6 +623,12 @@ def assert_commit_isolation(trees):
                 capture_output=True, text=True, check=True,
             ).stdout.splitlines()
         )
+        reachable = set(
+            subprocess.run(
+                ["git", "-C", t["dest"], "rev-list", t["branch"]],
+                capture_output=True, text=True, check=True,
+            ).stdout.split()
+        )
         for other in trees:
             if other is t:
                 continue
@@ -678,11 +639,7 @@ def assert_commit_isolation(trees):
                     f"{foreign_files!r}"
                 )
             for other_sha in other["shas"]:
-                r = subprocess.run(
-                    ["git", "-C", t["dest"], "merge-base", "--is-ancestor", other_sha, t["branch"]],
-                    capture_output=True, text=True,
-                )
-                if r.returncode == 0:
+                if other_sha in reachable:
                     raise IsolationViolation(
                         f"branch {t['branch']} carries foreign sha {other_sha} from "
                         f"{other['fid']}"
@@ -811,6 +768,22 @@ def _windows_overlap(a, b):
     return a["t_start"] <= b["t_end"] and b["t_start"] <= a["t_end"]
 
 
+def _all_overlap(results):
+    return all(_windows_overlap(a, b) for a, b in itertools.combinations(results, 2))
+
+
+def _tree_records(results, base_of):
+    """The per-tree records assert_commit_isolation takes, one per committer result."""
+    return [
+        {
+            "fid": r["fid"], "dest": r["dest"], "branch": r["branch"],
+            "shas": _resolve_owning_shas(r["dest"], r["files"]), "files": r["files"],
+            "base": base_of(r),
+        }
+        for r in results
+    ]
+
+
 def case_concurrent_isolation(fx, created, tips_before):
     """SC-01b case A — the positive direction, four worktrees. Drives four concurrent
     committers against the four worktrees SC-01's cases already created through the CLI,
@@ -828,28 +801,13 @@ def case_concurrent_isolation(fx, created, tips_before):
     if not all_ok:
         return
 
-    pairs_checked = 0
-    overlapped = True
-    for i in range(len(results)):
-        for j in range(i + 1, len(results)):
-            pairs_checked += 1
-            if not _windows_overlap(results[i], results[j]):
-                overlapped = False
     check(
         "SC-01b case A: all six pairwise write windows genuinely overlapped under contention",
-        overlapped and pairs_checked == 6,
-        f"pairs_checked={pairs_checked} "
+        _all_overlap(results),
         f"windows={[(r['fid'], r['t_start'], r['t_end']) for r in results]}",
     )
 
-    trees = [
-        {
-            "fid": r["fid"], "dest": r["dest"], "branch": r["branch"],
-            "shas": _resolve_owning_shas(r["dest"], r["files"]), "files": r["files"],
-            "base": tips_before[created[r["fid"]]["repo_key"]],
-        }
-        for r in results
-    ]
+    trees = _tree_records(results, lambda r: tips_before[created[r["fid"]]["repo_key"]])
     try:
         assert_commit_isolation(trees)
         isolation_holds, detail = True, ""
@@ -861,10 +819,7 @@ def case_concurrent_isolation(fx, created, tips_before):
         detail,
     )
 
-    tips_after = {
-        "repoA": _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip(),
-        "repoB": _git(fx["repoB"], ["rev-parse", "master"]).stdout.strip(),
-    }
+    tips_after = _tips(fx)
     check(
         "SC-01b case A: no branch outside the four expected ones advanced "
         "(repoA main, repoB master unchanged)",
@@ -876,10 +831,8 @@ def case_concurrent_isolation(fx, created, tips_before):
         dest = created[r["fid"]]["dest"]
         # case_isolation (run earlier in main()) leaves an untracked marker-<fid>.txt in
         # every worktree by design; scope this check to the files our own commits touch.
-        status = _git(
-            dest, ["status", "--porcelain", "--", f"{r['fid']}-*.txt"],
-        ).stdout.strip()
-        head = _git(dest, ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
+        status = git(dest, "status", "--porcelain", "--", f"{r['fid']}-*.txt").stdout.strip()
+        head = git(dest, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
         check(
             f"SC-01b case A: {r['fid']} working directory is clean after concurrent commits "
             "(scoped to this case's own files)",
@@ -902,12 +855,9 @@ def case_shared_checkout_negative(root):
     that returns without raising when it should not have — is the failure mode this case
     exists to catch, so a non-raise on a fully-successful shared run is a hard failure."""
     shared = os.path.join(root, "shared-checkout")
-    _init_repo(shared, "main")
-    with open(os.path.join(shared, "seed.txt"), "w") as f:
-        f.write("seed\n")
-    _git(shared, ["add", "-A"])
-    _git(shared, ["commit", "-q", "-m", "seed"])
-    base = _git(shared, ["rev-parse", "main"]).stdout.strip()
+    init_repo(shared, "main", git=checked_git)
+    commit_files(shared, {"seed.txt": "seed\n"}, "seed", git=checked_git)
+    base = git(shared, "rev-parse", "main").stdout.strip()
 
     specs = [(shared, "main", f"SHARED-{i}") for i in range(4)]
     results = drive_committers(specs)
@@ -915,36 +865,20 @@ def case_shared_checkout_negative(root):
     committer_failed = len(ok_results) != len(results)
 
     if len(ok_results) >= 2:
-        overlapped = True
-        for i in range(len(ok_results)):
-            for j in range(i + 1, len(ok_results)):
-                if not _windows_overlap(ok_results[i], ok_results[j]):
-                    overlapped = False
         check(
             "SC-01b case B: the successful committers' write windows genuinely overlapped",
-            overlapped,
+            _all_overlap(ok_results),
             f"windows={[(r['fid'], r['t_start'], r['t_end']) for r in ok_results]}",
         )
-
-    shared_records = [
-        {
-            "fid": r["fid"], "dest": r["dest"], "branch": r["branch"],
-            "shas": _resolve_owning_shas(r["dest"], r["files"]), "files": r["files"], "base": base,
-        }
-        for r in ok_results
-    ]
 
     if committer_failed:
         detected, detail = True, f"committer failure recorded on the shared checkout: {results}"
     else:
-        try:
-            assert_commit_isolation(shared_records)
-        except IsolationViolation as exc:
-            detected, detail = True, f"IsolationViolation raised: {exc}"
-        else:
-            raise AssertionError(
-                "assert_commit_isolation did not detect the shared-checkout collision"
-            )
+        err = raises(lambda: assert_commit_isolation(_tree_records(ok_results, lambda r: base)),
+                     IsolationViolation)
+        detected = err is not None
+        detail = (f"IsolationViolation raised: {err}" if detected
+                  else "assert_commit_isolation did not detect the shared-checkout collision")
 
     check(
         "SC-01b case B: the shared-checkout collision was detected "
@@ -965,8 +899,7 @@ def case_gitignored_artifact_does_not_block(fx):
     under notes/, runs/ or observations/ is GATE 2b's to refuse, so the fixture's arbitrary ignore
     is a scratch/ directory GATE 2b does not read — one TRACKED artifact that IS landed, plus one
     IGNORED file that never can be. The pre-fix code exits 5 naming the ignored path."""
-    info, r = create_one(fx, "harness", "FEAT-74")
-    assert r.returncode == 0, f"fixture setup for FEAT-74 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-74")
     dest, seg = info["dest"], info["segment"]
 
     # The ignore rule, committed on the feature branch and merged, exactly as the real repo has it.
@@ -981,14 +914,14 @@ def case_gitignored_artifact_does_not_block(fx):
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
         f.write("a digest that is ignored by construction\n")
-    st = _git(dest, ["status", "--porcelain"]).stdout.strip()
+    st = git(dest, "status", "--porcelain").stdout.strip()
     check("#726 fixture: the ignored run file leaves the tree CLEAN", st == "", repr(st))
 
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-74"], fx)
     check(
         "#726: an IGNORED artifact does not block remove",
         r2.returncode == 0,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         "#726: stdout never names the ignored path as MISSING",
@@ -1009,8 +942,7 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
     Without this case, `if path not in main: continue` passes case_gitignored_artifact_does_not_block
     and silently deletes worktrees holding genuinely unlanded work. Same fixture, except the
     TRACKED artifact is never merged. Gate 3 must still refuse."""
-    info, r = create_one(fx, "harness", "FEAT-71")
-    assert r.returncode == 0, f"fixture setup for FEAT-71 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-71")
     dest, seg = info["dest"], info["segment"]
 
     with open(os.path.join(dest, ".gitignore"), "w") as f:
@@ -1027,7 +959,7 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
     check(
         "#726 guard: an UNLANDED TRACKED artifact still refuses, exit 5",
         r2.returncode == 5,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         f"#726 guard: stdout names MISSING {rel}",
@@ -1039,11 +971,10 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
 
 def case_remove_refuses_aborted_run_evidence(fx):
     """BUG-2399, FEAT-2641 GATE 2b — an ABORTED run (written, never closed) is an ignored working
-    file under the canonical repository ignore rules (DEC-260), so GATE 2 sees a clean tree and
+    file under the canonical repository ignore rules (DEC-262), so GATE 2 sees a clean tree and
     GATE 2b refuses (exit 4), naming the runs/ directory with its file count and the clean
     command, and keeps the tree and both records byte-identical."""
-    info, r = create_one(fx, "harness", "FEAT-75")
-    assert r.returncode == 0, f"fixture setup for FEAT-75 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-75")
     dest, seg = info["dest"], info["segment"]
     shutil.copyfile(os.path.join(ROOT, ".gitignore"), os.path.join(dest, ".gitignore"))
     _commit_artifact(dest, seg, "FEAT-75", "v1\n", "add artifact and canonical ignore rules")
@@ -1063,7 +994,7 @@ def case_remove_refuses_aborted_run_evidence(fx):
     check(
         "BUG-2399 aborted run: remove refuses with exit 4 (GATE 2b)",
         r2.returncode == 4,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         "BUG-2399 aborted run: stdout names the runs/ directory with its file count",
@@ -1078,7 +1009,7 @@ def case_remove_refuses_aborted_run_evidence(fx):
           os.path.isdir(dest) and survived, dest)
 
 
-# FEAT-2641 (DEC-260): the four working-file ignore rules the repository carries.
+# FEAT-2641 (DEC-262): the four working-file ignore rules the repository carries.
 WORKING_IGNORE = (".harness/*/features/*/notes/\n.harness/*/features/*/runs/\n"
                   ".harness/*/features/*/observations/\n.harness/notes/\n")
 WORKING_FILES = (os.path.join("notes", "x.md"), os.path.join("runs", "r", "digest.md"),
@@ -1100,9 +1031,9 @@ def _commit_ignore(dest):
     """Write and commit the four working-file rules alone, before anything else is staged. A
     branch cut after an earlier case merged them already carries them, so nothing is committed."""
     _write(os.path.join(dest, ".gitignore"), WORKING_IGNORE)
-    _git(dest, ["add", ".gitignore"])
-    if _git(dest, ["diff", "--cached", "--quiet"], check_ok=False).returncode:
-        _git(dest, ["commit", "-q", "-m", "working-file ignore rules"])
+    git(dest, "add", ".gitignore")
+    if git(dest, "diff", "--cached", "--quiet", check=False).returncode:
+        git(dest, "commit", "-q", "-m", "working-file ignore rules")
 
 
 def _commit_record(dest, rel_dir, station, message, project_notes=None):
@@ -1110,8 +1041,8 @@ def _commit_record(dest, rel_dir, station, message, project_notes=None):
     _write(os.path.join(dest, rel_dir, "plan.yaml"), f"status: {station}\n")
     doc = {} if project_notes is None else {"project_notes": project_notes}
     _write(os.path.join(dest, rel_dir, "feature.json"), json.dumps(doc) + "\n")
-    _git(dest, ["add", "-A"])
-    _git(dest, ["commit", "-q", "-m", message])
+    git(dest, "add", "-A")
+    git(dest, "commit", "-q", "-m", message)
 
 
 def _working_fixture(fx, wt_id, feature, owner_station, wt_station, project_notes=None):
@@ -1119,8 +1050,7 @@ def _working_fixture(fx, wt_id, feature, owner_station, wt_station, project_note
     first, alone), holding .harness/harness/features/<feature> with plan.yaml at `wt_station`.
     The owner copy reads `owner_station` (merged into main) or is absent when that is None.
     Ignored notes/x.md, runs/r/digest.md and observations/a.md are written last."""
-    info, r = create_one(fx, "harness", wt_id)
-    assert r.returncode == 0, f"fixture setup for {wt_id} failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", wt_id)
     dest = info["dest"]
     _commit_ignore(dest)
     rel_dir = os.path.join(".harness", "harness", "features", feature)
@@ -1170,15 +1100,14 @@ def case_gate_2b_refuses_ignored_working_files(fx):
 
 def case_gate_2b_ignores_committed_notes(fx):
     """D-08: GATE 2b reads untracked files only; a committed notes file is GATE 3's to grade."""
-    info, r = create_one(fx, "harness", "FEAT-61")
-    assert r.returncode == 0, f"fixture setup for FEAT-61 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-61")
     dest = info["dest"]
     _commit_ignore(dest)
     rel_dir = os.path.join(".harness", "harness", "features", "FEAT-61")
     _write(os.path.join(dest, rel_dir, "plan.yaml"), "status: done\n")
     _write(os.path.join(dest, rel_dir, "notes", "committed.md"), "tracked\n")
-    _git(dest, ["add", "-f", "-A"])
-    _git(dest, ["commit", "-q", "-m", "committed notes file"])
+    git(dest, "add", "-f", "-A")
+    git(dest, "commit", "-q", "-m", "committed notes file")
     _merge_into_default(info["owner_root"], "FEAT-61")
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-61"], fx)
     check("GATE 2b: a committed notes file alone does not trigger it",
@@ -1301,13 +1230,12 @@ def case_clean_short_id_and_root(root):
 def _unignored_fixture(fx, wt_id):
     """A harness worktree whose committed .gitignore is empty, so its feature's notes/x.md,
     runs/r/digest.md and observations/a.md are untracked and NOT ignored."""
-    info, r = create_one(fx, "harness", wt_id)
-    assert r.returncode == 0, f"fixture setup for {wt_id} failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", wt_id)
     dest = info["dest"]
     _write(os.path.join(dest, ".gitignore"), "")
-    _git(dest, ["add", ".gitignore"])
-    if _git(dest, ["diff", "--cached", "--quiet"], check_ok=False).returncode:
-        _git(dest, ["commit", "-q", "-m", "a checkout without the working-file ignore rules"])
+    git(dest, "add", ".gitignore")
+    if git(dest, "diff", "--cached", "--quiet", check=False).returncode:
+        git(dest, "commit", "-q", "-m", "a checkout without the working-file ignore rules")
     rel_dir = os.path.join(".harness", "harness", "features", wt_id)
     _commit_record(dest, rel_dir, "done", "record")
     _write_working_files(dest, rel_dir)
@@ -1335,8 +1263,7 @@ def case_gate_2b_counts_unignored_working_files(fx):
 def case_clean_refuses_symlinked_ancestor(fx):
     """must_fix 1: a retained worktree whose features/ directory is a symlink into another tree
     refuses clean with exit 7, and that tree's real working files survive."""
-    info, r = create_one(fx, "harness", "FEAT-68")
-    assert r.returncode == 0, f"fixture setup for FEAT-68 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-68")
     victim = os.path.join(os.path.dirname(fx["repoA"]), "victim-68")
     rel_dir = os.path.join(".harness", "harness", "features", "FEAT-68")
     _write(os.path.join(victim, rel_dir, "plan.yaml"), "status: done\n")
@@ -1403,8 +1330,7 @@ def case_short_id_resolves_to_the_flow_directory(fx):
     ARTIFACT DIRECTORY, long fails gate 1 with "not a linked worktree".
 
     The fixture creates the worktree short and the artifact long, which is the real shape."""
-    info, r = create_one(fx, "harness", "FEAT-72")
-    assert r.returncode == 0, f"fixture setup for FEAT-72 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-72")
     dest, seg = info["dest"], info["segment"]
 
     rel = _commit_artifact(dest, seg, "FEAT-72-a-slugged-name", "v1\n", "artifact under the flow id")
@@ -1414,7 +1340,7 @@ def case_short_id_resolves_to_the_flow_directory(fx):
     check(
         "#727: a SHORT --id resolves to the one matching feature directory",
         r2.returncode == 0,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         f"#727: the resolved artifact is verified — {rel}",
@@ -1430,8 +1356,7 @@ def case_short_id_ambiguous_refuses(fx):
     `FEAT-73` prefix-matching both `FEAT-73-one` and `FEAT-73-two` has no right answer. Deleting a
     checkout on a coin flip is worse than refusing. Without this case, `next(iter(matches))` passes
     the happy-path test above."""
-    info, r = create_one(fx, "harness", "FEAT-73")
-    assert r.returncode == 0, f"fixture setup for FEAT-73 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-73")
     dest, seg = info["dest"], info["segment"]
 
     _commit_artifact(dest, seg, "FEAT-73-one", "v1\n", "artifact one")
@@ -1442,7 +1367,7 @@ def case_short_id_ambiguous_refuses(fx):
     check(
         "#727 guard: an AMBIGUOUS short id refuses, exit 5",
         r2.returncode == 5,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
     check(
         "#727 guard: the refusal names BOTH candidates so the operator can disambiguate",
@@ -1452,24 +1377,26 @@ def case_short_id_ambiguous_refuses(fx):
     check("#727 guard: the tree survives the refusal", os.path.isdir(dest), dest)
 
 
+def _add_origin(fx, name):
+    """A bare origin at a sibling of repoA, wired as repoA's origin, holding main as it stands."""
+    origin = os.path.join(os.path.dirname(fx["repoA"]), name)
+    git(fx["repoA"], "init", "-q", "--bare", origin)
+    git(fx["repoA"], "remote", "add", "origin", origin)
+    git(fx["repoA"], "push", "-q", "origin", "main")
+    return origin
+
+
 def _origin_moved_ahead(fx):
     """A bare origin holding main as it stands; then origin's main moves ahead through a
     second clone while the owner checkout's local main stays where it was. Returns the
     origin path (the caller unwires it)."""
-    origin = os.path.join(os.path.dirname(fx["repoA"]), "origin-A.git")
-    _git(fx["repoA"], ["init", "-q", "--bare", origin])
-    _git(fx["repoA"], ["remote", "add", "origin", origin])
-    _git(fx["repoA"], ["push", "-q", "origin", "main"])
+    origin = _add_origin(fx, "origin-A.git")
     other = os.path.join(os.path.dirname(fx["repoA"]), "other-clone")
-    _git(fx["repoA"], ["clone", "-q", "--no-local", "--branch", "main", origin, other])
-    _git(other, ["config", "user.email", "test@example.com"])
-    _git(other, ["config", "user.name", "Test"])
-    with open(os.path.join(other, "landed-elsewhere.txt"), "w") as f:
-        f.write("merged on GitHub\n")
-    _git(other, ["add", "-A"])
-    _git(other, ["commit", "-q", "-m", "landed on origin only"])
-    _git(other, ["push", "-q", "origin", "main"])
-    assert _git(fx["repoA"], ["rev-list", "--count", "HEAD..main"]).stdout.strip() == "0"
+    git(fx["repoA"], "clone", "-q", "--no-local", "--branch", "main", origin, other)
+    commit_files(other, {"landed-elsewhere.txt": "merged on GitHub\n"}, "landed on origin only",
+                 git=checked_git)
+    git(other, "push", "-q", "origin", "main")
+    assert git(fx["repoA"], "rev-list", "--count", "HEAD..main").stdout.strip() == "0"
     return origin
 
 
@@ -1478,8 +1405,7 @@ def case_behind_sees_origin(fx):
     `main` was stale, `behind` printed `current with main`, and the PR opened from that
     worktree was CONFLICTING with zero CI runs. A stale local ref under-reporting is not the
     safe direction — it is a green door in front of a red PR."""
-    info, r = create_one(fx, "harness", "FEAT-83")
-    assert r.returncode == 0, f"fixture setup for FEAT-83 failed: rc={r.returncode} stderr={r.stderr!r}"
+    info = create_ok(fx, "harness", "FEAT-83")
     dest = info["dest"]
     origin = _origin_moved_ahead(fx)
 
@@ -1487,7 +1413,7 @@ def case_behind_sees_origin(fx):
     check(
         "behind (#1850): current with a STALE local main but behind origin/main exits 6",
         r1.returncode == 6,
-        f"rc={r1.returncode} stdout={r1.stdout!r} stderr={r1.stderr!r}",
+        _out(r1),
     )
     check(
         "behind (#1850): the refusal names the remote ref it compared against",
@@ -1496,25 +1422,25 @@ def case_behind_sees_origin(fx):
     )
 
     # The remedy it prints brings the worktree current against origin.
-    _git(dest, ["fetch", "-q", "origin", "main"])
-    _git(dest, ["merge", "-q", "FETCH_HEAD", "-m", "pull origin main"])
+    git(dest, "fetch", "-q", "origin", "main")
+    git(dest, "merge", "-q", "FETCH_HEAD", "-m", "pull origin main")
     r2 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
     check(
         "behind (#1850): after merging what origin holds it is current, exit 0",
         r2.returncode == 0 and "origin/main" in r2.stdout,
-        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+        _out(r2),
     )
 
     # An unreachable origin is a NAMED fallback to local main, never a silent pass: the
     # operator is told what was compared. The worktree is current with local main here.
-    _git(fx["repoA"], ["remote", "set-url", "origin", os.path.join(origin, "does-not-exist")])
+    git(fx["repoA"], "remote", "set-url", "origin", os.path.join(origin, "does-not-exist"))
     r3 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-83"], fx)
     check(
         "behind (#1850): an unreachable origin falls back to LOCAL main and says so on stderr",
         r3.returncode == 0 and "COULD NOT FETCH" in r3.stderr and "LOCAL main" in r3.stderr,
-        f"rc={r3.returncode} stdout={r3.stdout!r} stderr={r3.stderr!r}",
+        _out(r3),
     )
-    _git(fx["repoA"], ["remote", "remove", "origin"])
+    git(fx["repoA"], "remote", "remove", "origin")
 
 
 def case_fleet_feature_has_two_worktrees(fx):
@@ -1529,13 +1455,13 @@ def case_fleet_feature_has_two_worktrees(fx):
     check("2056 create: both worktrees exist, labelled by role, code path last",
           r.returncode == 0 and os.path.isdir(planning) and os.path.isdir(code)
           and f"PLANNING {planning}" in lines and f"CODE {code}" in lines and lines[-1] == code,
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+          _out(r))
     if not os.path.isdir(planning):
         check("2056 create: the planning worktree exists", False, f"stdout={r.stdout!r}")
         return
     check("2056 create: the planning worktree is a harness checkout on feat/<id>",
-          _git(planning, ["rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip() == f"feat/{fid}"
-          and os.path.realpath(_git(planning, ["rev-parse", "--git-common-dir"]).stdout.strip())
+          git(planning, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip() == f"feat/{fid}"
+          and os.path.realpath(git(planning, "rev-parse", "--git-common-dir").stdout.strip())
           == os.path.realpath(os.path.join(fx["repoA"], ".git")), planning)
     p = run_cli(["path", "--repo", "org/repoB", "--id", fid], fx)
     check("2056 path: names the planning worktree and ends with the code worktree",
@@ -1572,8 +1498,8 @@ def case_fleet_create_is_all_or_nothing(fx):
     finally:
         os.chmod(blocker, 0o755)
     planning = os.path.join(fx["repoA"], harness_boundary.WORKTREES_SEGMENT, "harness", fid)
-    branch = _git(fx["repoA"], ["rev-parse", "--verify", "--quiet", f"refs/heads/feat/{fid}"],
-                  check_ok=False)
+    branch = git(fx["repoA"], "rev-parse", "--verify", "--quiet", f"refs/heads/feat/{fid}",
+                  check=False)
     check("2056 create: a failed code worktree rolls back the planning worktree and branch",
           r.returncode != 0 and not os.path.exists(planning) and branch.returncode != 0,
           f"rc={r.returncode} {r.stderr!r} planning_exists={os.path.exists(planning)}")
@@ -1582,103 +1508,69 @@ def case_fleet_create_is_all_or_nothing(fx):
 def case_create_cuts_from_origin(fx):
     """#2056: a new branch is cut from origin/<default>, not from a local default branch
     carrying an unpushed commit (FEAT-01-kaya-platform's planning branch was)."""
-    origin = os.path.join(os.path.dirname(fx["repoA"]), "origin-cut.git")
-    _git(fx["repoA"], ["init", "-q", "--bare", origin])
-    _git(fx["repoA"], ["remote", "add", "origin", origin])
-    _git(fx["repoA"], ["push", "-q", "origin", "main"])
-    pushed = _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip()
-    with open(os.path.join(fx["repoA"], "unpushed.txt"), "w") as f:
-        f.write("local only\n")
-    _git(fx["repoA"], ["add", "-A"])
-    _git(fx["repoA"], ["commit", "-q", "-m", "unpushed"])
+    _add_origin(fx, "origin-cut.git")
+    pushed = git(fx["repoA"], "rev-parse", "main").stdout.strip()
+    commit_files(fx["repoA"], {"unpushed.txt": "local only\n"}, "unpushed", git=checked_git)
     try:
         info, r = create_one(fx, "harness", "FEAT-73-cut")
-        head = _git(info["dest"], ["rev-parse", "HEAD"]).stdout.strip() if info["dest"] else ""
+        head = git(info["dest"], "rev-parse", "HEAD").stdout.strip() if info["dest"] else ""
         check("2056 create: the branch is cut from origin/main, without the unpushed commit",
               r.returncode == 0 and head == pushed,
               f"rc={r.returncode} head={head} pushed={pushed} {r.stderr!r}")
     finally:
-        _git(fx["repoA"], ["reset", "-q", "--hard", pushed])
-        _git(fx["repoA"], ["remote", "remove", "origin"])
-
-
-
-CASE_ORDER = (
-    (case_layout, ("fx", "created")),
-    (case_conflation_guard, ("fx", "created")),
-    (case_isolation, ("fx", "created")),
-    (case_branch_isolation, ("fx", "created")),
-    (case_cut_point, ("fx", "created", "tips_before")),
-    (case_concurrent_isolation, ("fx", "created", "tips_before")),
-    (case_shared_checkout_negative, ("root",)),
-    (case_clone_not_moved, ("fx",)),
-    (case_refuse_existing, ("fx", "created")),
-    (case_list, ("fx", "created")),
-    (case_undeclared_repo, ("fx",)),
-    (case_remove_dirty_untracked, ("fx",)),
-    (case_remove_dirty_tracked, ("fx",)),
-    (case_landed_refuse_then_allow, ("fx",)),
-    (case_landed_differs, ("fx",)),
-    (case_no_artifact_directory, ("fx",)),
-    (case_gitignored_artifact_does_not_block, ("fx",)),
-    (case_gitignored_does_not_mask_a_real_miss, ("fx",)),
-    (case_remove_refuses_aborted_run_evidence, ("fx",)),
-    (case_gate_2b_refuses_ignored_working_files, ("fx",)),
-    (case_gate_2b_ignores_committed_notes, ("fx",)),
-    (case_clean_refuses_without_terminal_station, ("fx",)),
-    (case_clean_at_terminal_stations, ("fx",)),
-    (case_clean_refuses_directory_note, ("fx",)),
-    (case_clean_short_id_and_root, ("root",)),
-    (case_gate_2b_counts_unignored_working_files, ("fx",)),
-    (case_clean_refuses_symlinked_ancestor, ("fx",)),
-    (case_clean_reads_landed_claims, ("fx",)),
-    (case_clean_refuses_failed_worktree_list, ("fx",)),
-    (case_short_id_resolves_to_the_flow_directory, ("fx",)),
-    (case_short_id_ambiguous_refuses, ("fx",)),
-    (case_behind_default_branch, ("fx",)),
-    (case_behind_sees_origin, ("fx",)),
-    (case_fleet_feature_has_two_worktrees, ("fx",)),
-    (case_fleet_create_is_all_or_nothing, ("fx",)),
-    (case_create_cuts_from_origin, ("fx",)),
-)
-
-
-def run_cases(fx, root):
-    """Every case in CASE_ORDER, in order: later cases read state earlier ones leave."""
-    tips_before = {
-        "repoA": _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip(),
-        "repoB": _git(fx["repoB"], ["rev-parse", "master"]).stdout.strip(),
-    }
-    args = {"fx": fx, "root": root, "tips_before": tips_before, "created": create_four(fx)}
-    for case, names in CASE_ORDER:
-        case(*(args[name] for name in names))
-
-
-def report():
-    """Print every result; the number of failures."""
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print("FAIL test-feature-worktree.py" if fails else "PASS test-feature-worktree.py")
-    return fails
-
+        git(fx["repoA"], "reset", "-q", "--hard", pushed)
+        git(fx["repoA"], "remote", "remove", "origin")
 
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
     try:
         fx = build_fixture(root)
+
         if run_guard(fx, root):
-            run_cases(fx, root)
+            tips_before = _tips(fx)
+            created = create_four(fx)
+            case_layout(created)
+            case_conflation_guard(fx, created)
+            case_isolation(created)
+            case_branch_isolation(created)
+            case_cut_point(created, tips_before)
+            case_concurrent_isolation(fx, created, tips_before)
+            case_shared_checkout_negative(root)
+            case_clone_not_moved(fx)
+            case_refuse_existing(fx, created)
+            case_list(fx, created)
+            case_undeclared_repo(fx)
+            case_remove_dirty_untracked(fx)
+            case_remove_dirty_tracked(fx)
+            case_landed_refuse_then_allow(fx)
+            case_landed_differs(fx)
+            case_no_artifact_directory(fx)
+            case_gitignored_artifact_does_not_block(fx)
+            case_gitignored_does_not_mask_a_real_miss(fx)
+            case_remove_refuses_aborted_run_evidence(fx)
+            case_gate_2b_refuses_ignored_working_files(fx)
+            case_gate_2b_ignores_committed_notes(fx)
+            case_clean_refuses_without_terminal_station(fx)
+            case_clean_at_terminal_stations(fx)
+            case_clean_refuses_directory_note(fx)
+            case_clean_short_id_and_root(root)
+            case_gate_2b_counts_unignored_working_files(fx)
+            case_clean_refuses_symlinked_ancestor(fx)
+            case_clean_reads_landed_claims(fx)
+            case_clean_refuses_failed_worktree_list(fx)
+            case_short_id_resolves_to_the_flow_directory(fx)
+            case_short_id_ambiguous_refuses(fx)
+            case_behind_default_branch(fx)
+            case_behind_sees_origin(fx)
+            case_fleet_feature_has_two_worktrees(fx)
+            case_fleet_create_is_all_or_nothing(fx)
+            case_create_cuts_from_origin(fx)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:
         shutil.rmtree(root, ignore_errors=True)
-    return report()
+    return C.report()
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())

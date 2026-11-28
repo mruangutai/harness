@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for merge-gate.py's post-merge working-file cleanup (FEAT-2641 T-06, D-05, DEC-260):
+"""Unit tests for merge-gate.py's post-merge working-file cleanup (FEAT-2641 T-06, D-05, DEC-262):
 _clean_after_merge never raises, and distill_main reports a merged distill whose cleanup failed
 with exit 4, the clean command and no REFUSED line. A merge call that returns without the PR
 reading MERGED (a merge queue or auto-merge, validate c0 must_fix 3) removes nothing and exits 7.

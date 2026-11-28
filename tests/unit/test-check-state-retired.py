@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state retires every row that read a local working file (FEAT-2641, DEC-260).
+"""check-state retires every row that read a local working file (FEAT-2641, DEC-262).
 
 notes/, runs/ and observations/ are local working files no CI checkout carries, so a row that
 read one would be red in CI by construction. The eleven numbers below are RETIRED -- named in

@@ -52,7 +52,7 @@ __pycache__/
 
 # --- harness ---
 # A feature's notes/, runs/ and observations/ and .harness/notes/ are local working
-# files, never committed (DEC-260). Everything else under .harness/ is committed on
+# files, never committed (DEC-262). Everything else under .harness/ is committed on
 # purpose - it is the record of what shipped.
 .harness/*/features/*/notes/
 .harness/*/features/*/runs/

@@ -1,0 +1,502 @@
+schema: plan/1
+feature: FEAT-2622-practicality-rule
+approval:
+  date: '2026-11-28'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-28T03:54:58Z'
+status: done
+source_issues: [2622]
+
+panel:
+  last_run: 2026-11-28-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: returned FAIL carrying 4 findings; note at notes/review-harness-code-reviewer-plan-c1.md
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: resolved and returned three findings inline
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: self-scoped out (no user-facing surface); PASS with no findings
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: graded the plan once per perspective; note at notes/research-FEAT-2622-practicality-rule-goalcheck-plan.md
+  findings:
+  - id: PF-c51b7a74168599b06fadfe46ca7cd9e9
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01/T-03/T-04 leave a path for a discounted finding to force FAIL after triage
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-728e0f4fd5e8b16f0a60dedf80a7e9f2
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-02 requires its record-panel test to fail even when the writer is correct
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-95445bd52f18a95dd3fb8108ea23fef1
+    severity: med
+    reader: scope
+    kind: substance
+    summary: The verification blocks omit or substitute required fail-first witnesses
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-f650d3034a54e4f55b44bdece1264915
+    severity: low
+    reader: scope
+    kind: form
+    summary: Add a keep disposition for DEC-229
+    disposition: resolved
+  - id: PF-63629cc5e72323c77cbe88d8585d8079
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: 'The eng-lead persona silently inherits the `unrated` loophole D-01''s own rationale forbids: validate-digest refuses `unrated` only for code/security/ui reviewers (T-01 intent item 3c), yet eng-lead hosts no non-harness reader'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-94d9723cdbe7af3fdba7eefd077bf23c
+    severity: info
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's two new INV-32 cases in test-check-state-records test a row record-panel already refuses to write and legacy rows cannot form — a new test for a trigger the feature's own rule would call contrived
+    disposition: resolved
+    scope: task
+    resolved_by: T-02
+  - id: PF-eb805ab08579e4a4cde6885546608915
+    severity: info
+    reader: should-not-exist
+    kind: form
+    summary: is_non_gating ("none" plus NON_GATING_SEVERITIES) creates a second non-gating set beside the one gates_signature uses, while SC-06 claims the non-gating set is defined once
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: 3e979ae3cd303fdf65746bf13c8c8e041dac4964
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 - validate-digest.py, panel_findings.py and plan-merge record-panel are the gates this feature changes.
+    - surface: .claude/skills/harness/schemas/digest/**
+      lane: main-session-direct
+      reason: NOBODY owns it; it is the schema validate-digest enforces, so DEC-174 keeps it with the gate.
+    - surface: tests/unit/test-practicality-rule.py
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+    - surface: tests/unit/test-practicality-record-panel.py
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+    - surface: tests/unit/test-digest-schemas.py
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+    - surface: tests/unit/test-validate-digest-plan-rollup.py
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: Granted to backend-dev, dev-ops and qa; every integration file this plan touches tests validate-digest, panel_findings or plan-merge (DEC-174).
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: NOBODY owns it; output frontmatter is generated from the digest schema and the operator routed every task main-session-direct.
+    - surface: .claude/skills/harness-code-review/SKILL.md
+      lane: main-session-direct
+      reason: NOBODY owns it; the operator routed every task of this feature main-session-direct.
+    - surface: .claude/skills/harness-tdd-enforcement/SKILL.md
+      lane: main-session-direct
+      reason: NOBODY owns it; the operator routed every task of this feature main-session-direct.
+    - surface: .claude/skills/harness-verification-rules/SKILL.md
+      lane: main-session-direct
+      reason: NOBODY owns it; the operator routed every task of this feature main-session-direct.
+    - surface: .claude/skills/harness/teams/**
+      lane: main-session-direct
+      reason: NOBODY owns it; the reader prompts produce the exposure records the gate reads.
+    - surface: .claude/skills/harness/templates/**
+      lane: main-session-direct
+      reason: NOBODY owns it; the operator routed every task of this feature main-session-direct.
+    - surface: .claude/skills/harness/references/**
+      lane: main-session-direct
+      reason: NOBODY owns panel-recording.md; the operator routed every task of this feature main-session-direct.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: Owner harness-documentor; the operator routed every task of this feature main-session-direct.
+
+decisions:
+  - id: D-01
+    choice: Every digest finding (schemas/digest/common.json $defs.finding, shared by code-reviewer, security-reviewer, ui-reviewer, eng-lead, product-lead and validator-lead) requires the key exposure, either the closed mapping {trigger routine|plausible|contrived, vs_today regression|no_worse, control harness|chance|user|adversary} or the literal string unrated; unrated is legal only in a product-lead or validator-lead digest, where it records a non-harness reader that gave no exposure; code-reviewer, security-reviewer, ui-reviewer and eng-lead digests refuse it, since none of them transcribes a non-harness reader; an unrated exposure is never discounted. QA carries no findings, so its part of the rule is testing guidance only.
+    because: A missing kind is already a refusal, and harness readers yield schema-bound objects, so a refusal costs one re-yield; DEC-206's unrated sentinel is kept for transcription so a lead never invents a reader's content, and an unrated exposure falls back to today's severity rather than to suppression. Rejected - missing exposure read as unrated-and-gating for every persona (a reviewer could skip the three questions at no cost) and free-text trigger prose (nothing mechanical can read it).
+    dec: none
+  - id: D-02
+    choice: A finding is discounted when its exposure is a mapping with trigger contrived, vs_today no_worse and control other than adversary. validate-digest.py refuses a discounted finding whose severity is not info, low or med (panel_findings.NON_GATING_SEVERITIES, the one set gates_signature already reads; trimmed, case-insensitive; none, high, critical, unrated and unknown values all gate), and refuses a must_fix entry that contains a discounted finding's normalized summary or its PF id in full or by a prefix of PF- plus at least 8 hex characters; every refusal names the practicality rule. The predicate and the non-gating set live once in bin/panel_findings.py, and shape_faults applies the same severity ceiling to any panel row that carries exposure.
+    because: med is DEC-31's non-gating band and code-review's wrong-behaviour-in-an-unlikely-case, which is the contrived case; must_fix is free prose, so containment of the finding's own identity is the only link that needs no contract change. Rejected - a structured must_fix of finding references (changes every persona's must_fix and the validator lead's non-finding entries such as pm not_met rows) and a low ceiling (makes an honest unlikely-but-real med unreportable at its true size).
+    dec: none
+  - id: D-03
+    choice: The validator lead and the product lead apply the rule at collation, before routing or writing the fan-in - they may lower a discounted finding to at most med or drop it, with a one-line reason beside it naming the reader's severity, never raise a severity and never revise kind; a remedy touching signed text reaches the operator only when its finding survives this triage; in the plan team the product lead lowers rather than drops, so the panel row exists for the D-06 relief. This amends DEC-206's rule that the lead never owns how severe the reader judged a finding.
+    because: The operator ruled it for the validator lead in issue 2622; the product lead needs the same authority because record-panel will refuse a discounted gating finding from fable-advisor, whose return no schema validates, and without it that refusal has no lawful remedy while an open gating plan finding is exactly the operator escalation the rule forbids. Rejected - leaving the product lead unamended (an unresolvable record-panel refusal) and letting either lead raise severity (not in the ruling).
+    dec: DEC-206
+  - id: D-04
+    choice: Forward only is enforced by what is validated, with no era marker - validate-digest gates live yields and the run being closed, check-state INV-15 never re-validates a historical digest against the live schema, and exposure is optional in the panel row shape while record-panel requires it on every row it newly writes.
+    because: No reader re-grades history, so an era key (the DEC-254 pattern) would defend a case that cannot occur and add a writer-owned stamp to maintain. Rejected - a harness.json era key for digests and a digest schema_version bump. Residual - a lead run open across the landing commit whose durable digest lacks exposure is refused at close-run, so the build lands with no lead run open.
+    dec: none
+  - id: D-05
+    choice: plan.yaml panel.findings rows gain exposure as an optional key of panel_findings.FINDING_KEYS, validated by shape_faults when present; plan-merge.py record-panel refuses (exit 5) a fan-in finding without exposure and carries the exposure it was given into the new row; base rows keep their bytes and remain legal without it; gates_signature is unchanged.
+    because: The fan-in file is read by record-panel and never by validate-digest, so a plan-level discounted gating finding is caught only at the writer; keeping the key optional in shape is what lets every existing plan's panel stay valid under INV-32 and sign-approval. Rejected - required in shape (reddens every live plan with a panel) and a separate exposure check in sign-approval (a second home for one rule).
+    dec: none
+
+  - id: D-06
+    choice: 'A discounted finding never decides a verdict. validate-digest.py refuses a severity_max of high or critical that only discounted findings could support, in any digest carrying findings and severity_max, and a code-, security- or ui-reviewer FAIL whose every finding is discounted with must_fix empty, a non-gating severity_max and code_grade not fail; and DEC-123''s plan-team carve-out stops treating an open panel row as blocking relief when its exposure is discounted at a non-gating severity. Every other path keeps worst-wins: a FAIL carrying a non-discounted gating finding, a must_fix entry or a failed code grade, any ESCALATE or BLOCKED, and the validate team''s roll-up, where a lead whose triage reclassifies a reader''s exposure returns the finding to that reader instead of reporting better than the member.'
+    because: 'Capping a finding''s severity alone left the verdict it drove standing: a reviewer that kept a pre-triage severity_max high or FAIL, or fable-advisor (whose return nothing validates) failing on a contrived finding, still forced the team to FAIL through worst-wins, since _review_policy_errors only refuses a PASS the policy fails and the carve-out relieves only resolved rows. The checks read the reader''s own exposure record, so a FAIL justified by anything else is untouched. Rejected - letting a lead outrank a member verdict after its own triage (DEC-123 refuses reporting better on the lead''s word, and the orchestrator never opens member entries) and having pm mark a discounted row resolved without a remedy (a false record).'
+    dec: DEC-123
+decisions_affected:
+- dec: DEC-206
+  disposition: amend
+  clause: 'The lead never owns CONTENT —
+
+    whether a defect exists at all, and how severe the reader judged it.'
+  successor: D-03
+  reason: Both leads now lower or drop a finding the practicality rule discounts, with a one-line reason, so the lead owns part of the severity it transcribes.
+- dec: DEC-123
+  disposition: amend
+  clause: 'carrying the same reader string and `disposition: resolved`, and every other on-disk row
+
+    attributed to it is `resolved`.'
+  successor: D-06
+  reason: A plan-team reader FAIL whose only open panel rows are discounted at a non-gating severity is relieved too, so a contrived finding never fails the plan team; every other case keeps worst-wins.
+- dec: DEC-31
+  disposition: keep
+  clause: genuine medium-severity issues can ship if the reviewer does not escalate them
+  successor: none
+  reason: The must_fix or high-and-above gate is unchanged; the rule only caps what a discounted finding may carry into it, at med.
+- dec: DEC-228
+  disposition: keep
+  clause: 'Every finding carries `kind: substance | form | proportionality`'
+  successor: none
+  reason: kind and its record-panel handling stand; exposure is an additional key beside it.
+- dec: DEC-230
+  disposition: keep
+  clause: it never resolves the doubt by choosing the heavier
+  successor: none
+  reason: A reader unsure of a finding's exposure asks one question with a recommendation; unrated keeps today's severity and is never a silent heavier route.
+- dec: DEC-237
+  disposition: keep
+  clause: '`.claude/skills/harness/bin/gen-agent-output.py`, never hand-edited, and `check-omp-port.py` fails'
+  successor: none
+  reason: exposure enters the canonical schema and reaches the six agent definitions only through gen-agent-output.py.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful
+  successor: none
+  reason: The feature changes validate-digest, panel_findings, record-panel and the digest schema; it is planned through Harness and every task executes main-session-direct.
+- dec: DEC-229
+  disposition: keep
+  clause: carrying every finding already present byte for byte
+  successor: none
+  reason: 'record-panel stays the only writer of panel: and carries base rows without exposure byte for byte (D-05); T-02 adds exposure only to the rows it newly writes.'
+
+tasks:
+  - id: T-01
+    title: Add the exposure record, the shared discount predicate and the validate-digest practicality gate
+    traces:
+    - SC-01
+    - SC-02
+    - SC-03
+    - SC-04
+    - SC-06
+    - SC-14
+    - SC-15
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - changes validate-digest.py, panel_findings.py and the digest schema, the gate that would police this build, with their tests.
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/panel_findings.py#shape_faults
+      - .claude/skills/harness/schemas/digest/common.json
+      - .claude/skills/harness/bin/validate-digest.py#_semantic_errors
+      - tests/unit/test-practicality-rule.py
+      - tests/unit/test-digest-schemas.py
+      - tests/unit/test-validate-digest-plan-rollup.py
+      - tests/integration/test-validate-digest.py
+      - tests/integration/test-validate-digest-shadows.py
+      - tests/integration/test-panel-findings.py
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-practicality-rule.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-digest-schemas.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-validate-digest-plan-rollup.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-panel-findings.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-digest-shadows.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-digest.py
+      env -u HARNESS_AGENT_TYPE python3 - tests/unit/test-practicality-rule.py 16 <<'PY'
+      import os, re, shutil, subprocess, sys, tempfile
+      rel, count, red = sys.argv[1], int(sys.argv[2]), re.compile(r"(PASS|FAIL) (practicality-\S*-(refused|relieved|carried)\S*)$")
+      def run(cwd):
+          out = subprocess.run([sys.executable, rel], cwd=cwd, capture_output=True, text=True).stdout.splitlines()
+          return dict((m.group(2), m.group(1)) for m in map(red.match, out) if m), out
+      head, _ = run(".")
+      with tempfile.TemporaryDirectory() as tmp:
+          tar = subprocess.run(["git", "archive", "3e979ae3cd303fdf65746bf13c8c8e041dac4964"], check=True, capture_output=True).stdout
+          subprocess.run(["tar", "-x", "-C", tmp], input=tar, check=True)
+          shutil.copy(rel, os.path.join(tmp, rel))
+          base, lines = run(tmp)
+      bad = sorted(n for n in head if head[n] != "PASS" or base.get(n) != "FAIL")
+      print("red-first:", len(head), "of", count, "cases; not green now or not red at base:", bad)
+      sys.exit(1 if bad or len(head) != count else 0)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree. Product guidance is the decision record: read DEC-31, DEC-206, DEC-228 and DEC-237 in .harness/harness/docs/DECISIONS.md (find them through DECISIONS-INDEX.md), and SC-01 to SC-04 and SC-06 in .harness/harness/features/FEAT-2622-practicality-rule/BRIEF.md. Harness has no docs/spec.md or docs/architecture.md. Execute main-session-direct (DEC-174); every relative path stays inside this worktree.
+
+      1. bin/panel_findings.py. Add module constants EXPOSURE_TRIGGERS = ("routine", "plausible", "contrived"), EXPOSURE_VS_TODAY = ("regression", "no_worse"), EXPOSURE_CONTROLS = ("harness", "chance", "user", "adversary") and EXPOSURE_UNRATED = "unrated". Add exposure_faults(value) -> list of str: [] for the exact string unrated, or for a dict with exactly the keys trigger, vs_today and control whose values are each in their tuple; otherwise one line per departure (not a mapping or unrated; missing key; extra key; off-enum value), each line containing the word exposure. Add is_discounted(exposure) -> bool: True only for a dict with trigger contrived, vs_today no_worse and control not adversary; unrated and anything malformed return False. Add is_non_gating(severity) -> bool: the trimmed, lowercased string is in NON_GATING_SEVERITIES, the very set gates_signature reads, so a severity of none gates here exactly as it gates signature and the non-gating set stays defined once (SC-06); add no second set. Add practicality_fault(finding) -> str or None: when is_discounted(finding.get("exposure")) and not is_non_gating(finding.get("severity")), return one line that contains the words practicality rule, the severity, and says a contrived finding no worse than today and not adversary-controlled is at most med (DEC-31 non-gating); else None. Extend FINDING_KEYS with "exposure" (optional: never in REQUIRED_KEYS). In shape_faults, when "exposure" is present append exposure_faults of it, and append practicality_fault when it returns a line. A row without exposure stays legal.
+
+      2. schemas/digest/common.json. Add $defs.exposure: anyOf of (a) an object with additionalProperties false, required [trigger, vs_today, control], and enum properties trigger [routine, plausible, contrived], vs_today [regression, no_worse], control [harness, chance, user, adversary]; (b) {"const": "unrated"}. Add "exposure": {"$ref": "common.json#/$defs/exposure"} to $defs.finding properties and add "exposure" to its required list. Change nothing else.
+
+      3. bin/validate-digest.py. Add _practicality_errors(canonical, seen) and append its result inside _semantic_errors for every persona, after the existing checks. It reads seen["findings"] only when it is a list, skipping non-dict entries. (a) For each finding index i, panel_findings.practicality_fault(finding) gives an error "findings[i] (<summary>): <fault>". (b) For each finding that panel_findings.is_discounted marks, compute its normalized summary with panel_findings.normalize_summary and its id with panel_findings.finding_id(reader, summary); for each must_fix entry j (strings only), refuse when normalize_summary(entry) contains the normalized summary, or when any token matching the case-insensitive regex PF-[0-9a-f]{8,32} in the entry is a prefix of that id; the error names must_fix[j], findings[i] and the practicality rule and says a discounted finding never enters must_fix. (c) When canonical is harness-code-reviewer, harness-security-reviewer, harness-ui-reviewer or harness-eng-lead (none of which transcribes a non-harness reader), a finding whose exposure is the string unrated gives an error naming findings[i] and the practicality rule and saying a harness reviewer states its exposure; unrated is a lead's transcription of a reader that gave none. (d) For every persona whose DIGEST carries a findings list and severity_max: when severity_max, trimmed and lowercased, is high or critical, at least one finding is discounted, and no finding that is not discounted has a severity for which is_non_gating is False, give an error naming severity_max and the practicality rule and saying a gating severity_max must rest on a finding the practicality rule does not discount. (e) When canonical is harness-code-reviewer, harness-security-reviewer or harness-ui-reviewer and the verdict is FAIL: when findings is a non-empty list whose every mapping entry is discounted, must_fix is an empty list, is_non_gating(severity_max) is True and code_grade is absent or not fail, give an error naming VERDICT and the practicality rule and saying a review whose only findings are discounted does not fail; a non-discounted finding, a must_fix entry, a gating severity_max or code_grade fail each leaves the FAIL legal. (f) The plan-team carve-out (DEC-123 as amended, D-06): in _digest_finding_reason and _open_row_reason, a matched panel row whose disposition is not resolved no longer denies relief when panel_findings.is_discounted(row.get("exposure")) and panel_findings.is_non_gating(row.get("severity")) are both True. Change nothing else in the carve-out: attribution, roster, malformed rows (a discounted row above med is a shape fault, so it fails closed), a reader with no attributed findings, ESCALATE and BLOCKED keep worst-wins. Every message contains the exact words practicality rule. Do not touch evaluate_review, gate_policy.py or _review_policy_errors; (f) is the only roll-up change.
+
+      4. Create tests/unit/test-practicality-rule.py, script-style with check_support.Checks (sys.exit(C.report())), ROOT = Path(__file__).resolve().parents[2], loading validate-digest.py by path through importlib exactly as tests/unit/test-validate-digest-plan-rollup.py does, and using digest_schema.validate_object for schema-only cases. It must import no symbol that does not exist at base 3e979ae3cd303fdf65746bf13c8c8e041dac4964 (no panel_findings.is_discounted and the like), so the verify's base run reaches its checks and prints FAIL lines. A refused case passes when some error contains practicality rule (schema cases: some error names exposure and no error contains the text 'exposure' was unexpected; at base the finding schema has additionalProperties false, so every exposure-bearing finding is refused there only by that unknown-key error, which must not count as the new refusal, while the built schema refuses through the exposure path or the required-property error); an accepted case passes when no error contains practicality rule and none contains exposure. Use summaries and readers free of the words exposure, practicality and unrated. Exact case names: practicality-missing-exposure-refused, practicality-offenum-exposure-refused, practicality-extra-key-refused, practicality-missing-inner-key-refused (a mapping without control), practicality-invalid-string-refused (exposure rare), practicality-wellformed-accepted, practicality-discounted-high-refused, practicality-discounted-unrated-severity-refused, practicality-discounted-med-accepted, practicality-adversary-high-accepted, practicality-regression-high-accepted, practicality-plausible-high-accepted, practicality-unrated-exposure-high-accepted (validator-lead digest), practicality-mustfix-summary-refused, practicality-mustfix-pfid-refused (an 8-hex prefix), practicality-mustfix-other-finding-accepted, practicality-unrated-refused-code-reviewer, practicality-unrated-refused-security-reviewer, practicality-unrated-refused-ui-reviewer, practicality-unrated-refused-eng-lead, practicality-unrated-accepted-product-lead, practicality-unrated-accepted-validator-lead, practicality-severity-max-discounted-only-refused (code-reviewer FAIL, one discounted finding at med, severity_max high, must_fix empty), practicality-severity-max-witnessed-accepted (the same plus a plausible/regression/chance finding at high), practicality-fail-discounted-only-refused (code-reviewer FAIL, one discounted finding at med, severity_max med, must_fix empty), practicality-fail-with-mustfix-accepted (the same with one must_fix entry naming another, non-discounted finding), practicality-discounted-only-pass-accepted (the same digest at PASS). Two carve-out cases build a product-lead plan-team digest and a temp feature directory (feature.json mission plan, plan.yaml whose panel holds one open row for the should-not-exist reader at med) exactly as tests/unit/test-validate-digest-plan-rollup.py builds its relief cases, with the should-not-exist member at FAIL and the lead at PASS: practicality-carveout-discounted-open-relieved (row exposure contrived/no_worse/user; passes when no error says the VERDICT is better than a member) and practicality-carveout-plausible-open-denied (row exposure plausible/no_worse/user; passes when such an error is present). Only refusal and relief cases carry the words refused or relieved in their names; the verify relies on that. Other unrelated errors from validate() on a hand-built digest are ignored by these assertions.
+
+      5. Fixtures. Add "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"} to every finding fixture in tests/unit/test-digest-schemas.py, tests/unit/test-validate-digest-plan-rollup.py, tests/integration/test-validate-digest.py and tests/integration/test-validate-digest-shadows.py that the new required key would otherwise refuse, changing no expected value. In tests/integration/test-panel-findings.py add three shape_faults cases: a row without exposure returns [], a row with a well-formed exposure returns [], and a row with exposure {"trigger": "rare"} returns a fault containing exposure; and a fourth: a row with a discounted exposure and severity high returns a fault containing practicality rule.
+
+      Out of this task: .omp/agents (T-03 regenerates them, so test-digest-dev-skill.py and check-omp-port are red until T-03) and plan_merge/panel.py (T-02). If any test file not listed above reddens, stop and report it instead of editing it.
+  - id: T-02
+    title: Make record-panel require and carry exposure on every new panel finding
+    traces: [SC-05, SC-06, SC-07, SC-14]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - changes plan-merge.py record-panel, the writer whose refusals guard plan signature, with its tests.
+    depends_on: [T-01]
+    status: done
+    files:
+    - .claude/skills/harness/bin/plan_merge/panel.py#_digest_finding
+    - tests/unit/test-practicality-record-panel.py
+    - tests/integration/test-plan-merge.py
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-practicality-record-panel.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-state-records.py
+      git diff --quiet 3e979ae3cd303fdf65746bf13c8c8e041dac4964 -- .claude/skills/harness/bin/check_state/run_state.py
+      env -u HARNESS_AGENT_TYPE python3 - tests/unit/test-practicality-record-panel.py 5 <<'PY'
+      import os, re, shutil, subprocess, sys, tempfile
+      rel, count, red = sys.argv[1], int(sys.argv[2]), re.compile(r"(PASS|FAIL) (record-panel-\S*-(refused|relieved|carried)\S*)$")
+      def run(cwd):
+          out = subprocess.run([sys.executable, rel], cwd=cwd, capture_output=True, text=True).stdout.splitlines()
+          return dict((m.group(2), m.group(1)) for m in map(red.match, out) if m), out
+      head, _ = run(".")
+      with tempfile.TemporaryDirectory() as tmp:
+          tar = subprocess.run(["git", "archive", "3e979ae3cd303fdf65746bf13c8c8e041dac4964"], check=True, capture_output=True).stdout
+          subprocess.run(["tar", "-x", "-C", tmp], input=tar, check=True)
+          shutil.copy(rel, os.path.join(tmp, rel))
+          base, lines = run(tmp)
+      bad = sorted(n for n in head if head[n] != "PASS" or base.get(n) != "FAIL") + ["legacy-row-kept not green at base"] * ("PASS record-panel-legacy-row-kept" not in lines)
+      print("red-first:", len(head), "of", count, "cases; not green now or not red at base:", bad)
+      sys.exit(1 if bad or len(head) != count else 0)
+      PY
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import os, subprocess, sys, tempfile
+      env = dict(os.environ, PLAN_MERGE_BIN=os.path.abspath(".claude/skills/harness/bin/plan-merge.py"))
+      with tempfile.TemporaryDirectory() as tmp:
+          tar = subprocess.run(["git", "archive", "3e979ae3cd303fdf65746bf13c8c8e041dac4964"], check=True, capture_output=True).stdout
+          subprocess.run(["tar", "-x", "-C", tmp], input=tar, check=True)
+          run = subprocess.run([sys.executable, "tests/integration/test-plan-merge.py"], cwd=tmp, env=env, capture_output=True, text=True)
+      lines = run.stdout.splitlines()
+      at = [n for n, line in enumerate(lines) if line == "FAIL  record-panel exits 0 on a well-formed lead digest"]
+      detail = lines[at[0] + 1] if at and at[0] + 1 < len(lines) else ""
+      ok = run.returncode != 0 and "rc=5" in detail and "exposure" in detail
+      print("SC-14 base test-plan-merge.py against the pin:", "red on exposure" if ok else "NOT red: " + detail)
+      sys.exit(0 if ok else 1)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree. Product guidance is the decision record: read DEC-206, DEC-228 and DEC-229 in .harness/harness/docs/DECISIONS.md, and SC-05 and SC-07 in .harness/harness/features/FEAT-2622-practicality-rule/BRIEF.md. Execute main-session-direct (DEC-174); every relative path stays inside this worktree. T-01 has landed: panel_findings.py exposes exposure_faults, is_discounted, practicality_fault, and FINDING_KEYS includes the optional key exposure, which shape_faults validates and ceiling-checks.
+
+      1. bin/plan_merge/panel.py#_digest_finding. After the existing severity/reader/summary and kind checks, require the key exposure on the digest finding: when absent, raise harness_merge.MergeRefusal(5, [...]) with one line naming where (the findings[index] label) and saying every finding carries exposure and a reader that gave none is transcribed as exposure unrated by its lead (DEC-206). When panel_findings.exposure_faults(finding["exposure"]) returns lines, refuse with exit 5 listing them. When panel_findings.practicality_fault(finding) returns a line, refuse with exit 5 carrying that line (it contains the words practicality rule). Otherwise set entry["exposure"] = finding["exposure"] unchanged (mapping or the string unrated). A digest entry matched by id to a base row still keeps the base row's value, as today. Change nothing in gates_signature, set-panel or sign-approval.
+
+      2. Create tests/unit/test-practicality-record-panel.py, script-style with check_support.Checks (sys.exit(C.report())), ROOT = Path(__file__).resolve().parents[2]. Each case builds a temp plan.yaml through ROOT/.claude/skills/harness/bin/plan-merge.py apply (a minimal one-task proposal, run with HARNESS_AGENT_TYPE removed from the environment) and a fan-in file holding one fenced yaml block whose DIGEST carries readers (scope ran with persona harness-code-reviewer and reason none) and findings, then runs plan-merge.py record-panel --file <plan> --digest <fan-in> --cycle 1 (the flag is required; without it argparse exits 2 before the behaviour under test) and reads the result with yaml.safe_load. It must import no symbol absent at base 3e979ae3cd303fdf65746bf13c8c8e041dac4964. Exact case names: record-panel-missing-exposure-refused (exit 5 and stderr contains exposure), record-panel-discounted-high-refused (exposure contrived/no_worse/user at high: exit 5 and stderr contains practicality rule), record-panel-exposure-carried (plausible/regression/chance at med: exit 0 and the row's exposure equals the input), record-panel-adversary-high-carried (contrived/no_worse/adversary at high: exit 0, exposure carried, disposition open), record-panel-unrated-exposure-carried (exposure unrated at high: exit 0 and the row carries unrated), record-panel-legacy-row-kept (set a base panel through plan-merge.py set-panel whose one row has no exposure, then record-panel a digest carrying that same reader and summary plus an exposure: exit 0, the row's bytes in plan.yaml are unchanged and panel_findings.shape_faults returns [] for it). Use summaries free of the words exposure, practicality and unrated.
+
+      3. tests/integration/test-plan-merge.py: add "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"} (or the YAML equivalent) to every record-panel fan-in finding fixture the new requirement would refuse, and add the same exposure to the matching expected row wherever a case compares a newly written panel row whole (the want list of case_f59_record_panel_writes_from_a_lead_digest and every other whole-row comparison), so each equality stays whole and now covers exposure; a carried base row's expected value is unchanged. Change no other expected value. tests/integration/test-check-state-records.py is not edited; it runs in the verify only as a regression check over INV-32.
+
+      Out of this task: validate-digest.py, the schema and panel_findings.py (T-01), and bin/check_state/run_state.py, which must stay byte-identical to base so INV-15 keeps never re-validating historical digests. If any test file not listed reddens, stop and report it.
+  - id: T-03
+    title: Regenerate the agent output schemas and amend the reader and lead agent bodies
+    traces: [SC-08, SC-09, SC-11, SC-13, SC-14]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 and operator constraint 6 - the agent output frontmatter is the generated delivery of the digest schema the gate enforces; NOBODY owns .omp/agents.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .omp/agents/harness-code-reviewer.md
+      - .omp/agents/harness-security-reviewer.md
+      - .omp/agents/harness-ui-reviewer.md
+      - .omp/agents/harness-eng-lead.md
+      - .omp/agents/harness-product-lead.md
+      - .omp/agents/harness-validator-lead.md
+      - .omp/agents/harness-qa.md
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/gen-agent-output.py --check
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-digest-dev-skill.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-omp-port.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-instruction-paths.py
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import subprocess as sp, sys, tempfile
+      body = lambda p: open(p, encoding="utf-8").read().split("\n---\n", 1)[1]
+      want = {
+          ".omp/agents/harness-validator-lead.md": ["practicality rule", "contrived", "one-line reason", "signed text", "vs_today"],
+          ".omp/agents/harness-product-lead.md": ["practicality rule", "contrived", "one-line reason", "exposure", "vs_today"],
+          ".omp/agents/harness-security-reviewer.md": ["practicality rule", "contrived", "adversary", "credentials", "vs_today"],
+          ".omp/agents/harness-code-reviewer.md": ["vs_today"],
+          ".omp/agents/harness-ui-reviewer.md": ["vs_today"],
+          ".omp/agents/harness-qa.md": ["trust boundary", "plausible"],
+      }
+      bad = [p + ": missing " + w for p, words in want.items() for w in words if w not in body(p)]
+      bad += [p + ": still says never revise a reader's severity" for p in list(want)[:2] if "never revise a reader's severity" in body(p)]
+      six = [".omp/agents/harness-%s.md" % n for n in "code-reviewer security-reviewer ui-reviewer eng-lead product-lead validator-lead".split()]
+      out = lambda *a, cwd=None: sp.run(list(a), cwd=cwd, capture_output=True, check=cwd is None).stdout
+      with tempfile.TemporaryDirectory() as tmp:
+          sp.run(["tar", "-x", "-C", tmp], input=out("git", "archive", "HEAD"), check=True)
+          for rel in six: open(tmp + "/" + rel, "wb").write(out("git", "show", "3e979ae3cd303fdf65746bf13c8c8e041dac4964:" + rel))
+          red = (out(sys.executable, ".claude/skills/harness/bin/gen-agent-output.py", "--check", cwd=tmp) + out(sys.executable, "tests/unit/test-digest-dev-skill.py", cwd=tmp)).decode().splitlines()
+      bad += ["SC-13 not red with base agents over the HEAD schema: " + r for r in six if "DRIFT " + r not in red]
+      bad += ["SC-13 example not red: " + r for r in six[:3] if "FAIL %s_example0_validates_%s" % (r, r[12:-3]) not in red]
+      print("\n".join(bad) or "agent bodies ok; SC-13 red at the schema-only state")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree. Product guidance is the decision record: read DEC-206 and DEC-237 in .harness/harness/docs/DECISIONS.md, SC-08, SC-09, SC-11 and SC-13 in .harness/harness/features/FEAT-2622-practicality-rule/BRIEF.md, and plan.yaml decisions D-01 to D-03. Execute main-session-direct (DEC-174); every relative path stays inside this worktree. T-01 has landed: every digest finding requires exposure, the mapping {trigger: routine|plausible|contrived, vs_today: regression|no_worse, control: harness|chance|user|adversary} or the string unrated.
+
+      1. Run python3 .claude/skills/harness/bin/gen-agent-output.py from the worktree root (no --check). It rewrites only the generated structured/output frontmatter of the six finding-carrying agents; never hand-edit those keys. harness-eng-lead.md changes by this step only.
+
+      2. Worked yield examples (each must still validate: tests/unit/test-digest-dev-skill.py): add to the one finding in harness-code-reviewer.md "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"}; in harness-security-reviewer.md "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "adversary"}; in harness-ui-reviewer.md "exposure": {"trigger": "routine", "vs_today": "regression", "control": "user"}.
+
+      3. harness-security-reviewer.md, section Severity, and what gates: add a paragraph headed by the words The practicality rule. Before rating, answer three questions and record them as exposure: trigger (who or what causes it and how often in real use - routine, plausible or contrived), consequence compared with today (regression, or no_worse than before the change) and trigger control (harness, chance, user or adversary). A contrived trigger whose outcome is no worse than today is at most med: never must_fix, never an escalation, never the reason for a new test or another fix round, and validate-digest.py refuses it otherwise. Adversary exception: an adversary-controlled trigger at a real trust boundary - external input, credentials, a gate meant to refuse - is not discounted by likelihood, because the attacker chooses the timing; write control adversary only at such a boundary. Add to that paragraph: severity_max and VERDICT follow the rule, so a discounted finding contributes at most med to severity_max and never fails the review on its own (validate-digest.py refuses both). In harness-code-reviewer.md and harness-ui-reviewer.md add one sentence beside the findings shape saying every finding carries exposure (vs_today among its keys) per harness-code-review's practicality rule, and that unrated is never a reviewer's value.
+
+      4. harness-validator-lead.md. In section Assessing, add a step before Rank: Triage by the practicality rule, before routing - apply the three questions to every finding; a finding that is contrived, no_worse and not adversary-controlled is lowered to at most med or dropped, with a one-line reason beside it in your artifact naming the reader's severity and exposure; never raise a severity; a remedy that would touch signed text reaches the operator (open_questions or ESCALATE) only when its finding survives this triage. In section Every finding carries kind, replace the words never revise a reader's severity or kind with: never revise a reader's kind, and revise its severity only downward under the practicality rule, with a one-line reason; also say each finding carries the reader's exposure (trigger, vs_today, control) unchanged unless your triage records why, and exposure unrated only for a reader that gave none.
+
+      5. harness-product-lead.md, section Hosting plan: the fan-in findings list becomes (reader, summary, severity, kind, exposure); replace never revise a reader's severity or with the same downward-only practicality rule wording as step 4, applied before you write panel-c<N>.md, with a one-line reason recorded beside the finding; a fable-advisor finding with no exposure is transcribed as exposure unrated, never invented; in the plan team lower a discounted finding to at most med rather than dropping it, so its panel row exists and, left open, does not deny its reader the carve-out (DEC-123 as amended); and say plan-merge.py record-panel refuses a finding without exposure and a contrived, no_worse, non-adversary finding above med.
+
+      6. harness-qa.md, section The gate: add that tests target the code's plausible inputs; adversarial and malformed-input tests belong only where input crosses a trust boundary (external input, credentials, a gate meant to refuse), and their absence elsewhere is neither a coverage gap nor a finding (harness-tdd-enforcement).
+
+      Change no other agent file and no other section.
+
+      The verify's SC-13 red proof reads the digest schema from git HEAD and overlays the base copies of the six finding-carrying agent files, so T-01 must be committed before it runs; it never writes the worktree.
+  - id: T-04
+    title: Teach the practicality rule in the review, TDD and QA skills, the team prompts and the panel references
+    traces: [SC-08, SC-09, SC-10, SC-11]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Operator constraint 6 - NOBODY owns these skills, team prompts, the template or the reference, and the reader prompts produce the records the gate reads.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness-code-review/SKILL.md
+      - .claude/skills/harness-tdd-enforcement/SKILL.md
+      - .claude/skills/harness-verification-rules/SKILL.md
+      - .claude/skills/harness/teams/plan.yaml
+      - .claude/skills/harness/teams/validate.yaml
+      - .claude/skills/harness/references/panel-recording.md
+      - .claude/skills/harness/templates/plan.yaml
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-team.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-team-catalog.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-config-shape-matrix.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-validate-digest-plan-rollup.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-weight.py
+      python3 - <<'PY'
+      import sys, yaml
+      bad = []
+      def need(label, text, words):
+          bad.extend(label + ": missing " + w for w in words if w not in text)
+      for path, ids in ((".claude/skills/harness/teams/plan.yaml", ("scope", "should-not-exist", "design")),
+                        (".claude/skills/harness/teams/validate.yaml", ("code", "security", "ui"))):
+          steps = {s["id"]: s for s in yaml.safe_load(open(path, encoding="utf-8"))["steps"]}
+          for sid in ids:
+              need(path + " step " + sid, steps[sid]["prompt"], ["vs_today", "contrived"])
+      plan = yaml.safe_load(open(".claude/skills/harness/teams/plan.yaml", encoding="utf-8"))
+      need("plan.yaml should-not-exist", {s["id"]: s for s in plan["steps"]}["should-not-exist"]["prompt"], ["exposure: unrated"])
+      val = {s["id"]: s for s in yaml.safe_load(open(".claude/skills/harness/teams/validate.yaml", encoding="utf-8"))["steps"]}
+      need("validate.yaml qa", val["qa"]["prompt"], ["trust boundary"])
+      read = lambda p: open(p, encoding="utf-8").read()
+      need("code-review", read(".claude/skills/harness-code-review/SKILL.md"), ["practicality rule", "vs_today", "contrived", "no_worse", "adversary", "trust boundary"])
+      need("tdd", read(".claude/skills/harness-tdd-enforcement/SKILL.md"), ["trust boundary", "plausible"])
+      need("verification-rules", read(".claude/skills/harness-verification-rules/SKILL.md"), ["trust boundary"])
+      need("panel-recording", read(".claude/skills/harness/references/panel-recording.md"), ["exposure", "practicality rule"])
+      need("template", read(".claude/skills/harness/templates/plan.yaml"), ["exposure:", "vs_today"])
+      need("plan.yaml tail", read(".claude/skills/harness/teams/plan.yaml"), ["practicality rule"])
+      need("validate.yaml tail", read(".claude/skills/harness/teams/validate.yaml"), ["practicality rule"])
+      print("\n".join(bad) or "guidance ok")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree. Product guidance is the decision record: read DEC-31, DEC-206, DEC-228 and DEC-230 in .harness/harness/docs/DECISIONS.md, SC-08 to SC-11 in .harness/harness/features/FEAT-2622-practicality-rule/BRIEF.md, and plan.yaml decisions D-01 to D-05. Execute main-session-direct (DEC-174); every relative path stays inside this worktree. The rule, stated once: every finding carries exposure {trigger: routine|plausible|contrived, vs_today: regression|no_worse, control: harness|chance|user|adversary}; a finding with trigger contrived, vs_today no_worse and control not adversary is at most med - never must_fix, never an escalation, never the reason for a new test or another fix round; an adversary-controlled trigger at a real trust boundary (external input, credentials, a gate meant to refuse) is not discounted by likelihood; unrated is a lead's transcription of a reader that gave no exposure and is never discounted. Call it the practicality rule wherever it is named.
+
+      1. harness-code-review/SKILL.md: after the paragraph Every finding carries kind, add a section titled Exposure - the practicality rule, giving the three questions (trigger: who or what causes it and how often in real use; consequence compared with today: a regression, or no_worse than before the change; trigger control: harness, chance, user or adversary), the enum values with one-clause meanings, the rating rule and the adversary exception above, that validate-digest.py refuses a discounted finding above med or named in must_fix, that severity_max and VERDICT follow the rule (a discounted finding contributes at most med to severity_max and never fails the review on its own), and that a reader unsure of a finding's exposure asks one open_questions entry with its recommendation (DEC-230) rather than writing unrated. In the severity table, extend the med row with: or a contrived trigger no worse than today.
+
+      2. harness-tdd-enforcement/SKILL.md: add a section titled Plausible inputs, not exotic ones, before Exemptions: tests target the code's plausible inputs; adversarial and malformed-input tests belong only where input crosses a trust boundary (external input, credentials, a gate meant to refuse); a contrived, no-worse-than-today finding is never the reason for a new test.
+
+      3. harness-verification-rules/SKILL.md: where Phase 1 expectations and coverage_gaps are described, add that an adversarial or malformed-input expectation for code where no input crosses a trust boundary is neither a coverage gap nor a finding.
+
+      4. teams/plan.yaml: in the scope, should-not-exist and design step prompts, require every finding to carry exposure with trigger, vs_today and control and their values as above, and name the practicality rule's at-most-med ceiling; in should-not-exist add: if you will not judge a finding's exposure write exposure: unrated, never omit it. In the header comment that lists the fan-in findings (reader, summary, severity, kind) and in the tail comment that says the fan-in transcribes every finding at the reader's own severity and kind, add exposure to the list and say the lead lowers to at most med or drops a finding the practicality rule discounts, with a one-line reason, never raising a severity or revising kind; in this team the lead lowers rather than drops, so the panel row exists and, left open at med, does not deny its reader the carve-out (DEC-123 as amended).
+
+      5. teams/validate.yaml: in the code, security and ui step prompts require exposure per finding with trigger, vs_today and control and name the practicality rule (security: the adversary exception); in the qa prompt add that adversarial and malformed-input tests belong only where input crosses a trust boundary; in the lead comments that describe assessing, add triage by the practicality rule before routing, with a one-line reason, and that a remedy touching signed text reaches the operator only when its finding survives triage.
+
+      6. references/panel-recording.md: the finding key list gains exposure - required on every row record-panel newly writes, absent on legacy rows - and say record-panel refuses a finding without exposure and a discounted finding above med (the practicality rule).
+
+      7. templates/plan.yaml: in the panel finding example, after kind, add the line exposure: {trigger: plausible, vs_today: regression, control: chance} with the trailing comment: or unrated; required on new rows, the practicality rule caps a contrived no_worse non-adversary finding at med.
+
+      Keep every existing prompt line test-plan-team.py and test-validate-digest-plan-rollup.py read (record-panel, set-panel, plan-merge.py check order) unchanged.
+  - id: T-05
+    title: Record the practicality rule as a new decision and amend DEC-206
+    traces: [SC-12]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: Operator constraint 6 - every task of this feature runs main-session-direct; DECISIONS.md is otherwise the documentor's.
+    depends_on: [T-01, T-02, T-03, T-04]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      set -eu
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/check-decision-anchors.py
+      python3 - <<'PY'
+      import re, sys
+      text = open(".harness/harness/docs/DECISIONS.md", encoding="utf-8").read()
+      sections = re.split(r"(?m)^(?=## DEC-)", text)
+      bad = []
+      d206 = [s for s in sections if s.startswith("## DEC-206 ")]
+      old = "The lead never owns CONTENT —\nwhether a defect exists at all, and how severe the reader judged it."
+      if len(d206) != 1 or old in d206[0] or "practicality rule" not in d206[0]:
+          bad.append("DEC-206 clause not amended")
+      new = [s for s in sections if s.startswith("## DEC-") and "practicality rule" in s.splitlines()[0].lower()]
+      if len(new) != 1:
+          bad.append("want one DEC heading naming the practicality rule, found " + str(len(new)))
+      else:
+          words = ("routine", "plausible", "contrived", "regression", "no_worse", "harness", "chance",
+                   "user", "adversary", "unrated", "must_fix", "med", "trust boundary", "DEC-123", "DEC-206", "DEC-31", "FEAT-2622")
+          bad.extend("new DEC lacks " + w for w in words if w not in new[0])
+      rows = [l for l in open(".harness/harness/docs/DECISIONS-INDEX.md", encoding="utf-8") if l.startswith("- DEC-206 @")]
+      if len(rows) != 1 or "practicality" not in rows[0]:
+          bad.append("DEC-206 index row does not name the practicality rule")
+      d123 = [s for s in sections if s.startswith("## DEC-123 ")]
+      if len(d123) != 1 or "practicality rule" not in d123[0]: bad.append("DEC-123 carve-out not amended")
+      r123 = [l for l in open(".harness/harness/docs/DECISIONS-INDEX.md", encoding="utf-8") if l.startswith("- DEC-123 @")]
+      if len(r123) != 1 or "discounted" not in r123[0]: bad.append("DEC-123 index row does not name the discount")
+      print("\n".join(bad) or "decisions ok")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Product checkout: Harness itself (segment harness), this feature worktree. Read the DEC-123, DEC-206, DEC-31, DEC-228 and DEC-254 sections of .harness/harness/docs/DECISIONS.md, the feature BRIEF.md and plan.yaml decisions D-01 to D-05 and decisions_affected. Execute main-session-direct (DEC-174); every relative path stays inside this worktree. Cite fields and symbols, never file:line (DEC-232).
+
+      1. Append one new decision at the end of DECISIONS.md, numbered one above the highest ## DEC- heading present at build time, with the heading ## DEC-<n> — The practicality rule: every reader finding states its exposure, and a contrived finding no worse than today never gates. Body in the house shape (Chose, Over, Because, Tradeoff accepted, Record): Chose states D-01 (exposure key, enums routine/plausible/contrived, regression/no_worse, harness/chance/user/adversary, the unrated sentinel legal only in lead digests and never discounted), D-02 (the discount predicate, the med ceiling against DEC-31's gate, the must_fix containment link by normalized summary or PF id prefix, one predicate in bin/panel_findings.py), the adversary exception (an adversary-controlled trigger at a real trust boundary - external input, credentials, a gate meant to refuse - is not discounted by likelihood), D-03 (both leads triage downward at collation with a one-line reason; a remedy touching signed text reaches the operator only if its finding survives; amends DEC-206), D-04 (forward only through what is validated, no era marker, INV-15 never re-validates), D-05 (optional panel row key, required by record-panel) and D-06 (a discounted finding never decides a verdict: the severity_max witness, the reviewer FAIL refusal and the plan-team carve-out relief for an open row discounted at a non-gating severity; amends DEC-123), plus the testing rule (tests target plausible inputs; adversarial and malformed-input tests only at trust boundaries, in harness-tdd-enforcement and the QA guidance). Over lists the rejected alternatives the D-NN because fields name. Because cites #2622's measurements (BUG-2565 rounds 2-4, about 60 of 113 rework minutes; BUG-2566 E-01 rated high and med with a pre-feature outcome). Tradeoff accepted: a reader can misstate exposure, and only the lead's triage and the operator's reading catch it; eval is excluded, so the outcome is unmeasured. Record: FEAT-2622-practicality-rule; amends DEC-206 and DEC-123; refs DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.
+
+      2. In DEC-206, replace the sentence The lead never owns CONTENT — whether a defect exists at all, and how severe the reader judged it. with: The lead never owns CONTENT — whether a defect exists at all — and never raises the severity the reader judged; it may lower a finding to at most med, or drop it, only when the practicality rule (DEC-<n>) discounts it, with a one-line reason beside the finding. Append to DEC-206 one line: Amended by DEC-<n> (FEAT-2622-practicality-rule). In DEC-123, replace and every other on-disk row attributed to it is resolved (the words wrap across a line break there) with: and every other on-disk row attributed to it is resolved or, under the practicality rule (DEC-<n>), open at a non-gating severity with a discounted exposure; in the next sentence change An open, absent to An open (other than such a discounted row), absent; append to DEC-123 one line: Amended by DEC-<n> (FEAT-2622-practicality-rule): an open row the practicality rule discounts at a non-gating severity does not deny relief.
+
+      3. Run python3 .claude/skills/harness/bin/gen-decisions-index.py to regenerate DECISIONS-INDEX.md (anchors shift), then hand-write the ruling text after the double colon on the new row (Every reader finding carries exposure {trigger, vs_today, control}; a contrived, no-worse, non-adversary finding is at most med and never must_fix or an escalation; validate-digest and record-panel refuse it; leads triage downward with a reason.) and append to the DEC-206 row's ruling text: ; it may lower or drop a finding the practicality rule discounts (DEC-<n>). Append to the DEC-123 row's ruling text: ; or whose open rows are discounted at a non-gating severity (DEC-<n>). Re-run the generator with --stdout and diff against the file; they must match.

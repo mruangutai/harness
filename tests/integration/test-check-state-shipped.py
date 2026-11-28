@@ -15,28 +15,31 @@ assertions can be shown failing against the code before the change.
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
+# integration_support puts bin/ and tests/ on sys.path, so it must precede the helpers.
+from integration_support import BIN
+
+# isort: split
+import f58_sparse_fixture as F
+import git_support as G
+from harness_config_support import build_config
+
 CHECK = Path(os.environ.get("CHECK_STATE_BIN") or BIN / "check-state.py")
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(HERE.parent))
-from harness_config_support import build_config  # noqa: E402
-import f58_sparse_fixture as F  # noqa: E402
-import git_support as G  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"              # landed by the fixture; no plan.yaml, so never shipped
 SHIPPED = "FEAT-5-shipped"
 SHIPPED_TOO = "FEAT-6-shipped-too"
 NOTE = "{fid} has shipped; nothing is checked for shipped features."
+
+
+def note_line(fid):
+    """The one line --feature prints for a shipped feature."""
+    return "note       " + NOTE.format(fid=fid)
 
 # Every shipped fixture is broken in ways the per-feature checks would report: a plan the strict
 # loader refuses, an unsigned BRIEF, a run whose directory is absent.
@@ -78,6 +81,11 @@ def feature_files(fid, plan, doc=None, brief=None):
             f"{base}/feature.json": json.dumps(record) + "\n"}
 
 
+def lines_with(out, *subs):
+    """Output lines that contain every one of `subs`."""
+    return [l for l in out.splitlines() if all(s in l for s in subs)]
+
+
 def naming(out, fid):
     """Finding lines that name `fid`, excluding the three comparison invariants."""
     return [l for l in out.splitlines()
@@ -92,9 +100,7 @@ def opened_under(log, checkout, fid):
 
 class Case(unittest.TestCase):
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
 
     def commit(self, files, message="fixture"):
         self.fx.commit_owner(files, message)
@@ -131,7 +137,7 @@ class ShippedSubjects(Case):
         code, out = check(self.fx.clone(), "--feature", SHIPPED)
         self.assertEqual(code, 0, out)
         lines = [l.strip() for l in out.splitlines() if l.strip()]
-        self.assertEqual(lines, ["note       " + NOTE.format(fid=SHIPPED)], out)
+        self.assertEqual(lines, [note_line(SHIPPED)], out)
 
     def test_a_missing_selected_feature_still_refuses(self):
         code, out = check(self.fx.clone(), "--feature", "FEAT-9-gone")
@@ -158,8 +164,7 @@ class ShippedSubjects(Case):
 
     def test_a_shipped_directory_is_read_only_for_status_and_comparison(self):
         clone = self.fx.clone()
-        os.makedirs(os.path.join(clone, f".harness/harness/features/{SHIPPED}/runs/r9"))
-        Path(clone, f".harness/harness/features/{SHIPPED}/runs/r9/state.yaml").write_text("x: [\n")
+        F.write_files(clone, {f".harness/harness/features/{SHIPPED}/runs/r9/state.yaml": "x: [\n"})
         log = os.path.join(self.fx.base, "opens.log")
         check(clone, opens=log)
         opened = opened_under(log, clone, SHIPPED)
@@ -183,9 +188,7 @@ class ComparisonsKeepShippedRecords(Case):
                                   {"repo": "acme/widget", "issues": {"T-01": 11}})})
         for checkout in (self.fx.clone(), self.sparse("FEAT-7-building")):
             _code, out = check(checkout)
-            hits = [l for l in out.splitlines() if "INV-24" in l and SHIPPED in l
-                    and "FEAT-7-building" in l]
-            self.assertEqual(len(hits), 1, out)
+            self.assertEqual(len(lines_with(out, "INV-24", SHIPPED, "FEAT-7-building")), 1, out)
 
     def test_inv24_sees_a_collision_between_two_shipped_claims(self):
         self.commit({**self.claim(SHIPPED, STRICT_INVALID_DONE,
@@ -193,8 +196,7 @@ class ComparisonsKeepShippedRecords(Case):
                      **self.claim(SHIPPED_TOO, STRICT_INVALID_DONE,
                                   {"repo": "acme/widget", "issues": {"T-02": 21}})})
         _code, out = check(self.fx.clone())
-        hits = [l for l in out.splitlines() if "INV-24" in l and SHIPPED in l and SHIPPED_TOO in l]
-        self.assertEqual(len(hits), 1, out)
+        self.assertEqual(len(lines_with(out, "INV-24", SHIPPED, SHIPPED_TOO)), 1, out)
 
     def test_inv24_does_not_grade_a_shipped_claim_itself(self):
         # An undeclared repository, a non-container `issues` and a number repeated within one
@@ -205,9 +207,9 @@ class ComparisonsKeepShippedRecords(Case):
                      **self.claim("FEAT-7-building", BUILDING,
                                   {"repo": "acme/nope", "issues": {"T-01": 9}})})
         _code, out = check(self.fx.clone())
-        inv24 = [l for l in out.splitlines() if "INV-24" in l]
+        inv24 = lines_with(out, "INV-24")
         self.assertFalse([l for l in inv24 if SHIPPED in l or SHIPPED_TOO in l], out)
-        self.assertTrue([l for l in inv24 if "FEAT-7-building" in l and "acme/nope" in l],
+        self.assertTrue(lines_with(out, "INV-24", "FEAT-7-building", "acme/nope"),
                         "control: an undeclared repository on a building feature is graded\n" + out)
 
     def test_inv24_skips_unusable_shipped_numbers_and_keeps_usable_ones(self):
@@ -222,9 +224,9 @@ class ComparisonsKeepShippedRecords(Case):
                                   {"repo": "acme/widget", "issues": {"T-01": 11}})})
         _code, out = check(self.fx.clone())
         self.assertNotIn("Traceback", out)
-        inv24 = [l for l in out.splitlines() if "INV-24" in l]
-        self.assertEqual(len([l for l in inv24 if SHIPPED in l and "FEAT-7-building" in l]), 1, out)
-        self.assertFalse([l for l in inv24 if SHIPPED in l and "FEAT-7-building" not in l], out)
+        self.assertEqual(len(lines_with(out, "INV-24", SHIPPED, "FEAT-7-building")), 1, out)
+        self.assertFalse([l for l in lines_with(out, "INV-24", SHIPPED)
+                          if "FEAT-7-building" not in l], out)
 
     def test_inv24_skips_an_oversized_shipped_number_and_keeps_usable_ones(self):
         # More digits than int()'s string-conversion limit: isdigit() says yes, int() refuses.
@@ -235,8 +237,7 @@ class ComparisonsKeepShippedRecords(Case):
                                   {"repo": "acme/widget", "issues": {"T-01": 11}})})
         _code, out = check(self.fx.clone())
         self.assertNotIn("Traceback", out)
-        inv24 = [l for l in out.splitlines() if "INV-24" in l]
-        self.assertEqual(len([l for l in inv24 if SHIPPED in l and "FEAT-7-building" in l]), 1, out)
+        self.assertEqual(len(lines_with(out, "INV-24", SHIPPED, "FEAT-7-building")), 1, out)
 
     def test_inv24_still_reads_a_unicode_digit_on_active_claims(self):
         # "٣" (Arabic-Indic three) is a number int() reads: two active claims on it collide,
@@ -246,10 +247,9 @@ class ComparisonsKeepShippedRecords(Case):
                      **self.claim("FEAT-8-building", BUILDING,
                                   {"repo": "acme/widget", "issues": {"T-01": 3}})})
         _code, out = check(self.fx.clone())
-        inv24 = [l for l in out.splitlines() if "INV-24" in l]
-        self.assertEqual(len([l for l in inv24 if "FEAT-7-building" in l and "FEAT-8-building" in l
-                              and "issue 3" in l]), 1, out)
-        self.assertFalse([l for l in inv24 if "not an integer" in l], out)
+        self.assertEqual(len(lines_with(out, "INV-24", "FEAT-7-building", "FEAT-8-building",
+                                        "issue 3")), 1, out)
+        self.assertFalse(lines_with(out, "INV-24", "not an integer"), out)
 
     def test_inv52_sees_two_shipped_features_on_one_branch(self):
         self.commit({**feature_files(SHIPPED, STRICT_INVALID_DONE, {"branch": "feat/dup"}),
@@ -269,20 +269,18 @@ class ComparisonsKeepShippedRecords(Case):
             _code, out = check(checkout)
             self.assertIn(f"INV-52: branch feat/dup is claimed by 2 landed features "
                           f"({SHIPPED}, FEAT-7-building)", out)
-            self.assertFalse([l for l in out.splitlines()
-                              if SHIPPED in l and "does not parse" in l], out)
+            self.assertFalse(lines_with(out, SHIPPED, "does not parse"), out)
 
     def test_inv29_sees_a_standing_worktree_of_a_shipped_feature(self):
         self.commit(feature_files(SHIPPED, STRICT_VALID_DONE))
         wt = self.fx.add_worktree(SHIPPED)
         _code, out = check(self.fx.owner)
-        hits = [l for l in out.splitlines() if "INV-29" in l and wt in l]
-        self.assertEqual(len(hits), 1, out)
+        self.assertEqual(len(lines_with(out, "INV-29", wt)), 1, out)
 
 
 class RetiredMirrorChecks(Case):
     def test_inv28_and_inv30_are_retired(self):
-        code, out = check(self.fx.clone(), "--list")
+        code, out = check(self.fx.owner, "--list")
         self.assertEqual(code, 0, out)
         for inv in ("INV-28", "INV-30"):
             rows = [l for l in out.splitlines() if re.match(rf"\s*{inv}\b", l)]
@@ -343,7 +341,7 @@ def _shipped_record_failures(export, full_out, log, fid):
     claims = ((not named, f"{fid} named by the full audit: {named}"),
               (opened <= {"plan.yaml", "feature.json"},
                f"{fid} opened beyond status/comparison: {sorted(opened)}"),
-              (code == 0 and lines == ["note       " + NOTE.format(fid=fid)],
+              (code == 0 and lines == [note_line(fid)],
                f"{fid} --feature: exit {code}, {lines}"))
     for ok, label in claims:
         print(("PASS  " if ok else "FAIL  ") + (fid if ok else label))

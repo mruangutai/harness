@@ -47,7 +47,7 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    Expertise files and `feature.json`, which carries the distill runs' committed ledger
    (`git add -A -- .harness` stages only those, because the working files are ignored). The
    original and replacement receipts, the distill runs' directories and the observation logs
-   are local working files, never staged and never force-added (DEC-260). Only after that push
+   are local working files, never staged and never force-added (DEC-262). Only after that push
    does Main run `merge-gate.py merge-distill --root <wt> --feature <id> --pr <n>`: it replays
    the worktree's local receipts and refuses any uncommitted `.harness` change, `feature.json`
    included, so no merge call may precede the commit. It re-checks replay

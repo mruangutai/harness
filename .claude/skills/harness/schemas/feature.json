@@ -190,7 +190,7 @@
       "type": "array",
       "uniqueItems": true,
       "items": { "type": "string", "pattern": "^\\.harness/notes/(?!\\.\\.?$)[^/]+$" },
-      "description": "The .harness/notes/ paths this feature claims, written only by feature-record.py project-note. The working-file cleanup deletes only these project notes, never another feature's or an unclaimed one (DEC-260)."
+      "description": "The .harness/notes/ paths this feature claims, written only by feature-record.py project-note. The working-file cleanup deletes only these project notes, never another feature's or an unclaimed one (DEC-262)."
     },
     "judgements": {
       "type": "array",

@@ -426,7 +426,7 @@ def inv_23(ctx):
 # BUG-1716: a task whose current {files, intent, verify} hash differs from the hash
 # `sign-approval` recorded in `signed_task_hashes` -- the signed text changed -- with no entry
 # of kind amendment whose decision is that task's `T-NN.<field>`. The letters are kept: clause
-# (c), the handoff-note succession, retired with the notes it read (DEC-260). Entries are
+# (c), the handoff-note succession, retired with the notes it read (DEC-262). Entries are
 # appended in order and the ledger is one flat list, so (b) matches by COUNT: k re-gates need
 # k regate entries and the first uncovered run is the one named. (d) recomputes with the hash
 # plan_merge/approval.py owns (`signed_task_hash`), never a re-spelling of it; an overruled

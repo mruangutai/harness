@@ -735,7 +735,7 @@ def _relay_removals(stdout):
 def _exit_station_cleanup_failed(r, station, feat_dir):
     """Exit 4 on set-feature-station's exit 10 (T-10): it wrote `rejected` and then failed to
     clean the working files. The station landed, so this is neither a FAILED station nor a
-    reason to re-run the verb that wrote it (DEC-260 D-05)."""
+    reason to re-run the verb that wrote it (DEC-262 D-05)."""
     for line in (r.stdout + r.stderr).splitlines():
         print(f"gh-sync: {line}", file=sys.stderr)
     print(f"gh-sync: station {station} was recorded, but working-file cleanup failed - "
@@ -1819,7 +1819,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     parent, milestone or tasks there is nothing to close on GitHub, but the feature is still
     abandoned: under `--yes` the station is recorded and the feature's local working files -
     notes/, runs/, observations/ and every project note feature.json lists - are removed
-    (DEC-260 D-05). A station that already reads `abandoned` is not rewritten; the working files
+    (DEC-262 D-05). A station that already reads `abandoned` is not rewritten; the working files
     are still removed and sources are still disposed when asked.
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
@@ -1921,7 +1921,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     if already_abandoned or _record_station(feat_dir, "abandoned"):
         # After the station, never before: the station is the record every reader keys on, and a
         # cleanup that fails (a symlinked notes parent, a writer mid-flight) must not leave closed
-        # issues with no station. A failure exits 4 naming the clean command (DEC-260 D-05).
+        # issues with no station. A failure exits 4 naming the clean command (DEC-262 D-05).
         _clean_after_terminal(feat_dir, "abandoned", "abandon")
     else:
         print("gh-sync: FAILED - working files not removed: the station was not recorded "
@@ -2003,7 +2003,7 @@ def _working_targets(feat_dir):
 
 
 def _clean_after_terminal(feat_dir, station, verb):
-    """Remove the feature's local working files once `station` has landed (DEC-260 D-05).
+    """Remove the feature's local working files once `station` has landed (DEC-262 D-05).
 
     Runs only after the terminal write succeeded. Any failure - a refused layout, an owner root
     that does not resolve, an OSError mid-removal - is reported with what was already removed
@@ -2183,7 +2183,7 @@ def cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes=False):
     tickets); a numeric successor owns the final station write, as the last mutation and
     only after every GitHub mutation landed.
 
-    WORKING FILES (DEC-260 D-05). The station write is what removes them: plan-merge.py
+    WORKING FILES (DEC-262 D-05). The station write is what removes them: plan-merge.py
     set-feature-station cleans notes/, runs/, observations/ and the listed project notes once
     it has written `rejected` (T-10). So a numeric successor's preview lists one remove line per
     working file after the station line, and `--yes` relays plan-merge's removal lines and runs
@@ -2416,7 +2416,7 @@ _VALIDATE_RUN_ID = re.compile(r"(?:^|-)(?:validate|fix)-")
 
 def _validate_pass_recorded(feat_dir):
     """True when feature.json's runs hold a validator-squad validate or fix run at PASS
-    (case-insensitive) - the precondition ship reads from the committed ledger (DEC-260 D-07)."""
+    (case-insensitive) - the precondition ship reads from the committed ledger (DEC-262 D-07)."""
     try:
         doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
     except record_read.FeatureJsonError as exc:
@@ -2637,7 +2637,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     # post-merge sweep the moment a feature's PR merges — while its validate may still be in
     # flight — and the cards it moves to Done and the milestone it closes cannot be unwritten.
     # This check is the sole, preventive prerequisite: it refuses before the first irreversible
-    # write. DEC-260: it reads the committed ledger, feature.json's runs, never a notes/ file -
+    # write. DEC-262: it reads the committed ledger, feature.json's runs, never a notes/ file -
     # ship runs in the main checkout or a plain clone, where an untracked note never exists.
     # The DEC-174 main-session-direct exemption is the shared handoff_policy predicate.
     #

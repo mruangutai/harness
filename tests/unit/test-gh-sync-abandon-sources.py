@@ -398,7 +398,7 @@ check("AS-20 an existing direct caller (no close_sources argument) still dispose
       {40, 41} <= set(s.targets("close")) and 51 not in s.targets("close"),
       repr(s.events))
 
-# --- DEC-260 D-05: _clean_after_terminal reports a failed cleanup after the station landed --------
+# --- DEC-262 D-05: _clean_after_terminal reports a failed cleanup after the station landed --------
 def call_in(fn, *args):
     out, err = io.StringIO(), io.StringIO()
     code = None

@@ -66,7 +66,7 @@ resolved through the harness.json of the checkout the target plan.yaml belongs t
 BEFORE the lock is taken, so a refused value never opens the file. Once `set-feature-station`
 has written `rejected`, it removes the feature's local working files - notes/, runs/,
 observations/ and the project notes its feature.json claims - through bin/working_files.py
-(DEC-260); a refused station write removes nothing. Its exit 10, returned by no other path of
+(DEC-262); a refused station write removes nothing. Its exit 10, returned by no other path of
 that verb, means the station was recorded and only the cleanup failed: it names what was
 already removed and the feature-worktree.py clean retry command.
 

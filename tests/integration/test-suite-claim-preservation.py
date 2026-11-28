@@ -12,6 +12,8 @@ byte-identical) runs inside test-validate-digest.py's own full run, so the suite
 for twice. Its own file, so the suite is never run inside itself. Cleanup removes the mutant
 copy.
 """
+from integration_support import ROOT, BIN, TESTS
+
 import os
 from pathlib import Path
 import shutil
@@ -19,10 +21,9 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
+from check_support import Checks
 
-SUITE = ROOT / "tests" / "integration" / "test-validate-digest.py"
+SUITE = TESTS / "integration" / "test-validate-digest.py"
 # The mutant pass reads only the [bug1898] lines, so it runs only that group.
 EXACT_RELEASE_GROUP = "run_bug1898_exact_release_cases"
 EXACT_RELEASE_FAIL = "FAIL  [bug1898] "
@@ -43,45 +44,29 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
     return _bug1898_exact_release(root, agent=agent, feature=feature, claim_id=claim_id,
                                   job_id=job_id)
 '''
-failures = []
-
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
-
-
-def run_suite(env=None, *args):
-    run = subprocess.run([sys.executable, str(SUITE), *args], cwd=ROOT, capture_output=True,
-                         text=True, timeout=1800, env=env)
-    return run.returncode, run.stdout + run.stderr
+C = Checks()
+check = C.check
 
 
 def mutant_run():
-    copy = Path(tempfile.mkdtemp(prefix="vd-persona-release-")) / "bin"
-    try:
+    with tempfile.TemporaryDirectory(prefix="vd-persona-release-") as tmp:
+        copy = Path(tmp) / "bin"
         shutil.copytree(BIN, copy, ignore=shutil.ignore_patterns("__pycache__"))
-        shutil.copytree(BIN.parent / "schemas", copy.parent / "schemas")
+        shutil.copytree(BIN.parent / "schemas", Path(tmp) / "schemas")
         with open(copy / "inflight_registry.py", "a", encoding="utf-8") as handle:
             handle.write(PERSONA_RELEASE)
-        code, output = run_suite(dict(os.environ,
-                                      VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")),
-                                 "--only", EXACT_RELEASE_GROUP)
-        reddened = {line[len(EXACT_RELEASE_FAIL):] for line in output.splitlines()
-                    if line.startswith(EXACT_RELEASE_FAIL)}
-        check("a persona-wide release reddens exactly the parent-settlement checks",
-              code != 0 and reddened == PERSONA_RELEASE_REDS,
-              "exit %d, reddened %s" % (code, sorted(reddened)))
-    finally:
-        shutil.rmtree(copy.parent, ignore_errors=True)
-
-
-def main():
-    mutant_run()
-    print("%d failure(s)" % len(failures))
-    return 1 if failures else 0
+        run = subprocess.run(
+            [sys.executable, str(SUITE), "--only", EXACT_RELEASE_GROUP], cwd=ROOT,
+            capture_output=True, text=True, timeout=1800,
+            env=dict(os.environ, VALIDATE_DIGEST_BIN=str(copy / "validate-digest.py")))
+    output = run.stdout + run.stderr
+    reddened = {line[len(EXACT_RELEASE_FAIL):] for line in output.splitlines()
+                if line.startswith(EXACT_RELEASE_FAIL)}
+    check("a persona-wide release reddens exactly the parent-settlement checks",
+          run.returncode != 0 and reddened == PERSONA_RELEASE_REDS,
+          "exit %d, reddened %s" % (run.returncode, sorted(reddened)))
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    mutant_run()
+    sys.exit(C.report())

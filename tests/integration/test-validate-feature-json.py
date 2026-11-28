@@ -8,42 +8,23 @@ here reads, writes or depends on any real file under .harness/*/features/*/.
 jsonschema must be importable for these tests to mean anything: they prove
 the schema's SHAPE, not merely that the module imports.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import json
-import os
-import re
-import subprocess
-import sys
-import tempfile
+from integration_support import BIN
+import json  # noqa: E402
+import os  # noqa: E402
+import re  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+from unittest import mock  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-if BIN_DIR not in sys.path:
-    sys.path.insert(0, BIN_DIR)
+from check_support import Checks  # noqa: E402
+from feature_record import schema as record_schema  # noqa: E402
 
-REPO_ROOT = os.environ.get("HARNESS_PROJECT_DIR") or os.path.abspath(
-    os.path.join(BIN_DIR, "..", "..", "..", "..")
-)
-
-
+BIN_DIR = str(BIN)
 VALIDATE_CLI = os.path.join(BIN_DIR, "validate-feature-json.py")
 
-from feature_record import schema as record_schema  # noqa: E402  (after sys.path fixup, house convention)
-
-failures = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def swept(stderr):
@@ -121,8 +102,8 @@ def required_doc():
     }
 
 
-def clean(doc, display="sample.json"):
-    return record_schema.problems_for_text(json.dumps(doc), display)
+def clean(doc):
+    return record_schema.problems_for_text(json.dumps(doc), "sample.json")
 
 
 def write_file(tmpdir, name, text):
@@ -179,7 +160,7 @@ def case_rejected_omitting_one_required_key():
         # rendering — a bare substring match cannot tell "names the right key" from
         # "names some key that happens to contain this key's letters".
         named = any(f"'{key}'" in p for p in problems)
-        check(f"rejected_omitting_required_{key}", problems != [] and named, problems)
+        check(f"rejected_omitting_required_{key}", named, problems)
 
 
 def case_rejected_every_station_spelling_as_status():
@@ -195,7 +176,7 @@ def case_rejected_every_station_spelling_as_status():
         doc["status"] = value
         problems = clean(doc)
         named = any("'status'" in p for p in problems)
-        check(f"rejected_status_{value}_as_undeclared", problems != [] and named, problems)
+        check(f"rejected_status_{value}_as_undeclared", named, problems)
 
 
 def case_rejected_phase_is_gone():
@@ -203,7 +184,7 @@ def case_rejected_phase_is_gone():
     doc["phase"] = "ship"
     problems = clean(doc)
     named = any("'phase'" in p for p in problems)
-    check("rejected_phase_undeclared", problems != [] and named, problems)
+    check("rejected_phase_undeclared", named, problems)
 
 
 def case_rejected_undeclared_top_level_key():
@@ -212,7 +193,7 @@ def case_rejected_undeclared_top_level_key():
     problems = clean(doc)
     named = any("'invented_key'" in p for p in problems)
     redirected = any(REDIRECT_SENTENCE in p for p in problems)
-    check("rejected_undeclared_top_level_key", problems != [] and named and redirected, problems)
+    check("rejected_undeclared_top_level_key", named and redirected, problems)
 
 
 def case_rejected_undeclared_runs_item_key():
@@ -221,7 +202,7 @@ def case_rejected_undeclared_runs_item_key():
     problems = clean(doc)
     named = any("'cost_usd'" in p for p in problems)
     redirected = any(REDIRECT_SENTENCE in p for p in problems)
-    check("rejected_undeclared_runs_item_key", problems != [] and named and redirected, problems)
+    check("rejected_undeclared_runs_item_key", named and redirected, problems)
 
 
 def case_accepted_runs_item_code_grade_n_a():
@@ -250,7 +231,7 @@ def case_rejected_runs_item_code_grade_other_value():
     problems = clean(doc)
     named = any("code_grade" in p for p in problems)
     check("rejected_runs_item_code_grade_other_value",
-          problems != [] and named, problems)
+          named, problems)
 
 
 def case_rejected_runs_item_code_grade_case_variant():
@@ -262,7 +243,7 @@ def case_rejected_runs_item_code_grade_case_variant():
     problems = clean(doc)
     named = any("code_grade" in p for p in problems)
     check("rejected_runs_item_code_grade_case_variant",
-          problems != [] and named, problems)
+          named, problems)
 
 
 def case_rejected_undeclared_github_sub_key():
@@ -271,7 +252,7 @@ def case_rejected_undeclared_github_sub_key():
     problems = clean(doc)
     named = any("'closed'" in p for p in problems)
     redirected = any(REDIRECT_SENTENCE in p for p in problems)
-    check("rejected_undeclared_github_sub_key", problems != [] and named and redirected, problems)
+    check("rejected_undeclared_github_sub_key", named and redirected, problems)
 
 
 def case_rejected_prose_key_reproducing_real_rot():
@@ -279,7 +260,7 @@ def case_rejected_prose_key_reproducing_real_rot():
     doc["runs"] = [{"id": "r1", "squad": "code", "verdict": "PASS", "3 must_fix at med": "x"}]
     problems = clean(doc)
     named = any("3 must_fix at med" in p for p in problems)
-    check("rejected_prose_key_runs_item", problems != [] and named, problems)
+    check("rejected_prose_key_runs_item", named, problems)
 
 
 def case_rejected_status_shipped():
@@ -363,7 +344,7 @@ def case_json_extension_rejects_yaml_content_yaml_extension_accepts_it():
         yaml_problems = record_schema.problems_for_file(yaml_path)
 
     named = any("JSON" in p or "json" in p for p in json_problems)
-    check("json_extension_rejects_yaml_content", json_problems != [] and named,
+    check("json_extension_rejects_yaml_content", named,
           json_problems)
     check("yaml_extension_accepts_same_content", yaml_problems == [], yaml_problems)
 
@@ -380,12 +361,8 @@ def case_problems_for_text_names_real_display_path_in_every_line():
 
 
 def case_problems_for_text_jsonschema_forced_unavailable():
-    original = record_schema.JSONSCHEMA_AVAILABLE
-    try:
-        record_schema.JSONSCHEMA_AVAILABLE = False
+    with mock.patch.object(record_schema, "JSONSCHEMA_AVAILABLE", False):
         problems = record_schema.problems_for_text(json.dumps(full_doc()), "sample.json")
-    finally:
-        record_schema.JSONSCHEMA_AVAILABLE = original
     check("forced_unavailable_returns_non_empty", problems != [], problems)
     check("forced_unavailable_single_line", len(problems) == 1, problems)
     check("forced_unavailable_names_required", "REQUIRED" in problems[0], problems)
@@ -393,23 +370,29 @@ def case_problems_for_text_jsonschema_forced_unavailable():
           "pip install jsonschema" in problems[0], problems)
 
 
+def _write_feature(tmp, name):
+    """full_doc() as .harness/repoA/features/<name>/feature.json under tmp."""
+    fd = os.path.join(tmp, ".harness", "repoA", "features", name)
+    os.makedirs(fd)
+    write_json(fd, "feature.json", full_doc())
+
+
+def _sweep(tmp, set_var, drop_var):
+    """The no-argument sweep with set_var=tmp and drop_var absent from the environment."""
+    env = dict(os.environ)
+    env.pop(drop_var, None)
+    env[set_var] = tmp
+    return subprocess.run([VALIDATE_CLI], capture_output=True, text=True, timeout=30, env=env)
+
+
 def case_migrated_depth_discovery_scans_the_segment_layout():
     """The no-argument sweep must examine a feature.json one segment deep - the CI
     backstop's only proof it still examines anything, since zero matches and a
     correct empty tree print the same exit code."""
     with tempfile.TemporaryDirectory() as tmp:
-        fd = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-77-x")
-        os.makedirs(fd)
-        with open(os.path.join(fd, "feature.json"), "w", encoding="utf-8") as f:
-            json.dump(full_doc(), f)
-        os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
-        open(os.path.join(tmp, ".harness", "team-config.yaml"), "w",
-             encoding="utf-8").write("")
-        env = dict(os.environ)
-        env.pop("CLAUDE_PROJECT_DIR", None)
-        env["HARNESS_PROJECT_DIR"] = tmp
-        r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
-                           timeout=30, env=env)
+        _write_feature(tmp, "FEAT-77-x")
+        write_file(os.path.join(tmp, ".harness"), "team-config.yaml", "")
+        r = _sweep(tmp, "HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
         check("case_migrated_depth: the sweep reports ONE file, not zero",
               swept(r.stderr) == 1, r.stderr)
         check("case_migrated_depth: the scanning line names the migrated glob",
@@ -420,12 +403,8 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         # real count IS 1. Twelve cannot be reached by a last-digit or substring
         # break: "12 file(s)" yields 2 under such a mutant, and 2 != 12 reddens.
         for n in range(11):
-            extra = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-8%d-y" % n)
-            os.makedirs(extra)
-            with open(os.path.join(extra, "feature.json"), "w", encoding="utf-8") as f:
-                json.dump(full_doc(), f)
-        r12 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
-                             timeout=30, env=env)
+            _write_feature(tmp, "FEAT-8%d-y" % n)
+        r12 = _sweep(tmp, "HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
         check("case_migrated_depth: a TWELVE-file sweep is counted as twelve, not two",
               swept(r12.stderr) == 12, r12.stderr)
 
@@ -439,15 +418,8 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
     the retired chain would have silently broken that promise by sweeping the real
     checkout instead of the tmp fixture whenever HARNESS_PROJECT_DIR was unset."""
     with tempfile.TemporaryDirectory() as tmp:
-        fd = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-77-x")
-        os.makedirs(fd)
-        with open(os.path.join(fd, "feature.json"), "w", encoding="utf-8") as f:
-            json.dump(full_doc(), f)
-        env = dict(os.environ)
-        env.pop("HARNESS_PROJECT_DIR", None)
-        env["CLAUDE_PROJECT_DIR"] = tmp
-        r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
-                            timeout=30, env=env)
+        _write_feature(tmp, "FEAT-77-x")
+        r = _sweep(tmp, "CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")
         # BIND THE PROPERTY, NOT A COUNT COINCIDENCE (cycle-1 M2). The property is
         # "the sweep did not take tmp as its root". Asserting `count != 1` inferred
         # that from a number, and was sensitive only because this repo happened to
@@ -459,14 +431,8 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
               "(scans the real repo root, not the tmp fixture with its single file)",
               swept(r.stderr) != 1 and tmp not in r.stderr, r.stderr)
 
-        env2 = dict(os.environ)
-        env2.pop("CLAUDE_PROJECT_DIR", None)
-        env2["HARNESS_PROJECT_DIR"] = tmp
-        os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
-        open(os.path.join(tmp, ".harness", "team-config.yaml"), "w",
-             encoding="utf-8").write("")
-        r2 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
-                             timeout=30, env=env2)
+        write_file(os.path.join(tmp, ".harness"), "team-config.yaml", "")
+        r2 = _sweep(tmp, "HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR")
         check("case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured",
               swept(r2.stderr) == 1 and tmp in r2.stderr, r2.stderr)
 
@@ -506,7 +472,7 @@ def case_rejected_undeclared_sibling_of_source_issues():
     doc["github"]["source_issue"] = 492
     problems = clean(doc)
     named = any("'source_issue'" in p for p in problems)
-    check("rejected_undeclared_sibling_of_source_issues", problems != [] and named, problems)
+    check("rejected_undeclared_sibling_of_source_issues", named, problems)
 
 
 def case_accepted_github_block_without_source_issues():
@@ -555,7 +521,7 @@ def case_rejected_overruled_outside_a_live_amendment():
         check(f"rejected_overruled_{label}", any("overruled" in p for p in problems), problems)
 
 
-# FEAT-2641 T-04 — project_notes (DEC-260) and the distill judgement kind (D-11).
+# FEAT-2641 T-04 — project_notes (DEC-262) and the distill judgement kind (D-11).
 
 def case_accepted_project_notes():
     doc = full_doc()
@@ -618,7 +584,7 @@ def case_rejected_github_build_entry_illegal_value():
         # for some unrelated reason.
         named = any("is not one of" in p and "recovered-terminal" in p for p in problems)
         check(f"rejected_github_build_entry_illegal_value_{value!r}",
-              problems != [] and named, problems)
+              named, problems)
 
 
 def case_rejected_github_build_entry_hyphen_misspelling():
@@ -628,7 +594,7 @@ def case_rejected_github_build_entry_hyphen_misspelling():
     named = any("'build-entry'" in p for p in problems)
     redirected = any(REDIRECT_SENTENCE in p for p in problems)
     check("rejected_github_build_entry_hyphen_misspelling",
-          problems != [] and named and redirected, problems)
+          named and redirected, problems)
 
 
 def case_accepted_github_block_without_build_entry():
@@ -646,8 +612,8 @@ def case_accepted_github_block_without_build_entry():
 T15_FEATURE = "FEAT-90-fixture"
 
 
-def _t15_display(feature, root="/tmp/x"):
-    return f"{root}/.harness/harness/features/{feature}/feature.json"
+def _t15_display(feature):
+    return f"/tmp/x/.harness/harness/features/{feature}/feature.json"
 
 
 def _t15_doc(entries):
@@ -732,9 +698,6 @@ def case_t15_red():
         check("t15_e_red_proof", False, "the rule's call site was not found")
         return
     mutant_text = src.replace(needle, "")
-    if mutant_text == src:
-        check("t15_e_red_proof", False, "INCONCLUSIVE — the mutation did not change the source")
-        return
 
     import importlib.util
     with tempfile.TemporaryDirectory() as tmp:
@@ -896,11 +859,7 @@ CASES = (
 def main():
     for case in CASES:
         case()
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        sys.exit(1)
-    print("\nALL PASS")
-    sys.exit(0)
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

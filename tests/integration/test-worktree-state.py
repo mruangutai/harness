@@ -6,27 +6,30 @@ Every subject is a real git worktree of the synthetic owner in f58_sparse_fixtur
 checkout. The command runs as a subprocess, the way hooks and gates call it, and its decision is
 read from the JSON report as well as the exit status.
 """
+from integration_support import BIN
 import json
 import os
 import subprocess
 import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-CLI = ROOT / ".claude/skills/harness/bin/worktree-state.py"
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import f58_sparse_fixture as F  # noqa: E402
 import git_support as G  # noqa: E402
 
 HIDDEN_BRIEF = ".harness/harness/features/FEAT-2-beta/BRIEF.md"
 BETA_TEXT = "# BRIEF FEAT-2-beta\n"
+LINK_REL = ".harness/harness/features/FEAT-2-beta/notes/link.md"
+CLI = BIN / "worktree-state.py"
+
+
+def invoke(mode, checkout, *extra):
+    """The CLI as hooks call it; human output unless extra carries --json."""
+    return subprocess.run([sys.executable, str(CLI), f"--{mode}", "--checkout", checkout, *extra],
+                          env=G.ENV, capture_output=True, text=True)
 
 
 def run(mode, checkout, *extra):
-    proc = subprocess.run([sys.executable, str(CLI), f"--{mode}", "--checkout", checkout,
-                           "--json", *extra], env=G.ENV, capture_output=True, text=True)
+    proc = invoke(mode, checkout, "--json", *extra)
     try:
         doc = json.loads(proc.stdout)
     except json.JSONDecodeError:
@@ -41,14 +44,17 @@ def labels(doc):
 
 class Case(unittest.TestCase):
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
 
     def converged(self, checkout):
         code, doc = run("repair", checkout)
         self.assertEqual(code, 0, doc)
         return doc
+
+    def converged_worktree(self, name="FEAT-1-alpha"):
+        wt = self.fx.add_worktree(name)
+        self.converged(wt)
+        return wt
 
     def assert_required_paths(self, checkout):
         for rel in F.REQUIRED_PATHS:
@@ -69,7 +75,9 @@ class RecordBearingClasses(Case):
         self.assertEqual(F.feature_dirs_on_disk(wt), ["harness/FEAT-1-alpha"])
         self.assert_required_paths(wt)
         self.assertTrue(os.path.isfile(os.path.join(wt, ".harness/team-config.yaml")))
-        self.assertEqual(run("verify", wt), (0, run("verify", wt)[1]))
+        first, second = run("verify", wt), run("verify", wt)
+        self.assertEqual(first[0], 0)
+        self.assertEqual(first[1], second[1])                    # verify is deterministic
 
     def test_fleet_planning_worktree_uses_the_record_segment(self):
         wt = self.fx.add_worktree("FEAT-10-kaya-app")          # under .claude/worktrees/harness
@@ -86,15 +94,13 @@ class RecordBearingClasses(Case):
 
     def test_new_top_level_directory_survives_without_an_edit(self):
         self.fx.commit_owner({"newtop/x.txt": "x\n"}, "add a top-level tree")
-        wt = self.fx.add_worktree("FEAT-1-alpha")
-        self.converged(wt)
+        wt = self.converged_worktree()
         self.assertTrue(os.path.isfile(os.path.join(wt, "newtop/x.txt")))
 
     def test_a_non_ascii_top_level_directory_converges_and_verifies(self):
         # git C-quotes such names in `sparse-checkout list` (#2103 panel, finding 4).
         self.fx.commit_owner({"space ü 文/file.txt": "unicode\n"}, "a non-ASCII directory")
-        wt = self.fx.add_worktree("FEAT-1-alpha")
-        self.converged(wt)
+        wt = self.converged_worktree()
         self.assertEqual(run("verify", wt)[0], 0)
         self.assertTrue(os.path.isfile(os.path.join(wt, "space ü 文/file.txt")))
 
@@ -104,8 +110,7 @@ class RecordBearingClasses(Case):
         # quoted (validate c4).
         hidden = ".harness/harness/features/FEAT-2-beta/notes/line\nbreak.md"
         self.fx.commit_owner({'"quoted/file.txt': "q\n", hidden: "h\n"}, "names git unquotes")
-        wt = self.fx.add_worktree("FEAT-1-alpha")
-        self.converged(wt)
+        wt = self.converged_worktree()
         self.assertEqual(run("verify", wt)[0], 0)
         self.assertTrue(os.path.isfile(os.path.join(wt, '"quoted/file.txt')))
         self.assertFalse(os.path.lexists(os.path.join(wt, hidden)))
@@ -128,8 +133,7 @@ class RecordBearingClasses(Case):
         wt = self.fx.add_worktree("scratch", branch="feat/FEAT-1-alpha")
         self.converged(wt)
         F.write_files(wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "work\n"})
-        G.git(wt, "add", "-A")
-        G.git(wt, "commit", "-qm", "feature work")
+        G.commit_all(wt, "feature work", git=G.checked_git)
         self.fx.commit_owner({"newtop/x.txt": "x\n"}, "main moves")
         G.git(wt, "rebase", "--exec", "false", "main", check=False)
         self.assertEqual(G.git(wt, "symbolic-ref", "-q", "HEAD", check=False).returncode, 1)
@@ -186,8 +190,7 @@ class Refusals(Case):
 class StructuralBreaks(Case):
     def setUp(self):
         super().setUp()
-        self.wt = self.fx.add_worktree("FEAT-1-alpha")
-        self.converged(self.wt)
+        self.wt = self.converged_worktree()
 
     def assert_verify_reports_without_mutation(self, code, label):
         before = F.snapshot(self.wt)
@@ -195,6 +198,7 @@ class StructuralBreaks(Case):
         self.assertEqual(got, code, doc)
         self.assertIn(label, labels(doc))
         self.assertEqual(F.snapshot(self.wt), before)
+        return doc
 
     def assert_repair_converges(self):
         self.converged(self.wt)
@@ -213,8 +217,7 @@ class StructuralBreaks(Case):
         G.git(self.wt, "update-index", "--no-skip-worktree", *[p[2:] for p in hidden])
         status = G.git(self.wt, "status", "--porcelain").stdout
         self.assertIn(f" D {HIDDEN_BRIEF}", status)          # the measured shape: absent, no bit
-        self.assert_verify_reports_without_mutation(4, "skip-bits")
-        _code, doc = run("verify", self.wt)
+        doc = self.assert_verify_reports_without_mutation(4, "skip-bits")
         self.assertNotIn("dirty", labels(doc))
         self.assert_repair_converges()
 
@@ -227,8 +230,7 @@ class StructuralBreaks(Case):
         # git clears the skip bit of any file present on disk when it loads the index
         # (sparse.expectFilesOutsideOfPatterns), so skip-bits outranks materialisation here.
         F.write_files(self.wt, {HIDDEN_BRIEF: BETA_TEXT})
-        self.assert_verify_reports_without_mutation(4, "materialisation")
-        _code, doc = run("verify", self.wt)
+        doc = self.assert_verify_reports_without_mutation(4, "materialisation")
         self.assertNotIn("dirty", labels(doc))
         self.assert_repair_converges()
 
@@ -251,32 +253,35 @@ class ClassC(Case):
             self.assertIn(path, dirty["paths"])
         self.assertEqual(F.snapshot(wt), before)
 
-    def converged_wt(self):
-        wt = self.fx.add_worktree("FEAT-1-alpha")
-        self.converged(wt)
-        return wt
+    def tracked_symlink_worktree(self):
+        os.makedirs(os.path.dirname(os.path.join(self.fx.owner, LINK_REL)), exist_ok=True)
+        os.symlink("../BRIEF.md", os.path.join(self.fx.owner, LINK_REL))
+        self.fx.commit_owner({}, "a tracked symlink")
+        return self.fx.add_worktree("FEAT-1-alpha")
 
     def test_real_edit_in_the_active_feature(self):
-        wt = self.converged_wt()
+        wt = self.converged_worktree()
         rel = ".harness/harness/features/FEAT-1-alpha/BRIEF.md"
         F.write_files(wt, {rel: "edited\n"})
         self.assert_refused(wt, rel)
 
     def test_staged_deletion_of_a_hidden_file(self):
-        wt = self.converged_wt()
+        wt = self.converged_worktree()
         G.git(wt, "rm", "-q", "--cached", "--sparse", HIDDEN_BRIEF)
         self.assert_refused(wt, HIDDEN_BRIEF)
 
     def test_untracked_and_ignored_files_in_a_hidden_directory(self):
-        wt = self.converged_wt()
-        F.write_files(wt, {".harness/harness/features/FEAT-2-beta/notes/new.md": "work\n"})
-        self.assert_refused(wt, ".harness/harness/features/FEAT-2-beta/notes/new.md")
-        os.remove(os.path.join(wt, ".harness/harness/features/FEAT-2-beta/notes/new.md"))
-        F.write_files(wt, {".harness/harness/features/FEAT-2-beta/plan.yaml.lock": ""})
-        self.assert_refused(wt, ".harness/harness/features/FEAT-2-beta/plan.yaml.lock")
+        wt = self.converged_worktree()
+        new = ".harness/harness/features/FEAT-2-beta/notes/new.md"
+        lock = ".harness/harness/features/FEAT-2-beta/plan.yaml.lock"
+        F.write_files(wt, {new: "work\n"})
+        self.assert_refused(wt, new)
+        os.remove(os.path.join(wt, new))
+        F.write_files(wt, {lock: ""})
+        self.assert_refused(wt, lock)
 
     def test_rewritten_skip_worktree_file(self):
-        wt = self.converged_wt()
+        wt = self.converged_worktree()
         F.write_files(wt, {HIDDEN_BRIEF: "someone wrote here\n"})
         self.assert_refused(wt, HIDDEN_BRIEF)
 
@@ -304,23 +309,15 @@ class ClassC(Case):
             self.assertEqual(fh.read(), "SECRET123\n")
 
     def test_an_unchanged_tracked_symlink_is_class_b(self):
-        rel = ".harness/harness/features/FEAT-2-beta/notes/link.md"
-        os.makedirs(os.path.dirname(os.path.join(self.fx.owner, rel)), exist_ok=True)
-        os.symlink("../BRIEF.md", os.path.join(self.fx.owner, rel))
-        self.fx.commit_owner({}, "a tracked symlink")
-        wt = self.fx.add_worktree("FEAT-1-alpha")
+        wt = self.tracked_symlink_worktree()
         self.converged(wt)
-        self.assertFalse(os.path.lexists(os.path.join(wt, rel)))
+        self.assertFalse(os.path.lexists(os.path.join(wt, LINK_REL)))
 
     def test_a_retargeted_tracked_symlink_is_class_c(self):
-        rel = ".harness/harness/features/FEAT-2-beta/notes/link.md"
-        os.makedirs(os.path.dirname(os.path.join(self.fx.owner, rel)), exist_ok=True)
-        os.symlink("../BRIEF.md", os.path.join(self.fx.owner, rel))
-        self.fx.commit_owner({}, "a tracked symlink")
-        wt = self.fx.add_worktree("FEAT-1-alpha")
-        os.remove(os.path.join(wt, rel))
-        os.symlink("../feature.json", os.path.join(wt, rel))
-        self.assert_refused(wt, rel)
+        wt = self.tracked_symlink_worktree()
+        os.remove(os.path.join(wt, LINK_REL))
+        os.symlink("../feature.json", os.path.join(wt, LINK_REL))
+        self.assert_refused(wt, LINK_REL)
 
 
 class Report(Case):
@@ -338,8 +335,7 @@ class Report(Case):
 
     def test_human_output_names_the_category_and_the_remedy(self):
         wt = self.fx.add_worktree("FEAT-1-alpha")
-        proc = subprocess.run([sys.executable, str(CLI), "--verify", "--checkout", wt],
-                              env=G.ENV, capture_output=True, text=True)
+        proc = invoke("verify", wt)
         self.assertEqual(proc.returncode, 3)
         self.assertIn("cone (3)", proc.stdout)
         self.assertIn(f"--repair --checkout {wt}", proc.stdout)

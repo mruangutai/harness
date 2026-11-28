@@ -4,7 +4,7 @@
 Every worktree criterion in the BRIEF is verify-automated evidence integration, and prose
 cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, with `create`,
 `list`, `path`, `remove`, `behind` and `clean` subcommands. `clean` removes a feature's local
-working files (notes/, runs/, observations/ and its listed project notes, DEC-260) once its
+working files (notes/, runs/, observations/ and its listed project notes, DEC-262) once its
 landed or worktree record reads a terminal station, through bin/working_files.py.
 
 --repo accepts exactly two forms:
@@ -291,7 +291,7 @@ def _gate_removal(fid, owner_root, segment, default_branch, dest):
         sys.exit(4)
 
     # GATE 2b - ignored working files (notes/, runs/, observations/) are invisible to GATE 2 and
-    # `git worktree remove` deletes them silently (DEC-260 D-08). Tracked files are GATE 3's.
+    # `git worktree remove` deletes them silently (DEC-262 D-08). Tracked files are GATE 3's.
     if segment is not None:
         _gate_working_files(fid, segment, dest)
 

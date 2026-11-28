@@ -497,7 +497,7 @@ same shape. Reusing `resume_from` means **human pauses and crash recovery share 
 ## DEC-44 — User answers are durable, not ephemeral
 
 **Chose:** write answers to the feature's `notes/answers-<runid>.md`, a named local working file
-that is not retained after cleanup (DEC-260), never only into a run dir.
+that is not retained after cleanup (DEC-262), never only into a run dir.
 **Because:** run dirs are pruned, and durable artifacts may be written from these answers. Lateral
 lead→lead routing needs the same file, since two leads share no run dir.
 **Tradeoff accepted:** more files under `notes/`.
@@ -518,7 +518,7 @@ pruning clears only the working tree while git history retains everything.
 ## DEC-46 — One branch and one PR per feature; runs are per-squad
 
 **Chose:** every run for a feature is registered in the feature's committed `feature.json`
-`runs[]`, while its run directory is a local working file (DEC-260); each run belongs to one squad, so one
+`runs[]`, while its run directory is a local working file (DEC-262); each run belongs to one squad, so one
 lead owns its `state.yaml`.
 **Over:** a branch per run; one shared per-run state file.
 **Because:** seven runs for one feature would otherwise mean seven branches. And a shared per-run
@@ -2499,10 +2499,14 @@ alone), and carrying exactly one member entry per reader step (a skipped one cou
 persona `teams/plan.yaml` declares for that step, a reader member (`scope`, `should-not-exist` or
 `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team digest attributes to it
 matches exactly one row of that feature's `plan.yaml` `panel.findings` by recomputed PF id,
-carrying the same reader string and `disposition: resolved`, and every other on-disk row
-attributed to it is `resolved`. An open, absent, mismatched, unattributable or ambiguous finding, a
-malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan dispatch, an
-unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep worst-wins.
+carrying the same reader string; every on-disk row attributed to it is `disposition: resolved`
+or, under the practicality rule (DEC-262), open with both the row and the team digest's current
+finding with its id discounted at a non-gating severity; and the team's `must_fix` is empty. An
+open row that is not so discounted, a discounted row whose current finding is omitted or not
+discounted, a non-empty team `must_fix`, an absent, mismatched, unattributable or ambiguous
+finding, a malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan
+dispatch, an unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep
+worst-wins.
 Reporting **worse** stays legal: a lead may know something its members could not see.
 Every member that ran therefore needs its own `verdict:`. Only the optional external
 `fable-advisor` may instead record `status: skipped`, its persona, and the host reason; a skip
@@ -2932,7 +2936,7 @@ glob enforcement retire — **a directory cannot forget its feature id the way a
 pm's first outing.** Retiring a feature is now one directory. `.harness/notes/` holds
 project-scoped artifacts (cross-feature research, docs sweeps) and pre-feature intake notes a
 feature claims through `feature.json` `project_notes`; all of it is local, never committed
-(DEC-260), and pm keeps a project-level research glob for that.
+(DEC-262), and pm keeps a project-level research glob for that.
 
 Also closed on the way: the template manifest never had qa's notes grant at all — live/template
 drift caught by asserting every substitution rather than replacing blind (the DEC-129 sweep's own
@@ -2956,7 +2960,7 @@ Consequences, each recorded where it acts:
 
 - **The work survives and the money is not wasted** — a resume reconciles rather than redoes.
 - **Disk can hold a run no orchestrator records.** An orphaned run directory absent from
-  `feature.json` is local working disk (DEC-260): no CI gate reads it, and a resume reconciles it
+  `feature.json` is local working disk (DEC-262): no CI gate reads it, and a resume reconciles it
   from disk.
 - The rerun's actual targets all passed: pm produced the DEC-129/130 layout **first try, zero
   domain rejections** — instructed, not rejection-taught — with `## Problem` preceding `## Goal`.
@@ -3663,7 +3667,7 @@ they justify. Test: a value that must be read rather than matched is in the wron
 
 Mechanized (leads kept padding — the FEAT-02 audit found ad-hoc prose keys in all 15 run
 checkpoints): check-domain.py's write-time run state.yaml gate (DEC-160) whitelists top-level keys
-and rejects duplicates; the check-state INV-16 sweep is retired (DEC-260).
+and rejects duplicates; the check-state INV-16 sweep is retired (DEC-262).
 
 ## DEC-155 — Members run on their pinned model; a lead override is an escalation, not a parameter
 
@@ -3728,12 +3732,12 @@ boundaries, with one validator-owned durable representation:
   validate-digest appends to the local `digest.md` at yield; typed, hash-verified refusal
   provenance for that exact run and unchanged raw return stays in `feature.json`. Execution
   complete is not return accepted: an evidenced refused return remains `BLOCKED`, never a
-  fabricated fence. The check-state INV-15 and INV-46 sweeps are retired (DEC-260).
+  fabricated fence. The check-state INV-15 and INV-46 sweeps are retired (DEC-262).
 - **Run state.yaml keys (mechanizes DEC-154):** check-domain.py's write-time gate (DEC-160) admits
   only top-level keys from the checkpoint whitelist (seed fields + loop fields + pins), and no key
   may repeat. Prose keys (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection
   with their routing: digest.md. The check-state INV-16 sweep is retired with the committed run
-  checkpoints it read (DEC-260).
+  checkpoints it read (DEC-262).
 - **Per-call model authority (mechanizes DEC-155):** native `task.perCallModel: "off"` in
   `.omp/config.yml` refuses a dispatch's `model` parameter for every caller, Main included;
   `tests/integration/test-check-omp-port.py` asserts the pin. Harness carries no model check of its own: the former
@@ -3791,7 +3795,7 @@ normalized feature-local path and SHA-256, and adjusts the feature total by the 
 Repeating identical evidence is byte-idempotent; correcting an attribution preserves the existing
 unattributed legacy residual. INV-7 rejects impossible attribution above the total and checks only
 that arithmetic; it no longer verifies cycle evidence files, which are local working files
-(DEC-260). Missing historical evidence/counts remain explicit notes, not invented zeros.
+(DEC-262). Missing historical evidence/counts remain explicit notes, not invented zeros.
 
 **Struck rule:** the former INV-7 count-of-FAILs floor contradicted this decision's unit and is
 removed from every gate. A genuine first-pass FAIL may report zero send-backs; a real internal
@@ -3939,7 +3943,7 @@ nothing may ever require it, or a crash becomes unrecoverable.
 **Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** the DEC-150 write-time
 shape gate demands all five sections and the 60-line whole-file cap, and validates the `## Done
 when` block's shape, pointer grammar, and target resolution while the author is still alive to fix
-it. No check-state sweep re-reads handoff notes: INV-17 is retired (DEC-260), so the write-time
+it. No check-state sweep re-reads handoff notes: INV-17 is retired (DEC-262), so the write-time
 gate alone grades every handoff while it is written.
 
 **The in-flight warning, and the metric it is not.** The watchdog is no longer only a post-hoc
@@ -3982,7 +3986,7 @@ handoff note and the commit stay the orchestrator's separate writes; quarantine 
 act (DEC-204). (2) **The seam is graded at runtime.** `feature-record.py run-start` refuses a
 successor run whose handoff at `seq-N` has no recorded `succession`, so the judgement is recorded
 before run N+1 starts; the former check-state INV-43 sweep, which graded the same seam after the
-fact, is retired (DEC-260). harness.json still declares `seam_era_start`, the date boundary that
+fact, is retired (DEC-262). harness.json still declares `seam_era_start`, the date boundary that
 sweep read, but nothing reads it now (FEAT-2641 D-09). The first post-ship `plan` mission is the
 acceptance measurement (BUG-1723 SC-05).
 
@@ -4002,10 +4006,10 @@ heaviest premise, dead ends with pointers, a validated `## Next`. Three findings
    reports but demonstrably does not deter. check-domain.py now denies a run state.yaml Write
    carrying non-whitelisted or duplicate top-level keys, same pattern as feature.yaml/STATE.md/
    handoffs. The whitelist lives only in check-domain.py; the check-state INV-16 copy is retired
-   (DEC-260).
+   (DEC-262).
 3. **Run dirs without feature.yaml.** FEAT-03's whole plan phase ran before feature.yaml
    existed, during which no feature-keyed check could see it. The INV-18 flag added for that is
-   retired with the run directories it keyed on, which are local working files (DEC-260).
+   retired with the run directories it keyed on, which are local working files (DEC-262).
 
 Also surfaced, fixed out-of-band: deploy.sh never writes project state (by design, DEC-113), so
 DEC-157's `budgets.max_total_cycles` default never reached the host project's `.harness/harness.json` — the
@@ -5611,7 +5615,7 @@ regular file whose bytes match the hash, with no traversal or symlink escape. Op
 metadata also binds an immutable authorization note, operator and timestamp. `validation_exit`, `return_status` and arbitrary prose keys are not proofs.
 The frozen legacy `runs[].return_disposition: refused` marker stays readable only because named
 readers still read it: run-end and close-run replay it unchanged with its closed BLOCKED identity;
-the INV-15/INV-46 sweeps that once took it as grandfathered data are retired (DEC-260). No writer
+the INV-15/INV-46 sweeps that once took it as grandfathered data are retired (DEC-262). No writer
 remains, and an entry never carries both it and `refusal`.
 
 
@@ -6562,7 +6566,7 @@ needs; confirmation assigns that risk to the operator, not to an ownership-disco
 **An unopened mirror still abandons locally.** Under `--yes`, even with no recorded parent,
 milestone or tasks, record `abandoned`, then remove the feature's local working files — `notes/`,
 `runs/`, `observations/` and its claimed project notes — through `bin/working_files.py` (DEC-238,
-DEC-260). On already-abandoned re-entry the station is not rewritten; working files still present
+DEC-262). On already-abandoned re-entry the station is not rewritten; working files still present
 are removed after confirming the station, and absent ones are a local no-op. Neither local no-op
 prevents explicit source disposal. Other feature artifacts remain. `gh-close-gate.py` and `reject`'s
 source behavior are unchanged.
@@ -6801,7 +6805,9 @@ will not rate, and the lead TRANSCRIBES an absence rather than inventing a value
 
 **Shape versus content is the line the lead may not cross.** The lead owns SHAPE — schema
 conformance, finding identity, de-duplication, ranking, and roll-up. The lead never owns CONTENT —
-whether a defect exists at all, and how severe the reader judged it. A lead that supplies a severity
+whether a defect exists at all — and never raises the severity the reader judged; it may lower a
+finding to at most `med`, or drop it, only when the practicality rule (DEC-262) discounts it, with
+a one-line reason beside the finding. A lead that supplies a severity
 the reader did not emit has manufactured evidence and put its own judgement behind the reader's name,
 which is the one failure an unvalidated return makes easy and invisible.
 
@@ -6894,7 +6900,7 @@ a worktree the digest file was not found, the DEC-156 file-shape check was SKIPP
 printed a pass-through line nobody reads as a failure — three lead `digest.md` files in FEAT-50 itself
 fail the DEC-156 contract and were passed for that reason. Fail-open-loudly is unchanged: a file still
 not found exits 0 and prints its pass-through pointer (DEC-127, DEC-95); no check-state sweep
-follows it, INV-15 being retired (DEC-260).
+follows it, INV-15 being retired (DEC-262).
 
 **A clean break, and what this entry does NOT do.** No compatibility path is kept for the permissive
 behaviours these rules replace: each one's failure mode was passing silently, so a flag preserving it
@@ -7200,7 +7206,7 @@ contract exempts any note from fifth-section presence.
 `.claude/skills/harness/bin/handoff_done_when.py` is the single parser and resolver, serving one
 gate, the write gate, and applying DEC-179's rule that a second implementation may not drift from
 the governing one. The write gate calls it with target resolution enabled and resolves every
-pointer. No persisted-corpus pass re-reads a note afterwards — INV-17 is retired (DEC-260) — so a
+pointer. No persisted-corpus pass re-reads a note afterwards — INV-17 is retired (DEC-262) — so a
 later target edit cannot invalidate an untouched note that was valid when written.
 
 **The comprehension benchmark is a probe, not a release gate.**
@@ -7758,7 +7764,7 @@ one-line reason of at most 240 characters. The eight kinds are exhaustive: `miss
 `regate`, `continue`, `succession`, `amendment` — the engineering lead's in-build change to a
 signed task's `intent`, `files` or `verify`, written by `plan-merge.py record-amendments` with
 `decision: T-NN.<field>` (DEC-229) — `reject` (FEAT-1714), and `distill`, whose `decision:
-declined` records a declined distill and is written by `gh-sync.py skip-distill` (DEC-260). A `reject` keeps that standard
+declined` records a declined distill and is written by `gh-sync.py skip-distill` (DEC-262). A `reject` keeps that standard
 ledger entry; its `decision` is the superseding issue number or the literal `none`. The rejected
 terminal return additionally carries the closed inline mapping `{kind: reject, superseded_by:
 <positive issue number|none>, reason: <non-empty one-line reason>}`, has `status: rejected`, and
@@ -7775,7 +7781,7 @@ disposition and the reason, adds `superseded` only for a numeric successor, rese
 backlog after close, closes an existing recorded milestone, touches no sub-issues, and on the
 numeric-successor path records the station last, through `plan-merge.py set-feature-station`; on
 `--superseded-by none` its caller writes `rejected` through the same verb, and that write removes
-the feature's local working files once it has succeeded (DEC-260). On the first-sync record — no parent, because
+the feature's local working files once it has succeeded (DEC-262). On the first-sync record — no parent, because
 `open` creates it at build entry — the disposition is the reason on each `plan.yaml`
 `source_issues` ticket and that card returned to backlog; a ticket the harness did not create is
 never closed or labelled. INV-44 enforces the rejected record's six dimensions: zero cycles,
@@ -7785,7 +7791,7 @@ panel.
 INV-40 refuses a `mission` with no `mission` entry, a FAIL run followed by another run with no
 `regate` entry, and a signed task whose current `{files, intent, verify}` no longer hash to
 `signed_task_hashes` with no `amendment` entry naming that task. A successor run whose handoff has
-no `succession` entry is refused at runtime by `feature-record.py run-start` (DEC-260). At ship the
+no `succession` entry is refused at runtime by `feature-record.py run-start` (DEC-262). At ship the
 briefing tables every amendment; the operator overrules one by its
 exact `at` — `feature-record.py overrule-amendment --file <feature.json> --at <instant>` adds
 `overruled: true` to that entry alone, absent otherwise and legal on no other kind — and
@@ -8132,7 +8138,7 @@ artifact or other exit cannot; a run already closed `BLOCKED` takes provenance o
 `record-refusal`.
 Durable refusal is saved before later station, judgement and spend stages; its provenance in
 `feature.json` distinguishes that evidenced execution completion from an accepted return (the
-INV-15/INV-46 sweeps are retired, DEC-260). Live YieldTool objects, member
+INV-15/INV-46 sweeps are retired, DEC-262). Live YieldTool objects, member
 roll-up, signatures, budgets and validator-owned accepted fences remain unchanged.
 
 **The deletion gate was live.** Removing the text and null-repair paths required a fresh,
@@ -8160,7 +8166,7 @@ silently renumbering this decision.
 DEC-208, DEC-233.
 ## DEC-238 — Run evidence is local and has a reader or no home: ship keeps no run evidence, abandon and the rejected write remove it, and a checkout at a pin is disposable
 
-A feature's `runs/<id>/` is a local working file (DEC-260), read while the feature is in flight
+A feature's `runs/<id>/` is a local working file (DEC-262), read while the feature is in flight
 and by its distill, never at a shipped pin. It is the bulk of what a feature carries (FEAT-53's
 `runs/` was 380 WebPs, 49 MB, riding on its successor's branch for a week after the feature was
 abandoned; the branches around it held 64 trace ZIPs, 616 MB of `.git`). Cleanup is therefore a
@@ -8172,7 +8178,7 @@ moves the station, never by hand:
   `notes/`, `runs/` and `observations/` and its claimed project notes after the station is
   written, so a failed cleanup leaves the station recorded and names what was removed and the
   `feature-worktree.py clean` retry (exit 4 and exit 10 respectively). The check-state sweep that
-  graded an abandoned feature's leftover runs is retired (DEC-260).
+  graded an abandoned feature's leftover runs is retired (DEC-262).
 - **Ship keeps no run evidence.** None is committed, so ship prunes nothing; it leaves the local
   working files in place for distill, and `merge-gate.py merge-distill`, `gh-sync.py skip-distill`
   or `feature-worktree.py clean` removes them. The ship-time pruning script is deleted. Trace ZIPs
@@ -8362,11 +8368,11 @@ number and a closed milestone — and `gh-sync.py ship` performs both. The numbe
 (DEC-205).
 
 **What this gives up, stated once.** No handoff note is demanded anywhere: ship's precondition
-reads the validate PASS from `feature.json` (DEC-260), and the validate seam is recorded there and
+reads the validate PASS from `feature.json` (DEC-262), and the validate seam is recorded there and
 by the validator's digest. And the strict loader no longer reports a shipped plan that stopped
 parsing.
 
-**Unchanged:** the terminal station `rejected` keeps its check (INV-44); `abandoned` has none since INV-51 retired (DEC-260);
+**Unchanged:** the terminal station `rejected` keeps its check (INV-44); `abandoned` has none since INV-51 retired (DEC-262);
 host, repository and layout checks never concerned a feature.
 
 Lineage: DEC-157, DEC-174, DEC-200, DEC-203, DEC-205 and DEC-238.
@@ -8391,7 +8397,7 @@ The missing-create diagnosis and conclusion that the scribe route has no reason 
 **Applied reports, not a pending queue.** Each accepted batch persists exact ops, originals,
 before/after hashes, stable batch identity and runtime lineage in feature-local
 `notes/expertise-receipt-<sha256-runtime-id>.json`, a local working file never committed and
-deleted by the post-merge cleanup (DEC-260).
+deleted by the post-merge cleanup (DEC-262).
 Mixed `expertise_update` items require `persona` and have no `state`; low-level ops still exclude
 persona. The member reports only its applied ops; its lead reads each receipt and actual file,
 preserves exact active mixed-persona consolidation and returns PASS absent a real refusal.
@@ -8571,7 +8577,7 @@ never falls back to a run of its own. An unexpected failure of the hook itself i
 visibly unavailable outcome, not a verdict.
 
 **Receipts stay in the local run record.** QA writes each `runs/<run-id>/qa/manifest-<kind>.json`
-into its run directory, a local working file never committed (DEC-260), and an accepted PASS is
+into its run directory, a local working file never committed (DEC-262), and an accepted PASS is
 checked at yield against it. QA's write grant is that path only:
 `.harness/*/features/*/runs/*/qa/manifest-*.json` (the template's `.harness/features/...`), never a
 run log, `state.yaml`, `digest.md` or another persona's artifact.
@@ -8687,8 +8693,8 @@ DEC-138, DEC-174, DEC-187, DEC-198, DEC-212, DEC-217.
 
 **Strike record under DEC-188:** struck because run records are now local working files, never
 tracked, which flatly contradicts this entry's ruling that every run file except `ui/` is tracked
-material. DEC-260 is the named successor; its consequences for `merge-gate.py merge-distill` and
-`feature-worktree.py remove` are restated in DEC-260. The removed wording remains recoverable in
+material. DEC-262 is the named successor; its consequences for `merge-gate.py merge-distill` and
+`feature-worktree.py remove` are restated in DEC-262. The removed wording remains recoverable in
 git history.
 
 ## DEC-258 — A governed lead's dispatch binds to its own runtime placement or is refused; the scope-reader route keys on that placement
@@ -8819,7 +8825,100 @@ The rule has three homes:
 Executed main-session-direct under the operator's INV-32 ruling. Refs: DEC-149, DEC-158, DEC-202,
 DEC-205, DEC-235.
 
-## DEC-260 — Feature working files are local: notes, runs and observations are never committed
+## DEC-260 — The practicality rule: every reader finding states its exposure, and a contrived finding no worse than today never gates
+
+**Chose:** every reader finding carries `exposure`, recorded before it is rated. The digest
+finding schema (`schemas/digest/common.json` `$defs.finding`) requires it, and `plan.yaml` panel
+rows carry it.
+
+- **The record (D-01).** `exposure` is a mapping of `trigger` (`routine`, `plausible` or
+  `contrived`: how often its cause occurs in real use), `vs_today` (`regression` or `no_worse`:
+  the consequence compared with the status quo) and `control` (`harness`, `chance`, `user` or
+  `adversary`: who controls the trigger). The string `unrated` is legal only in a product-lead or
+  validator-lead digest, where it transcribes a non-harness reader that gave none, and it is never
+  discounted. The code, security and UI reviewers and the eng lead state their own.
+- **The discount (D-02).** A finding is discounted when it is `contrived`, `no_worse` and not
+  `adversary`-controlled. A discounted finding is at most `med`, DEC-31's non-gating band, so it
+  never gates. `validate-digest.py` refuses one rated above `med`, and refuses a `must_fix` entry
+  that names it by normalized summary or by a PF id prefix of at least eight hex characters. The
+  predicate and the non-gating set live once, in `bin/panel_findings.py`.
+- **The adversary exception.** An adversary-controlled trigger at a real trust boundary (external
+  input, credentials, a gate meant to refuse) is not discounted by likelihood, because the
+  attacker chooses the timing.
+- **Lead triage (D-03; amends DEC-206).** The validator lead and the product lead apply the rule
+  at collation, before routing. Each may lower a discounted finding to at most `med` or drop it,
+  with a one-line reason naming the reader's severity, and never raise one. A remedy that touches
+  signed text reaches the operator only if its finding survives the triage. In the plan team the
+  lead lowers rather than drops, so the panel row exists.
+- **Forward only (D-04).** What is validated enforces it: live yields and the run being closed. No
+  era marker exists, and INV-15 never re-validates a historical digest against the live schema.
+- **The panel row (D-05).** `exposure` is an optional key of a `plan.yaml` panel row, so legacy
+  rows stay legal. `plan-merge.py record-panel` requires it on every row it newly writes and
+  refuses a discounted finding above `med`.
+- **The verdict (D-06; amends DEC-123).** A discounted finding never decides a verdict.
+  `validate-digest.py` refuses a `severity_max` of high or critical that only discounted findings
+  support. It also refuses a code, security or UI review FAIL whose every finding is discounted,
+  with `must_fix` empty, a non-gating `severity_max` and no failed code grade. In DEC-123's
+  plan-team carve-out, an open row discounted at a non-gating severity does not deny relief,
+  provided the team digest carries a current finding with that id, discounted at a non-gating
+  severity too, and the team's `must_fix` is empty; a stale discounted row never stands in for a
+  re-rated or omitted finding.
+- **Tests.** Tests target the code's plausible inputs. Adversarial and malformed-input tests
+  belong only where input crosses a trust boundary (`harness-tdd-enforcement` and the QA
+  guidance).
+
+**Over:**
+- reading a missing exposure as unrated-and-gating for every persona, which lets a reviewer skip
+  the three questions at no cost;
+- free-text trigger prose, which nothing mechanical can read;
+- a structured `must_fix` of finding references, which changes every persona's `must_fix` and the
+  validator lead's non-finding entries;
+- a `low` ceiling, which makes an honest unlikely-but-real `med` unreportable at its true size;
+- leaving the product lead unamended, which gives `record-panel`'s refusal of a discounted gating
+  fable-advisor finding no lawful remedy;
+- an era key or a digest `schema_version` bump, which defends a re-grade no reader performs;
+- `exposure` required in the panel row shape, which reddens every live plan with a panel;
+- letting a lead outrank a member verdict after its own triage, which DEC-123 refuses.
+
+**Because:** #2622 measured the cost of rating by mechanism alone. BUG-2565's fix rounds 2–4 took
+about 60 of 113 rework minutes chasing exotic YAML fed to a generator that only ever reads the
+agent files Harness writes itself. BUG-2566 E-01 was rated high by one reader and med by another,
+though its outcome was the pre-feature behaviour, never a bypass, and the operator judged it not
+worth documenting.
+
+**Tradeoff accepted:** a reader can misstate exposure, and only the lead's triage and the
+operator's reading catch it. Eval is excluded, so the outcome (fewer contrived findings reaching
+the operator) is unmeasured.
+
+**Record:** FEAT-2622-practicality-rule (#2622), plan decisions D-01 to D-06, signed by the
+operator on 2026-11-28. Executed main-session-direct (DEC-174). Amends DEC-206 and DEC-123. Refs:
+DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.
+
+## DEC-261 — Verification output is scratch; only its summary is committed
+
+**Chose:** raw verification output is scratch: runner logs, measurement stores, divergence
+ledgers, generated receipts, receipt scripts and captured stdout/stderr. It is written outside the
+repository and deleted once the check that reads it has run; it is never committed. A feature
+commits one short summary per check: what ran, at which commit, the verdict, the counts and any
+operator rulings. PR CI is the independent proof that tests pass at merge. `runs/` records and QA
+manifests stay as DEC-238, DEC-255 and DEC-257 set them.
+
+**Over:**
+- committing it at the pin: nothing reuses it after its one verification;
+- CI artifacts: still storage for data nobody reads;
+- pasting logs into review notes: a review states the result, not the output.
+
+**Because:** this output is read by one verification and never again. FEAT-2581's raw proof was
+2.8 MB of a 3.4 MB feature directory; FEAT-2488 committed five QA notes of about 1 MB each. The
+repository and the disk grew with data that has no reader.
+
+**Tradeoff accepted:** a later reader cannot re-derive a verdict, only read its summary and CI's
+run. An operator ruling on a divergence is recorded in the summary, not beside the bytes it ruled
+on. What has already been committed stays in history.
+
+**Record:** operator ruling, 2026-11-28. Refs: DEC-238, DEC-252, DEC-255, DEC-257.
+
+## DEC-262 — Feature working files are local: notes, runs and observations are never committed
 
 **Chose:**
 

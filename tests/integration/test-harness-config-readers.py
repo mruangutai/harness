@@ -7,6 +7,7 @@ source — never default it to {}, None, "nothing written" or a fallback — and
 on a valid one. Gates and check-state run as real subprocesses; the Bash gates must recognise
 their governed command BEFORE reading config, so a repair command stays reachable.
 """
+from integration_support import BIN, TESTS
 import contextlib
 import importlib.util
 import io
@@ -17,14 +18,11 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-for path in (BIN, ROOT / "tests", ROOT / "tests" / "integration"):
-    sys.path.insert(0, str(path))
 from harness_config_support import build_config, write_config  # noqa: E402
 import artifact_accessors  # noqa: E402
-from git_support import commit_all, init_repo  # noqa: E402
+from git_support import checked_git, commit_all, git_out, init_repo  # noqa: E402
 
 # name -> (write the broken config into the file at path, token its diagnosis must carry)
 BROKEN = {
@@ -35,8 +33,8 @@ BROKEN = {
 }
 
 
-def _module(name, relative):
-    spec = importlib.util.spec_from_file_location(name, BIN / relative)
+def _module(name, relative, base=BIN):
+    spec = importlib.util.spec_from_file_location(name, base / relative)
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module  # dataclasses resolve string annotations through sys.modules
     spec.loader.exec_module(module)
@@ -64,14 +62,11 @@ def outcome(call):
         return "refused", f"{type(error).__name__}: {error} {out.getvalue()}"
 
 
-@contextlib.contextmanager
-def cwd(path):
-    before = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(before)
+def _refuse_on(value, error):
+    """Turn a reader's (value, error) return into the SystemExit that outcome() reads as 'refused'."""
+    if error:
+        raise SystemExit(error)
+    return value
 
 
 def _feature_dir(root):
@@ -81,7 +76,7 @@ def _feature_dir(root):
 
 
 def _board_station(root):
-    with cwd(root):
+    with contextlib.chdir(root):
         code = _module("board_station", "board-station.py").main(["12", "building"])
     if code:
         raise SystemExit(code)
@@ -92,31 +87,22 @@ def _qa_pinned_policy(root):
     """validate-digest's QA kind policy (FEAT-2398 D-01) is harness.json AT THE REVIEW PIN, so
     the config shape under test is committed first and the feature pins that commit."""
     feat = _feature_dir(root)
-    init_repo(str(root), "main", config=(("commit.gpgsign", "false"),))
-    commit_all(str(root), "pin")
-    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
-                          text=True, check=True).stdout.strip()
+    init_repo(str(root), "main", git=checked_git)
+    commit_all(str(root), "pin", git=checked_git)
+    head = git_out(str(root), "rev-parse", "HEAD")
     (feat / "feature.json").write_text(json.dumps({"feature_id": "FEAT-1-x", "review_sha": head}))
     validator = _module("validate_digest", "validate-digest.py")
     policy, _where, error = validator._qa_policy(str(feat), None)
-    if error:
-        raise SystemExit(error)
-    return policy
+    return _refuse_on(policy, error)
 
 
 def _test_kinds_or_refusal(root):
-    kinds, error = _module("validate_digest", "validate-digest.py")._load_test_kinds(str(root))
-    if error:
-        raise SystemExit(error)
-    return kinds
+    return _refuse_on(*_module("validate_digest", "validate-digest.py")._load_test_kinds(str(root)))
 
 
 def _era(root):
     import plan_merge.check as check
-    when, failure = check._era(str(root))
-    if failure:
-        raise SystemExit(failure)
-    return when
+    return _refuse_on(*check._era(str(root)))
 
 
 def _unbound(root):
@@ -124,15 +110,13 @@ def _unbound(root):
 
 
 def _probe(root):
-    probe = importlib.util.spec_from_file_location("probe", ROOT / "tests" / "manual" / "probe-issue-types.py")
-    module = importlib.util.module_from_spec(probe)
-    probe.loader.exec_module(module)
+    module = _module("probe", "probe-issue-types.py", base=TESTS / "manual")
     module._ROOT = str(root)
     return module._load_config()
 
 
 def _wayfind(root):
-    with cwd(root):
+    with contextlib.chdir(root):
         return _module("wayfind", "wayfind.py").cfg()
 
 
@@ -226,7 +210,7 @@ class RemoteProductConfig(unittest.TestCase):
         def fetch(repo, path, ref):
             self.calls.append(repo)
             return self.served[repo]
-        self.factory_config.factory_gh.file_at_ref = fetch
+        self.enterContext(mock.patch.object(self.factory_config.factory_gh, "file_at_ref", fetch))
 
     def test_invalid_remote_text_is_refused_with_its_diagnosis_and_no_local_fallback(self):
         self.served["acme/app"] = json.dumps({**build_config(), "colour": "blue"})

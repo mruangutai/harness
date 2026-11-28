@@ -7,12 +7,7 @@ feature-schema crash controls. Siblings: test-check-domain-worktree.py,
 -worktree-parity.py, -post.py, -approval.py, -artifact.py. Shared fixtures and the
 block driver live in check_domain_support.py, which also carries the family's WHY.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json, os, re, shutil, subprocess, sys, tempfile
 from isolated_bin import isolated_bin
 from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
@@ -21,13 +16,28 @@ from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
 import inflight_registry
 
 
-_anchor_sys.path.insert(0, _anchor_bin)
-
-
-sys.path.insert(0, HERE)
-
-
 CASES = []
+
+
+def _tally(rows, label, trailer=""):
+    """Print each (name, ok, detail) row as a column-0 ok/FAIL line, then the block's
+    `n/m <label> cases passed.` summary; return the fail count. Column-0 FAIL is what
+    drive's aggregation safeguard counts."""
+    fails = 0
+    for name, ok, detail in rows:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(rows) - fails}/{len(rows)} {label} cases passed.{trailer}")
+    return fails
+
+
+def _resolve(root, path, timeout=20, stdin=subprocess.DEVNULL):
+    """One `check-domain.py --resolve <path>` call against the fixture env for `root`."""
+    return subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                          stdin=stdin, timeout=timeout, env=_env(root))
 
 
 def case(name, path, want, agent="harness-documentor", tool="Write"):
@@ -162,11 +172,7 @@ def _t12_absent_manifest_fails_open():
     shutil.copy(
         os.path.join(HERE, "artifact_accessors.py"),
         os.path.join(isobin, "artifact_accessors.py"))
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": os.path.join(iso, "anything.md"), "content": "x"}}
-    r = subprocess.run([os.path.join(isobin, "check-domain.py")], input=json.dumps(payload),
-                       capture_output=True, text=True,
-                       env=_env(iso))
+    r = fire(iso, "anything.md", hook=os.path.join(isobin, "check-domain.py"))
     t12("an ABSENT manifest still fails OPEN, loudly (DEC-101 carve-out intact)",
         r.returncode == 0 and "enforcement OFF" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:160]}")
@@ -422,15 +428,7 @@ def run_t12():
     fake = _fake_yaml()
     for scenario in T12_NOYAML_SCENARIOS:
         scenario(fake)
-    fails = 0
-    for name, ok, detail in T12:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(T12) - fails}/{len(T12)} T-12 cases passed.")
-    return fails
+    return _tally(T12, "T-12")
 
 
 FLEET = []
@@ -438,6 +436,14 @@ FLEET = []
 
 def fleet_case(name, ok, detail=""):
     FLEET.append((name, ok, detail))
+
+
+def two_base_fleet_for(workspace):
+    return ("schema: factory-fleet/1\n"
+            f"workspace_root: {workspace}\n"
+            "repos:\n"
+            "  - name: acme/widget\n"
+            "    default_branch: main\n")
 
 
 def run_fleet():
@@ -467,13 +473,7 @@ def run_fleet():
     # allow-all guard passes (a) alone and a block-all guard passes (b) alone.
     none_root = fixture_fleet(FIXTURE_MANIFEST, None)
     a_in = fire(none_root, ".harness/allowed/x.md")
-    a_out = subprocess.run(
-        [HOOK],
-        input=json.dumps({"agent_type": "harness-documentor", "tool_name": "Write",
-                          "tool_input": {"file_path": "/tmp/uat-no-fleet-scratch.py",
-                                         "content": "x"}}),
-        capture_output=True, text=True,
-        env=_env(none_root))
+    a_out = fire(none_root, "/tmp/uat-no-fleet-scratch.py")
 
     # (b) fleet.yaml is BROKEN YAML — the same write the agent owns, inside the same
     # fixture root, must now be refused.
@@ -544,12 +544,7 @@ teams:
 shared:
   - { path: package.json }
 """
-    two_base_fleet = ("schema: factory-fleet/1\n"
-                      f"workspace_root: {ws}\n"
-                      "repos:\n"
-                      "  - name: acme/widget\n"
-                      "    default_branch: main\n")
-    tb = fixture_fleet(two_base_manifest, two_base_fleet)
+    tb = fixture_fleet(two_base_manifest, two_base_fleet_for(ws))
     prod_src = os.path.join(ws, "widget", "src", "main.py")
 
     repository_identities = {}
@@ -647,13 +642,6 @@ shared:
     # everything outside the root passes the harness half and fails the product half.
     # Each assertion is named for the direction it protects, so a failure says which
     # half of the mirror broke.
-
-    def two_base_fleet_for(workspace):
-        return ("schema: factory-fleet/1\n"
-                f"workspace_root: {workspace}\n"
-                "repos:\n"
-                "  - name: acme/widget\n"
-                "    default_branch: main\n")
 
     # PAIR A — the PRODUCT half. One persona, exactly one writable glob, product-shaped.
     ws_a = tempfile.mkdtemp()
@@ -784,14 +772,9 @@ teams:
           - { path: src/**, upsert: true }
 """, two_base_fleet_for(ws_r))
 
-    def resolve_in(root, path):
-        return subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                              stdin=subprocess.DEVNULL, timeout=20,
-                              env=_env(root))
-
-    r_prod = resolve_in(r_root, os.path.join(ws_r, "widget", "src", "main.py"))
-    r_harn = resolve_in(r_root, os.path.join(r_root, "src", "main.py"))
-    r_undec = resolve_in(r_root, os.path.join(ws_r, "undeclared", "src", "main.py"))
+    r_prod = _resolve(r_root, os.path.join(ws_r, "widget", "src", "main.py"))
+    r_harn = _resolve(r_root, os.path.join(r_root, "src", "main.py"))
+    r_undec = _resolve(r_root, os.path.join(ws_r, "undeclared", "src", "main.py"))
     fleet_case(
         "T-04 resolve PAIR: a product path names the src/** owner, the SAME path in "
         "the harness root resolves to NOBODY",
@@ -810,9 +793,7 @@ teams:
     # Since FEAT-22's T-02 the documentor holds `.harness/*/docs/**`, so the moved
     # SPEC resolves through a real grant; the named-entry half of the rule is
     # exercised by the fleet cases above.
-    r_live = subprocess.run([HOOK, "--resolve", ".harness/harness/docs/SPEC.md"],
-                            capture_output=True, text=True, stdin=subprocess.DEVNULL,
-                            timeout=20, env=_env(ROOT))
+    r_live = _resolve(ROOT, ".harness/harness/docs/SPEC.md")
     fleet_case(
         "T-04 resolve, LIVE tree: .harness/harness/docs/SPEC.md names harness-documentor — the "
         "named entries hold target-side",
@@ -862,15 +843,7 @@ teams:
         f"stderr={esc.stderr.strip()[:200]!r}")
 
     print("--- FEAT-15 T-01..T-04 + symlink escape: fleet, bases, mirror, resolve ---")
-    fails = 0
-    for name, ok, detail in FLEET:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(FLEET) - fails}/{len(FLEET)} fleet cases passed.\n")
-    return fails
+    return _tally(FLEET, "fleet", trailer="\n")
 
 
 def _assert_typed_view_resolution():
@@ -890,10 +863,7 @@ teams:
 shared:
   - { path: .harness/typed/** }
 """)
-    result = subprocess.run(
-        [HOOK, "--resolve", ".harness/typed/owned.txt"],
-        capture_output=True, text=True, timeout=10, env=_env(root),
-        stdin=subprocess.DEVNULL)
+    result = _resolve(root, ".harness/typed/owned.txt", timeout=10)
     expected = [
         "harness-alpha",
         "harness-zeta",
@@ -913,24 +883,16 @@ shared:
 # GRADE-2 REASON: run_resolve keeps the existing ordered resolver and stdin parity
 # contract together; the new typed-view assertion is isolated to avoid adding branches.
 def run_resolve():
-    fails = 0
+    rows = []
 
-    def resolve(path, stdin_mode="closed", timeout=10):
-        kw = {"stdin": subprocess.DEVNULL} if stdin_mode == "closed" else {"stdin": os.pipe()[0]}
-        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                           timeout=timeout, env=_env(ROOT), **kw)
-        return r
+    def resolve(path, stdin=subprocess.DEVNULL):
+        return _resolve(ROOT, path, timeout=10, stdin=stdin)
 
     def check(name, ok, detail=""):
-        nonlocal fails
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+        rows.append((name, ok, detail))
 
     # (a) a singly-granted path resolves to exactly one name
-    r = resolve(".harness/harness.json")
+    r_closed = r = resolve(".harness/harness.json")
     check("(a) --resolve: a singly-granted path returns exactly one agent",
           r.stdout.split() == ["harness-dev-ops"], f"got {r.stdout.split()!r}")
 
@@ -956,7 +918,7 @@ def run_resolve():
 
     # (e) an OPEN PIPE nobody writes to must not hang. Pre-change this blocked forever.
     try:
-        r_pipe = resolve(".harness/harness.json", stdin_mode="pipe", timeout=10)
+        r_pipe = resolve(".harness/harness.json", stdin=os.pipe()[0])
         ok_e = r_pipe.stdout.split() == ["harness-dev-ops"]
         detail_e = f"got {r_pipe.stdout.split()!r}"
     except subprocess.TimeoutExpired:
@@ -965,28 +927,22 @@ def run_resolve():
 
     # (f) closed stdin gives the BYTE-IDENTICAL answer. The two stdin shapes failed
     # differently before (hang vs silent exit 0), so equality across them is the
-    # assertion that matters, not either one alone.
-    r_closed = resolve(".harness/harness.json", stdin_mode="closed")
+    # assertion that matters, not either one alone. (a)'s call is the closed-stdin answer.
     check("(f) --resolve: closed stdin is byte-identical to an open pipe",
           r_pipe is not None and r_closed.stdout == r_pipe.stdout,
           f"closed={r_closed.stdout!r} pipe={(r_pipe.stdout if r_pipe else None)!r}")
 
     # (g)+(h) THE HOOK PATH IS UNCHANGED. Without these two the whole mode could have
     # been added by breaking enforcement and nothing here would notice.
-    def hook(path, agent):
-        payload = {"agent_type": agent, "tool_name": "Write",
-                   "tool_input": {"file_path": path, "content": "x"}}
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=_env(ROOT))
     # ABSOLUTE, like every other case in this file. These two were the only relative
     # paths in the suite, and the gate resolves a relative target with os.path.abspath —
     # against the CWD, not the root — so (h) read out-of-domain whenever the runner was
     # launched from anywhere but the repository root. That is the other half of #556.
     # Claude Code sends an absolute file_path; these now say what production sends.
-    r = hook(f"{ROOT}/.agents/skills/harness/bin/check-domain.py", "harness-documentor")
+    r = fire(ROOT, f"{ROOT}/.agents/skills/harness/bin/check-domain.py")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
-    r = hook(f"{ROOT}/.harness/harness/docs/SPEC.md", "harness-documentor")
+    r = fire(ROOT, f"{ROOT}/.harness/harness/docs/SPEC.md")
     check("(h) no --resolve: an in-domain Write still exits 0",
           r.returncode == 0, f"got {r.returncode}")
 
@@ -1009,7 +965,7 @@ def run_resolve():
     # assertion while VF-1 was wide open. Assert the DENIAL TEXT, which only the hook path
     # emits — the same convention cases (c)/(d) already use.
     def denied(r):
-        return r.returncode == 2 and "may not write" in (r.stderr or "")
+        return r.returncode == 2 and "may not write" in r.stderr
     r = hook_env(".agents/skills/harness/bin/check-domain.py", "harness-documentor",
                  ".harness/harness.json")
     check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
@@ -1018,8 +974,7 @@ def run_resolve():
     check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
           denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
 
-    print(f"\n{10 - fails}/10 --resolve cases passed.\n")
-    return fails
+    return _tally(rows, "--resolve", trailer="\n")
 
 
 SCHEMA_MANIFEST = FIXTURE_MANIFEST.replace(
@@ -1048,20 +1003,11 @@ def _inject_schema_crash(copied_fs):
         copied_file.write(injected)
 
 
-def _schema_copy_control(root, rel, illegal, copied_hook):
-    result = fire(root, rel, content=illegal, hook=copied_hook)
-    detail = " ".join((result.stderr or "").split())[:160]
-    return _schema_case(
-        "the copied unbroken hook DENIES the illegal document",
-        result.returncode, 2, "invented_key" in (result.stderr or ""), detail)
-
-
-def _schema_crash_control(root, rel, illegal, copied_hook):
-    result = fire(root, rel, content=illegal, hook=copied_hook)
-    detail = " ".join((result.stderr or "").split())[:160]
-    return _schema_case(
-        "a CRASHING schema module DENIES the write rather than letting it through",
-        result.returncode, 2, "CRASHED" in (result.stderr or ""), detail)
+def _schema_hook_case(root, rel, content, name, want, needle="", hook=HOOK):
+    """Fire one Write at `rel`; it must exit `want` with `needle` in stderr."""
+    result = fire(root, rel, content=content, hook=hook)
+    return _schema_case(name, result.returncode, want, needle in result.stderr,
+                        " ".join(result.stderr.split())[:160])
 
 
 def _schema_crash_cases(root, rel, illegal):
@@ -1070,9 +1016,14 @@ def _schema_crash_cases(root, rel, illegal):
     live_mtime = os.stat(live_fs).st_mtime_ns
     iso = isolated_bin(root)
     copied_hook = os.path.join(iso, "check-domain.py")
-    fails = _schema_copy_control(root, rel, illegal, copied_hook)
+    fails = _schema_hook_case(root, rel, illegal,
+                              "the copied unbroken hook DENIES the illegal document", 2,
+                              "invented_key", hook=copied_hook)
     _inject_schema_crash(os.path.join(iso, "feature_record", "schema.py"))
-    fails += _schema_crash_control(root, rel, illegal, copied_hook)
+    fails += _schema_hook_case(
+        root, rel, illegal,
+        "a CRASHING schema module DENIES the write rather than letting it through", 2,
+        "CRASHED", hook=copied_hook)
     unchanged = (open(live_fs, "rb").read() == live_before
                  and os.stat(live_fs).st_mtime_ns == live_mtime)
     fails += _schema_case(
@@ -1092,15 +1043,10 @@ def run_schema():
     rel = ".harness/harness/features/FEAT-X/feature.json"
     legal = _legal_feature_json(0)
     illegal = json.dumps({"feature_id": "FEAT-X", "invented_key": 1}, indent=2)
-    allowed = fire(root, rel, content=legal)
-    fails = _schema_case(
-        "a legal ten-key document is ALLOWED", allowed.returncode, 0,
-        detail=" ".join((allowed.stderr or "").split())[:160])
-    denied = fire(root, rel, content=illegal)
-    fails += _schema_case(
-        "an illegal document is DENIED and the offending key is NAMED",
-        denied.returncode, 2, "invented_key" in (denied.stderr or ""),
-        " ".join((denied.stderr or "").split())[:160])
+    fails = _schema_hook_case(root, rel, legal, "a legal ten-key document is ALLOWED", 0)
+    fails += _schema_hook_case(
+        root, rel, illegal, "an illegal document is DENIED and the offending key is NAMED", 2,
+        "invented_key")
     fails += _schema_crash_cases(root, rel, illegal)
     shutil.rmtree(root, ignore_errors=True)
     return fails
@@ -1185,15 +1131,7 @@ def run_shadow_checks():
     _run_plan_conversion_cases(root)
     _run_feature_dir_name_cases(root)
     shutil.rmtree(root, ignore_errors=True)
-    fails = 0
-    for name, ok, detail in SHADOW:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(SHADOW) - fails}/{len(SHADOW)} shadow-check cases passed.")
-    return fails
+    return _tally(SHADOW, "shadow-check")
 
 
 def run_feature_id_regex_parity():
@@ -1302,8 +1240,7 @@ def _feat2337_resolve_results(roots):
     root, runs = roots["authored"]
     results = []
     for name, path, routed in FEAT2337_RESOLVE_ROWS:
-        result = subprocess.run([HOOK, "--resolve", f"{runs}/{path}"], capture_output=True,
-                                text=True, env=_env(root))
+        result = _resolve(root, f"{runs}/{path}", timeout=None, stdin=None)
         names = result.stdout.split()
         results.append((f"[authored] {name}",
                         result.returncode == 0 and ("harness-qa" in names) == routed,
@@ -1345,17 +1282,12 @@ def run_feat2337_receipt_grant_cases():
         results += collect(roots)
     for root, _runs in roots.values():
         shutil.rmtree(root, ignore_errors=True)
-    fails = 0
-    for name, ok, detail in results:
-        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
-        fails += 0 if ok else 1
-    print(f"\n{len(results) - fails}/{len(results)} FEAT-2337 receipt-grant cases passed.")
-    return fails
+    return _tally(results, "FEAT-2337 receipt-grant")
 
 
-def main(argv=None):
+def main():
     """Every case and block by default; `--only run_<block>` runs that one block (FEAT-2337)."""
-    argv = sys.argv[1:] if argv is None else argv
+    argv = sys.argv[1:]
     if not argv:
         return drive(globals(), CASES)
     block = globals().get(argv[-1]) if len(argv) == 2 and argv[0] == "--only" else None

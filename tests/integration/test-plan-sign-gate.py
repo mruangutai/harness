@@ -13,34 +13,23 @@ which exist to catch exactly that. The text assertion is on the literal string
 `sign-approval`, because a refusal logged without the command that triggered it must still
 say which verb was refused.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import json
-import os
-import shutil
-import subprocess
-import sys
-import tempfile
+from integration_support import BIN as _BIN  # this file's ROOT is its fixture, not the checkout
+import functools  # noqa: E402
+import json  # noqa: E402
+import os  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
 
+from check_support import Checks  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
-BIN = _anchor_bin
+BIN = str(_BIN)
 GATE = os.environ.get("PLAN_SIGN_GATE_BIN") or os.path.join(BIN, "plan-sign-gate.py")
 
-fails = 0
-
-
-def check(name, cond, detail=""):
-    global fails
-    if cond:
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
+C = Checks()
+check = C.check
 
 
 def _root():
@@ -63,23 +52,24 @@ def _root():
 ROOT = _root()
 
 
+@functools.lru_cache(maxsize=None)
 def gate(command, agent_type=None):
-    """(returncode, stderr). A deny is exit 2 with the refusal on stderr; an allow is 0."""
+    """(returncode, stderr). A deny is exit 2 with the refusal on stderr; an allow is 0.
+
+    Memoized on (command, agent_type): the gate reads only the payload and ROOT, and nothing
+    here changes ROOT, so the corpus loop reuses an earlier case's run of the same input.
+    """
     payload = {"tool_input": {"command": command}}
     if agent_type is not None:
         payload["agent_type"] = agent_type
-    env = dict(os.environ)
-    env["HARNESS_PROJECT_DIR"] = ROOT
-    r = subprocess.run([GATE], input=json.dumps(payload),
-                       capture_output=True, text=True, env=env)
-    return r.returncode, (r.stderr or "")
+    return gate_raw(json.dumps(payload))
 
 
 def gate_raw(payload):
     env = dict(os.environ, HARNESS_PROJECT_DIR=ROOT)
     result = subprocess.run(
         [GATE], input=payload, capture_output=True, text=True, env=env)
-    return result.returncode, result.stderr or ""
+    return result.returncode, result.stderr
 
 
 SIGN = "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml"
@@ -777,5 +767,4 @@ _r = _run_in(_mbin, _agent("python3 .claude/skills/harness/bin/plan-merge.py app
 check("body failure: an unrelated command exits 0 untouched", _untouched(_r),
       f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
-print(f"\n{fails} failing." if fails else "\nall checks passed.")
-raise SystemExit(1 if fails else 0)
+sys.exit(C.report())

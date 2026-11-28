@@ -4,12 +4,10 @@
 answers the `issueTypes` capability query, `--jq .node_id` and `updateIssue` in addition
 to every call `test-gh-sync.py`'s fake already answers.
 
-RED BY DESIGN until T-04 lands: gh-sync.py is unchanged, so it never calls the
-detection query, never applies a type, and never refuses. Every case below asserts the
-TYPED behaviour, so every case fails against today's gh-sync.py, and this file's own
-exit code is non-zero until then.
+Every case asserts the TYPED behaviour. The cases share nothing (each has its own temporary
+directory, fake and env), so they run concurrently and their checks print in case order.
 
-    ./test-gh-issue-types.py    -> exit 0 all pass, 1 otherwise (must be 1 today)
+    ./test-gh-issue-types.py    -> exit 0 all pass, 1 otherwise
 
 Cases (each is CASE <letter> in a `check()` message, grepped by T-03's verify):
   A/B  available types: per-issue type ids (D-18) and label suppression, one run.
@@ -28,21 +26,21 @@ Cases (each is CASE <letter> in a `check()` message, grepped by T-03's verify):
   K    the discriminating case: every issue this run WOULD CREATE has a declared type,
        so refusal can only come from the backfill needing an undeclared type.
 """
+from integration_support import BIN  # noqa: E402  (puts bin/ and tests/ on sys.path)
+from check_support import Checks  # noqa: E402
+from gh_sync_support import FAKE_GH, calls, install_gh, write_feature_json  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
+from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
+import contextlib
 import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
-from gh_sync_support import install_gh
-from harness_config_support import write_config
-from offline_gh_support import assert_sentinel_unused, offline_gh_env
-
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-SYNC = os.path.join(BIN_DIR, "gh-sync.py")
+SYNC = str(BIN / "gh-sync.py")
 
 # The four sub-issue tasks: one of each change_type this feature cares about, in plan
 # order — bugfix maps to Bug, the other three all map to Task (D-18: a task sub-issue
@@ -54,10 +52,12 @@ TASKS = [
     ("T-04", "feature", "add CSV export button"),
 ]
 
-FAKE_GH_TYPES = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"issueTypes"*)
+# The node ids the fake hands the five issues a fresh run creates (#41 parent, #42-#45 tasks).
+NODES = ["I_node41", "I_node42", "I_node43", "I_node44", "I_node45"]
+
+# The issue-type branches this file adds in front of the shared fake's own: the `issueTypes`
+# capability query (shaped by FAKE_TYPES), `--jq .node_id` and `updateIssue`.
+TYPE_BRANCHES = """  *"issueTypes"*)
     case "$FAKE_TYPES" in
       available)
         printf '{"data":{"repository":{"issueTypes":{"nodes":[{"id":"IT_bug","name":"Bug"},{"id":"IT_feature","name":"Feature"},{"id":"IT_task","name":"Task"},{"id":"IT_defect","name":"Defect"},{"id":"IT_epic","name":"Epic"},{"id":"IT_maintenance","name":"Maintenance"}]}}}}\\n'
@@ -86,30 +86,10 @@ case "$*" in
     fi
     echo '{"data":{"updateIssue":{"issue":{"id":"I_node"}}}}'
     exit 0 ;;
-  *"sub_issues -F sub_issue_id="*)
-    echo '{}'
-    exit 0 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close") exit 0 ;;
-  "issue delete") exit 0 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
 """
+_CASE_HEAD = 'case "$*" in\n'
+FAKE_GH_TYPES = FAKE_GH.replace(_CASE_HEAD, _CASE_HEAD + TYPE_BRANCHES, 1)
+assert TYPE_BRANCHES in FAKE_GH_TYPES, "shared FAKE_GH lost its case anchor"
 
 
 def build_brief(feat_dir, feat_name):
@@ -163,28 +143,28 @@ def build_harness_json(tmp, repo, issue_types):
     write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": g})
 
 
-def build_feature_json(feat_dir, github):
-    doc = {"feature_id": os.path.basename(feat_dir), "status": "Building"}
-    if github is not None:
-        doc["github"] = github
-    with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
-        json.dump(doc, f)
-
-
 def stage(tmp, feat_name="FEAT-77-types", repo="owner/name", issue_types=None,
           github=None, source_issues=None):
     """A feature directory with a BRIEF, a four-task plan.yaml (one of each change_type
     this feature cares about) and a github.sync-enabled harness.json — the fixture every
-    case below builds on, optionally pre-seeded with a `github` feature.json block."""
+    case below builds on, optionally pre-seeded with a `github` feature.json block (its
+    repo filled from harness.json)."""
     feat_dir = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat_dir)
     build_brief(feat_dir, feat_name)
     build_plan_yaml(feat_dir, feat_name, source_issues)
     build_harness_json(tmp, repo, issue_types)
-    if github is not None:
-        github = {"repo": repo, **github}
-    build_feature_json(feat_dir, github)
+    extra = {} if github is None else {"github": github}
+    write_feature_json(os.path.join(feat_dir, "feature.json"), feature_id=feat_name, **extra)
     return feat_dir
+
+
+@contextlib.contextmanager
+def staged(**kw):
+    """A fresh temporary directory with FAKE_GH_TYPES installed; yields (tmp, stage(tmp, **kw))."""
+    with tempfile.TemporaryDirectory() as tmp:
+        install_gh(tmp, FAKE_GH_TYPES)
+        yield tmp, stage(tmp, **kw)
 
 
 def run(feat_dir, tmp, env_extra=None, log="calls.log", extra_args=None):
@@ -197,16 +177,14 @@ def run(feat_dir, tmp, env_extra=None, log="calls.log", extra_args=None):
     return result
 
 
-def calls(tmp, log="calls.log"):
-    p = os.path.join(tmp, log)
-    return ([l.rstrip("\x01") for l in
-              open(p, encoding="utf-8", errors="replace").read().splitlines()]
-            if os.path.exists(p) else [])
-
-
 def read_feature_json(feat_dir):
     with open(os.path.join(feat_dir, "feature.json"), encoding="utf-8") as f:
         return json.load(f)
+
+
+def argv(log, *needles):
+    """The logged gh argv lines that contain every one of NEEDLES."""
+    return [line for line in log if all(n in line for n in needles)]
 
 
 def labels_of(argv_line):
@@ -217,42 +195,28 @@ def nth(lst, i):
     return lst[i] if 0 <= i < len(lst) else ""
 
 
-fails = 0
-
-
-def check(name, cond, detail=""):
-    global fails
-    if cond:
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
-
-
-def case_a_b():
+def case_a_b(check):
     """CASE A / CASE B, one run, FAKE_TYPES=available."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
+    with staged() as (tmp, feat_dir):
         run(feat_dir, tmp, {"FAKE_TYPES": "available"})
-        log = calls(tmp)
-        updates = [l for l in log if "updateIssue" in l]
+        log = calls(tmp, strip=True)
+        updates = argv(log, "updateIssue")
         expectations = [
-            ("parent", "I_node41", "IT_feature"),
-            ("T-01 bugfix", "I_node42", "IT_bug"),
-            ("T-02 config", "I_node43", "IT_task"),
-            ("T-03 logic", "I_node44", "IT_task"),
-            ("T-04 feature", "I_node45", "IT_task"),
+            ("parent", "IT_feature"),
+            ("T-01 bugfix", "IT_bug"),
+            ("T-02 config", "IT_task"),
+            ("T-03 logic", "IT_task"),
+            ("T-04 feature", "IT_task"),
         ]
-        for label, node, type_id in expectations:
+        for (label, type_id), node in zip(expectations, NODES):
             check(f"CASE A: {label} is typed {type_id}",
-                  any(node in l and type_id in l for l in updates), f"updates={updates}")
+                  argv(updates, node, type_id), f"updates={updates}")
 
-        creates = [l for l in log if "issue create" in l]
+        creates = argv(log, "issue create")
         check("CASE B: no create argv carries --label bug",
-              not any("--label bug" in l for l in creates), f"{creates}")
+              not argv(creates, "--label bug"), f"{creates}")
         check("CASE B: no create argv carries --label chore",
-              not any("--label chore" in l for l in creates), f"{creates}")
+              not argv(creates, "--label chore"), f"{creates}")
         check("CASE B: every create argv carries --label harness",
               bool(creates) and all("--label harness" in l for l in creates), f"{creates}")
         check("CASE B: the four sub-issue creates still carry --milestone FEAT-77-types",
@@ -260,14 +224,12 @@ def case_a_b():
               f"{creates}")
 
 
-def case_c_d():
+def case_c_d(check):
     """CASE C: FAKE_TYPES=absent, fresh fixture. CASE D: rerun, same directory."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
+    with staged() as (tmp, feat_dir):
         r1 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls1.log")
-        log1 = calls(tmp, "calls1.log")
-        creates1 = [l for l in log1 if "issue create" in l]
+        log1 = calls(tmp, "calls1.log", strip=True)
+        creates1 = argv(log1, "issue create")
         check("CASE C: five issues created", len(creates1) == 5, f"{creates1}")
         check("CASE C: parent labels are exactly harness",
               labels_of(nth(creates1, 0)) == ["harness"], nth(creates1, 0))
@@ -280,63 +242,56 @@ def case_c_d():
         check("CASE C: feature labels are exactly harness",
               labels_of(nth(creates1, 4)) == ["harness"], nth(creates1, 4))
         check("CASE C: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log1), f"{log1}")
+              not argv(log1, "updateIssue"), f"{log1}")
         lines1 = re.findall(r"^gh-sync: issue types ", r1.stdout, re.M)
         check("CASE C: exactly one 'gh-sync: issue types ' line for a five-issue run",
               len(lines1) == 1, repr(r1.stdout))
 
         r2 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
+        log2 = calls(tmp, "calls2.log", strip=True)
         check("CASE D: zero issue create argv on the rerun (everything already recorded)",
-              not any("issue create" in l for l in log2), f"{log2}")
+              not argv(log2, "issue create"), f"{log2}")
         lines2 = re.findall(r"^gh-sync: issue types ", r2.stdout, re.M)
         check("CASE D: still exactly one 'gh-sync: issue types ' line on the rerun",
               len(lines2) == 1, repr(r2.stdout))
 
 
-def case_e():
+def case_e(check):
     """CASE E: FAKE_TYPES=available with a github.issue_types override on all four keys."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp, issue_types={
-            "Bug": "Defect", "Task": "Maintenance", "parent": "Epic",
-        })
+    with staged(issue_types={"Bug": "Defect", "Task": "Maintenance", "parent": "Epic"}) as (
+            tmp, feat_dir):
         run(feat_dir, tmp, {"FAKE_TYPES": "available"})
-        log = calls(tmp)
-        updates = [l for l in log if "updateIssue" in l]
+        updates = argv(calls(tmp, strip=True), "updateIssue")
         expectations = [
-            ("parent -> Epic (override key parent)", "I_node41", "IT_epic"),
-            ("T-01 bugfix -> Defect (override key Bug)", "I_node42", "IT_defect"),
-            ("T-02 config -> Maintenance (override key Task)", "I_node43", "IT_maintenance"),
-            ("T-03 logic -> Maintenance (override key Task)", "I_node44", "IT_maintenance"),
-            ("T-04 feature -> Maintenance (override key Task)", "I_node45", "IT_maintenance"),
+            ("parent -> Epic (override key parent)", "IT_epic"),
+            ("T-01 bugfix -> Defect (override key Bug)", "IT_defect"),
+            ("T-02 config -> Maintenance (override key Task)", "IT_maintenance"),
+            ("T-03 logic -> Maintenance (override key Task)", "IT_maintenance"),
+            ("T-04 feature -> Maintenance (override key Task)", "IT_maintenance"),
         ]
-        for label, node, type_id in expectations:
-            check(f"CASE E: {label}", any(node in l and type_id in l for l in updates),
-                  f"updates={updates}")
+        for (label, type_id), node in zip(expectations, NODES):
+            check(f"CASE E: {label}", argv(updates, node, type_id), f"updates={updates}")
 
 
-def case_f():
+def case_f(check):
     """CASE F: FAKE_TYPES=partial (Task undeclared), one already-recorded 'created'
     remnant (bugfix #501) so the backfill set is not empty — the run must still refuse
     on Task, before any create and before any apply, and the remnant must be untouched."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp, github={
-            "milestone": None, "parent": None, "attached": [], "source_issues": [],
-            "issues": {"T-01": 501}, "typed": {"T-01": "created"},
-        })
+    with staged(github={
+        "milestone": None, "parent": None, "attached": [], "source_issues": [],
+        "issues": {"T-01": 501}, "typed": {"T-01": "created"},
+    }) as (tmp, feat_dir):
         r = run(feat_dir, tmp, {"FAKE_TYPES": "partial"})
-        log = calls(tmp)
+        log = calls(tmp, strip=True)
         both = r.stdout + r.stderr
         check("CASE F: the run refuses (non-zero exit)", r.returncode != 0,
               f"exit={r.returncode} out={both}")
         check("CASE F: zero issue create argv reached the fake",
-              not any("issue create" in l for l in log), f"{log}")
+              not argv(log, "issue create"), f"{log}")
         check("CASE F: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log), f"{log}")
+              not argv(log, "updateIssue"), f"{log}")
         check("CASE F: zero updateIssue argv carries a node id derived from the remnant 501",
-              not any("updateIssue" in l and "I_node501" in l for l in log), f"{log}")
+              not argv(log, "updateIssue", "I_node501"), f"{log}")
         check("CASE F: the refusal names both Task and github.issue_types",
               "Task" in both and "github.issue_types" in both, both)
         rec = read_feature_json(feat_dir).get("github", {})
@@ -346,12 +301,10 @@ def case_f():
               rec.get("typed", {}).get("T-01") == "created", f"{rec}")
 
 
-def case_g():
+def case_g(check):
     """CASE G: FAKE_TYPE_APPLY=fail on the first run demotes nothing; the rerun
     backfills to True without creating, closing or deleting anything."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
+    with staged() as (tmp, feat_dir):
         run(feat_dir, tmp, {"FAKE_TYPES": "available", "FAKE_TYPE_APPLY": "fail"},
             log="calls1.log")
         rec1 = read_feature_json(feat_dir).get("github", {})
@@ -361,57 +314,52 @@ def case_g():
               rec1.get("typed", {}).get("T-01") is not True, f"{rec1}")
 
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
+        log2 = calls(tmp, "calls2.log", strip=True)
         number = rec1.get("issues", {}).get("T-01")
         node = f"I_node{number}" if number is not None else "I_node__missing__"
         check("CASE G: the rerun creates no issue for the already-recorded T-01",
-              not any("issue create" in l and "T-01" in l for l in log2), f"{log2}")
+              not argv(log2, "issue create", "T-01"), f"{log2}")
         check("CASE G: the rerun contains no issue delete argv anywhere",
-              not any("issue delete" in l for l in log2), f"{log2}")
+              not argv(log2, "issue delete"), f"{log2}")
         check("CASE G: the rerun contains no issue close argv anywhere",
-              not any("issue close" in l for l in log2), f"{log2}")
+              not argv(log2, "issue close"), f"{log2}")
         check("CASE G: the rerun's log carries an updateIssue call for T-01's recorded node id",
-              any("updateIssue" in l and node in l for l in log2), f"{log2}")
+              argv(log2, "updateIssue", node), f"{log2}")
         rec2 = read_feature_json(feat_dir).get("github", {})
         check("CASE G: T-01's typed value is promoted to True after the backfill",
               rec2.get("typed", {}).get("T-01") is True, f"{rec2}")
 
 
-def case_h_h2():
+def case_h_h2(check):
     """CASE H: --parent 4242 is adopted, never typed, and its provenance reads
     'adopted'. CASE H2: a rerun without --parent must skip it forever, not once."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp, source_issues=[100, 200])
+    with staged(source_issues=[100, 200]) as (tmp, feat_dir):
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls1.log",
             extra_args=["--parent", "4242"])
-        log1 = calls(tmp, "calls1.log")
+        log1 = calls(tmp, "calls1.log", strip=True)
         check("CASE H: no updateIssue argv carries a node id derived from adopted parent 4242",
-              not any("updateIssue" in l and "I_node4242" in l for l in log1), f"{log1}")
+              not argv(log1, "updateIssue", "I_node4242"), f"{log1}")
         for n in (100, 200):
             check(f"CASE H: no updateIssue argv carries a node id derived from source_issues #{n}",
-                  not any("updateIssue" in l and f"I_node{n}" in l for l in log1), f"{log1}")
+                  not argv(log1, "updateIssue", f"I_node{n}"), f"{log1}")
         rec1 = read_feature_json(feat_dir).get("github", {})
         check("CASE H: the parent's typed provenance is recorded as 'adopted'",
               rec1.get("typed", {}).get("parent") == "adopted", f"{rec1}")
 
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
+        log2 = calls(tmp, "calls2.log", strip=True)
         check("CASE H2: the rerun without --parent still emits zero updateIssue for 4242",
-              not any("updateIssue" in l and "I_node4242" in l for l in log2), f"{log2}")
+              not argv(log2, "updateIssue", "I_node4242"), f"{log2}")
         rec2 = read_feature_json(feat_dir).get("github", {})
         check("CASE H2: the parent's typed provenance stays exactly 'adopted' across the rerun",
               rec2.get("typed", {}).get("parent") == "adopted", f"{rec2}")
 
 
-def case_i():
+def case_i(check):
     """CASE I: FAKE_TYPES=failed never gates — exit 0, today's labels, one diagnostic."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
+    with staged() as (tmp, feat_dir):
         r = run(feat_dir, tmp, {"FAKE_TYPES": "failed"})
-        log = calls(tmp)
-        creates = [l for l in log if "issue create" in l]
+        creates = argv(calls(tmp, strip=True), "issue create")
         check("CASE I: the run still exits 0 when type detection fails",
               r.returncode == 0, f"exit={r.returncode} stderr={r.stderr}")
         check("CASE I: issues are still created (five, today's labels)",
@@ -425,21 +373,19 @@ def case_i():
               len(lines) == 1, repr(r.stdout))
 
 
-def case_j():
+def case_j(check):
     """CASE J: absent provenance is never typed — the legacy feature.json shape, no
     github.typed key at all, and the fail-safe direction stays true across a rerun."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp, github={
-            "milestone": None, "parent": 9001, "attached": ["T-01"],
-            "issues": {"T-01": 9002}, "source_issues": [],
-        })
+    with staged(github={
+        "milestone": None, "parent": 9001, "attached": ["T-01"],
+        "issues": {"T-01": 9002}, "source_issues": [],
+    }) as (tmp, feat_dir):
         r1 = run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls1.log")
-        log1 = calls(tmp, "calls1.log")
+        log1 = calls(tmp, "calls1.log", strip=True)
         check("CASE J: zero updateIssue argv carries a node id derived from legacy parent 9001",
-              not any("updateIssue" in l and "I_node9001" in l for l in log1), f"{log1}")
+              not argv(log1, "updateIssue", "I_node9001"), f"{log1}")
         check("CASE J: zero updateIssue argv carries a node id derived from legacy T-01 9002",
-              not any("updateIssue" in l and "I_node9002" in l for l in log1), f"{log1}")
+              not argv(log1, "updateIssue", "I_node9002"), f"{log1}")
         rec1 = read_feature_json(feat_dir).get("github", {})
         check("CASE J: github.typed has no entry for 'parent' after the first run",
               "parent" not in rec1.get("typed", {}), f"{rec1}")
@@ -447,16 +393,16 @@ def case_j():
               "T-01" not in rec1.get("typed", {}), f"{rec1}")
         check("CASE J: the first run still exits 0", r1.returncode == 0,
               f"exit={r1.returncode} stderr={r1.stderr}")
-        creates1 = [l for l in log1 if "issue create" in l]
+        creates1 = argv(log1, "issue create")
         check("CASE J: the first run still creates the three tasks that are not recorded",
               len(creates1) == 3, f"{creates1}")
 
         r2 = run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
+        log2 = calls(tmp, "calls2.log", strip=True)
         check("CASE J: zero updateIssue for 9001 on the rerun too",
-              not any("updateIssue" in l and "I_node9001" in l for l in log2), f"{log2}")
+              not argv(log2, "updateIssue", "I_node9001"), f"{log2}")
         check("CASE J: zero updateIssue for 9002 on the rerun too",
-              not any("updateIssue" in l and "I_node9002" in l for l in log2), f"{log2}")
+              not argv(log2, "updateIssue", "I_node9002"), f"{log2}")
         rec2 = read_feature_json(feat_dir).get("github", {})
         check("CASE J: github.typed still has no entry for 'parent' after the rerun",
               "parent" not in rec2.get("typed", {}), f"{rec2}")
@@ -466,28 +412,26 @@ def case_j():
               f"exit={r2.returncode} stderr={r2.stderr}")
 
 
-def case_k():
+def case_k(check):
     """CASE K: FAKE_TYPES=nobug. Every issue this run WOULD CREATE has a declared
     type (parent -> Feature, every task -> Task); only the already-recorded 'created'
     remnant (bugfix #502) needs the undeclared Bug, so refusal can only come from the
     backfill's required set, never from the creation-side check alone."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp, github={
-            "milestone": None, "parent": None, "attached": [], "source_issues": [],
-            "issues": {"T-01": 502}, "typed": {"T-01": "created"},
-        })
+    with staged(github={
+        "milestone": None, "parent": None, "attached": [], "source_issues": [],
+        "issues": {"T-01": 502}, "typed": {"T-01": "created"},
+    }) as (tmp, feat_dir):
         r = run(feat_dir, tmp, {"FAKE_TYPES": "nobug"})
-        log = calls(tmp)
+        log = calls(tmp, strip=True)
         both = r.stdout + r.stderr
         check("CASE K: the run refuses (non-zero exit) though nothing to be CREATED needs Bug",
               r.returncode != 0, f"exit={r.returncode} out={both}")
         check("CASE K: zero issue create argv reached the fake",
-              not any("issue create" in l for l in log), f"{log}")
+              not argv(log, "issue create"), f"{log}")
         check("CASE K: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log), f"{log}")
+              not argv(log, "updateIssue"), f"{log}")
         check("CASE K: zero updateIssue argv carries a node id derived from the remnant 502",
-              not any("updateIssue" in l and "I_node502" in l for l in log), f"{log}")
+              not argv(log, "updateIssue", "I_node502"), f"{log}")
         check("CASE K: the refusal names both Bug and github.issue_types",
               "Bug" in both and "github.issue_types" in both, both)
         rec = read_feature_json(feat_dir).get("github", {})
@@ -497,15 +441,25 @@ def case_k():
               rec.get("typed", {}).get("T-01") == "created", f"{rec}")
 
 
-case_a_b()
-case_c_d()
-case_e()
-case_f()
-case_g()
-case_h_h2()
-case_i()
-case_j()
-case_k()
+CASES = [case_a_b, case_c_d, case_e, case_f, case_g, case_h_h2, case_i, case_j, case_k]
 
-print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
-sys.exit(1 if fails else 0)
+
+def recorded(case):
+    """Run CASE, returning its (name, cond, detail) checks in the order it made them."""
+    results = []
+    case(lambda name, cond, detail="": results.append((name, cond, detail)))
+    return results
+
+
+def main():
+    C = Checks()
+    with ThreadPoolExecutor(max_workers=len(CASES)) as pool:
+        futures = [pool.submit(recorded, case) for case in CASES]
+        for future in futures:
+            for name, cond, detail in future.result():
+                C.check(name, cond, detail)
+    return C.report()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

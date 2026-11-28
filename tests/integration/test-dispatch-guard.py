@@ -15,12 +15,7 @@ FEAT-2397 (#11) re-cut cases 1, 2 and 5 under the signed FEAT-2397 plan: native
 per-call model authority, so the guard's model refusal is gone. Case 1 pins the refusals that
 survive it, case 2 the pass with or without `model`, case 5 the ungoverned main session.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import BIN
 import json
 import os
 import re
@@ -30,18 +25,19 @@ import sys
 import tempfile
 import time
 
-from git_support import add_worktree, commit_files, init_repo
+import inflight_registry as reg
+from check_support import Checks
+from git_support import add_worktree, checked_git, commit_files, git, init_repo
 from isolated_bin import isolated_bin
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+BIN_DIR = str(BIN)
 # DISPATCH_GUARD_BIN lets T-08 point this suite at a COPIED bin tree whose
 # inflight_registry.py has been sabotaged. The guard resolves its own library from
 # BASH_SOURCE, so the copy imports the copy.
 GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(BIN_DIR, "dispatch-guard.py")
 
-RESULTS = []
+C = Checks()
+check = C.check
 
 # FEAT-42 T-18: every governed dispatch declares the feature it belongs to.
 FEATURE_LINE = "HARNESS-FEATURE: FEAT-90-one-root-fixture"
@@ -52,10 +48,6 @@ FEATURE_TREE_ROOT = os.path.realpath(os.path.join(BIN_DIR, "../../../.."))
 # BUG-124 T-02: the run-dir slug cases below use their own synthetic feature rather than
 # the pre-existing FEATURE_LINE.
 RUNDIR_FEATURE_LINE = "HARNESS-FEATURE: BUG-92-run-dir-squad-fixture"
-
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
 
 
 def fire(payload, env=None, host=True):
@@ -179,15 +171,6 @@ def case_5_main_session():
 # case can touch the real registry and no case can see another one.
 # ---------------------------------------------------------------------------
 
-def _load_registry_module():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "t08_inflight_registry", os.path.join(BIN_DIR, "inflight_registry.py"))
-    m = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(m)
-    return m
-
-
 # The dispatched personas every case names, plus the dispatchers: the spawns: allowlist
 # reads the DISPATCHER's file, and a checkout without it passes through loudly (case 28).
 # harness-pm is a dispatched target too (FEAT-2274 V2): a checkout without its grants file
@@ -263,7 +246,7 @@ def _checkout_with_run_dir_grants(suffixes):
     return tmp
 
 
-def _read_registry(root, reg):
+def _read_registry(root):
     p = os.path.join(root, reg.REGISTRY_REL)
     if not os.path.exists(p):
         return {}
@@ -338,7 +321,6 @@ def case_6_single_flight_refusal():
     is not the assertion: a crash on the way in is also non-zero, and that is exactly the
     defect FEAT-30 T-10 shipped. So this asserts the recorded started_at, the recorded
     dispatcher and the release command all appear -- none of which a crash can produce."""
-    reg = _load_registry_module()
     root = _checkout()
     try:
         # OWNED BY THIS PROCESS, deliberately: a claim whose supervisor is gone is expired
@@ -379,14 +361,13 @@ def case_6_single_flight_refusal():
 def case_7_allow_and_record():
     """THE ALLOW HALF, asserting the WRITE and not merely the exit. An always-allow guard that
     records nothing passes an exit-only check and leaves #551 unfixed."""
-    reg = _load_registry_module()
     root = _checkout()
     try:
         r = fire(_task("harness-pm", "harness-product-lead", root),
                  env={"HARNESS_PROJECT_DIR": root})
         check("case 7: the FIRST single-flight dispatch is allowed", r.returncode == 0,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
-        data = _read_registry(root, reg)
+        data = _read_registry(root)
         claims = _claims_for(data, "harness-pm", "FEAT-90-one-root-fixture")
         check("case 7: exactly one harness-pm claim was recorded", len(claims) == 1,
               f"registry={data!r}")
@@ -403,7 +384,6 @@ def case_8_parallel_squad_stays_legal():
     and D-09 stand on the dispatcher edge existing on disk for every persona, not only the
     refused ones. An earlier draft asserted no claim was written at all, which would have made
     the D-09 children lookup permanently empty while every test passed."""
-    reg = _load_registry_module()
     root = _checkout()
     try:
         codes = []
@@ -413,7 +393,7 @@ def case_8_parallel_squad_stays_legal():
             codes.append(r.returncode)
         check("case 8: two parallel non-single-flight dispatches BOTH exit 0",
               codes == [0, 0], f"exits {codes}")
-        data = _read_registry(root, reg)
+        data = _read_registry(root)
         claims = _claims_for(data, "harness-backend-dev", "FEAT-90-one-root-fixture")
         check("case 8: BOTH claims are on disk", len(claims) == 2, f"registry={data!r}")
         check("case 8: each claim names the dispatcher from agent_type",
@@ -430,12 +410,11 @@ def case_9_stale_claim():
     a fix that bricks the factory is worse than the defect. Under DEC-204/DEC-233 a claim is
     stale the moment its supervisor process is gone, so the fixture's claim is owned by a
     process that has already exited. It must ALLOW and SAY it expired."""
-    reg = _load_registry_module()
     root = _checkout()
     try:
-        dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
-                              capture_output=True, text=True, check=True)
-        dead_pid = int(dead.stdout.strip())
+        dead = subprocess.Popen(["true"])
+        dead.wait()
+        dead_pid = dead.pid
         reg.claim(
             root, "harness-pm", "harness-product-lead", root, now=time.time() - 60,
             feature="FEAT-90-one-root-fixture", supervisor_pid=dead_pid,
@@ -460,8 +439,7 @@ def _feat65_fire(root, sibling, override):
     shutil.copytree(BIN_DIR, mbin)
     with open(os.path.join(mbin, sibling), "a", encoding="utf-8") as handle:
         handle.write("\n\n" + override)
-    payload = {"harness_runtime": "omp", "supervisor_pid": os.getpid(),
-               **_task("harness-pm", "harness-product-lead", root)}
+    payload = _task("harness-pm", "harness-product-lead", root)
     return subprocess.run([os.path.join(mbin, "dispatch-guard.py")], input=json.dumps(payload),
                           capture_output=True, text=True,
                           env=dict(os.environ, HARNESS_PROJECT_DIR=root))
@@ -471,7 +449,6 @@ def case_feat65_guard():
     """FEAT-65: an unexpected defect in the claim step reaches hook_guard (exit 0, the one
     template, never the old 'claim step failed' sentence); process control escapes; the
     registry's own classes keep the typed, local sentence."""
-    reg = _load_registry_module()
     root = _checkout()
     try:
         raise_rt = "    raise RuntimeError('FEAT-65 injected')\n"
@@ -505,7 +482,6 @@ def case_10_library_missing():
     """THE LIBRARY IS MISSING -- fail open, LOUDLY. A guard that blocks every spawn because its
     library moved is worse than no guard (DEC-100). The payload here is the REFUSAL payload, so
     a build that failed closed would exit 2 and this case would catch it. MF-4."""
-    reg = _load_registry_module()
     root = _checkout()
     tmp = tempfile.mkdtemp()
     try:
@@ -734,14 +710,13 @@ def case_12_claim_lands_in_declared_worktree():
     a worktree, and the guard then saw six collisions and refused none of them. The payload
     below carries the MAIN checkout as cwd and declares a feature whose worktree exists — the
     claim must land under the worktree, and the main checkout registry must stay untouched."""
-    reg = _load_registry_module()
     flow = "FEAT-99-declared"
     main, wt = _declared_worktree_checkout(flow)
     p = _task("harness-pm", dispatcher="harness-product-lead", cwd=main)
     p["tool_input"]["task"] = "HARNESS-FEATURE: %s\nplan the thing" % flow
     r = fire(p, env={"HARNESS_PROJECT_DIR": main})
-    in_wt = _read_registry(wt, reg)
-    in_main = _read_registry(main, reg)
+    in_wt = _read_registry(wt)
+    in_main = _read_registry(main)
     check("case 12 claim_lands_in_declared_worktree: the dispatch is allowed", r.returncode == 0,
           f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     check("case 12 claim_lands_in_declared_worktree: the claim lands in the DECLARED worktree",
@@ -752,16 +727,9 @@ def case_12_claim_lands_in_declared_worktree():
 
 def _git_checkout_with_worktree(short_name):
     """A real git checkout with one linked worktree at .claude/worktrees/harness/<short_name>."""
-    main = _checkout()
-    for cmd in (["git", "init", "-q", "-b", "main", main],
-                ["git", "-C", main, "config", "user.email", "t@example.com"],
-                ["git", "-C", main, "config", "user.name", "t"],
-                ["git", "-C", main, "commit", "-q", "--allow-empty", "-m", "init"]):
-        subprocess.run(cmd, capture_output=True)
-    wt = os.path.join(main, ".claude", "worktrees", "harness", short_name)
-    subprocess.run(["git", "-C", main, "worktree", "add", "-q", "-b", "wt-" + short_name, wt,
-                    "HEAD"], capture_output=True)
-    return main, wt
+    main = init_repo(_checkout(), "main", git=checked_git)
+    git(main, "commit", "-q", "--allow-empty", "-m", "init")
+    return main, add_worktree(main, short_name, "harness", "wt-" + short_name, git=checked_git)
 
 
 def _claim_receipt(stdout):
@@ -774,7 +742,6 @@ def case_27_guard_and_registry_resolve_one_feature_root():
     feature lives. A SHORT-FORM worktree (`BUG-97`) for the declared feature
     `BUG-97-short-form` is the case the guard's old basename-equality lookup sent to the main
     checkout while every reader (authorize, validate-digest) looked in the worktree."""
-    reg = _load_registry_module()
     main, wt = _git_checkout_with_worktree("BUG-97")
     flow = "BUG-97-short-form"
     expected = os.path.realpath(reg.feature_root(main, flow))
@@ -787,7 +754,7 @@ def case_27_guard_and_registry_resolve_one_feature_root():
     check("case 27: the guard's claim receipt names that same root",
           r.returncode == 0 and receipt_root == expected,
           f"exit {r.returncode}, receipt root={receipt_root!r}, stderr={r.stderr[:200]!r}")
-    homes = [len(_claims_for(_read_registry(root, reg), "harness-backend-dev", flow))
+    homes = [len(_claims_for(_read_registry(root), "harness-backend-dev", flow))
              for root in (wt, main)]
     check("case 27: and the claim row lives in the worktree registry, not the main checkout's",
           homes == [1, 0], homes)
@@ -830,7 +797,7 @@ def case_15_omp_dispatch_records_supervisor_and_receipt():
     payload = _task("harness-backend-dev", "harness-eng-lead", root)
     payload["tool_input"]["task"] = "HARNESS-FEATURE: FEAT-94-alpha\nbuild"
     result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
-    claims = _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev", "FEAT-94-alpha")
+    claims = _claims_for(_read_registry(root), "harness-backend-dev", "FEAT-94-alpha")
     check("case 15: OMP governed dispatch is allowed", result.returncode == 0, result.stderr)
     check(
         "case 15: claim records OMP runtime and supervising pid",
@@ -846,12 +813,10 @@ def case_15b_omp_main_dispatch_records_top_level_claim():
     root = _checkout()
     payload = _task("harness-orchestrator", "Main", root)
     payload["tool_input"]["task"] = "HARNESS-FEATURE: FEAT-94-alpha\nrun the feature"
-    payload["harness_runtime"] = "omp"
     payload["harness_agent_id"] = "Main"
-    payload["supervisor_pid"] = os.getpid()
     result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
     claims = _claims_for(
-        _read_registry(root, _load_registry_module()),
+        _read_registry(root),
         "harness-orchestrator",
         "FEAT-94-alpha",
     )
@@ -882,7 +847,6 @@ def case_15c_omp_main_eng_lead_on_all_direct_plan_refused():
     orchestrator; its harness-eng-lead dispatch is refused before any claim. A mixed plan
     keeps the prior outcome."""
     feature = "FEAT-90-one-root-fixture"
-    reg = _load_registry_module()
     for label, modes, refused in (("all-direct", ("main-session-direct",) * 2, True),
                                   ("mixed", ("main-session-direct", "team"), False)):
         root = _checkout()
@@ -895,9 +859,9 @@ def case_15c_omp_main_eng_lead_on_all_direct_plan_refused():
             payload["harness_agent_id"] = "Main"
             payload["tool_input"]["task"] = "%s\nHARNESS-FEATURE-TREE-ROOT: %s\nx" % (
                 FEATURE_LINE, root)
-            before = _read_registry(root, reg)
+            before = _read_registry(root)
             result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
-            after = _read_registry(root, reg)
+            after = _read_registry(root)
             if refused:
                 check("case 15c: OMP Main -> eng-lead on an all-direct plan is refused (exit 2)",
                       result.returncode == 2, result.stderr)
@@ -944,7 +908,7 @@ def _main_start(plan, lead, mission=None):
             [FEATURE_LINE, "HARNESS-FEATURE-TREE-ROOT: " + root]
             + (["HARNESS-MISSION: " + mission] if mission else []) + ["x"])
         result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
-        return result, _claims_for(_read_registry(root, _load_registry_module()), lead, feature)
+        return result, _claims_for(_read_registry(root), lead, feature)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -995,7 +959,6 @@ def case_15e_dec174_unresolvable_feature_keeps_prior_refusal():
     yields to the prior outcome. That outcome is the BUG-2110 registered-run refusal, so an
     all-direct plan on disk can never turn an unresolvable feature into an eng-lead claim."""
     feature = "FEAT-90-one-root-fixture"
-    reg = _load_registry_module()
     for how in ("missing", "mismatched", "unparseable"):
         root = _checkout()
         try:
@@ -1008,9 +971,9 @@ def case_15e_dec174_unresolvable_feature_keeps_prior_refusal():
             payload["harness_agent_id"] = "Main"
             payload["tool_input"]["task"] = "%s\nHARNESS-FEATURE-TREE-ROOT: %s\nx" % (
                 FEATURE_LINE, root)
-            before = _read_registry(root, reg)
+            before = _read_registry(root)
             result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
-            after = _read_registry(root, reg)
+            after = _read_registry(root)
             check("case 15e: Main -> eng-lead with a %s feature record is refused (exit 2)"
                   % how, result.returncode == 2, result.stderr)
             check("case 15e: %s record: the refusal is the registered-run preflight's, not"
@@ -1041,7 +1004,7 @@ def case_25_non_omp_dispatch_refused():
         check("case 25: a dispatch naming another runtime exits 2", r.returncode == 2,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         check("case 25: no claim was recorded on either refusal",
-              _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev") == [],
+              _claims_for(_read_registry(root), "harness-backend-dev") == [],
               "a refused dispatch must not leave a claim behind")
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -1062,7 +1025,7 @@ def case_26_omp_dispatch_without_supervisor_pid_refused():
             check(f"case 26: an OMP dispatch with {label} supervisor_pid exits 2",
                   r.returncode == 2, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         check("case 26: no claim was recorded on any refusal",
-              _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev") == [],
+              _claims_for(_read_registry(root), "harness-backend-dev") == [],
               "a refused dispatch must not leave a claim behind")
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -1135,7 +1098,6 @@ def case_18_inverted_slug_refused_no_claim_and_paste_back_safe():
     form; (g) the refusal strands no claim for the dispatched persona; (h) pasting
     the exact refusal back into a follow-up dispatch is itself never refused,
     because the anchor it prints is already broken (D-05)."""
-    reg = _load_registry_module()
     root = _checkout_with_run_dir_grants(["eng"])
     _register_lead_run(root, "harness-eng-lead", "BUG-92-run-dir-squad-fixture")
     try:
@@ -1151,7 +1113,7 @@ def case_18_inverted_slug_refused_no_claim_and_paste_back_safe():
               "eng-t01" in r.stderr and "run-dir slug" in r.stderr, r.stderr)
         check("case 18b: stderr names a compliant form ending in -eng",
               "<task-or-purpose>-eng" in r.stderr, r.stderr)
-        data = _read_registry(root, reg)
+        data = _read_registry(root)
         check("case 18g: the refusal strands no claim for the dispatched persona",
               _claims_for(data, "harness-eng-lead") == [], data)
 
@@ -1362,7 +1324,6 @@ def case_29_name_parameter_refused():
 def _bind_lead_one(checkout, feature):
     """FEAT-2542 (DEC-258): LeadOne's dispatches are placed by its own runtime claim, so the
     fixture binds it as a lead's run start does, in the registry its feature resolves to."""
-    reg = _load_registry_module()
     reg.claim_run_start(reg.feature_root(checkout, feature), "harness-eng-lead", feature,
                         "LeadOne", "OrchestratorOne", supervisor_pid=os.getpid(), cwd=checkout)
 
@@ -1385,7 +1346,7 @@ def case_30_repository_header_binds_exact_factory_claim():
         _bind_lead_one(root, feature)
         result = dispatch(f"HARNESS-FEATURE: {feature}\n"
                           "HARNESS-REPOSITORY: acme/product-a\nchange the product")
-        claims = _claims_for(_read_registry(root, _load_registry_module()),
+        claims = _claims_for(_read_registry(root),
                              "harness-backend-dev", feature)
         check("case 30: exact factory repository dispatch is allowed",
               result.returncode == 0, result.stderr)
@@ -1415,14 +1376,9 @@ def _c31_fleet_worktree(feature):
     """A git fleet checkout whose feature record exists only in the feature's own worktree."""
     main, segment = _factory_checkout(feature=feature)
     shutil.rmtree(os.path.join(main, ".harness", segment, "features", feature))
-    for cmd in (["git", "init", "-q", "-b", "main", main],
-                ["git", "-C", main, "config", "user.email", "t@example.com"],
-                ["git", "-C", main, "config", "user.name", "t"],
-                ["git", "-C", main, "commit", "-q", "--allow-empty", "-m", "init"]):
-        subprocess.run(cmd, capture_output=True, check=True)
-    wt = os.path.join(main, ".claude", "worktrees", "harness", feature)
-    subprocess.run(["git", "-C", main, "worktree", "add", "-q", "-b", "feat/" + feature, wt,
-                    "HEAD"], capture_output=True, check=True)
+    init_repo(main, "main", git=checked_git)
+    git(main, "commit", "-q", "--allow-empty", "-m", "init")
+    wt = add_worktree(main, feature, "harness", "feat/" + feature, git=checked_git)
     _c31_write_record(os.path.join(wt, ".harness", segment, "features", feature), feature,
                       "acme/product-a")
     return main, wt, segment
@@ -1440,7 +1396,7 @@ def _c31_dispatch(main, feature, repository=None):
 
 def _c31_worktree_binds(main, wt, segment, feature):
     bound = _c31_dispatch(main, feature, "acme/product-a")
-    claims = _claims_for(_read_registry(wt, _load_registry_module()),
+    claims = _claims_for(_read_registry(wt),
                          "harness-backend-dev", feature)
     check("case 31: a binding held only by the feature worktree is accepted",
           bound.returncode == 0, bound.stderr)
@@ -1502,7 +1458,7 @@ def case_30_schema_controls_are_not_the_guards():
                       "tool_input": {"agent": "harness-backend-dev",
                                      "task": "HARNESS-FEATURE: FEAT-94-alpha\nbuild", **extra}},
                      env={"HARNESS_PROJECT_DIR": root})
-            claims = _claims_for(_read_registry(root, _load_registry_module()),
+            claims = _claims_for(_read_registry(root),
                                  "harness-backend-dev", "FEAT-94-alpha")
             outcomes[label] = (r.returncode, len(claims), "harness_claim" in r.stdout)
             check(f"case 30: {label}: allowed with one claim and a receipt",
@@ -1554,12 +1510,12 @@ def _distill_fire(root, payload):
 
 
 def _bind_lead_runtime(root, lead, agent_id, feature=DISTILL_FEATURE):
-    _load_registry_module().claim_run_start(root, lead, feature, agent_id, "Orch",
+    reg.claim_run_start(root, lead, feature, agent_id, "Orch",
                                             supervisor_pid=os.getpid(), cwd=root)
 
 
 def _child_claims(root, persona):
-    return _claims_for(_read_registry(root, _load_registry_module()), persona, DISTILL_FEATURE)
+    return _claims_for(_read_registry(root), persona, DISTILL_FEATURE)
 
 
 def case_32_distill_lead_start_carries_the_mission():
@@ -1648,7 +1604,7 @@ def case_34_distill_child_bound_to_another_feature_is_refused():
             root, "harness-backend-dev", "harness-eng-lead",
             ["HARNESS-FEATURE-TREE-ROOT: " + root, "HARNESS-MISSION: distill"],
             agent_id="Orch.Lead", feature_line="HARNESS-FEATURE: " + other))
-        claims = _claims_for(_read_registry(root, _load_registry_module()),
+        claims = _claims_for(_read_registry(root),
                              "harness-backend-dev")
         check("case 34: a distill lead's child declaring another feature is refused",
               r.returncode == 2 and not claims and DISTILL_FEATURE in r.stderr, r.stderr)
@@ -2264,26 +2220,13 @@ CASES = (
 )
 
 
-def _report():
-    """Print every recorded result; the count of failures."""
-    failed = 0
-    for name, ok, detail in RESULTS:
-        print(f"{'PASS' if ok else 'FAIL'}  {name}")
-        if not ok:
-            failed += 1
-            if detail:
-                print(f"      | {detail}")
-    print(f"{len(RESULTS) - failed} of {len(RESULTS)} cases passed")
-    return failed
-
-
 def main():
     if not os.path.exists(GUARD):
         print(f"FAIL  dispatch-guard.py not found at {GUARD}")
         return 1
     for case in CASES:
         case()
-    return 1 if _report() else 0
+    return C.report()
 
 
 if __name__ == "__main__":

@@ -6,21 +6,21 @@ they name, and a `.harness/harness.json` carrying (or not) the budget. The live 
 touched by exactly one case, which pins the two SC-11 invariants the harness relies on:
 no reference is preloaded and every preload resolves.
 """
+from integration_support import ROOT, BIN
+
 import importlib.util
 import json
-import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-MODULE = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-skill-weight.py")
-sys.path.insert(0, os.path.dirname(MODULE))
-sys.path.insert(0, os.path.dirname(TESTS_DIR))
 import artifact_accessors
 from harness_config_support import build_config, write_config
+
+MODULE = str(BIN / "check-skill-weight.py")
 
 _spec = importlib.util.spec_from_file_location("check_skill_weight", MODULE)
 csw = importlib.util.module_from_spec(_spec)
@@ -30,11 +30,12 @@ _spec.loader.exec_module(csw)
 
 def _tree(agents: dict[str, list[str]], skills: dict[str, int], budget=None) -> Path:
     root = Path(tempfile.mkdtemp(prefix="skill-weight-"))
+    agents_dir = root / ".omp" / "agents"
+    agents_dir.mkdir(parents=True)
     for agent, names in agents.items():
         body = "---\nname: %s\nautoloadSkills:\n%s---\n" % (
             agent, "".join(f"- {n}\n" for n in names))
-        (root / ".omp" / "agents").mkdir(parents=True, exist_ok=True)
-        (root / ".omp" / "agents" / f"{agent}.md").write_text(body, encoding="utf-8")
+        (agents_dir / f"{agent}.md").write_text(body, encoding="utf-8")
     for name, words in skills.items():
         d = root / ".claude" / "skills" / name
         d.mkdir(parents=True)
@@ -44,10 +45,15 @@ def _tree(agents: dict[str, list[str]], skills: dict[str, int], budget=None) -> 
     return root
 
 
+def _two_agent_tree() -> Path:
+    """Agents a (u, x) and b (u, y); u=100, x=50, y=70 words; 1000/1000 budget."""
+    return _tree({"a": ["u", "x"], "b": ["u", "y"]}, {"u": 100, "x": 50, "y": 70},
+                 {"universal": 1000, "agent": 1000})
+
+
 class WeightTests(unittest.TestCase):
     def test_counts_and_universal_set(self):
-        root = _tree({"a": ["u", "x"], "b": ["u", "y"]}, {"u": 100, "x": 50, "y": 70},
-                     {"universal": 1000, "agent": 1000})
+        root = _two_agent_tree()
         r = csw.scan(root)
         self.assertEqual(r.universal, ["u"])
         self.assertEqual(r.universal_words, 100)
@@ -106,16 +112,13 @@ class WeightTests(unittest.TestCase):
         """FEAT-64 (SC-03): an unreadable/invalid frontmatter is a per-agent error row; an
         unrelated RuntimeError inside the reader escapes scan()."""
         root = _tree({"harness-a": ["s1"]}, {"s1": 10})
-        real = csw.artifact_accessors.load_frontmatter
-        csw.artifact_accessors.load_frontmatter = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
-        try:
+        with mock.patch.object(csw.artifact_accessors, "load_frontmatter",
+                               side_effect=RuntimeError("unrelated")):
             with self.assertRaises(RuntimeError):
                 csw.scan(root)
-        finally:
-            csw.artifact_accessors.load_frontmatter = real
 
     def test_live_tree_preloads_resolve_and_no_reference_is_preloaded(self):
-        r = csw.scan(Path(ROOT))
+        r = csw.scan(ROOT)
         self.assertEqual(r.errors, [])
         self.assertEqual(len(r.agents), 16)
         self.assertEqual(set(r.universal),
@@ -124,9 +127,7 @@ class WeightTests(unittest.TestCase):
     def test_cli_json_and_plain_modes(self):
         """BUG-2239 fold: `--json` called json.dumps with no `import json` and crashed with
         NameError; plain mode worked. Both modes run as real subprocesses on one fixture."""
-        import subprocess
-        root = _tree({"a": ["u", "x"], "b": ["u", "y"]}, {"u": 100, "x": 50, "y": 70},
-                     {"universal": 1000, "agent": 1000})
+        root = _two_agent_tree()
         r = subprocess.run([sys.executable, MODULE, str(root), "--json"],
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stderr)

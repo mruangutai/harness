@@ -14,7 +14,7 @@ committed-blob equality, and the same owner/binding/mirror-receipt policy the ho
 (DEC-220); main and head are rechecked immediately before merging at the exact head commit. It
 never rebases, applies, re-judges, opens or recovers mirrors. After the merge call it reads the
 PR back, and only a MERGED PR has its local working files removed, still under the lock
-(DEC-260); exit 0 merged and cleaned, 3 refused before any merge (nothing removed), 5/6/9 the
+(DEC-262); exit 0 merged and cleaned, 3 refused before any merge (nothing removed), 5/6/9 the
 lock refused, 4 merged but the cleanup failed - the stderr line names the clean command to retry
 alone, 7 submitted but not merged (a merge queue or auto-merge enqueued it, or its state could not
 be read) - nothing removed; clean once it merges, re-run merge-distill if it is dropped.
@@ -565,7 +565,7 @@ def merge_distill(root, feature, number):
 
 
 def _clean_after_merge(root, feature):
-    """Remove the merged feature's working files (DEC-260). (removed, None, None) on success;
+    """Remove the merged feature's working files (DEC-262). (removed, None, None) on success;
     (removed so far, error text, retry command) on any failure - never raises, so a post-merge
     failure is never reported as a refusal of a merge that has landed."""
     removed = []

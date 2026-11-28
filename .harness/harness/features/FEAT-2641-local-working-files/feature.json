@@ -145,6 +145,27 @@
       "kind": "amendment",
       "decision": "T-07.verify",
       "reason": "operator ruling (a) (notes/answers-validate-c0-amend2.md): the retired-instruction grep covers README.md and SPEC.md and adds the receipts-committed phrasings they use"
+    },
+    {
+      "at": "2026-11-28T14:40:21.272299+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T14:40:22.313123+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-08.verify",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T14:40:22.825152+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-12.intent",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
     }
   ],
   "mission": "plan",

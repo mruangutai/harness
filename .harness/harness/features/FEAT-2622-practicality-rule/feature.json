@@ -1,0 +1,138 @@
+{
+  "feature_id": "FEAT-2622-practicality-rule",
+  "branch": "feat/FEAT-2622-practicality-rule",
+  "pr": 2671,
+  "review_sha": "0ce1c841f4534e3720e95927d61f43a162aa6a13",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-28-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-28T03:40:48+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-01-plan-product/digest.md",
+        "sha256": "8f9d3b36298c11a757eafb0d84c8fc44535dcb4c5cbf9f5d63b3ff70fa3c3db0"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-28T04:18:22+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-28-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-28T05:02:16+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-02-validate-validator/digest.md",
+        "sha256": "8a5bc75eb124516f0a726e40543d60a97115c71d4bb7de4ccdba5499abb82471"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T05:21:55+00:00"
+    },
+    {
+      "id": "2026-11-28-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-28T05:25:59+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-03-validate-validator/digest.md",
+        "sha256": "51e0977fc87a9ba0b864fbd8457637e9dbe333899b874288915bae914bc3a8eb"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T05:45:25+00:00"
+    },
+    {
+      "id": "2026-11-28-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T05:59:03+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-04-validate-validator/digest.md",
+        "sha256": "175ef4d6d0578dd3fe1e750493bf034003245a8f579ce6b7b068c1a164fafd23"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T06:10:00+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T03:40:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "adds an exposure field to the digest finding schema and a refusal rule to validate-digest.py, which are enforcement surfaces"
+    },
+    {
+      "at": "2026-11-28T05:25:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-validate-c1.md",
+      "reason": "validate run 02 FAIL: MF-1..MF-5 fixed main-session-direct, re-pinned; rework round 1 of 2"
+    },
+    {
+      "at": "2026-11-28T05:59:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-validate-c2.md",
+      "reason": "validate run 03 FAIL: MF-1..MF-4 fixed main-session-direct, re-pinned; rework round 2 of 2"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "7577b37d7dfa93a74246fafb6547264a4b858bcc4ec2b2cb96f09f1c5267fe72",
+    "T-02": "17b1780067963f3ba9a1bd8d8fe89a3e06cb46c8c40ad3fa89009f14cba26cff",
+    "T-03": "3c49a0e65eef4dedb2de838a17580b645d3222af4d6a18f5861ea4a9fa8db4cd",
+    "T-04": "53e798bf9c73861dd58ab92642091a2c61942d8281cad91e78edd231d517b340",
+    "T-05": "abd3751791cc67498361b3a67373dc1c4e502f393da7cf45f21a2c3b02859783"
+  },
+  "github": {
+    "milestone": 147,
+    "parent": 2649,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 2650,
+      "T-02": 2651,
+      "T-03": 2652,
+      "T-04": 2653,
+      "T-05": 2654
+    },
+    "source_issues": [
+      2622
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

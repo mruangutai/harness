@@ -32,7 +32,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 
 **Committed**, except each feature's `notes/`, `runs/` and `observations/` and the project
 `.harness/notes/`, which are git-ignored local working files removed at distill or by abandon,
-reject or clean (DEC-260).
+reject or clean (DEC-262).
 
 ## Who writes what
 

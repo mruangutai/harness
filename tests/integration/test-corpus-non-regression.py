@@ -23,6 +23,7 @@ diff touching no other feature's directory, main-corpus byte equality — are NO
 recorded once in notes/non-regression-receipt.md (D-13: a pinned proof or a one-time one; there
 is no third form).
 """
+import copy
 import hashlib
 import json
 import os
@@ -33,17 +34,11 @@ import sys
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(HERE.parent))
-import f58_sparse_fixture as F  # noqa: E402
-import git_support as G  # noqa: E402
-import feature_corpus as fc  # noqa: E402
+from integration_support import BIN, ROOT
 
-OUTCOMES = ("converted", "skipped-dirty", "excluded")
+import f58_sparse_fixture as F
+import feature_corpus as fc
+import git_support as G
 
 # The planning-baseline checker (git archive 652e70d4 .claude/skills/harness/bin) run once against
 # a fresh f58_sparse_fixture clone, normalised by `finding_keys`. Recorded 2026-10-05.
@@ -77,10 +72,14 @@ def finding_keys(output):
     return keys
 
 
+def _worktree_state(checkout, *flags, bin_dir=BIN):
+    return subprocess.run([sys.executable, str(Path(bin_dir) / "worktree-state.py"), *flags,
+                           "--checkout", checkout], env=G.ENV, capture_output=True, text=True,
+                          check=False)
+
+
 def verify(checkout, bin_dir=BIN):
-    proc = subprocess.run([sys.executable, os.path.join(bin_dir, "worktree-state.py"), "--verify",
-                           "--json", "--checkout", checkout], env=G.ENV,
-                          capture_output=True, text=True)
+    proc = _worktree_state(checkout, "--verify", "--json", bin_dir=bin_dir)
     return proc.returncode, json.loads(proc.stdout)
 
 
@@ -90,9 +89,7 @@ ALL_FEATURES = ["harness/BUG-3-gamma", "harness/FEAT-1-alpha", "harness/FEAT-2-b
 
 class Retention(unittest.TestCase):
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
 
     def test_a_fresh_clone_keeps_the_full_corpus_and_verify_is_a_no_op(self):
         clone = self.fx.clone()
@@ -119,7 +116,7 @@ class AuditFindings(unittest.TestCase):
             clone = fx.clone()
             env = dict(G.ENV, HARNESS_PROJECT_DIR=clone)
             proc = subprocess.run([sys.executable, str(BIN / "check-state.py")], env=env,
-                                  cwd=clone, capture_output=True, text=True)
+                                  cwd=clone, capture_output=True, text=True, check=False)
         now = finding_keys(proc.stdout + proc.stderr)
         self.assertEqual(sorted(BASELINE_KEYS - now), [], proc.stdout + proc.stderr)
 
@@ -160,6 +157,7 @@ def _excluded_findings(where, entry):
 
 OUTCOME_CHECKS = {"converted": _converted_findings, "skipped-dirty": _dirty_findings,
                   "excluded": _excluded_findings}
+OUTCOMES = tuple(OUTCOME_CHECKS)
 
 
 def _entry_findings(entry):
@@ -201,9 +199,7 @@ def _digest(checkout):
 
 
 def _repair(checkout):
-    return subprocess.run([sys.executable, str(BIN / "worktree-state.py"), "--repair",
-                           "--checkout", checkout], env=G.ENV, capture_output=True,
-                          text=True).returncode
+    return _worktree_state(checkout, "--repair").returncode
 
 
 def build_manifest(fx):
@@ -285,7 +281,7 @@ class ManifestRules(unittest.TestCase):
                 (lambda d: d["checkouts"][0]["exits"].update(verify=7), "exits"),
                 (lambda d: d["checkouts"][0].update(outcome="done"), "outcome"),
                 (lambda d: d.update(review_sha="abc"), "40-hex")):
-            broken = json.loads(json.dumps(doc))
+            broken = copy.deepcopy(doc)
             mutate(broken)
             self.assertTrue(any(expect in f for f in manifest_findings(broken)), expect)
 
@@ -295,9 +291,7 @@ class ConversionManifest(unittest.TestCase):
     feature's notes, and never skipped."""
 
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
         self.doc = build_manifest(self.fx)
 
     def test_the_manifest_is_internally_consistent(self):
@@ -308,11 +302,11 @@ class ConversionManifest(unittest.TestCase):
         self.assertEqual(live_findings(self.doc), ([], []))
 
     def test_a_live_regression_is_caught_and_a_moved_checkout_is_not_a_pass(self):
-        wrong = json.loads(json.dumps(self.doc))
+        wrong = copy.deepcopy(self.doc)
         wrong["checkouts"][0]["active_feature"] = F.HARNESS_FEATURES[1]
         self.assertTrue(live_findings(wrong)[0])
 
-        moved = json.loads(json.dumps(self.doc))
+        moved = copy.deepcopy(self.doc)
         moved["checkouts"][0]["head"] = "0" * 40
         self.assertEqual(len(live_findings(moved)[1]), 1)
 

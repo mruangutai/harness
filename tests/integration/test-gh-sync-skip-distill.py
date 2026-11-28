@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""`gh-sync.py skip-distill` (FEAT-2641 D-11, DEC-260): a declined distill is recorded as one
+"""`gh-sync.py skip-distill` (FEAT-2641 D-11, DEC-262): a declined distill is recorded as one
 feature.json `distill: declined` judgement, committed alone in its own checkout, and only then
 are the feature's local working files cleaned through `feature-worktree.py clean --yes`.
 

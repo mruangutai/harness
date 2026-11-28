@@ -8,30 +8,23 @@ contract, driven as a real subprocess.
 
 Runnable directly with python3, no pytest.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import os
-import subprocess
-import sys
+from integration_support import BIN
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-SCRIPT = os.environ.get("PANEL_FINDINGS_BIN") or os.path.join(BIN_DIR, "panel_findings.py")
+import importlib.util  # noqa: E402
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
 
-RESULTS = []
+from check_support import Checks  # noqa: E402
 
+SCRIPT = os.environ.get("PANEL_FINDINGS_BIN") or str(BIN / "panel_findings.py")
 
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 def pf():
     """The module UNDER TEST, loaded from SCRIPT -- never a plain import."""
-    import importlib.util
     spec = importlib.util.spec_from_file_location("_pf_under_test", SCRIPT)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -46,9 +39,8 @@ def run_cli(reader, summary):
     )
 
 
-def case_id_shape():
+def case_id_shape(mod):
     """Case 1 -- the id is PF- plus 32 lowercase hex characters, total length 35."""
-    mod = pf()
     fid = mod.finding_id("scope", "some summary")
     check("case1: id starts with PF-", fid.startswith("PF-"), fid)
     check("case1: id total length is 35", len(fid) == 35, fid)
@@ -60,53 +52,39 @@ def case_id_shape():
     )
 
 
-def case_normalization_does_not_change_id():
+def case_normalization_does_not_change_id(mod):
     """Case 2 -- whitespace runs, letter case and surrounding padding do NOT change the id."""
-    mod = pf()
     a = mod.finding_id("scope", "T-04 traces REQ-99, which does not exist")
     b = mod.finding_id("scope", "  t-04   TRACES   req-99, which does not exist  ")
     check("case2: normalization-only difference gives the same id", a == b, f"{a} != {b}")
 
 
-def case_one_char_change_changes_id():
+def case_one_char_change_changes_id(mod):
     """Case 3 -- a one-character change to the summary DOES change the id."""
-    mod = pf()
     a = mod.finding_id("scope", "T-04 traces REQ-99, which does not exist")
     c = mod.finding_id("scope", "T-04 traces REQ-98, which does not exist")
     check("case3: one-character summary change gives a different id", a != c, f"{a} == {c}")
 
 
-def case_different_readers_different_ids():
+def case_different_readers_different_ids(mod):
     """Case 4 -- the same summary under two different readers gives two DIFFERENT ids."""
-    mod = pf()
     a = mod.finding_id("scope", "same summary text")
     b = mod.finding_id("goal", "same summary text")
     check("case4: different readers give different ids", a != b, f"{a} == {b}")
 
 
-def case_empty_reader_exits_2():
-    """Case 5a -- an empty reader exits 2, driven as a real subprocess."""
-    proc = run_cli("", "a real summary")
-    check(
-        "case5a: empty reader exits 2",
-        proc.returncode == 2,
-        f"returncode={proc.returncode} stderr={proc.stderr!r}",
-    )
+def case_cli_refusals_exit_2():
+    """Cases 5a/5b -- an empty reader, and a whitespace-only summary, each exit 2 via a real subprocess."""
+    for label, reader, summary in [
+        ("case5a: empty reader exits 2", "", "a real summary"),
+        ("case5b: whitespace-only summary exits 2", "scope", "   \t  "),
+    ]:
+        proc = run_cli(reader, summary)
+        check(label, proc.returncode == 2, f"returncode={proc.returncode} stderr={proc.stderr!r}")
 
 
-def case_whitespace_only_summary_exits_2():
-    """Case 5b -- a whitespace-only summary exits 2, driven as a real subprocess."""
-    proc = run_cli("scope", "   \t  ")
-    check(
-        "case5b: whitespace-only summary exits 2",
-        proc.returncode == 2,
-        f"returncode={proc.returncode} stderr={proc.stderr!r}",
-    )
-
-
-def case_unicode_round_trips():
+def case_unicode_round_trips(mod):
     """Case 6 -- a unicode summary round-trips without raising."""
-    mod = pf()
     try:
         fid = mod.finding_id("scope", "\u00fcnicode summary with \u2014 an em dash \u2603")
         ok = isinstance(fid, str) and len(fid) == 35
@@ -117,30 +95,37 @@ def case_unicode_round_trips():
     check("case6: unicode summary round-trips without raising", ok, detail)
 
 
+def case_exposure_shape(mod):
+    """Case 7 -- exposure is optional on a row, closed when present, and the practicality rule
+    caps a discounted row at med (FEAT-2622 D-02, D-05)."""
+    row = {"id": mod.finding_id("scope", "a stale cache entry"), "severity": "med",
+           "reader": "scope", "kind": "substance", "summary": "a stale cache entry",
+           "disposition": "open"}
+    plausible = {"trigger": "plausible", "vs_today": "regression", "control": "chance"}
+    discounted = {"trigger": "contrived", "vs_today": "no_worse", "control": "user"}
+    faults = mod.shape_faults(row)
+    check("case7a: a row without exposure stays legal", faults == [], faults)
+    faults = mod.shape_faults({**row, "exposure": plausible})
+    check("case7b: a row with a well-formed exposure is legal", faults == [], faults)
+    faults = mod.shape_faults({**row, "exposure": {"trigger": "rare"}})
+    check("case7c: a malformed exposure is a fault naming exposure",
+          any("exposure" in fault for fault in faults), faults)
+    faults = mod.shape_faults({**row, "severity": "high", "exposure": discounted})
+    check("case7d: a discounted row above med breaks the practicality rule",
+          any("practicality rule" in fault for fault in faults), faults)
+
+
 def main():
-    case_id_shape()
-    case_normalization_does_not_change_id()
-    case_one_char_change_changes_id()
-    case_different_readers_different_ids()
-    case_empty_reader_exits_2()
-    case_whitespace_only_summary_exits_2()
-    case_unicode_round_trips()
-
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-
-    ran = len(RESULTS)
-    passed = ran - fails
-    print(f"{passed}/{ran} checks passed")
-    summary = "FAIL test-panel-findings.py" if fails else "PASS test-panel-findings.py"
-    print(summary)
-    return fails
+    mod = pf()
+    case_id_shape(mod)
+    case_normalization_does_not_change_id(mod)
+    case_one_char_change_changes_id(mod)
+    case_different_readers_different_ids(mod)
+    case_cli_refusals_exit_2()
+    case_unicode_round_trips(mod)
+    case_exposure_shape(mod)
+    return C.report()
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())

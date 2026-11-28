@@ -1,30 +1,17 @@
 #!/usr/bin/env python3
 """Integration tests for run_pool.py."""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN
 
-import os
-import subprocess
-import sys
-import tempfile
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-POOL = os.path.join(HERE, "run_pool.py")
-FAILURES = []
+from check_support import Checks  # noqa: E402
 
-
-def check(name, ok, detail=""):
-    print(f"{'ok' if ok else 'FAIL'}    {name}")
-    if not ok:
-        FAILURES.append(name)
-        if detail:
-            print("      " + detail)
+POOL = str(BIN / "run_pool.py")
+C = Checks()
+check = C.check
 
 
 def run(paths, *options, env=None):
@@ -37,6 +24,14 @@ def script(root, name, body):
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(body)
     return path
+
+
+def marked(out, prefix):
+    return [line[len(prefix):] for line in out.splitlines() if line.startswith(prefix)]
+
+
+def mutation_run(root, paths, watched, name, body):
+    return run(paths + [script(root, name, body)], "--mutation-check", watched)
 
 
 def base_scripts(root):
@@ -59,10 +54,9 @@ def case_attribution(paths):
 def case_failure(root, paths):
     bad = script(root, "bad.py", "import sys; print('BADTOKEN'); sys.exit(3)\n")
     result = run(paths + [bad], "--workers", "4")
-    failures = [line for line in result.stdout.splitlines() if line.startswith("FAIL ")]
     all_passed = all(f"PASS t{i}.py" in result.stdout for i in range(3))
     check("one failure propagates after every file runs",
-          result.returncode == 1 and failures == ["FAIL bad.py"]
+          result.returncode == 1 and marked(result.stdout, "FAIL ") == ["bad.py"]
           and "BADTOKEN" in result.stdout and all_passed, result.stdout)
 
 
@@ -112,8 +106,8 @@ def case_completion_order(root, paths):
     slow = script(root, "slow.py", "import time; time.sleep(.4)\n")
     parallel = run([slow, *paths], "--workers", "4")
     serial = run([slow, *paths], "--workers", "1")
-    p_order = [line[5:] for line in parallel.stdout.splitlines() if line.startswith("PASS ")]
-    s_order = [line[5:] for line in serial.stdout.splitlines() if line.startswith("PASS ")]
+    p_order = marked(parallel.stdout, "PASS ")
+    s_order = marked(serial.stdout, "PASS ")
     check("completion order is not input order",
           p_order != s_order and set(p_order) == set(s_order), repr((p_order, s_order)))
 
@@ -128,39 +122,33 @@ def case_default_cap(paths):
 def watched_fixture(root):
     watched = os.path.join(root, "watched")
     os.mkdir(watched)
-    keep = os.path.join(watched, "keep.txt")
-    with open(keep, "w", encoding="utf-8") as handle:
-        handle.write("x")
-    return watched, keep
+    return watched, script(watched, "keep.txt", "x")
 
 
 def case_file_mutations(root, paths, watched, keep):
     clean = run(paths, "--mutation-check", watched)
-    edit = script(root, "edit.py", f"open({keep!r}, 'a').write('y')\n")
-    changed = run(paths + [edit], "--mutation-check", watched)
-    shell = script(root, "shell.py",
-                   f"import subprocess; subprocess.run(['sh','-c','echo y >> {keep}'])\n")
-    shelled = run(paths + [shell], "--mutation-check", watched)
+    changed = mutation_run(root, paths, watched, "edit.py", f"open({keep!r}, 'a').write('y')\n")
+    shelled = mutation_run(root, paths, watched, "shell.py",
+                           f"import subprocess; subprocess.run(['sh','-c','echo y >> {keep}'])\n")
     created_path = os.path.join(watched, ".mutant-x.sh")
-    create = script(root, "create.py", f"open({created_path!r}, 'w').write('z')\n")
-    created = run(paths + [create], "--mutation-check", watched)
+    created = mutation_run(root, paths, watched, "create.py",
+                           f"open({created_path!r}, 'w').write('z')\n")
     ok = (clean.returncode == 0 and "MUTATED " not in clean.stdout
           and changed.returncode == 1 and "MUTATED keep.txt" in changed.stdout
           and shelled.returncode == 1 and "MUTATED keep.txt" in shelled.stdout
           and created.returncode == 1 and "MUTATED .mutant-x.sh" in created.stdout)
-    check("mutation check covers clean, direct, subprocess, and creation", ok)
+    check("mutation check covers clean, direct, subprocess, and creation", ok,
+          clean.stdout + changed.stdout + shelled.stdout + created.stdout)
 
 
 def case_symlinks(root, paths, watched):
     dangling_path = os.path.join(watched, "dangling")
-    dangling_script = script(root, "dangling.py",
-                             f"import os; os.symlink('missing', {dangling_path!r})\n")
-    dangling = run(paths + [dangling_script], "--mutation-check", watched)
+    dangling = mutation_run(root, paths, watched, "dangling.py",
+                            f"import os; os.symlink('missing', {dangling_path!r})\n")
     directory_path = os.path.join(watched, "linked-dir")
-    directory_script = script(
-        root, "linked_dir.py",
+    directory = mutation_run(
+        root, paths, watched, "linked_dir.py",
         f"import os; os.symlink({root!r}, {directory_path!r}, target_is_directory=True)\n")
-    directory = run(paths + [directory_script], "--mutation-check", watched)
     ok = (dangling.returncode == 1 and "MUTATED dangling" in dangling.stdout
           and directory.returncode == 1 and "MUTATED linked-dir" in directory.stdout)
     check("mutation check catches dangling and directory symlinks", ok,
@@ -170,12 +158,11 @@ def case_symlinks(root, paths, watched):
 def case_cache_exclusion(root, paths, watched):
     cache = os.path.join(watched, "__pycache__")
     loose = os.path.join(watched, "loose.pyc")
-    cache_script = script(root, "cache.py",
-                          f"import os; os.makedirs({cache!r}); open(os.path.join({cache!r},'x.pyc'),'w').write('x')\n")
-    cache_result = run(paths + [cache_script], "--mutation-check", watched)
-    loose_script = script(root, "loose.py",
-                          f"open({loose!r}, 'w').write('x')\n")
-    loose_result = run(paths + [loose_script], "--mutation-check", watched)
+    cache_result = mutation_run(
+        root, paths, watched, "cache.py",
+        f"import os; os.makedirs({cache!r}); open(os.path.join({cache!r},'x.pyc'),'w').write('x')\n")
+    loose_result = mutation_run(root, paths, watched, "loose.py",
+                                f"open({loose!r}, 'w').write('x')\n")
     ok = (cache_result.returncode == 0 and "MUTATED " not in cache_result.stdout
           and loose_result.returncode == 1 and "MUTATED loose.pyc" in loose_result.stdout)
     check("only __pycache__ bytecode is excluded", ok,
@@ -205,8 +192,7 @@ def main():
         case_symlinks(root, paths, watched)
         case_cache_exclusion(root, paths, watched)
         case_invalid_watch(paths, root)
-    print(f"\n{len(FAILURES)} failed")
-    return 1 if FAILURES else 0
+    return C.report()
 
 
 if __name__ == "__main__":

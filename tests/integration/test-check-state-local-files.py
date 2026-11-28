@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-state.py grades a feature that carries no local working files (FEAT-2641, DEC-260).
+"""check-state.py grades a feature that carries no local working files (FEAT-2641, DEC-262).
 
 A CI checkout never holds a feature's notes/, runs/ or observations/: they are local working
 files. A feature at station review with a signed BRIEF, an approved plan and a feature.json

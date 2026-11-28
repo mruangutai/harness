@@ -55,7 +55,8 @@ def report(name, ok, detail=""):
 
 def finding(summary, reader=SCOPE_READER):
     return {"reader": reader, "kind": "substance", "scope": "none", "severity": "high",
-            "summary": summary, "why": "fixture"}
+            "summary": summary, "why": "fixture",
+            "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"}}
 
 
 def row(item, disposition="resolved", **override):
@@ -218,7 +219,8 @@ def write_fan_in(feature):
                     for step, persona in (("scope", SCOPE_READER),
                                           ("should-not-exist", "fable-advisor"),
                                           ("design", "harness-ui-reviewer"))],
-        "findings": [{key: item[key] for key in ("reader", "severity", "kind", "summary")}
+        "findings": [{key: item[key] for key in ("reader", "severity", "kind", "summary",
+                                                 "exposure")}
                      for item in WITNESS_FINDINGS]}}
     panel_md = feature / "runs" / RUN / "panel-c1.md"
     panel_md.write_text("# Plan panel fan-in, fixture\n\n```yaml\n"
