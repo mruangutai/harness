@@ -8912,3 +8912,27 @@ the operator) is unmeasured.
 **Record:** FEAT-2622-practicality-rule (#2622), plan decisions D-01 to D-06, signed by the
 operator on 2026-11-28. Executed main-session-direct (DEC-174). Amends DEC-206 and DEC-123. Refs:
 DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.
+
+## DEC-261 — Verification output is scratch; only its summary is committed
+
+**Chose:** raw verification output is scratch: runner logs, measurement stores, divergence
+ledgers, generated receipts, receipt scripts and captured stdout/stderr. It is written outside the
+repository and deleted once the check that reads it has run; it is never committed. A feature
+commits one short summary per check: what ran, at which commit, the verdict, the counts and any
+operator rulings. PR CI is the independent proof that tests pass at merge. `runs/` records and QA
+manifests stay as DEC-238, DEC-255 and DEC-257 set them.
+
+**Over:**
+- committing it at the pin: nothing reuses it after its one verification;
+- CI artifacts: still storage for data nobody reads;
+- pasting logs into review notes: a review states the result, not the output.
+
+**Because:** this output is read by one verification and never again. FEAT-2581's raw proof was
+2.8 MB of a 3.4 MB feature directory; FEAT-2488 committed five QA notes of about 1 MB each. The
+repository and the disk grew with data that has no reader.
+
+**Tradeoff accepted:** a later reader cannot re-derive a verdict, only read its summary and CI's
+run. An operator ruling on a divergence is recorded in the summary, not beside the bytes it ruled
+on. What has already been committed stays in history.
+
+**Record:** operator ruling, 2026-11-28. Refs: DEC-238, DEC-252, DEC-255, DEC-257.
