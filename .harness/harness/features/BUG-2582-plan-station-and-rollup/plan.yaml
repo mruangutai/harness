@@ -215,6 +215,7 @@ tasks:
 
       Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-01.
   - id: T-02
+    status: done
     title: Rank a plan-team reader FAIL as PASS when its exact findings are resolved on disk
     traces: [SC-05, SC-06, SC-07, SC-09, SC-11]
     change_type: bugfix
