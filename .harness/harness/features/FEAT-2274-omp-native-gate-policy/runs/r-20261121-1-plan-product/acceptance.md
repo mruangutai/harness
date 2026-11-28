@@ -1,5 +1,0 @@
-# Plan acceptance
-
-Return a signable, pending BRIEF and plan delivering the grilling Destination and Settled outcomes without expanding its exclusions. PM draft/apply must report successful plan-merge check, content anchors, topological tasks tracing every SC, and main-session-direct routing for every task. New unavailable contract must be a D-NN decision or explicitly assigned build decision, covering spawn failure as well as crash. Broad gates stay fail-open with passive notices on every occurrence; narrow gates match before fail-closed execution. Every changed decision must be accounted for. Readers judge the same draft; apply addresses every form/substance finding and task proportionality finding. Unopposed mission proportionality goes to orchestrator without recycle. Goalcheck runs once against the grilling, grades every perspective, and joins final reader roster. No signature is written here.
-
-Prototype decision: this is agent enforcement/configuration, not an end-user interaction or visual surface; no high-fidelity prototype is required. UI reader independently checks that classification; operator may override either way.

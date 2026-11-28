@@ -1,5 +1,0 @@
-# Observations — harness-orchestrator — FEAT-2542-dispatcher-placement
-
-- 2026-11-26: A characterization that enumerates a producer's outcomes by cause (ok/not-found/ambiguous/unreadable) misses malformed SUCCESS rows. Validate c0 found an ok claim with `feature: null` failing open through the same None the guard used as its outside-contract sentinel. When a contract keys on a producer's ok result, enumerate the ok row's field shapes too (null, empty, omitted, wrong type), and check what the producer normalizes: an omitted feature reads back as `legacy` and must pass.
-- 2026-11-26: Signed intent can prescribe text its own verify rejects; T-02 dictated a 32-word index ruling against a 30-word gate cap. The gate wins on substance, but the deviation is ledgered through `record-amendments` with a main-session-authored one-entry digest, never `amend` and never an edit. Check prescribed literals against the gates that consume them before signature.
-- 2026-11-26: A FAIL plan-product run blocks every later `run-start` until a `regate` judgement names it (`feature-record.py judgement --kind regate`). Record it right after signature, not at the first validate start.

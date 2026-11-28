@@ -1,7 +1,0 @@
-# Observations — harness-orchestrator — BUG-2399-run-records-staged-at-ship
-
-- 2026-11-23: Sent the validate dispatch with outputSchema/schemaMode despite the assignment forbidding both; the lead still returned and validate-digest accepted its digest.md. Strip them on every harness dispatch.
-- 2026-11-23: An all-main-session-direct plan makes check-state INV-17 report the feature exempt from handoff notes, yet writing handoff-build.md at the pin still made the next run-start owe a succession judgement; supplying --succession continue on the same run-start was accepted.
-- 2026-11-23: A grilling clause ("the manual force-add step in harness-ship.md is removed") became an SC clause with no target at base; the goal-check graded it partial and nobody below the operator can close it. Verify intake premises against the base file before they become SC text.
-- 2026-11-23: run-end --cycles-used 1 on an ESCALATE run whose digest says 0 is refused (digest-bound count); a main-session-direct rework round can only be recorded as a regate judgement via the judgement verb, since run-start --regate is refused when the prior run is not FAIL.
-- 2026-11-23: a re-verify after a main-session-direct fix was dispatched as HARNESS-MISSION validate under a -fix-validator run id: the fix team requires a hosted dev, and DEC-255 only trusts fix receipts under fix-c<N>-validator; the validate lineage rule accepted the qa receipt at the pin.

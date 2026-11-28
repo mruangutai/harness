@@ -1,5 +1,0 @@
-subject: clean detached checkout of fix d9026b747d20ad4cbbc8351fd6eace7d310141e9, unmodified
-command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases && python3 tests/unit/test-validate-digest-run-pool-lines.py
-group exit=0
-unit exit=0
-streams: green-c5.stdout/.stderr, green-c5-unit.stdout/.stderr

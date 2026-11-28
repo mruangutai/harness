@@ -1,9 +1,0 @@
-# T-02 RED: census vs the unchanged support writers at 560283d7; 2026-11-22T19:49:57Z
-$ python3 tests/integration/test-harness-config-fixtures.py tests/integration/check_state_support.py tests/integration/f58_sparse_fixture.py tests/integration/gh_sync_support.py
-FAIL  tests/integration/check_state_support.py::make_fixture::raw-write#1 (line 155): a harness.json producer that does not reach build_config/write_config
-FAIL  tests/integration/f58_sparse_fixture.py::_owner_files::mapping-entry#1 (line 75): a harness.json producer that does not reach build_config/write_config
-FAIL  tests/integration/gh_sync_support.py::stage::raw-write#1 (line 81): a harness.json producer that does not reach build_config/write_config
-FAIL  tests/integration/gh_sync_support.py::write_harness_json_board::raw-write#1 (line 626): a harness.json producer that does not reach build_config/write_config
-FAIL  tests/integration/gh_sync_support.py::stage_fleet::remote-payload#1 (line 753): a harness.json producer that does not reach build_config/write_config
-5 finding(s)
-exit=1

@@ -1,1 +1,0 @@
-PASS — Mode A is out of scope: `plan.yaml` T-01–T-04 cover an internal audit split, tests, and verification evidence; `BRIEF.md` SC-02 preserves the existing CLI contract apart from the expected Python-file count increase, so no UI design, accessibility, or theme contract applies.

@@ -1,4 +1,0 @@
-cmd: gh label create harness --repo mruangutai/harness (no --force; label exists)
-gh: /opt/homebrew/bin/gh gh version 2.103.3 (2026-10-26)
-label with name "harness" already exists; use `--force` to update its color and description
-exit=1

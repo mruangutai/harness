@@ -1,2 +1,0 @@
-$ grep -n "GH_SYNC_GH\|D-11" <T-03 files>
-grep exit=1 (1 = no owned occurrences)

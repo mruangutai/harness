@@ -1,6 +1,0 @@
-head: 9eb07b4f3cd235c234a10edddbfe5542c1e85fba + test-only fixture widening (production untouched)
-cmd: bun run typecheck
-$ tsc --noEmit -p tsconfig.json
-tests/unit/omp-hooks.test.ts(31,8): error TS2614: Module '"../../.omp/extensions/harness-hooks.ts"' has no exported member 'PolicyPayload'. Did you mean to use 'import PolicyPayload from "../../.omp/extensions/harness-hooks.ts"' instead?
-error: script "typecheck" exited with code 1
-exit: 1

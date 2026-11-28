@@ -1,3 +1,0 @@
-# T-03 literal verify (local structure); HEAD 87376e2333e16929d647aecb561bf3d6dadc957f + working-tree workflow/dependabot
-PASS local workflow structure and weekly root Bun updates; execution needs pinned remote evidence
-# rc=0

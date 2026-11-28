@@ -1,2 +1,0 @@
-PASS test-code-grade
-exit=0

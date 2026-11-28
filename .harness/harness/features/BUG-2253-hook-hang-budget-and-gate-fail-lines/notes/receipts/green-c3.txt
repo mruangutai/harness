@@ -1,5 +1,0 @@
-subject: clean detached checkout of fix b228c3a225fd2baaf5e2a12ec704a5b7f2aeb276, unmodified (0 changed paths)
-command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases
-exit: 0  duration: 10.89s  streams: green-c3.stdout, green-c3.stderr
-command: python3 tests/integration/test-validate-digest.py
-exit: 0  duration: 22.59s  streams: green-c3-full.stdout, green-c3-full.stderr

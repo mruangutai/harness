@@ -1,4 +1,0 @@
-# T-01 GREEN: the two non-config readers through load_json_mapping; 2026-11-22T19:45:24Z
-digest_schema.load_schema -> dict
-run_identity.read_marker -> dict
-run_identity.read_marker(missing) -> None

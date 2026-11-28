@@ -1,3 +1,0 @@
-# Answers — run 2026-11-27-04-plan-product — operator, 2026-11-27
-
-- Q-R4-1 (blocking): approve one final pm pass with NO re-read, then signature. T-01: a passing receipt requires every Run A/C invocation's matched flag to be true, with leak reporting first (PF-3e23). T-02: each batch target carries a distinct task literal, asserted literally in its per-target tool_input (PF-5002). In the same pass, mark PF-cbf8dece and PF-25a87adf superseded by PF-3e23, and PF-120f5374 superseded by PF-5002; mark PF-3e23 and PF-5002 resolved_by T-01 and T-02. The operator accepts these clauses unread at signature.

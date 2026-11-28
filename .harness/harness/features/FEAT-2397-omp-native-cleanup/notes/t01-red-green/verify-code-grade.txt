@@ -1,3 +1,0 @@
-FAIL test-validate-digest.py:run_t09 allowlisted grade is stale: expected 1, got 4
-1 failures
-exit=1

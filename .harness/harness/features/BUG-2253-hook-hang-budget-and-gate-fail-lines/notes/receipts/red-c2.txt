@@ -1,6 +1,0 @@
-subject: clean detached checkout of base 3dd8bb677bb2936361e3952030fc24f15bf9afc6 (merge-base with main); production files byte-identical to base
-test file: tests/integration/test-validate-digest.py from fix 6cbdc417da0084dce7904bd7fc9aeac5a7617fc4 with the six call sites reverted to timeout=3 and the HOOK_HANG_BUDGET_S definition removed (base predates the group, so the regressions must be carried in); subject sha256 0728f0339cf8f62d6392ff0105bdec0e2cf937aa0ad183b6ceedd06b11a5d22e
-base tree clean apart from that file:  M tests/integration/test-validate-digest.py 
-command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases
-exit: 1  duration: 18.25s
-streams: red-c2.stdout, red-c2.stderr

@@ -1,3 +1,0 @@
- M tests/unit/test-wayfind.py
-?? .harness/harness/features/FEAT-2452-gh-one-transport/notes/t04-red-green/
---- git diff --stat .claude/skills

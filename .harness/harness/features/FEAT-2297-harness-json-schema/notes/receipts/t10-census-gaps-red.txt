@@ -1,4 +1,0 @@
-FAIL  negative control not detected: helper that raw-writes an expression of its parameter
-FAIL  negative control not detected: helper that raw-writes its own literal to its path parameter
-2 finding(s)
-exit=1

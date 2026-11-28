@@ -1,1 +1,0 @@
-PASS (Mode B, out of scope): the `git diff --name-only $(git merge-base 5c600680e7f46af124fa3281392fa7b25623e982 main) 5c600680e7f46af124fa3281392fa7b25623e982` census found 24 changed paths, all guidance or feature records, with no rendered or interactive product surface; design fidelity, accessibility, and dark/light parity do not apply.

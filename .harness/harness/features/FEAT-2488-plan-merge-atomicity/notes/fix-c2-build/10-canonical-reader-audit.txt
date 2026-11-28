@@ -1,3 +1,0 @@
-# python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit, 2026-11-24T02:33:23Z
-0 unresolved reader site(s) across 101 Python file(s)
-exit=0
