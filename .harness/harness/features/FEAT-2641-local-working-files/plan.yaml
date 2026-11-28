@@ -3,9 +3,12 @@ feature: FEAT-2641-local-working-files
 approval:
   date: '2026-11-27'
   approved_by: operator
-  status: approved
+  status: pending
+  reset_at: '2026-11-28T13:24:59+00:00'
+  reset_reason: add-tasks T-11
+  resume_station: building
 drafted_at: '2026-11-28T02:57:10Z'
-status: building
+status: plan
 source_issues: [2641]
 
 panel:
@@ -228,7 +231,7 @@ decisions:
     because: Ship runs in the main checkout or a plain clone, where an untracked note never exists, so the old check would refuse every feature; the PASS run it stood for is already in the committed ledger. This departs from the grilling, which listed ship's handoff-validate refusal among the gates to delete; the operator kept the precondition, moved to feature.json, on 2026-11-27 (OQ-01).
     dec: DEC-260
   - id: D-08
-    choice: feature-worktree.py remove refuses, exit 4, while the feature directory holds any file under notes/, runs/ or observations/ that git does not track, naming each of those directories with its file count and the clean command; the post-merge sweep therefore keeps a shipped feature's worktree until distill or clean has run. Rejected - deleting working files with the tree, because the sweep removes the worktree when the station-done record lands, which would destroy the observation logs before distill reads them.
+    choice: feature-worktree.py remove refuses, exit 4, while the feature directory holds any file under notes/, runs/ or observations/ that git does not track, naming each of those directories with its file count and the clean command, and bash-write-guard.py refuses an unforced native git worktree remove on the same condition (T-11, operator ruling E4); the post-merge sweep therefore keeps a shipped feature's worktree until distill or clean has run. Rejected - deleting working files with the tree, because the sweep removes the worktree when the station-done record lands, which would destroy the observation logs before distill reads them.
     because: Ignored files are invisible to the existing dirty-tree gate and git worktree remove deletes them silently, so without this gate nothing protects them.
     dec: DEC-260
   - id: D-09
@@ -596,14 +599,16 @@ tasks:
     depends_on: []
     status: done
     files:
-      - .claude/skills/harness/bin/check-state.py
-      - .claude/skills/harness/bin/check_state/*.py
-      - tests/integration/test-check-state-*.py
-      - tests/integration/test-checker-structure-locks.py
-      - tests/integration/test-corpus-non-regression.py
-      - tests/unit/test-handoff-policy.py
-      - tests/unit/test-artifact-accessors.py
-      - {path: tests/unit/test-check-state-retired.py, create: true}
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check_state/*.py
+    - tests/integration/test-check-state-*.py
+    - tests/integration/test-checker-structure-locks.py
+    - tests/integration/test-corpus-non-regression.py
+    - tests/unit/test-handoff-policy.py
+    - tests/unit/test-artifact-accessors.py
+    - path: tests/unit/test-check-state-retired.py
+      create: true
+    - tests/integration/test-check-state.py
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
@@ -747,6 +752,7 @@ tasks:
     - tests/integration/test-post-merge-sweep.py
     - tests/integration/test-hooks-install.py
     - .omp/commands/harness-ship.md
+    - tests/integration/test-gh-sync-record.py
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
@@ -792,6 +798,7 @@ tasks:
       create: true
     - path: tests/unit/test-merge-distill-cleanup.py
       create: true
+    - .claude/skills/harness/bin/validate-digest.py
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
@@ -843,10 +850,11 @@ tasks:
     - .omp/agents/harness-visual-designer.md
     - .omp/commands/harness.md
     - .harness/README.md
+    - .omp/agents/harness-validator-lead.md
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
-      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md"
+      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md"
       if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts" $F; then exit 1; fi
       grep -q "feature-record.py project-note" .claude/skills/harness/SKILL.md
       grep -q "gh-sync.py skip-distill" .omp/commands/harness.md
@@ -944,14 +952,14 @@ tasks:
       cd "$(git rev-parse --show-toplevel)"
       env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
       for f in tests/integration/test-run-unit-tests-shards.py tests/integration/test-run-unit-tests-layout.py tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py tests/unit/test-working-files-untracked.py tests/integration/test-merge-gate.py tests/integration/test-feature-worktree.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
-      git diff --quiet e2bffca0 -- tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py
+      git diff --quiet origin/main...HEAD -- tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py
       if grep -rn --include=*.py --include=*.md --include=*.yml --include=*.yaml --include=*.ts "prune-run-evidence" .claude .omp .github tests; then exit 1; fi
     intent: |
       Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md (DEC-183, DEC-211, DEC-213). Rebase onto current main first if it has moved; both registries change on main independently (0b5aa6e4 touched the classification).
 
       1. tests/integration/canonical-reader-classification.json: run env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit; delete every row whose file or call site T-02 to T-06 removed (check_state/seams.py, check_state/run_state.py, the deleted check_state/feature_record.py and plan.py functions, prune-run-evidence.py, gh-sync.py's handoff check and _prune_abandoned_runs, expertise-merge.py's ls-tree exclusion, the deleted feature_record/evidence.py functions); add a row for every new reader site the audit reports (bin/working_files.py, gh-sync.py's ledger precondition, feature-worktree.py clean's station read, feature-record.py project-note, plan_merge/stations.py's rejected cleanup, gh-sync.py skip-distill's station and judgement reads) classified with the category and remedy canonical_reader_audit.py defines for that call. Re-run until it exits 0 with no unresolved site.
       2. tests/integration/integration-durations.json: delete the entries for tests/integration/test-check-state-handoff.py and test-check-state-inv51.py; add tests/integration/test-check-state-local-files.py with its duration measured by one run, in the existing field shape; keep every other entry.
-      3. Run the verify. SC-12 and SC-13 rest on the four named test files staying byte-identical to e2bffca0 and passing; if any of them changed, stop and report it, never edit it here. The verify re-runs test-merge-gate.py and test-feature-worktree.py because T-01's ignore rules changed their inputs before T-03 and T-06 replaced their witnesses; this is the terminal cumulative run.
+      3. Run the verify. SC-12 and SC-13 rest on the four named test files being unchanged by this branch (git diff --quiet origin/main...HEAD) and passing; if any of them changed, stop and report it, never edit it here. The verify re-runs test-merge-gate.py and test-feature-worktree.py because T-01's ignore rules changed their inputs before T-03 and T-06 replaced their witnesses; this is the terminal cumulative run.
 
       4. Landing (D-10). The audit in step 1 and the verify are pre-push diagnostics run by the main session, not live enforcement and not an approval. Only after the verify exits 0: push feat/FEAT-2641-local-working-files and open its one pull request. The live gates are CI on that head - the canonical-reader audit step in .github/workflows/tests.yml, the repository-state gate running check-state.py, and the integration shards - and the operator's ordinary hooked merge, which runs the owner checkout's merge-gate.py on its unchanged ordinary route. Never merge through merge-distill and never land any earlier commit separately.
 
@@ -991,3 +999,40 @@ tasks:
       4. Create tests/unit/test-set-feature-station-cleanup.py (plain script, ok/FAIL lines, exit 1 on FAIL): loads bin/plan_merge/stations.py with the bin directory on sys.path, writes a temp .harness/harness/features/FEAT-0-probe holding a plan.yaml and notes/x.md, patches the module's working_files.clean to emit "removed <a>" and then raise OSError, calls _clean_rejected on that plan, and asserts it returns 10 and stderr carries "station rejected was recorded", "removed before the failure: <a>", the feature-worktree.py clean command with --id FEAT-0-probe and "do not write the station again"; separately, patched to raise WorkingFilesError, it returns 10 with no removed line. No permission-based unremovable directory is used anywhere (it is inert for root).
 
       Expected red before the work: at e2bffca0 set-feature-station --station rejected leaves notes/ in place and _clean_rejected does not exist; keep that output for qa.
+  - id: T-11
+    title: Apply the working-file retention gate to native git worktree remove in bash-write-guard
+    traces: [SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - bash-write-guard.py is a PreToolUse hook that refuses Bash commands, and the retention routine it shares with feature-worktree.py remove is the gate this feature adds; operator ruling E4 at validate c0.
+    depends_on:
+    - T-03
+    status: ready
+    files:
+    - .claude/skills/harness/bin/bash-write-guard.py
+    - .claude/skills/harness/bin/working_files.py
+    - .claude/skills/harness/bin/feature-worktree.py
+    - tests/integration/test-bash-write-guard.py
+    - tests/unit/test-working-files.py
+    - tests/integration/canonical-reader-classification.json
+    - .harness/harness/docs/DECISIONS.md
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-working-files.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-bash-write-guard.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-feature-worktree.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+      grep -q "working_files.untracked_counts" .claude/skills/harness/bin/bash-write-guard.py
+      grep -q "working_files.untracked_counts" .claude/skills/harness/bin/feature-worktree.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-decision-anchors.py
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. The governing record is .harness/harness/docs/DECISIONS.md - read DEC-151, DEC-174, DEC-260 and this plan's D-05 and D-08. Run Python as env -u HARNESS_AGENT_TYPE python3. Operator ruling E4 (notes/answers-validate-c0.md, security S2 in runs/validate-validator/digest.md): bash-write-guard.py:849-866 hands an unforced native `git worktree remove` straight to git, and git deletes the ignored notes/, runs/ and observations/ silently, bypassing T-03's GATE 2b. This task closes that route with the same retention check; it changes nothing about add, move, prune or the force refusal. Test-first: write the step 4 cases, run them against the unchanged guard and keep the failing output in notes/red-T-11.txt before step 1; keep the passing run in notes/green-T-11.txt. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes on the final tree.
+
+      1. bin/working_files.py: add untracked_counts(checkout, feature_rel) returning a dict {working dir: count} built from untracked(checkout, feature_rel), counting the paths under f"{feature_rel}/{d}/" for each d in WORKING_DIRS and keeping only nonzero counts, in WORKING_DIRS order; it raises WorkingFilesError exactly when untracked does. bin/feature-worktree.py _gate_working_files replaces its inline counting loop with one call to untracked_counts and prints the same "WOULD DISCARD WORKING FILES <prefix> (<count> files)" lines, the same retry sentence and exit 4, byte for byte as today; one counting rule serves both gates.
+
+      2. bin/bash-write-guard.py, in the `_sub in ("remove", "prune")` branch, after the force refusal and only when _sub is "remove": resolve the worktree operand - the first non-flag operand after `remove`, walked with the _WT_FLAGS_WITH_VALUE coupling _worktree_destination already applies (extend _worktree_destination to answer "remove" rather than writing a second walker) - against the command's effective directory: git's own `-C <dir>` when the segment carries one, else the hook's cwd. No determinable operand refuses at exit 2 naming the command (the DEC-151 undecidable direction). A resolved path that is not an existing directory passes to git, which refuses it itself. Otherwise, for each directory <wt>/.harness/<segment>/features/<id> (direct children only, symlinks never followed) holding a notes, runs or observations entry (os.path.lexists), call working_files.untracked_counts(<wt>, <its path relative to wt>); a WorkingFilesError refuses at exit 2 naming the error, never passes. When any count is nonzero, print to stderr "bash-write-guard: BLOCKED - `git worktree remove <operand>` would delete untracked working files git cannot see (DEC-260 D-08).", then one line per feature directory and working dir "  <feature_rel>/<d>/ (<count> files)", then "  Use .claude/skills/harness/bin/feature-worktree.py remove, which keeps the worktree until distill (merge-gate.py merge-distill), gh-sync.py skip-distill or <working_files.retry_command(<feature dir>)> has removed them.", and exit 2. A worktree with no such directory, or whose counts are all zero, behaves exactly as today: git decides.
+
+      3. .harness/harness/docs/DECISIONS.md: in DEC-260's paragraph for D-08, add one sentence as current truth: bash-write-guard.py refuses an unforced native git worktree remove on the same condition, naming the same directories and counts and pointing to feature-worktree.py remove (ruling E4). Change no other sentence; the DECISIONS-INDEX ruling tail is unchanged. If check-plan-routes.py --canonical-reader-audit reports a new reader site in bash-write-guard.py or working_files.py, add exactly that row to tests/integration/canonical-reader-classification.json in the existing shape; otherwise leave the file untouched.
+
+      4. Tests. tests/unit/test-working-files.py: on a git-initialised temp repository whose feature directory holds two untracked files under notes/, one under runs/ and one tracked file under observations/, untracked_counts returns {"notes": 2, "runs": 1}; with no working dirs it returns {}; a failing git (a non-repository checkout) raises WorkingFilesError. tests/integration/test-bash-write-guard.py keeps every existing case unchanged, case 8 (an unforced remove of a worktree with no feature working files is allowed) included, and adds, on a real repository built by the test's own subprocess git (git init, one commit, git worktree add under <root>/.claude/worktrees/harness/FEAT-91 - the hook is not in that loop): (a) with <wt>/.harness/harness/features/FEAT-91-probe/notes/x.md and runs/r/digest.md written and untracked, firing `git worktree remove <wt>` exits 2, stderr names notes/ (1 files), runs/ (1 files) and feature-worktree.py, and the worktree and both files still exist; (b) the same refusal for `git -C <root> worktree remove .claude/worktrees/harness/FEAT-91`, the relative operand resolved against -C; (c) with only an untracked scratch.txt at the worktree root and no working files, the same command is not refused by this rule (exit 0); (d) `git worktree prune` unforced stays allowed; (e) `git worktree remove` with no operand is refused naming the command. Expected red before step 1 and 2: cases (a), (b) and (e) exit 0 and untracked_counts does not exist; keep that output for qa.

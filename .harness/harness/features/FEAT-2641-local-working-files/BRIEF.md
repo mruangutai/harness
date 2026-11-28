@@ -74,7 +74,7 @@ note the main checkout cannot see.
 - SC-12 (orchestrator): The runtime checks that read local disk while work happens are unchanged: `tests/integration/test-check-domain-post.py`, `tests/integration/test-check-domain-approval.py` and `tests/integration/test-validate-digest-shadows.py` are byte-identical to the base and pass at the pin (handoff shape at write, dev receipt and inspection citations at yield).
   verify: automated
   evidence: integration
-- SC-13 (orchestrator): `tests/unit/test-handoff-done-when.py` is byte-identical to the base and passes at the pin, and `test_run_start_after_a_handoff_owes_a_succession_and_refuses_without_one` and `test_run_start_with_succession_reason_lands_run_and_judgement_in_one_write` in `tests/unit/test-feature-record.py` are unchanged and pass (run-start's succession refusal reads the local handoff).
+- SC-13 (orchestrator): `tests/unit/test-handoff-done-when.py` is unchanged by this branch — `git diff --quiet origin/main...HEAD -- tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py` exits 0 (operator ruling E5, validate c0) — and passes at the pin, and `test_run_start_after_a_handoff_owes_a_succession_and_refuses_without_one` and `test_run_start_with_succession_reason_lands_run_and_judgement_in_one_write` in `tests/unit/test-feature-record.py` are unchanged and pass (run-start's succession refusal reads the local handoff).
   verify: automated
   evidence: unit
 - SC-14 (code maintainer): Read at the pin with `git show <review_sha>:<path>`, `prune-run-evidence.py`, `tests/unit/test-prune-run-evidence.py`, `check_state/seams.py`, `check_state/run_state.py`, `tests/integration/test-check-state-handoff.py` and `tests/integration/test-check-state-inv51.py` are absent, and `git grep <review_sha>` finds no live reference to `prune-run-evidence` or to an instruction that commits or force-adds a note, run record, receipt or observation log under `.claude/`, `.omp/`, `.github/` or `.harness/README.md`.
@@ -148,6 +148,4 @@ note the main checkout cannot see.
 
 ## Approval
 
-status: approved
-approved-by: operator
-date: 2026-11-27
+status: pending

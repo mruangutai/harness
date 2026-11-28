@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2641-local-working-files",
   "branch": "feat/FEAT-2641-local-working-files",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "1092b406b620c29ac4afcb94c07c977f527e6ea3",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -37,6 +37,21 @@
       "cycles_used": 0,
       "ended_at": "2026-11-28T03:53:15+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T05:38:56+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "67d90d9ec908a7e03d5cc52b33d561f78084148c04e4cf0bc17bc8616a1387f6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T05:55:08+00:00"
     }
   ],
   "judgements": [
@@ -67,6 +82,55 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "answers applied and the one authorized re-read ran; its 5 substance findings were applied and are unread (LEAD-02); no second re-read is authorized so the plan returns pending for signature"
+    },
+    {
+      "at": "2026-11-28T13:23:05.882457+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "operator ruling E3 at validate c0 (notes/answers-validate-c0.md; runs/validate-validator/digest.md): harness-validator-lead.md still says Main commits the receipts with the closed run record (DEC-257), leaving SC-14 unmet"
+    },
+    {
+      "at": "2026-11-28T13:23:24.679893+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "operator ruling E1 (notes/answers-validate-c0.md): it still asserts retired INV-16 and the test-check-state-*.py glob misses it; delete or trim that case with the invariant"
+    },
+    {
+      "at": "2026-11-28T13:23:27.253845+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-05.files",
+      "reason": "operator ruling E2 (notes/answers-validate-c0.md): its ship fixtures lack the validator PASS D-07 requires; fix in gh_sync_support.py, this file only if needed"
+    },
+    {
+      "at": "2026-11-28T13:23:29.605537+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.files",
+      "reason": "operator ruling OQ-SCOPE5 (notes/answers-validate-c0.md): records simplify 8655e96e's load_active caller migration, forced by T-06's receipt_paths change"
+    },
+    {
+      "at": "2026-11-28T13:23:38.518017+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "operator ruling E3 (notes/answers-validate-c0.md): the retired-instruction grep now covers .omp/agents/harness-validator-lead.md, the file E3 adds"
+    },
+    {
+      "at": "2026-11-28T13:23:40.757996+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.verify",
+      "reason": "operator ruling E5 (notes/answers-validate-c0.md): SC-13 reads unchanged by this branch: the four protected files are diffed against origin/main...HEAD, not e2bffca0, which main's #2648 moved"
+    },
+    {
+      "at": "2026-11-28T13:23:49.388609+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.intent",
+      "reason": "operator ruling E5 (notes/answers-validate-c0.md): step 3 now matches the amended verify: the four protected files are unchanged by this branch, not byte-identical to e2bffca0"
     }
   ],
   "mission": "plan",
