@@ -5,7 +5,8 @@
 - feature: BUG-2180-inv26-fleet-routing
 - run: none
 - squad: none
-- status: in-flight
+- status: idle
+- station: done (shipped in PR #2184)
 
 ## Open Questions
 
