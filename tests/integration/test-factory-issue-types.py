@@ -164,7 +164,7 @@ def install_gh(tmp):
 
 def make_root(base):
     """A temp root carrying harness_boundary's own MARKER (.harness/team-config.yaml), so
-    HARNESS_PROJECT_DIR points every root-resolving module (gh_cost_log included) at a
+    HARNESS_PROJECT_DIR points every root-resolving module at a
     throwaway directory rather than falling through to the real checkout."""
     root = os.path.join(base, "root")
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)

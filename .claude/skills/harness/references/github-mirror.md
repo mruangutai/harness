@@ -60,7 +60,7 @@ mergeable and its worktree is retained.
 
 ## Caller-to-failure-policy
 
-Every caller reaches `gh` through `factory_gh`, the one shared transport. `FACTORY_GH`, read at
+Every caller reaches `gh` through `github.transport`, the one shared transport. `FACTORY_GH`, read at
 call time, is the only binary override; there is no second one. The transport only *represents* a
 failure (a `GhResult`, or a raised `GhError`, with `status` None for a launch failure). It never
 decides what the failure means. The policy stays at each caller because the callers disagree on
@@ -84,10 +84,9 @@ success on state they could not read.
 | `board_lifecycle.py` provision fails after creating or linking a project | Exit 4, not 2, since something was created | stderr names what exists. |
 | `board_lifecycle.py` reconcile `--apply` per-card write fails | One line; later cards are attempted; exit 1 with the residual failed findings listed. Exit 4 if detection itself cannot complete. | Successful fixes drop out of the residual. Re-running is idempotent. |
 | `wayfind.py` any read or write fails, a read is not strict JSON, or a successful read lacks a field a decision rests on | `wayfind:` diagnostic, exit 1, no traceback | Blocker and parent reads fail closed: only a completed nonzero call that carries gh's `(HTTP 404)` marker reads as absence. Every field `frontier` and `resolve` decide on is checked first: each sub-issue and blocker needs a string state that is `open` or `closed` in any case and each sub-issue a positive integer number; the ticket view needs its own number, a string title, an `assignees` list and a list of named labels; the parent needs a positive integer number, and resolve's ticket title and map body must be strings. Anything else is an unusable payload, never "closed", "unclaimed" or "no section". `resolve --apply` comments on and closes the ticket **before** the mandatory map gist, so a failing gist (map read, unusable map body, missing `## Decisions so far`, map edit) exits 1 after both have landed: exit 1 is not "no mutation". Fix the map and add the gist line by hand; re-running `resolve` would post the comment again. |
-| `gh_cost_log` counter read fails | The counter reads `None`; the measured gh call is unaffected | That call's cost is unmeasured. |
 
 **Notes.**
-- **Deadlines are a conscious non-goal:** `factory_gh` sets no subprocess deadlines, so a hung
+- **Deadlines are a conscious non-goal:** `github.transport` sets no subprocess deadlines, so a hung
   `gh` can hang every consolidated operator path above.
 - The enforcement executors (`branch-create-gate.py`, `merge-gate.py`, and the check-state auth
   read) do not use this transport. They keep their private `GH_BIN` and deadline semantics, and

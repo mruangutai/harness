@@ -10,7 +10,7 @@ never derived from the current directory.
 A fleet member's own configuration — its board included — no longer lives in fleet.yaml at all.
 It lives in THAT repository's own .harness/harness.json, under the github.board key, and this
 module is the only reader of it too: product_config() reads it, always REMOTELY at the member's
-default_branch, via factory_gh.file_at_ref, never from a checkout on disk.
+default_branch, via github.refs.file_at_ref, never from a checkout on disk.
 
 ROOT RESOLUTION is delegated whole to `harness_boundary.resolve_root(_BIN_DIR)` — the one
 resolver every caller in this tree now shares (FEAT-42), never a second copy standardised on
@@ -32,7 +32,8 @@ import sys
 
 import artifact_accessors
 import factory_cli
-import factory_gh
+import github.refs
+import github.transport
 import harness_boundary
 import harness_yaml
 
@@ -156,9 +157,9 @@ def product_config(fleet, repo_name):
     """Return repo_name's own .harness/harness.json, parsed to a dict, read from the REMOTE at
     its default_branch — never from a checkout on disk, even when one exists at workspace_path.
     Resolves the entry through repo_entry, takes default_branch from it, and calls
-    factory_gh.file_at_ref(repo_name, ".harness/harness.json", default_branch).
+    github.refs.file_at_ref(repo_name, ".harness/harness.json", default_branch).
 
-    Any failure — a GhError from factory_gh.file_at_ref, or text the validated harness.json
+    Any failure — a GhError from github.refs.file_at_ref, or text the validated harness.json
     loader refuses — raises FleetError naming the repository, the path and the ref via the
     human-readable form "<repo_name>@<default_branch>:.harness/harness.json", and carrying the
     loader's diagnosis. There is no fallback to workspace_path and no default.
@@ -177,8 +178,8 @@ def product_config(fleet, repo_name):
 
     human_path = f"{repo_name}@{ref}:{_PRODUCT_CONFIG_PATH}"
     try:
-        raw = factory_gh.file_at_ref(repo_name, _PRODUCT_CONFIG_PATH, ref)
-    except factory_gh.GhError as e:
+        raw = github.refs.file_at_ref(repo_name, _PRODUCT_CONFIG_PATH, ref)
+    except github.transport.GhError as e:
         raise artifact_accessors.FleetError(
             "product config unreadable", human_path,
             f"could not read {repo_name}'s {_PRODUCT_CONFIG_PATH} at {ref}: {e}",

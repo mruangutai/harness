@@ -568,8 +568,9 @@ distillation dispatch, **read by path, not preloaded** (DEC-158 move 2, like
 ### 4.0 Supported frontmatter
 
 OMP parses a fixed set of frontmatter fields in an agent `.md` file under `.omp/agents/`. Only
-`name` and `description` are required; everything else is optional. The harness uses these, and
-`check-omp-port.py` grades every agent file against them:
+`name` and `description` are required; everything else is optional. The harness uses these.
+`check-omp-port.py` grades every agent file's `tools`, `spawns`, `model`, `thinking-level` and
+`blocking`; INV-42 in `check-state.py` checks that each `autoloadSkills` entry exists:
 
 ```yaml
 ---

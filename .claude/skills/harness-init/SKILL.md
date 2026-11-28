@@ -117,7 +117,7 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 
 ```bash
 python3 .agents/skills/harness/bin/check-state.py                 # this harness checkout
-python3 .agents/skills/harness/bin/check-omp-port.py              # OMP hook wiring and roster
+python3 .agents/skills/harness/bin/check-omp-port.py              # OMP config, agent policy and doors
 python3 .agents/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
@@ -146,7 +146,7 @@ Before `--upgrade`, MUST read and follow
 
 | Thought | Reality |
 |---|---|
-| "I'll wire a hook into a settings file myself" | Enforcement is `harness-hooks.ts`, loaded with the OMP session and graded by `check-omp-port.py`; there is no settings file to edit |
+| "I'll wire a hook into a settings file myself" | Enforcement is `harness-hooks.ts`, loaded with the OMP session and tested by `test-omp-hooks.py`; there is no settings file to edit |
 | "The package install was denied, I'll work around it" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |
 | "The project has no `evals/`, I'll point ai-dev at `src/**`" | Now two devs share a writable path. Drop the glob instead |

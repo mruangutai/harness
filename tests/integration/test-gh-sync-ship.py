@@ -251,7 +251,7 @@ def main():
 
     # --- FEAT-64 (SC-03): an unrelated defect in the audit ESCAPES; a GhError still holds -----------
     # The `SHIP_CLOSED_JSON="not json at all"` case above is the documented class: the audit's
-    # gh read decodes to nothing and factory_gh.GhError is what board_lifecycle raises for it.
+    # gh read decodes to nothing and github.transport.GhError is what board_lifecycle raises for it.
     # A RuntimeError from inside the audit is not that class and must surface as itself.
     with tempfile.TemporaryDirectory() as tmpSC:
         install_gh(tmpSC, FAKE_GH_SHIP)

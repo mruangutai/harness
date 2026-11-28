@@ -287,11 +287,32 @@ class RunStartEndTest(FeatureRecordCase):
         self.assertIn("r9", result.stderr)
         self.assertEqual(before, self.path.read_bytes())
 
+    def assert_missing_refused(self, result):
+        """#2687: a clean refusal naming the seed template — no traceback, nothing created,
+        not even the sibling lock file."""
+        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertIn(f"REFUSED: {self.path} does not exist.", result.stderr)
+        self.assertIn("templates/feature.json", result.stderr)
+        self.assertFalse(self.path.exists())
+        self.assertFalse(self.path.with_name("feature.json.lock").exists())
+
     def test_missing_file_is_refused_not_created(self):
         result = self.run_cli("run-start", "--file", str(self.path), "--id", "r1",
                               "--squad", "engineering", "--agent", "harness-eng-lead")
-        self.assertEqual(record_read.SCHEMA_REFUSAL_CODE, result.returncode, result.stderr)
-        self.assertFalse(self.path.exists())
+        self.assert_missing_refused(result)
+
+    def test_missing_feature_directory_is_refused_not_a_traceback(self):
+        shutil.rmtree(self.path.parent)
+        for args in (["run-start", "--id", "r1", "--squad", "engineering",
+                      "--agent", "harness-eng-lead"],
+                     ["set-mission", "--mission", "patch", "--by", "harness-orchestrator",
+                      "--reason", "x"]):
+            with self.subTest(verb=args[0]):
+                self.assert_missing_refused(self.run_cli(args[0], "--file", str(self.path),
+                                                         *args[1:]))
+                self.assertFalse(self.path.parent.exists())
+
 
 class StampTokensTest(FeatureRecordCase):
     """`stamp-tokens` (BUG-1724): the HOST writes the measured figure onto the one open run,

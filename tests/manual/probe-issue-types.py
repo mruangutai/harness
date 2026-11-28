@@ -38,7 +38,7 @@ _ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
 _BIN = os.path.join(_ROOT, ".claude", "skills", "harness", "bin")
 sys.path.insert(0, _BIN)
 import artifact_accessors  # noqa: E402
-import gh_issue_types  # noqa: E402
+import github.issue_types  # noqa: E402
 
 # Deliberately hardcoded, never an override: this script must never see a fixture gh.
 GH = "gh"
@@ -66,9 +66,9 @@ def _classify(repo):
     # Never append --repo: gh api graphql has no such flag; owner/name travel as
     # GraphQL variables inside capability_query_args(repo).
     r = subprocess.run(
-        [GH] + gh_issue_types.capability_query_args(repo),
+        [GH] + github.issue_types.capability_query_args(repo),
         capture_output=True, text=True)
-    return gh_issue_types.classify_capability(r.returncode, r.stdout)
+    return github.issue_types.classify_capability(r.returncode, r.stdout)
 
 
 def _declared_or_exit(repo):
@@ -111,17 +111,17 @@ def _create_and_apply(target, type_id):
         _skip(f"capability query failed on {target} ({(r.stderr or r.stdout).strip()[:200]})")
     number = r.stdout.strip().rsplit("/", 1)[-1]
     node_id = subprocess.run(
-        [GH] + gh_issue_types.node_id_args(target, number),
+        [GH] + github.issue_types.node_id_args(target, number),
         capture_output=True, text=True).stdout.strip()
-    subprocess.run([GH] + gh_issue_types.apply_type_args(node_id, type_id), capture_output=True)
+    subprocess.run([GH] + github.issue_types.apply_type_args(node_id, type_id), capture_output=True)
     return number
 
 
 def _live_pass(target, cfg, declared):
-    overrides = gh_issue_types.overrides_from_config(cfg)
-    type_name = gh_issue_types.type_for_parent(overrides)
-    if gh_issue_types.missing_types({type_name}, declared):
-        _skip(gh_issue_types.refusal_text(target, type_name, gh_issue_types.PARENT_KEY))
+    overrides = github.issue_types.overrides_from_config(cfg)
+    type_name = github.issue_types.type_for_parent(overrides)
+    if github.issue_types.missing_types({type_name}, declared):
+        _skip(github.issue_types.refusal_text(target, type_name, github.issue_types.PARENT_KEY))
     type_id = declared[type_name]
     number = _create_and_apply(target, type_id)
     try:

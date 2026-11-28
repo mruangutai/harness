@@ -6030,6 +6030,61 @@ def case_2420_drafted_task_takes_its_first_station():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _complete_proposal():
+    """A new plan's proposal whose one task carries every required field: it loads once seeded."""
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\n"
+            "tasks:\n  - id: T-01\n    title: a real task\n    change_type: logic\n"
+            "    execution_mode: main-session-direct\n    files: [a.py]\n"
+            "    verify: python3 tests/unit/test-a.py\n    intent: do it\n")
+
+
+def case_2702_an_empty_proposal_is_refused():
+    """#2702: a proposal with no keys merges nothing, so it is refused (exit 2) instead of
+    printing APPLIED at exit 0, and the plan is untouched."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        before = read(plan)
+        proposal = os.path.join(root, "proposal.yaml")
+        for label, text in (("empty", ""), ("comment-only", "# nothing here\n"),
+                            ("empty-mapping", "{}\n")):
+            write(proposal, text)
+            r = run_apply(plan, proposal)
+            check(f"2702: the {label} proposal is refused with exit 2", r.returncode == 2,
+                  f"rc={r.returncode} {r.stdout}{r.stderr}")
+            check(f"2702: the {label} proposal prints no APPLIED", "APPLIED" not in r.stdout,
+                  r.stdout)
+            check(f"2702: and the plan is unchanged ({label})", read(plan) == before, read(plan))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_2692_an_unloadable_result_is_written_and_reported():
+    """#2692: a draft may be incomplete, so apply still writes it (exit 0), but a result the plan
+    loader refuses is reported on stderr as NOT LOADABLE with the loader's reason. A result that
+    loads reports nothing."""
+    root, plan = fixture_root()
+    try:
+        proposal = os.path.join(root, "proposal.yaml")
+        write(proposal, render_plan(ids(1, 1), approval=None))
+        r = run_apply(plan, proposal)
+        check("2692: an incomplete draft is still written (exit 0, APPLIED)",
+              r.returncode == 0 and "APPLIED" in r.stdout and os.path.exists(plan),
+              f"rc={r.returncode} {r.stdout}{r.stderr}")
+        check("2692: and is reported NOT LOADABLE with the loader's reason",
+              "NOT LOADABLE" in r.stderr and "T-01" in r.stderr, r.stderr)
+        check("2692: the report never reaches stdout", "NOT LOADABLE" not in r.stdout, r.stdout)
+
+        os.remove(plan)
+        write(proposal, _complete_proposal())
+        r = run_apply(plan, proposal)
+        check("2692: a complete plan is written (exit 0)", r.returncode == 0,
+              f"rc={r.returncode} {r.stdout}{r.stderr}")
+        check("2692: and reports nothing about loading", "NOT LOADABLE" not in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -6185,6 +6240,8 @@ CASES = (
     case_2488_a_ledger_failure_after_publish_is_journaled,
     case_2488_a_failed_replay_stays_pending,
     case_2488_amend_show_leaves_a_pending_journal_alone,
+    case_2702_an_empty_proposal_is_refused,
+    case_2692_an_unloadable_result_is_written_and_reported,
 )
 
 

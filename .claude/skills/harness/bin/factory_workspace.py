@@ -63,7 +63,7 @@ def run_git(args, cwd):
 
     Never forwards git's stdout/stderr to this process's stdout. stdin is closed (DEVNULL) so a
     real git can never block on an interactive credential prompt against a private or
-    auth-required repository — the same reason factory_gh.run_gh closes it. Raises
+    auth-required repository — the same reason github.transport.run_gh closes it. Raises
     RuntimeError, with the failing command and a one-line detail already re-emitted on stderr,
     on a non-zero exit — that RuntimeError is not in factory_cli.run's `expected` tuple, so it
     surfaces as exit 2, not 1: a failed git command is not "nothing to do."

@@ -16,7 +16,6 @@ import tempfile
 import contextlib
 import io
 from unittest.mock import patch
-import gh_cost_log
 import harness_boundary
 from harness_config_support import build_config, write_config
 
@@ -349,55 +348,28 @@ def label_exists_case():
           harness_colour and not forced, str(log))
 
 
-def _bracketed_operations(log):
-    """The mirror operations of a call transcript in which every measured operation is
-    bracketed by the cost counter (counter, operation, counter), or None when any is not."""
-    counter = " ".join(gh_cost_log._COUNTER_ARGV)
-    log = [line.rstrip("\x01") for line in log]
-    if not log or len(log) % 3:
-        return None
-    triples = [log[i:i + 3] for i in range(0, len(log), 3)]
-    if any(before != counter or after != counter or op == counter for before, op, after in triples):
-        return None
-    return [op for _before, op, _after in triples]
-
-
-def _measured_cost_lines(tmp):
-    """Every non-coverage line the tmp root's gh-cost logs hold."""
-    logs = os.path.join(tmp, ".harness", "logs")
-    lines = []
-    for name in sorted(os.listdir(logs)) if os.path.isdir(logs) else []:
-        with open(os.path.join(logs, name), encoding="utf-8") as handle:
-            lines += [json.loads(l) for l in handle if l.strip()]
-    return [l for l in lines if "coverage" not in l]
-
-
-def _measured_open(tmp, feat):
-    """Run `open` with cost logging into TMP; return (result, sentinel failure text)."""
+def _open_in(tmp, feat):
+    """Run `open` against TMP; return (result, sentinel failure text)."""
     marker = os.path.join(tmp, harness_boundary.MARKER)
     if not os.path.isfile(marker):
         open(marker, "w").write("teams: []\n")
     try:
-        return run(["open", feat], tmp, {"HARNESS_GH_COST_LOG": "1", "HARNESS_PROJECT_DIR": tmp}), ""
+        return run(["open", feat], tmp, {"HARNESS_PROJECT_DIR": tmp}), ""
     except AssertionError as error:
         return None, str(error)
 
 
 def single_override_case():
-    """FEAT-2452 SC-02: FACTORY_GH alone reaches every mirror call, and each is measured once."""
+    """FEAT-2452 SC-02: FACTORY_GH alone reaches every mirror call."""
     with tempfile.TemporaryDirectory() as tmp:
         install_gh(tmp, FAKE_GH)
-        result, escaped = _measured_open(tmp, stage(tmp))
-        operations = _bracketed_operations(calls(tmp)) or []
-        measured = _measured_cost_lines(tmp)
+        result, escaped = _open_in(tmp, stage(tmp))
+        operations = [line.rstrip("\x01") for line in calls(tmp)]
         check("single override: open dispatches no default gh binary",
               not escaped and result.returncode == 0, escaped or result.stdout)
-        check("single override: every mirror operation is bracketed by the cost counter",
+        check("single override: every mirror operation reaches the FACTORY_GH fake",
               any("issue create" in op for op in operations)
               and any("milestones" in op for op in operations), str(calls(tmp)))
-        check("single override: one gh-cost line per measured operation",
-              operations and len(measured) == len(operations),
-              f"operations={operations} lines={measured}")
 
 
 def main():

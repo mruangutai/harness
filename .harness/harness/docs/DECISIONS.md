@@ -720,7 +720,7 @@ what genuinely binds it. Each rule also needs a directory with a `SKILL.md` rath
 `.md` file.
 **Evidence:** originally verified in the Claude Code subagent documentation, whose `skills:` field
 injected full skill content rather than descriptions; that host is removed (DEC-233). The live
-mechanism is OMP's `autoloadSkills`, checked by `check-omp-port.py` against every `.omp/agents/` file.
+mechanism is OMP's `autoloadSkills`, checked by INV-42 in `check-state.py` against every `.omp/agents/` file.
 
 ## DEC-64 — Expertise is delivered by the OMP extension's agent-start hook, not read by the agent
 
@@ -3176,7 +3176,8 @@ capability-and-declared-names query, and the node-id lookup `gh_issue_types.node
 immediately before a type-apply, against a number the local receipt already holds. Not new, and
 never enumerated: `gh_issues.internal_id_args` has read an already-recorded issue's identifier for
 sub-issue attach and detach since sub-issue mirroring shipped (`gh-sync.py:974` and `:1215`,
-`factory_gh.py:981`, all verified at `eb9d044e`), the enumeration never listed it, and nothing in
+verified at `eb9d044e`; the third call site, then `factory_gh.py`, is `github/issues.py:100`
+since #2699), the enumeration never listed it, and nothing in
 this feature removes those call sites.
 
 **Issue type.** Where the target repository declares native GitHub Issue Types, every issue Harness
@@ -6357,10 +6358,12 @@ and `yield` validates the returned object directly. The TypeScript layer owns no
 repository's same-named directories. `.claude/worktrees/` remains the sanctioned development
 location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
 
-**`check-omp-port.py` is the port gate.** It rejects a reversed or broken `.agents/skills` link,
-concrete provider IDs in canonical agents, a role whose `thinking-level` disagrees with its `model`
-alias, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery. Since BUG-2565
-it also fails when an agent's frontmatter `output:` drifts from its persona schema.
+**`check-omp-port.py` is the port gate.** It rejects concrete provider IDs in canonical agents, a
+role whose `thinking-level` disagrees with its `model` alias, missing provider overlays, or
+re-enabled Claude discovery. Since BUG-2565 it also fails when an agent's frontmatter `output:`
+drifts from its persona schema. Since #2696 it no longer repeats checks another gate owns: the
+`.agents/skills` link is graded by `test-check-skill-refs.py`, the OMP hooks file by INV-48 and
+`test-omp-hooks.py`, and the roster by the suites that load every agent.
 
 **Cost accepted:** OMP runs require an explicit provider overlay and the OMP extension is a maintained
 host adapter. The alternative is cheaper only by keeping provider coupling and silently losing
@@ -8824,6 +8827,20 @@ The rule has three homes:
 **Record:** FEAT-2557 (#2557), plan decision D-01, signed by Mike Ruangutai on 2026-11-27.
 Executed main-session-direct under the operator's INV-32 ruling. Refs: DEC-149, DEC-158, DEC-202,
 DEC-205, DEC-235.
+
+**Amended by #2699 (2026-11-28) — a shared domain gets one package with no entry.** The "Chose"
+paragraph above names only one package shape: the twin of an entry. Code that one domain needs and
+many entries use had no home under it, so five flat modules (`factory_gh.py`, `gh_cost_log.py`,
+`gh_issues.py`, `gh_issue_types.py` and `gh_board.py`) stayed flat with a shared prefix, the
+shape this entry rejects. When several modules serve one domain that many entries use, they now live
+in one package named for the domain, with an empty `__init__.py` and no entry; `github/` is the
+first. A cross-cutting module that stands alone, such as `harness_boundary.py`, still stays flat.
+`LAYOUT.md` carries the mechanics. `gh_cost_log.py` did not move: its recorder had been off since
+#676 (2026-11-22), so #2699 deleted it and its test instead. That deletion is the one behaviour
+change in #2699: `try_gh` no longer wraps each call in a cost measurement, and
+`HARNESS_GH_COST_LOG` no longer does anything. The other rules of this entry are unchanged: modules are named
+for what they read, each domain has one home, code moves without changes, and every caller moves in
+the same change with no re-export shim.
 
 ## DEC-260 — The practicality rule: every reader finding states its exposure, and a contrived finding no worse than today never gates
 

@@ -104,7 +104,7 @@ INVARIANTS = (
     )),
     Group("omp-port", (
         Inv("INV-45", inv_45, "repo", ("path:.omp/config.yml", "path:.agents/skills/harness/bin/check-omp-port.py"),
-            "an OMP-configured tree grades its roster, hook wiring and overlays through check-omp-port.py", "DEC-233"),
+            "an OMP-configured tree grades its config, agent frontmatter, overlays and doors through check-omp-port.py", "DEC-233"),
     )),
     Group("station-record", (
         Inv("INV-34", inv_34, "feature", (_FEATURE_JSON, _PLAN_YAML),

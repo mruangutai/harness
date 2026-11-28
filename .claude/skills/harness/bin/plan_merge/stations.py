@@ -77,7 +77,7 @@ def _reset_approval_lines(lines, reason, resume_station):
 
 
 def _task_statuses(resulting_doc):
-    """Every task's status, an absent one read as ready — the not-started station gh_board
+    """Every task's status, an absent one read as ready — the not-started station github.board
     reads for the same absence.
 
     STRICT AT THE BOUNDARY (FEAT-61 T-02, D-03): each explicit status crosses factory_config's

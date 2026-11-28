@@ -1,6 +1,6 @@
 """Shared GitHub Issue Type primitives — mapping, response parsing, argv builders only
 (FEAT-55, REQ-02/REQ-03/REQ-04). It EXECUTES NOTHING: no subprocess, no network. `gh-sync.py`
-skips and exits 0 on an environmental failure, `factory_gh.py` raises `GhError` — two different
+skips and exits 0 on an environmental failure, `github/transport.py` raises `GhError` — two different
 failure semantics a shared runner here would have to pick one of, so each caller keeps its own.
 
 The mapping resolves an issue's TYPE from its ROLE (D-18), and there are three resolvers, each

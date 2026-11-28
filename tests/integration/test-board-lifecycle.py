@@ -6,7 +6,7 @@ resolves its root via `harness_boundary.resolve_root()` (HARNESS_PROJECT_DIR + t
 team-config.yaml MARKER), never board-station.py's own team-config.yaml walk-up, so the fixture
 writes that marker instead.
 
-ONE BINARY OVERRIDE: FACTORY_GH. board_lifecycle.py reaches gh only through factory_gh, which reads
+ONE BINARY OVERRIDE: FACTORY_GH. board_lifecycle.py reaches gh only through github.transport, which reads
 FACTORY_GH at call time. `_stub_env` builds every case's environment with
 `tests/offline_gh_support.offline_gh_env` (FACTORY_GH names the fake, inherited `GH_*` variables
 are dropped, a sentinel `gh` heads PATH), and `run`/`run_module` assert the sentinel never ran, so
@@ -130,7 +130,7 @@ def default_github(board=_BOARD):
 # RESOLVE_JSON answers project_resolve's own query (repositoryOwner(login:) with no field
 # selection at all). PROBE_JSON answers board_lifecycle._field_probe's query (unique marker:
 # ProjectV2IterationField -- a fragment no other query in this tree sends). OPTIONS_JSON answers
-# factory_gh._project_field_resolve's query, the one project_field_options calls (unique marker:
+# github.projects._project_field_resolve's query, the one project_field_options calls (unique marker:
 # "options { id name }"). Every mutation gets one fixed, static success response -- no case here
 # needs a mutation to behave differently, only to have happened or not.
 FAKE_GH_SRC = r'''#!/bin/bash
@@ -188,20 +188,20 @@ case "$*" in
     echo "$WORKFLOWS_JSON"
     exit 0 ;;
   *"projectItems"*)
-    # T-06: factory_gh.issue_board_item_id, the query gh_board.set_station sends before its
+    # T-06: github.projects.issue_board_item_id, the query github.board.set_station sends before its
     # own item-edit mutation. project.number MUST equal the fixture's board number (9,
     # `_BOARD["number"]`) -- set_station matches client-side against it.
     echo "{\"data\":{\"repository\":{\"issue\":{\"projectItems\":{\"totalCount\":1,\"nodes\":[{\"id\":\"ITEM_FAKE\",\"project\":{\"number\":9}}]}}}}}"
     exit 0 ;;
   *"project item-edit"*)
-    # T-06: gh_board.set_station's own mutation, sent after the field-resolve
+    # T-06: github.board.set_station's own mutation, sent after the field-resolve
     # ("options { id name }") and item-lookup ("projectItems") calls above.
     if [ -n "$FAKE_STATE" ]; then
       touch "$FAKE_STATE"
     fi
     exit 0 ;;
   *"label create"*)
-    # T-06: board_lifecycle.py's own `abandoned` label create, sent through factory_gh.
+    # T-06: board_lifecycle.py's own `abandoned` label create, sent through github.transport.
     # FEAT-2452 T-03: LABEL_CREATE_STDERR, when set, makes it print that text and exit 1 --
     # gh's existing-label answer or a real failure, whichever the case names.
     if [ -n "$LABEL_CREATE_STDERR" ]; then
@@ -266,7 +266,7 @@ case "$*" in
     echo "$RESOLVE_JSON"
     exit 0 ;;
   *"/contents/"*)
-    # #783's regression guard: factory_config.product_config -> factory_gh.file_at_ref, the
+    # #783's regression guard: factory_config.product_config -> github.refs.file_at_ref, the
     # remote read of a FLEET MEMBER's own .harness/harness.json (never a directory in this
     # checkout). CONTENTS_B64 is the pre-computed --jq .content answer (real gh applies that
     # filter itself, so the fake must emit the already-extracted field, matching
@@ -428,7 +428,6 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
     env["LABEL_CREATE_STDERR"] = label_create_stderr or ""
     env["REPO_PROJECTS_JSON"] = repo_projects
-    env.pop("HARNESS_GH_COST_LOG", None)
     return env, tmp, log_path, sentinel_log
 
 
@@ -570,7 +569,7 @@ with fresh_root() as (base, root):
     # trailing "Field") was NEVER called. "createProjectV2Field" legitimately appears in this
     # very log, so the substring checked here must exclude it, matching the established
     # in-tree convention (test-factory-integration.py:1239).
-    check("field absent (disaster guard i): factory_gh.project_create was NOT called",
+    check("field absent (disaster guard i): github.projects.project_create was NOT called",
           not _creates(log),
           repr(log))
 
@@ -597,7 +596,7 @@ with fresh_root() as (base, root):
 # forbidden (extend can never run on a board whose field was just created with all six).
 
 def _expected_options_literal(names):
-    """The EXACT `singleSelectOptions` GraphQL literal factory_gh._options_literal renders,
+    """The EXACT `singleSelectOptions` GraphQL literal github.projects._options_literal renders,
     re-authored here on purpose (never imported) so the assertion is a byte-for-byte
     specification of what goes over the wire (SC-01), not a tautology against the renderer.
     chr(1) is FAKE_LOG's own space substitution -- see FAKE_GH_SRC's header comment."""
@@ -820,7 +819,7 @@ with fresh_root() as (base, root):
 
 # ---------------- cases 5h/5i (fix cycle c4, finding 1): a NON-GhError failure after a
 # successful create+link is exit 4, never exit 2 ---------------------------------------------
-# The defect: both post-create blocks caught `factory_gh.GhError` only. Strict GitHub parsing
+# The defect: both post-create blocks caught `github.transport.GhError` only. Strict GitHub parsing
 # raises ArtifactAccessError for an invalid body returned with exit 0, and
 # `_project_field_resolve`'s unguarded subscripts raise KeyError/TypeError -- none are GhError,
 # so each must retain the partial-success exit path.
@@ -829,8 +828,8 @@ with fresh_root() as (base, root):
 # gets a SECOND board -- the exact disaster the exit-code contract exists to prevent. These two
 # cases pin the FIELD work and the LINK call, the two blocks that were broadened.
 #
-# FEAT-64: `factory_gh.run_gh(json_out=True)` now converts a non-JSON exit-0 body into
-# `factory_gh.GhError` itself (the decode failure is the gh boundary's own), so the malformed
+# FEAT-64: `github.transport.run_gh(json_out=True)` now converts a non-JSON exit-0 body into
+# `github.transport.GhError` itself (the decode failure is the gh boundary's own), so the malformed
 # body below arrives as an ANTICIPATED gh failure rather than an "unexpected
 # ArtifactAccessError". The exit-4 contract and the created-number line are what these cases
 # defend; the class-name assertions changed to "names the invalid body, is not called
@@ -1556,7 +1555,7 @@ with fresh_root() as (base, root):
           r.returncode == 1, f"rc={r.returncode}")
 
 # ---------------- reconcile case 4b (FEAT-2452 T-03): the abandoned label create is checked ---
-# The create goes through factory_gh.try_gh. Only gh's existing-label answer (nonzero status,
+# The create goes through github.transport.try_gh. Only gh's existing-label answer (nonzero status,
 # "label with name" and "already exists") is idempotent; any other failure, a launch failure
 # included, raises into the per-card catch: no label is attached, the next card is still
 # attempted, the finding survives and the run exits 1. Same stderr as T-02's regression.
@@ -1572,14 +1571,14 @@ _LABEL_ISSUES_AFTER = json.dumps([
     {"number": 31, "stateReason": "NOT_PLANNED", "labels": [{"name": "abandoned"}]},
 ])
 _LAUNCH_FAILS = (
-    "import runpy, sys, factory_gh\n"
-    "real = factory_gh.launch_gh\n"
+    "import runpy, sys, github.transport\n"
+    "real = github.transport.launch_gh\n"
     "def launch(args, *, input=None):\n"
     "    if list(args[:2]) == ['label', 'create']:\n"
-    "        raise factory_gh.GhError(args, None, '', '', 'gh could not be launched', 'gh',\n"
+    "        raise github.transport.GhError(args, None, '', '', 'gh could not be launched', 'gh',\n"
     "                                 'OSError: simulated launch failure')\n"
     "    return real(args, input=input)\n"
-    "factory_gh.launch_gh = launch\n"
+    "github.transport.launch_gh = launch\n"
     f"sys.argv = [{SCRIPT!r}, 'reconcile', '--apply']\n"
     f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n"
 )
@@ -1892,11 +1891,11 @@ with fresh_root() as (base, root):
 
 with fresh_root() as (base, root):
     code = (
-        "import board_lifecycle as bl, factory_gh;"
+        "import board_lifecycle as bl, github.transport;"
         "\ntry:"
         "\n    bl.audit_findings(None)"
         "\n    print('RESULT=no-exception')"
-        "\nexcept factory_gh.GhError as e:"
+        "\nexcept github.transport.GhError as e:"
         "\n    print('RESULT=GhError')"
         "\nexcept SystemExit as e:"
         "\n    print('RESULT=SystemExit-' + str(e.code))"

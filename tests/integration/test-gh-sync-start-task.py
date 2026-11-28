@@ -105,7 +105,7 @@ def _guard_closed_done():
               not any("item-edit" in l for l in log), str(log))
         check("#642 replay: refuses, naming the issue, the task id, the current station and why",
               # `done` LOWERCASE (FEAT-41 T-02): the refusal quotes the card's current station as
-              # gh_board.board_stations returned it, lowercased at the boundary. The capitalised
+              # github.board.board_stations returned it, lowercased at the boundary. The capitalised
               # form would mean the boundary had leaked.
               "gh-sync: refusing #326" in r.stdout and "T-02" in r.stdout and "done" in r.stdout,
               r.stdout)

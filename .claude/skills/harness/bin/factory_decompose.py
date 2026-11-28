@@ -39,16 +39,18 @@ import sys
 
 import factory_cli
 import factory_config
-import factory_gh
+import github.issues
+import github.projects
+import github.transport
 import artifact_accessors
 from feature_record import read as record_read, write as record_write
-import gh_issue_types
+import github.issue_types
 import harness_merge
 import harness_yaml
 
 # DEC-138, applied mechanically per task - but ONLY in compatibility mode (T-08, FEAT-55).
 # Where the target repository declares native GitHub Issue Types, an issue's type comes
-# from gh_issue_types.py's mapping instead, applied via factory_gh.apply_issue_type after
+# from github/issue_types.py's mapping instead, applied via github.issues.apply_issue_type after
 # create, and neither of these two labels is added. This label pair is what a repository
 # with no Issue Types declared still gets.
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
@@ -295,7 +297,7 @@ def sort_dispositions(tasks, factory):
 
 def _validate_stations(owner, board_number, station_field, stations):
     """Validate every declared station against the board's real field options before anything is
-    created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing (it
+    created. Two failure modes of github.projects.project_field_options: the FIELD itself missing (it
     raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns a
     list and this function produces the message, naming the offending station, the COLUMN it
     requires, and the board's real options).
@@ -303,7 +305,7 @@ def _validate_stations(owner, board_number, station_field, stations):
     `stations` is now a SEQUENCE of lowercase station names, not a mapping of names to
     operator-chosen columns (FEAT-41 T-02), so the column each one requires is derived here by
     factory_config.station_column rather than read out of the declaration."""
-    options = factory_gh.project_field_options(owner, board_number, station_field)
+    options = github.projects.project_field_options(owner, board_number, station_field)
     for name in stations:
         column = factory_config.station_column(name)
         if column not in options:
@@ -318,7 +320,7 @@ def _validate_stations(owner, board_number, station_field, stations):
 # Re-add resolution (T-04 defect fix, deliverable 3, option ii). On the `partial` recovery path
 # only: resolve an already-added board item before calling project_item_add again, since
 # `gh project item-add` on an already-added issue is UNVERIFIED to be idempotent. The resolution
-# is one targeted, repository-scoped GraphQL lookup through factory_gh.issue_board_item_id,
+# is one targeted, repository-scoped GraphQL lookup through github.projects.issue_board_item_id,
 # which needs no client-side repository matching.
 # --------------------------------------------------------------------------
 
@@ -332,9 +334,9 @@ def _find_existing_item_id(board_number, repo, issue_number):
     2026-08-10, read-only, against board 3: the targeted repository.issue.projectItems query
     returned the board item for an issue in the CLOSED state — that observation is the property
     this whole feature rests on. The truncation guard now lives in
-    factory_gh.issue_board_item_id, which raises when the issue is on more projects than the
+    github.projects.issue_board_item_id, which raises when the issue is on more projects than the
     query returns."""
-    return factory_gh.issue_board_item_id(repo, issue_number, board_number)
+    return github.projects.issue_board_item_id(repo, issue_number, board_number)
 
 
 # --------------------------------------------------------------------------
@@ -369,7 +371,7 @@ def _issue_type_overrides(fleet, repo):
     """The target repository's OWN github.issue_types overrides. Capability is per target
     repository and is never inherited. An unreadable or invalid product config raises FleetError
     to the command's refusal boundary (FEAT-2297) — never default overrides."""
-    return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
+    return github.issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
 
 
 def _print_issue_types_state(repo, state, message):
@@ -390,11 +392,11 @@ def _task_issue_type(task, overrides):
     caller error - print it and exit 2, never let it propagate as an unhandled failure."""
     change_type = task["change_type"]
     try:
-        type_name = gh_issue_types.type_for_change_type(change_type, overrides)
-    except gh_issue_types.UnknownWorkNature as e:
+        type_name = github.issue_types.type_for_change_type(change_type, overrides)
+    except github.issue_types.UnknownWorkNature as e:
         print(f"factory: {TOOL}: {e}", file=sys.stderr)
         sys.exit(factory_cli.EXIT_REFUSED)
-    return type_name, gh_issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[change_type]
+    return type_name, github.issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[change_type]
 
 
 def _required_issue_types(tasks, dispositions, factory, overrides, need_parent_create):
@@ -404,7 +406,7 @@ def _required_issue_types(tasks, dispositions, factory, overrides, need_parent_c
     typed = factory.get("typed", {})
     required = []
     if need_parent_create or typed.get("parent") == "created":
-        required.append((gh_issue_types.type_for_parent(overrides), gh_issue_types.PARENT_KEY))
+        required.append((github.issue_types.type_for_parent(overrides), github.issue_types.PARENT_KEY))
     for t in tasks:
         tid = str(t["id"])
         if dispositions[tid] == "new" or typed.get(tid) == "created":
@@ -415,12 +417,12 @@ def _required_issue_types(tasks, dispositions, factory, overrides, need_parent_c
 def _refuse_on_missing_types(required, declared, repo):
     """REQ-07: refuse before ANY create or apply-type call, the parent's create and the
     step-8 backfill included, when the required set is not fully declared."""
-    missing = gh_issue_types.missing_types([name for name, _ in required], declared)
+    missing = github.issue_types.missing_types([name for name, _ in required], declared)
     if not missing:
         return
     for name, key in required:
         if name in missing:
-            print(f"factory: {TOOL}: {gh_issue_types.refusal_text(repo, name, key)}",
+            print(f"factory: {TOOL}: {github.issue_types.refusal_text(repo, name, key)}",
                   file=sys.stderr)
             sys.exit(factory_cli.EXIT_REFUSED)
 
@@ -429,7 +431,7 @@ def _apply_and_promote(feat_dir, factory, feat_id, repo, number, key, type_id):
     """Apply the type to an already-"created" number, then promote its provenance to True
     in its own write_factory call - the receipt ordering that survives a crash between the
     two remote calls (T-07 case E)."""
-    factory_gh.apply_issue_type(repo, number, type_id)
+    github.issues.apply_issue_type(repo, number, type_id)
     factory["typed"][key] = True
     write_factory(feat_dir, factory, feat_id=feat_id)
 
@@ -441,14 +443,14 @@ def _backfill_issue_types(feat_dir, factory, tasks, overrides, declared, feat_id
     which covers this exact set."""
     typed = factory.setdefault("typed", {})
     if factory["parent"] is not None and typed.get("parent") == "created":
-        type_name = gh_issue_types.type_for_parent(overrides)
+        type_name = github.issue_types.type_for_parent(overrides)
         _apply_and_promote(feat_dir, factory, feat_id, repo, factory["parent"], "parent",
                             declared[type_name])
     for t in tasks:
         tid = str(t["id"])
         num = factory["issues"].get(tid)
         if num is not None and typed.get(tid) == "created":
-            type_name = gh_issue_types.type_for_change_type(t["change_type"], overrides)
+            type_name = github.issue_types.type_for_change_type(t["change_type"], overrides)
             _apply_and_promote(feat_dir, factory, feat_id, repo, num, tid, declared[type_name])
 
 
@@ -489,7 +491,7 @@ def _main():
         )
 
     # 3. preflight.
-    factory_gh.preflight()
+    github.transport.preflight()
 
     # 3b. hoisted board reads + station validation (T-04 defect fix, deliverable 4 — a declared
     # widening beyond the signed plan). Everything through step 4 mutates nothing
@@ -514,7 +516,7 @@ def _main():
     # step-5 parent branch and the step-6 task loop, and not inside either - a run that
     # creates nothing still reports its state (T-07 case G).
     overrides = _issue_type_overrides(fleet, args.repo)
-    state, declared, detect_message = factory_gh.detect_issue_types(args.repo)
+    state, declared, detect_message = github.issues.detect_issue_types(args.repo)
     _print_issue_types_state(args.repo, state, detect_message)
     need_parent_create = factory["parent"] is None and args.parent is None
     if state == "available":
@@ -533,7 +535,7 @@ def _main():
         if state != "available":
             ensured += ["chore", "bug"]
         ensured.append("factory:claimed")
-        factory_gh.ensure_labels(args.repo, ensured)
+        github.issues.ensure_labels(args.repo, ensured)
 
         # 5b. the parent — adopt or create.
         if factory["parent"] is not None:
@@ -545,7 +547,7 @@ def _main():
             factory["parent"] = args.parent
             factory.setdefault("typed", {})["parent"] = "adopted"
             write_factory(feat_dir, factory, feat_id=feat_id)
-            factory_gh.add_label(args.repo, args.parent, f"feature:{feat_id}")
+            github.issues.add_label(args.repo, args.parent, f"feature:{feat_id}")
         else:
             problem, goal = extract_brief(feat_dir)
             if problem is None or goal is None:
@@ -559,7 +561,7 @@ def _main():
             else:
                 title = f"{feat_id} — {_first_sentence(goal)}"
                 body = f"{problem}\n\n**Goal:** {goal}"
-            num = factory_gh.create_issue(
+            num = github.issues.create_issue(
                 args.repo, title, body, ["harness", f"feature:{feat_id}"],
             )
             factory["parent"] = num
@@ -572,7 +574,7 @@ def _main():
         if dispositions[tid] != "new":
             continue
         title = f"{tid} {t['title']}"
-        num = factory_gh.create_issue(
+        num = github.issues.create_issue(
             args.repo, title, _issue_body(t), _task_labels(t, feat_id, state),
         )
         factory["issues"][tid] = num
@@ -608,8 +610,8 @@ def _main():
             item_id = _find_existing_item_id(board_number, args.repo, num)
         if item_id is None:
             url = f"https://github.com/{args.repo}/issues/{num}"
-            item_id = factory_gh.project_item_add(owner, board_number, url)
-        factory_gh.project_field_set(owner, board_number, item_id, station_field, ready_option)
+            item_id = github.projects.project_item_add(owner, board_number, url)
+        github.projects.project_field_set(owner, board_number, item_id, station_field, ready_option)
         factory["items"][tid] = item_id
         write_factory(feat_dir, factory, feat_id=feat_id)
 
@@ -618,7 +620,7 @@ def _main():
 
     def internal_id(num):
         if num not in id_cache:
-            id_cache[num] = factory_gh.internal_id(args.repo, num)
+            id_cache[num] = github.issues.internal_id(args.repo, num)
         return id_cache[num]
 
     for t in tasks:
@@ -631,7 +633,7 @@ def _main():
 
         if tid not in factory["edges"]["parent"]:
             child_id = internal_id(num)
-            factory_gh.attach_sub_issue(args.repo, factory["parent"], child_id)
+            github.issues.attach_sub_issue(args.repo, factory["parent"], child_id)
             factory["edges"]["parent"].append(tid)
             write_factory(feat_dir, factory, feat_id=feat_id)
             edges_drawn += 1
@@ -652,8 +654,8 @@ def _main():
                 continue
             blocker_id = internal_id(blocker_num)
             try:
-                factory_gh.blocked_by(args.repo, num, blocker_id)
-            except factory_gh.GhError as e:
+                github.issues.blocked_by(args.repo, num, blocker_id)
+            except github.transport.GhError as e:
                 combined = f"{e.stdout or ''}\n{e.stderr or ''}".lower()
                 if "422" in combined and "already been taken" in combined:
                     print(
@@ -680,4 +682,4 @@ def _main():
 
 
 if __name__ == "__main__":
-    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, factory_gh.GhError))
+    factory_cli.run(TOOL, _main, expected=(artifact_accessors.FleetError, github.transport.GhError))

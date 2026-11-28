@@ -924,6 +924,11 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         ("pnpm exec tsx tests/tooling-contract.ts", "pending"),
         ("node scripts/check.mjs", "pending"),
         ("npx vitest run", "pending"),
+        # #2692: bun is a JS/TS runner like the three above.
+        ("bun test tests/unit/omp-hooks.test.ts", "pending"),
+        ("bun run typecheck", "pending"),
+        # #2666: several gates must run with HARNESS_AGENT_TYPE unset.
+        ("env -u HARNESS_AGENT_TYPE python3 tests/unit/t.py", "pending"),
         # THE GATE: an approved plan is never re-checked, even carrying prose that
         # would fail this shape if it were still pending.
         ("TBD", "approved"),
@@ -937,6 +942,8 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         ("TBD", "not MANUAL and not a command"),
         ("by inspection", "prose with no command token"),
         ("pnpmify the config", "a word that only starts with a runner name"),
+        ("envision the new flow", "a word that only starts with env"),
+        ("bundle it later", "a word that only starts with bun"),
     )
     for verify_line, label in rejected:
         e = _must_reject(_pending_plan(verify_line), hy.PlanSchemaError,
