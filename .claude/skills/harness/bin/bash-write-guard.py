@@ -795,7 +795,8 @@ for seg_tokens in tokens:
 _WT_FLAGS_WITH_VALUE = ("-b", "-B", "--reason")
 
 def _worktree_destination(args, sub):
-    """The destination operand of `git worktree add|move`, or None if unparsed.
+    """The destination operand of `git worktree add|move`, or the worktree operand of `git
+    worktree remove`; None if unparsed.
 
     None means REFUSE, never permit. Failing loudly on a form this does not understand
     is the point; failing open reproduces the defect.
@@ -813,7 +814,95 @@ def _worktree_destination(args, sub):
         i += 1
     if sub == "move":
         return rest[1] if len(rest) > 1 else None    # <worktree> <new-path>
-    return rest[0] if rest else None
+    return rest[0] if rest else None                 # add's <path>, remove's <worktree>
+
+
+# --- NATIVE WORKTREE REMOVAL KEEPS WORKING FILES (FEAT-2641 T-11, ruling E4) -----------
+# notes/, runs/ and observations/ are ignored (DEC-260), and `git worktree remove` deletes an
+# ignored file without counting the tree dirty, so an unforced native removal would silently
+# drop a feature's undistilled working files that feature-worktree.py remove's GATE 2b keeps.
+# The same count (working_files.untracked_counts) refuses it here; every failure refuses.
+def _git_effective_args(args):
+    """(directory, args after git's global options): git's own `-C <dir>` options joined in
+    order, as git applies them ("" when there is none, which is the hook's cwd)."""
+    where, i = "", 0
+    while i < len(args) and args[i].startswith("-"):
+        flag, value = args[i], args[i + 1:i + 2]
+        if flag == "-C":
+            where = os.path.join(where, *value)
+        i += 2 if flag in GIT_GLOBAL_FLAGS_WITH_VALUE else 1
+    return where, args[i:]
+
+
+def _refuse_native_remove(why):
+    print(f"bash-write-guard: BLOCKED — {why}", file=sys.stderr)
+    sys.exit(2)
+
+
+def _real_subdirs(path):
+    """Direct child directories of path, neither path nor any child followed through a symlink."""
+    if os.path.islink(path) or not os.path.isdir(path):
+        return []
+    return sorted(e.path for e in os.scandir(path) if e.is_dir(follow_symlinks=False))
+
+
+def _working_counts(worktree, working_files):
+    """[(feature dir, its path relative to worktree, untracked_counts)] for every
+    <worktree>/.harness/<segment>/features/<id> holding a working-directory entry."""
+    found = []
+    for segment in _real_subdirs(os.path.join(worktree, ".harness")):
+        for feature in _real_subdirs(os.path.join(segment, "features")):
+            if any(os.path.lexists(os.path.join(feature, d)) for d in working_files.WORKING_DIRS):
+                rel = os.path.relpath(feature, worktree)
+                found.append((feature, rel, working_files.untracked_counts(worktree, rel)))
+    return [entry for entry in found if entry[2]]
+
+
+def _remove_target(args):
+    """(operand, absolute worktree path) for `git [-C <dir>] worktree remove <worktree>`, the
+    relative operand resolved against -C, else the hook's cwd; None for any other git call. No
+    determinable operand refuses (DEC-151's undecidable direction)."""
+    where, rest = _git_effective_args(args)
+    if rest[:2] != ["worktree", "remove"]:
+        return None
+    operand = _worktree_destination(rest[2:], "remove")
+    if operand is None:
+        _refuse_native_remove("`git worktree remove` with no worktree operand this guard can "
+                              "determine, so it cannot tell whether working files would be lost.")
+    return operand, os.path.abspath(os.path.join(where, operand))
+
+
+def _counted_or_refuse(operand, worktree):
+    """(_working_counts, each counted feature's retry command); any failure refuses."""
+    try:
+        import working_files
+        counted = _working_counts(worktree, working_files)
+        return counted, [working_files.retry_command(feature) for feature, _rel, _c in counted]
+    except Exception as exc:  # fail closed: any failure to count is a refusal (DEC-151)
+        _refuse_native_remove(f"`git worktree remove {operand}`: its working files could not be "
+                              f"counted ({type(exc).__name__}: {exc}).")
+
+
+def _native_remove_gate(args):
+    """Refuse `git [-C <dir>] worktree remove <worktree>` when <worktree> holds untracked feature
+    working files; a non-directory operand is git's to refuse."""
+    target = _remove_target(args)
+    if target is None or not os.path.isdir(target[1]):
+        return
+    operand, worktree = target
+    counted, retries = _counted_or_refuse(operand, worktree)
+    if not counted:
+        return
+    print(f"bash-write-guard: BLOCKED — `git worktree remove {operand}` would delete untracked "
+          f"working files git cannot see (DEC-260 D-08).", file=sys.stderr)
+    for _feature, rel, counts in counted:
+        for d, count in counts.items():
+            print(f"  {rel}/{d}/ ({count} files)", file=sys.stderr)
+    print("  Use .claude/skills/harness/bin/feature-worktree.py remove, which keeps the worktree "
+          "until distill (merge-gate.py merge-distill), gh-sync.py skip-distill or "
+          f"{' or '.join(retries)} has removed them.", file=sys.stderr)
+    sys.exit(2)
+
 
 for seg_tokens in tokens:
     for i, t in enumerate(seg_tokens):
@@ -841,10 +930,7 @@ for seg_tokens in tokens:
         # T-02's refusal lives inside feature-worktree.py, and a governed agent bypasses
         # a CLI by calling git directly — a gate an agent can route around is the shape
         # this feature exists to replace.
-        if len(_ops) < 2 or _ops[0] != "worktree" or _ops[1] not in ("add", "move",
-                                                                    "remove", "prune"):
-            continue
-        _sub = _ops[1]
+        _sub = _ops[1] if len(_ops) == 2 and _ops[0] == "worktree" else None
 
         if _sub in ("remove", "prune"):
             # NO DIRTY-TREE DETECTOR HERE, deliberately, and that is why this rule is
@@ -860,9 +946,12 @@ for seg_tokens in tokens:
                 print("  Without --force git refuses a dirty tree itself; forcing is how "
                       "unlanded work is destroyed silently.", file=sys.stderr)
                 sys.exit(2)
-            # Unforced: git decides. The destination logic below is for add and move
-            # only — remove and prune carry no destination this guard must resolve, so
-            # nothing about the existing add/move behaviour changes.
+        # Unforced, git decides a dirty tree; ignored working files are the one loss git cannot
+        # see, so `worktree remove`, `-C` forms included, is counted here first (T-11).
+        _native_remove_gate(_args)
+        # The destination logic below is for add and move only — remove and prune carry no
+        # destination this guard must resolve, so nothing about add/move behaviour changes.
+        if _sub not in ("add", "move"):
             continue
 
         _dest = _worktree_destination(_args[_j:], _sub)

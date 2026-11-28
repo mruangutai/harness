@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Unit tests for bin/working_files.py (FEAT-2641 T-03, DEC-260): the project-note path
-contract, target ordering, and clean's symlink and refusal rules. Plain script: one ok/FAIL line
-per check, exit 1 on any FAIL."""
+"""Unit tests for bin/working_files.py (FEAT-2641 T-03 and T-11, DEC-260): the project-note path
+contract, target ordering, clean's symlink, containment and refusal rules, and the untracked
+working-file counts both removal gates share. Plain script: one ok/FAIL line per check, exit 1 on
+any FAIL."""
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -174,13 +176,140 @@ def test_owner_none(tmp):
           and not any(os.path.lexists(os.path.join(fdir, d)) for d in wf.WORKING_DIRS), removed)
 
 
+def _survives(fdir):
+    return all(os.path.exists(os.path.join(fdir, d)) for d in wf.WORKING_DIRS)
+
+
+def _features_link(tmp, name, target):
+    """<tmp>/<name>/.harness/harness/features as a symlink to target; the feature path under it."""
+    os.makedirs(os.path.join(tmp, name, ".harness", "harness"))
+    os.symlink(target, os.path.join(tmp, name, ".harness", "harness", "features"))
+    return os.path.join(tmp, name, ".harness", "harness", "features", "FEAT-0-probe")
+
+
+def test_symlinked_ancestor_refuses(tmp):
+    """must_fix 1: a feature directory reached through a symlinked ancestor (its features/
+    directory) refuses, and the real working files it would reach elsewhere survive."""
+    victim = feature(os.path.join(tmp, "victim-anc"))
+    fdir = _features_link(tmp, "owner-anc", os.path.dirname(victim))
+    check("a feature directory under a symlinked features/ ancestor raises",
+          raises(wf.clean, fdir, None, emit=lambda _l: None))
+    check("nothing is removed through the symlinked ancestor", _survives(victim))
+    check("contained() raises on the symlinked ancestor", raises(wf.contained, fdir))
+
+
+def test_symlinked_feature_dir_refuses(tmp):
+    """must_fix 1: a feature directory that is itself a symlink refuses; contained() reads a real
+    directory as True and an absent one as False."""
+    victim = feature(os.path.join(tmp, "victim-leaf"))
+    features = os.path.join(tmp, "owner-leaf", ".harness", "harness", "features")
+    os.makedirs(features)
+    os.symlink(victim, os.path.join(features, "FEAT-0-probe"))
+    check("a feature directory that is itself a symlink raises",
+          raises(wf.clean, os.path.join(features, "FEAT-0-probe"), None, emit=lambda _l: None))
+    check("nothing is removed through the symlinked feature directory", _survives(victim))
+    check("contained() is True for a real feature directory and False for an absent one",
+          wf.contained(victim) is True
+          and wf.contained(os.path.join(features, "FEAT-absent")) is False)
+
+
+def _swapper(features, notes_parent, victim_features, outside):
+    """An emit callback that, on its first call, swaps features/ and .harness/notes for symlinks
+    to victim_features and outside, keeping the originals as <name>-orig."""
+    def swap(_line):
+        if os.path.islink(features):
+            return
+        os.rename(features, features + "-orig")
+        os.symlink(victim_features, features)
+        os.rename(notes_parent, notes_parent + "-orig")
+        os.symlink(outside, notes_parent)
+    return swap
+
+
+def _swap_fixture(tmp):
+    """(feature dir claiming .harness/notes/a.md, owner, victim feature dir, outside a.md): every
+    path the swap case reads."""
+    owner = os.path.join(tmp, "owner-swap")
+    fdir = feature(owner, notes=[".harness/notes/a.md"])
+    write(os.path.join(owner, ".harness", "notes", "a.md"))
+    victim = feature(os.path.join(tmp, "victim-swap"))
+    return fdir, owner, victim, write(os.path.join(tmp, "outside-swap", "a.md"))
+
+
+def test_swap_after_validation(tmp):
+    """must_fix 1: a features/ ancestor and a .harness/notes parent swapped for symlinks after
+    clean has validated them do not redirect deletion: removal stays in the validated
+    directories."""
+    fdir, owner, victim, outside_note = _swap_fixture(tmp)
+    features, notes_parent = os.path.dirname(fdir), os.path.join(owner, ".harness", "notes")
+    swap = _swapper(features, notes_parent, os.path.dirname(victim), os.path.dirname(outside_note))
+    try:
+        wf.clean(fdir, owner, emit=swap)
+    except (OSError, wf.WorkingFilesError) as exc:
+        check("clean after a mid-run swap completes", False, repr(exc))
+    check("a features/ ancestor swapped mid-clean does not redirect rmtree", _survives(victim))
+    check("the validated feature directory's working files are the ones removed",
+          not any(os.path.lexists(os.path.join(features + "-orig", "FEAT-0-probe", d))
+                  for d in wf.WORKING_DIRS))
+    check("a .harness/notes parent swapped mid-clean does not redirect unlink",
+          os.path.exists(outside_note)
+          and not os.path.lexists(os.path.join(notes_parent + "-orig", "a.md")))
+
+
+def test_claims_dir(tmp):
+    """must_fix 4: project-note claims come from claims_dir (the record that authorised the
+    cleanup), not from the deletion copy's own, possibly stale, ledger."""
+    owner = os.path.join(tmp, "owner-claims")
+    stale = feature(os.path.join(owner, "wt"), notes=[".harness/notes/stale.md"])
+    landed = feature(owner, notes=[".harness/notes/landed.md"])
+    landed_note = write(os.path.join(owner, ".harness", "notes", "landed.md"))
+    stale_note = write(os.path.join(owner, ".harness", "notes", "stale.md"))
+    check("targets reads claims from claims_dir",
+          wf.targets(stale, owner, claims_dir=landed)[-1:] == [landed_note],
+          wf.targets(stale, owner, claims_dir=landed))
+    wf.clean(stale, owner, emit=lambda _l: None, claims_dir=landed)
+    check("clean removes the note the landed record claims and keeps the stale claim",
+          not os.path.exists(landed_note) and os.path.exists(stale_note))
+
+
+def _git(cwd, *args):
+    subprocess.run(["git", "-C", cwd, "-c", "user.email=t@example.com", "-c", "user.name=T"]
+                   + list(args), check=True, capture_output=True)
+
+
+def test_untracked_counts(tmp):
+    """T-11: one counting rule for GATE 2b and bash-write-guard."""
+    repo = os.path.join(tmp, "counts")
+    os.makedirs(repo)
+    _git(repo, "init", "-q")
+    rel = os.path.join(".harness", "harness", "features", "FEAT-0-probe")
+    write(os.path.join(repo, rel, "observations", "tracked.md"))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "tracked observation")
+    check("untracked_counts with no untracked working files is {}",
+          wf.untracked_counts(repo, rel) == {}, wf.untracked_counts(repo, rel))
+    write(os.path.join(repo, rel, "notes", "a.md"))
+    write(os.path.join(repo, rel, "notes", "b.md"))
+    write(os.path.join(repo, rel, "runs", "r", "digest.md"))
+    got = wf.untracked_counts(repo, rel)
+    check("untracked_counts counts untracked notes/ and runs/, never the tracked file",
+          got == {"notes": 2, "runs": 1} and list(got) == ["notes", "runs"], got)
+    check("untracked_counts raises on a failing git",
+          raises(wf.untracked_counts, os.path.join(tmp, "not-a-repo"), rel))
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="working-files-test-")
     try:
         for test in (test_validator, test_targets, test_dry_run, test_symlinks,
                      test_directory_note_refuses, test_parent_symlink_refuses,
-                     test_feature_directory, test_clean_command, test_owner_none):
-            test(tmp)
+                     test_feature_directory, test_clean_command, test_owner_none,
+                     test_symlinked_ancestor_refuses, test_symlinked_feature_dir_refuses,
+                     test_swap_after_validation, test_claims_dir, test_untracked_counts):
+            try:
+                test(tmp)
+            except Exception as exc:  # one broken case reports and the rest still run
+                check(f"{test.__name__} ran", False, repr(exc))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return 1 if FAILS else 0

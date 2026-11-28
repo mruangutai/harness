@@ -8879,7 +8879,9 @@ main-session-direct.
 `feature-worktree.py remove` refuses, exit 4, while the feature directory holds any untracked file
 under `notes/`, `runs/` or `observations/`, naming each directory with its file count and the clean
 command; the post-merge sweep therefore keeps a shipped feature's worktree until distill or clean
-has run.
+has run. `bash-write-guard.py` refuses an unforced native `git worktree remove` on the same
+condition, naming the same directories and counts and pointing to `feature-worktree.py remove`
+(ruling E4).
 
 BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and FEAT-2581, shipped with no distill commit, are declined
 with no preservation step: after this merges, `gh-sync.py skip-distill --yes` records each one's

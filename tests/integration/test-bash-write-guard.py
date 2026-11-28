@@ -848,6 +848,68 @@ def run_head_move():
     shutil.rmtree(tmp, ignore_errors=True)
     return fails
 
+def _put(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def _native_remove_fixture():
+    """A real repository (git init, one commit) with two linked worktrees made by this test's
+    own git: FEAT-91 holding untracked notes/x.md and runs/r/digest.md under
+    .harness/harness/features/FEAT-91-probe, FEAT-92 holding only an untracked scratch.txt."""
+    tmp = tempfile.mkdtemp(prefix="bash-guard-native-remove-")
+    root = os.path.join(tmp, "root")
+    _put(os.path.join(root, ".harness", "team-config.yaml"), FIXTURE_MANIFEST)
+    git = ["git", "-C", root, "-c", "user.email=t@example.com", "-c", "user.name=T"]
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+        subprocess.run(git + args, check=True, capture_output=True)
+    worktrees = {}
+    for wt_id in ("FEAT-91", "FEAT-92"):
+        worktrees[wt_id] = os.path.join(root, ".claude", "worktrees", "harness", wt_id)
+        subprocess.run(git + ["worktree", "add", "-q", "-b", f"feat/{wt_id}", worktrees[wt_id]],
+                       check=True, capture_output=True)
+    feature = os.path.join(worktrees["FEAT-91"], ".harness", "harness", "features", "FEAT-91-probe")
+    _put(os.path.join(feature, "notes", "x.md"), "working file\n")
+    _put(os.path.join(feature, "runs", "r", "digest.md"), "working file\n")
+    _put(os.path.join(worktrees["FEAT-92"], "scratch.txt"), "scratch\n")
+    return tmp, root, worktrees, feature
+
+
+def run_native_remove_retention():
+    """FEAT-2641 T-11 (ruling E4): an unforced native `git worktree remove` of a worktree holding
+    untracked working files is refused with GATE 2b's per-directory counts; a worktree without
+    them is left to git, and prune and the force refusal are unchanged."""
+    tmp, root, worktrees, feature = _native_remove_fixture()
+    wt = worktrees["FEAT-91"]
+    results = []
+
+    def expect(name, cmd, want, needles=()):
+        r = fire(root, cmd)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+
+    counts = ("notes/ (1 files)", "runs/ (1 files)", "feature-worktree.py")
+    expect("T-11 (a): unforced `git worktree remove <wt>` with untracked working files exits 2",
+           f"git worktree remove {wt}", 2, counts)
+    expect("T-11 (b): `git -C <root> worktree remove <relative wt>` resolves against -C and "
+           "exits 2", f"git -C {root} worktree remove .claude/worktrees/harness/FEAT-91", 2, counts)
+    results.append(("T-11 (a)/(b): the worktree and both working files survive",
+                    os.path.isdir(wt) and os.path.exists(os.path.join(feature, "notes", "x.md"))
+                    and os.path.exists(os.path.join(feature, "runs", "r", "digest.md")), wt))
+    expect("T-11 (c): a worktree holding only an untracked scratch.txt is left to git (exit 0)",
+           f"git worktree remove {worktrees['FEAT-92']}", 0)
+    expect("T-11 (d): unforced `git worktree prune` stays allowed", "git worktree prune", 0)
+    expect("T-11 (e): `git worktree remove` with no operand is refused naming the command",
+           "git worktree remove", 2, ("git worktree remove",))
+    shutil.rmtree(tmp, ignore_errors=True)
+    for name, ok, detail in results:
+        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
+    fails = sum(1 for _name, ok, _detail in results if not ok)
+    print(f"\n{len(results) - fails}/{len(results)} native worktree-remove retention cases passed.\n")
+    return fails
+
+
 FEAT50_MANIFEST = """schema_version: 1
 teams:
   - name: build
@@ -1916,9 +1978,8 @@ def _cases_root():
     return root
 
 
-def main():
+def run_cases_table(cases_root):
     fails = 0
-    cases_root = _cases_root()
     for name, cmd, want, agent in CASES:
         payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
         r = subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
@@ -1932,19 +1993,11 @@ def main():
         else:
             print(f"ok    {name}")
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
-    fails += run_t14()
-    fails += run_worktree()
-    fails += run_worktree_deep()
-    fails += run_head_move()
-    fails += run_feat50_checkout_binding()
-    fails += run_feat61_feature_checkout_adapter()
-    fails += run_feat65_guard_cases()
-    fails += run_feat2274_unavailable_cases()
-    fails += run_bug895_wrong_checkout()
-    fails += run_bug1106_bash_route()
-    fails += run_bug1304_claim_set()
-    fails += run_feat2225_expertise_cli()
     return fails
+
+
+def main():
+    return run_cases_table(_cases_root()) + sum(section() for section in SECTIONS)
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
@@ -2192,6 +2245,13 @@ def run_feat2225_expertise_cli():
         print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(results) - len(fails)}/{len(results)} FEAT-2225 expertise CLI cases passed.")
     return len(fails)
+
+
+# Every section main runs after the CASES table, in order.
+SECTIONS = (run_t14, run_worktree, run_worktree_deep, run_head_move, run_native_remove_retention,
+            run_feat50_checkout_binding, run_feat61_feature_checkout_adapter,
+            run_feat65_guard_cases, run_feat2274_unavailable_cases, run_bug895_wrong_checkout,
+            run_bug1106_bash_route, run_bug1304_claim_set, run_feat2225_expertise_cli)
 
 
 if __name__ == "__main__":

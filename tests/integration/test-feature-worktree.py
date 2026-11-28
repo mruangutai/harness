@@ -1298,6 +1298,102 @@ def case_clean_short_id_and_root(root):
           f"held={held} rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
 
 
+def _unignored_fixture(fx, wt_id):
+    """A harness worktree whose committed .gitignore is empty, so its feature's notes/x.md,
+    runs/r/digest.md and observations/a.md are untracked and NOT ignored."""
+    info, r = create_one(fx, "harness", wt_id)
+    assert r.returncode == 0, f"fixture setup for {wt_id} failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest = info["dest"]
+    _write(os.path.join(dest, ".gitignore"), "")
+    _git(dest, ["add", ".gitignore"])
+    if _git(dest, ["diff", "--cached", "--quiet"], check_ok=False).returncode:
+        _git(dest, ["commit", "-q", "-m", "a checkout without the working-file ignore rules"])
+    rel_dir = os.path.join(".harness", "harness", "features", wt_id)
+    _commit_record(dest, rel_dir, "done", "record")
+    _write_working_files(dest, rel_dir)
+    return dest, rel_dir
+
+
+def case_gate_2b_counts_unignored_working_files(fx):
+    """must_fix 8, SC-09: a checkout still missing the working-file ignore rules leaves notes/,
+    runs/ and observations/ unignored; remove still reports them per directory with counts and
+    the clean command, never as GATE 2's ordinary per-path discards."""
+    dest, rel_dir = _unignored_fixture(fx, "FEAT-76")
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-76"], fx)
+    out = r.stdout.splitlines()
+    counted = [f"WOULD DISCARD WORKING FILES {rel_dir}/{d}/ (1 files)"
+               for d in ("notes", "runs", "observations")]
+    plain = [line for line in out if line.startswith("WOULD DISCARD ") and line not in counted]
+    check("GATE 2b: unignored working files refuse with exit 4, per-directory counts and the "
+          "clean command",
+          r.returncode == 4 and all(line in out for line in counted)
+          and _clean_command("FEAT-76") in r.stdout and os.path.isdir(dest),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("GATE 2b: unignored working files print no plain GATE 2 discard line", not plain, plain)
+
+
+def case_clean_refuses_symlinked_ancestor(fx):
+    """must_fix 1: a retained worktree whose features/ directory is a symlink into another tree
+    refuses clean with exit 7, and that tree's real working files survive."""
+    info, r = create_one(fx, "harness", "FEAT-68")
+    assert r.returncode == 0, f"fixture setup for FEAT-68 failed: rc={r.returncode} stderr={r.stderr!r}"
+    victim = os.path.join(os.path.dirname(fx["repoA"]), "victim-68")
+    rel_dir = os.path.join(".harness", "harness", "features", "FEAT-68")
+    _write(os.path.join(victim, rel_dir, "plan.yaml"), "status: done\n")
+    _write_working_files(victim, rel_dir)
+    features = os.path.join(info["dest"], ".harness", "harness", "features")
+    shutil.rmtree(features, ignore_errors=True)
+    os.symlink(os.path.dirname(os.path.join(victim, rel_dir)), features)
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-68", "--yes"], fx)
+    check("clean --yes: a worktree whose features/ ancestor is a symlink exits 7, removing nothing",
+          c.returncode == 7 and "REFUSED clean:" in c.stdout
+          and _working_present(victim, rel_dir) == ["notes", "runs", "observations"],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    bad = run_cli(["clean", "--repo", "harness", "--id", "../FEAT-68", "--yes"], fx)
+    check("clean refuses an --id outside the flow-id form with exit 2, removing nothing",
+          bad.returncode == 2
+          and _working_present(victim, rel_dir) == ["notes", "runs", "observations"],
+          f"rc={bad.returncode} stdout={bad.stdout!r} stderr={bad.stderr!r}")
+
+
+def case_clean_reads_landed_claims(fx):
+    """must_fix 4: the landed record's project-note claims govern clean, not the retained
+    worktree's stale ledger: the landed claim is removed and the stale-only claim survives."""
+    owner = fx["repoA"]
+    landed, stale = ".harness/notes/landed-claim-69.md", ".harness/notes/stale-claim-69.md"
+    for note in (landed, stale):
+        _write(os.path.join(owner, note), "note\n")
+    info, rel_dir = _working_fixture(fx, "FEAT-69", "FEAT-69", "done", "done", [landed])
+    _commit_record(info["dest"], rel_dir, "review", "stale worktree record", [stale])
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-69", "--yes"], fx)
+    check("clean --yes reads project-note claims from the landed record",
+          c.returncode == 0 and not os.path.exists(os.path.join(owner, landed))
+          and os.path.exists(os.path.join(owner, stale))
+          and _working_present(info["dest"], rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def case_clean_refuses_failed_worktree_list(fx):
+    """must_fix 4: a failing `git worktree list` refuses clean (exit 7) rather than reading as
+    "no linked worktrees" and cleaning the owner copy alone."""
+    info, rel_dir = _working_fixture(fx, "FEAT-70", "FEAT-70", "done", "done")
+    shim = os.path.join(os.path.dirname(fx["repoA"]), "git-shim-70")
+    _write(os.path.join(shim, "git"),
+           "#!/bin/sh\n"
+           'if [ "$1" = worktree ] && [ "$2" = list ]; then\n'
+           '  echo "fatal: simulated worktree list failure" >&2\n  exit 128\nfi\n'
+           f'exec {shutil.which("git")} "$@"\n')
+    os.chmod(os.path.join(shim, "git"), 0o755)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=fx["repoA"],
+               PATH=shim + os.pathsep + os.environ.get("PATH", ""))
+    c = subprocess.run([sys.executable, CLI, "clean", "--repo", "harness", "--id", "FEAT-70",
+                        "--yes"], capture_output=True, text=True, env=env)
+    check("clean --yes exits 7 when git worktree list fails, removing nothing",
+          c.returncode == 7 and "git worktree list" in c.stdout
+          and _working_present(info["dest"], rel_dir) == ["notes", "runs", "observations"],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
 def case_short_id_resolves_to_the_flow_directory(fx):
     """#727 — ONE --id FEEDS TWO PATHS AND THEY DISAGREE ON EVERY REAL WORKTREE.
 
@@ -1507,54 +1603,59 @@ def case_create_cuts_from_origin(fx):
 
 
 
-def main():
-    root = tempfile.mkdtemp(prefix="feature-worktree-test-")
-    try:
-        fx = build_fixture(root)
+CASE_ORDER = (
+    (case_layout, ("fx", "created")),
+    (case_conflation_guard, ("fx", "created")),
+    (case_isolation, ("fx", "created")),
+    (case_branch_isolation, ("fx", "created")),
+    (case_cut_point, ("fx", "created", "tips_before")),
+    (case_concurrent_isolation, ("fx", "created", "tips_before")),
+    (case_shared_checkout_negative, ("root",)),
+    (case_clone_not_moved, ("fx",)),
+    (case_refuse_existing, ("fx", "created")),
+    (case_list, ("fx", "created")),
+    (case_undeclared_repo, ("fx",)),
+    (case_remove_dirty_untracked, ("fx",)),
+    (case_remove_dirty_tracked, ("fx",)),
+    (case_landed_refuse_then_allow, ("fx",)),
+    (case_landed_differs, ("fx",)),
+    (case_no_artifact_directory, ("fx",)),
+    (case_gitignored_artifact_does_not_block, ("fx",)),
+    (case_gitignored_does_not_mask_a_real_miss, ("fx",)),
+    (case_remove_refuses_aborted_run_evidence, ("fx",)),
+    (case_gate_2b_refuses_ignored_working_files, ("fx",)),
+    (case_gate_2b_ignores_committed_notes, ("fx",)),
+    (case_clean_refuses_without_terminal_station, ("fx",)),
+    (case_clean_at_terminal_stations, ("fx",)),
+    (case_clean_refuses_directory_note, ("fx",)),
+    (case_clean_short_id_and_root, ("root",)),
+    (case_gate_2b_counts_unignored_working_files, ("fx",)),
+    (case_clean_refuses_symlinked_ancestor, ("fx",)),
+    (case_clean_reads_landed_claims, ("fx",)),
+    (case_clean_refuses_failed_worktree_list, ("fx",)),
+    (case_short_id_resolves_to_the_flow_directory, ("fx",)),
+    (case_short_id_ambiguous_refuses, ("fx",)),
+    (case_behind_default_branch, ("fx",)),
+    (case_behind_sees_origin, ("fx",)),
+    (case_fleet_feature_has_two_worktrees, ("fx",)),
+    (case_fleet_create_is_all_or_nothing, ("fx",)),
+    (case_create_cuts_from_origin, ("fx",)),
+)
 
-        if run_guard(fx, root):
-            tips_before = {
-                "repoA": _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip(),
-                "repoB": _git(fx["repoB"], ["rev-parse", "master"]).stdout.strip(),
-            }
-            created = create_four(fx)
-            case_layout(fx, created)
-            case_conflation_guard(fx, created)
-            case_isolation(fx, created)
-            case_branch_isolation(fx, created)
-            case_cut_point(fx, created, tips_before)
-            case_concurrent_isolation(fx, created, tips_before)
-            case_shared_checkout_negative(root)
-            case_clone_not_moved(fx)
-            case_refuse_existing(fx, created)
-            case_list(fx, created)
-            case_undeclared_repo(fx)
-            case_remove_dirty_untracked(fx)
-            case_remove_dirty_tracked(fx)
-            case_landed_refuse_then_allow(fx)
-            case_landed_differs(fx)
-            case_no_artifact_directory(fx)
-            case_gitignored_artifact_does_not_block(fx)
-            case_gitignored_does_not_mask_a_real_miss(fx)
-            case_remove_refuses_aborted_run_evidence(fx)
-            case_gate_2b_refuses_ignored_working_files(fx)
-            case_gate_2b_ignores_committed_notes(fx)
-            case_clean_refuses_without_terminal_station(fx)
-            case_clean_at_terminal_stations(fx)
-            case_clean_refuses_directory_note(fx)
-            case_clean_short_id_and_root(root)
-            case_short_id_resolves_to_the_flow_directory(fx)
-            case_short_id_ambiguous_refuses(fx)
-            case_behind_default_branch(fx)
-            case_behind_sees_origin(fx)
-            case_fleet_feature_has_two_worktrees(fx)
-            case_fleet_create_is_all_or_nothing(fx)
-            case_create_cuts_from_origin(fx)
-        else:
-            print("GUARD FAILED — refusing to create anything; skipping remaining cases")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
+def run_cases(fx, root):
+    """Every case in CASE_ORDER, in order: later cases read state earlier ones leave."""
+    tips_before = {
+        "repoA": _git(fx["repoA"], ["rev-parse", "main"]).stdout.strip(),
+        "repoB": _git(fx["repoB"], ["rev-parse", "master"]).stdout.strip(),
+    }
+    args = {"fx": fx, "root": root, "tips_before": tips_before, "created": create_four(fx)}
+    for case, names in CASE_ORDER:
+        case(*(args[name] for name in names))
+
+
+def report():
+    """Print every result; the number of failures."""
     fails = 0
     for name, ok, detail in RESULTS:
         if ok:
@@ -1562,10 +1663,21 @@ def main():
         else:
             fails += 1
             print(f"FAIL  {name}\n      | {detail}")
-
-    summary = "FAIL test-feature-worktree.py" if fails else "PASS test-feature-worktree.py"
-    print(summary)
+    print("FAIL test-feature-worktree.py" if fails else "PASS test-feature-worktree.py")
     return fails
+
+
+def main():
+    root = tempfile.mkdtemp(prefix="feature-worktree-test-")
+    try:
+        fx = build_fixture(root)
+        if run_guard(fx, root):
+            run_cases(fx, root)
+        else:
+            print("GUARD FAILED — refusing to create anything; skipping remaining cases")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    return report()
 
 
 if __name__ == "__main__":
