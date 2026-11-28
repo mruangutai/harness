@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2641-local-working-files",
   "branch": "feat/FEAT-2641-local-working-files",
   "pr": null,
-  "review_sha": "1092b406b620c29ac4afcb94c07c977f527e6ea3",
+  "review_sha": "3698e3c2b39b5efa3be0de4a01325aca5c987b0c",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -52,6 +52,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T05:55:08+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T14:57:45+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "e4f0d1f90065432af31432f96ea693ef1c45349d86625628e9f8bf1c8ebb01d5"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T15:25:04+00:00"
     }
   ],
   "judgements": [
