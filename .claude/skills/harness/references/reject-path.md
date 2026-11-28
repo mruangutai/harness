@@ -28,10 +28,15 @@ rejected — that is `abandoned`.
    closes the milestone.
    - With `--yes` and a **superseding issue number** it **writes the plan station `rejected`
      itself as its last mutation, only after every GitHub write landed — do not also call
-     `set-feature-station`**.
+     `set-feature-station`**. That station write, made through `plan-merge.py
+     set-feature-station`, removes the feature's working files once `rejected` is recorded.
    - With `--yes` and **`none`** (the ticket should not be planned at all) it leaves the station
      to you: **only after it exits 0**, write `rejected` once with
-     `plan-merge.py set-feature-station`.
+     `plan-merge.py set-feature-station`. That write removes the feature's working files once it
+     has succeeded; a refused write removes nothing.
+   - Exit 4 from `gh-sync.py reject` or exit 10 from `set-feature-station` means the station
+     landed and only the cleanup failed — run the printed `feature-worktree.py clean` command,
+     never write the station or reject again.
    - A failed GitHub write exits 1 naming what landed and what did not, and no station is written
      on either path — fix the named step and re-run.
 5. **Return `status: rejected`** with the digest's one inline

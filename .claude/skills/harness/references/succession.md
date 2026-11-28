@@ -43,8 +43,8 @@ anywhere spawn-read.
 Your first act after reading the handoff is a `succession` judgement (SC-20), recorded by the
 `run-start` of your first run (#1881) —
 `feature-record.py run-start … --by harness-orchestrator --succession <continue|downgrade|stop> --reason <one line>`
-— `run-start` refuses to open a successor run without it, and INV-43 grades one written any later
-as retrospective; decided from the feature's cumulative spend (`feature-record.py spend`) and the note's `## Next`,
+— `run-start` refuses to open a successor run without it;
+decided from the feature's cumulative spend (`feature-record.py spend`) and the note's `## Next`,
 and reported in your first return. You do not ask; the operator overrules from the return. Then
 validate `## Next` against PLAN and STATE. The note prices trust, it never grants it — anything
 UNVERIFIED gets re-checked first. No note on disk (crash)? The disk-only path is fully supported:

@@ -227,7 +227,7 @@ When `needs_prototype: true`, build something **interactive and real enough to j
   not a static image.
 - Published as an Artifact where a single-file build is possible; otherwise runnable locally with the
   command in your artifact.
-- Lives in `notes/prototypes/<FEAT>/`, committed, so what the user approved is on the record.
+- Lives in `notes/prototypes/<FEAT>/`, a local working file never committed (DEC-260); the plan signature records the approval (DEC-75).
 - Source only under `notes/prototypes/<FEAT>/` — `src/`, `package.json`, a config. Never run
   `npm install` there (#1995): serve it with a toolchain that already exists in the repository, e.g.
   `npx --prefix <client-package> vite <prototype-dir>`, and say so in the artifact. `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**/node_modules/`

@@ -70,7 +70,7 @@ Rules for steps:
   are probably too vague; go back to the BRIEF.
 - **Include the failure you most suspect.** If something feels fragile, make it a step.
 
-Write to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/uat.md`. Committed, so what was accepted and when is on the record.
+Write to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/uat.md`. A local working file, never committed (DEC-260); the ship briefing carries what was accepted and when.
 
 ### 4. Hand it over
 

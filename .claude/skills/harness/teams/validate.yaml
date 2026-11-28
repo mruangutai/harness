@@ -37,7 +37,7 @@ steps:
   # QA's run of the matrix is the ONLY run (DEC-255): it records one runner receipt per
   # claimed unit/integration kind in this run's qa/ directory, and validate-digest checks
   # those receipts instead of running the suite again. A receipt is the runner's output,
-  # not authored content; it is committed with the run record like any tracked file (DEC-257).
+  # not authored content; it stays in the local run record, never committed (DEC-260).
   #
   # THE TWO JOBS MUST NOT COLLIDE ON DISK. The segment keeps the historical name
   # `notes/qa-c{{cycle}}.md`; this step takes the reviewer-style

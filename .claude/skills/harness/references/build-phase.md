@@ -85,7 +85,7 @@ refusal are `harness-zero-micro-management`'s dispatch header.
 7. **The seam out of this phase.** Build ends at the pin, validate ends at a clean panel, and each
    is a handoff (DEC-159): write `notes/handoff-<phase>.md` with its `seq-N` BEFORE any run of the
    next phase is recorded, and hand off. The successor's `succession` judgement is its first act,
-   recorded no later than its first run; INV-43 reports one recorded after that run as a
-   retrospective seam correction (BUG-1723).
+   recorded no later than its first run; `feature-record.py run-start` refuses the successor run
+   without its succession (BUG-1723).
 
 Documentation is a product segment, sequenced the same way once validate is clean.
