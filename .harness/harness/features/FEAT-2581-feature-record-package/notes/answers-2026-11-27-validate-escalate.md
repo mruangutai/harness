@@ -20,3 +20,10 @@ failure was.
   after validate 02: the shared `/tmp/feat2581-ledger` parent is created mode 0700, or accepted
   only when it is a real directory owned by this user and closed to group and other writes.
 - **SEC-2:** not routed, as the validator lead recommended.
+- **ESC-V3-1 / VF-1 (validate 03):** resolved without a code change or a third fix round. The T-03
+  test_change mismatch came from git's automatic hash abbreviation growing from 8 to 9 characters
+  once the shared object store passed 65,536 objects. After an operator-run object cleanup (46,342
+  objects in one pack, none loose), `git diff` prints 8-character hashes again, and T-03's signed
+  verify passes at c039c32d under `bash -e -o pipefail` (exit 0). The operator chose this over
+  option A (a core.abbrev=8 prerequisite) and option B (a --full-index amendment). OQ-V3-2, about
+  multi-line verify blocks masking an earlier failure, is Harness-wide and out of this feature's scope.
