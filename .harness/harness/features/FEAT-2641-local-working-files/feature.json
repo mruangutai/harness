@@ -131,6 +131,20 @@
       "kind": "amendment",
       "decision": "T-09.intent",
       "reason": "operator ruling E5 (notes/answers-validate-c0.md): step 3 now matches the amended verify: the four protected files are unchanged by this branch, not byte-identical to e2bffca0"
+    },
+    {
+      "at": "2026-11-28T14:24:26.243877+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "operator ruling (a) (notes/answers-validate-c0-amend2.md): README.md:181 and SPEC.md:256, 1692, 2388 still say run records and QA receipts are committed"
+    },
+    {
+      "at": "2026-11-28T14:24:28.872358+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "operator ruling (a) (notes/answers-validate-c0-amend2.md): the retired-instruction grep covers README.md and SPEC.md and adds the receipts-committed phrasings they use"
     }
   ],
   "mission": "plan",

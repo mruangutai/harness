@@ -3,9 +3,12 @@ feature: FEAT-2641-local-working-files
 approval:
   date: '2026-11-28'
   approved_by: operator
-  status: approved
+  status: pending
+  reset_at: '2026-11-28T14:26:09+00:00'
+  reset_reason: apply T-12
+  resume_station: building
 drafted_at: '2026-11-28T02:57:10Z'
-status: building
+status: plan
 source_issues: [2641]
 
 panel:
@@ -248,6 +251,10 @@ decisions:
     dec: DEC-260
     choice: 'BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and FEAT-2581, shipped with no distill commit on origin/main, are declined: no preservation step and no snapshot of their observation logs. After the operator merges FEAT-2641, the main session runs gh-sync.py skip-distill --yes on each one''s landed record in the owner checkout, on main''s new code, so each feature.json carries the committed distill declined judgement, which the main session confirms per feature from git and the ledger rather than from the exit alone. Rejected - copying their observation logs aside before the untracking lands, which keeps lessons the operator chose to drop.'
     because: 'Operator ruling 2026-11-27 (OQ-02): their lessons are dropped; their working files leave every checkout when the untracking commit is pulled and stay readable in git history. Recording after the merge keeps every write of this feature''s build inside its own directory (FEAT-1559) and runs the new verb on landed code (DEC-174).'
+  - id: D-13
+    dec: DEC-261
+    choice: 'Raw verification output (runner logs, captured stdout/stderr, measurement stores, generated receipts and receipt scripts) is written under the feature''s scratch/ directory, .harness/<segment>/features/<id>/scratch/, a fifth local working-file class beside notes/, runs/ and observations/: git-ignored by the same .gitignore and gitignore.snippet rule set, refused when tracked by the guard test, counted by GATE 2b and bash-write-guard''s native worktree-remove check, and removed by working_files.clean on every terminal path. Notes and receipts carry one summary per check - what ran, at which commit, the verdict and the counts - never the pasted output; a dev receipt still carries the verify command verbatim, which is all validate-digest.py checks. DEC-261''s clause that runs/ records and QA manifests stay as DEC-238, DEC-255 and DEC-257 set them becomes: they are local working files under DEC-260, never committed. Rejected - /tmp/featNNNN-* paths, which no cleanup owns and no worktree gate protects.'
+    because: 'Operator ruling 2026-11-28 (notes/answers-validate-c0-amend2.md (b)): DEC-261 landed on main while FEAT-2641 was in validate, and its pointer to DEC-238/DEC-257 contradicts DEC-260, which untracks runs/ and QA manifests; a scratch directory inside the feature lets the routine that already owns working-file cleanup own raw output too.'
 decisions_affected:
 - dec: DEC-257
   disposition: strike
@@ -537,6 +544,20 @@ decisions_affected:
   clause: An entry states current truth directly.
   successor: none
   reason: Every amendment rewrites its clause in place; no amendment notes.
+- dec: DEC-261
+  disposition: amend
+  clause: '`runs/` records and QA
+
+    manifests stay as DEC-238, DEC-255 and DEC-257 set them.'
+  successor: D-13
+  reason: Run records and QA manifests are local working files under DEC-260 (D-01), so the pointer to DEC-238 and the struck DEC-257 no longer states current truth.
+- dec: DEC-261
+  disposition: amend
+  clause: 'It is written outside the
+
+    repository and deleted once the check that reads it has run'
+  successor: D-13
+  reason: Raw verification output goes to the feature's git-ignored scratch/, removed by the working-file cleanup (operator ruling (b)3).
 
 tasks:
   - id: T-01
@@ -848,11 +869,13 @@ tasks:
     - .omp/commands/harness.md
     - .harness/README.md
     - .omp/agents/harness-validator-lead.md
+    - README.md
+    - .harness/harness/docs/SPEC.md
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
-      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md"
-      if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts" $F; then exit 1; fi
+      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md README.md .harness/harness/docs/SPEC.md"
+      if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts|Committed with the run|ordinary tracked files|committed with the feature|\*\*committed\*\* with the feature" $F; then exit 1; fi
       grep -q "feature-record.py project-note" .claude/skills/harness/SKILL.md
       grep -q "gh-sync.py skip-distill" .omp/commands/harness.md
       grep -q "feature-worktree.py clean" .claude/skills/harness/references/distillation.md
@@ -1033,3 +1056,66 @@ tasks:
       3. .harness/harness/docs/DECISIONS.md: in DEC-260's paragraph for D-08, add one sentence as current truth: bash-write-guard.py refuses an unforced native git worktree remove on the same condition, naming the same directories and counts and pointing to feature-worktree.py remove (ruling E4). Change no other sentence; the DECISIONS-INDEX ruling tail is unchanged. If check-plan-routes.py --canonical-reader-audit reports a new reader site in bash-write-guard.py or working_files.py, add exactly that row to tests/integration/canonical-reader-classification.json in the existing shape; otherwise leave the file untouched.
 
       4. Tests. tests/unit/test-working-files.py: on a git-initialised temp repository whose feature directory holds two untracked files under notes/, one under runs/ and one tracked file under observations/, untracked_counts returns {"notes": 2, "runs": 1}; with no working dirs it returns {}; a failing git (a non-repository checkout) raises WorkingFilesError. tests/integration/test-bash-write-guard.py keeps every existing case unchanged, case 8 (an unforced remove of a worktree with no feature working files is allowed) included, and adds, on a real repository built by the test's own subprocess git (git init, one commit, git worktree add under <root>/.claude/worktrees/harness/FEAT-91 - the hook is not in that loop): (a) with <wt>/.harness/harness/features/FEAT-91-probe/notes/x.md and runs/r/digest.md written and untracked, firing `git worktree remove <wt>` exits 2, stderr names notes/ (1 files), runs/ (1 files) and feature-worktree.py, and the worktree and both files still exist; (b) the same refusal for `git -C <root> worktree remove .claude/worktrees/harness/FEAT-91`, the relative operand resolved against -C; (c) with only an untracked scratch.txt at the worktree root and no working files, the same command is not refused by this rule (exit 0); (d) `git worktree prune` unforced stays allowed; (e) `git worktree remove` with no operand is refused naming the command. Expected red before step 1 and 2: cases (a), (b) and (e) exit 0 and untracked_counts does not exist; keep that output for qa.
+  - id: T-12
+    title: Fold DEC-261 in - raw verification output goes to the feature's scratch/, instructions ask for a summary
+    traces: [SC-19, SC-20]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - working_files.py, GATE 2b, the ignore rules, the member grants and validate-digest.py are enforcement this feature changes; the instruction and decision edits describe that change and land with it. Operator ruling (b) in notes/answers-validate-c0-amend2.md.
+    depends_on:
+    - T-03
+    - T-07
+    - T-08
+    - T-11
+    status: ready
+    files:
+    - .harness/harness/docs/DECISIONS.md
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    - .omp/agents/harness-qa.md
+    - .claude/skills/harness/teams/validate.yaml
+    - .claude/skills/harness/teams/fix.yaml
+    - .claude/skills/harness-digest-dev/SKILL.md
+    - .claude/skills/harness/bin/validate-digest.py
+    - .claude/skills/harness/bin/working_files.py
+    - .claude/skills/harness/bin/feature-worktree.py
+    - .claude/skills/harness/bin/bash-write-guard.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/plan-merge.py
+    - .claude/skills/harness/bin/merge-gitignore.py
+    - .claude/skills/harness/templates/gitignore.snippet
+    - .claude/skills/harness/templates/team-config.yaml
+    - .harness/team-config.yaml
+    - .gitignore
+    - .claude/skills/harness/references/checkout-upgrade.md
+    - .harness/README.md
+    - tests/unit/test-working-files.py
+    - tests/unit/test-working-files-untracked.py
+    - tests/integration/test-merge-gitignore.py
+    - tests/integration/test-feature-worktree.py
+    - tests/integration/test-check-domain-grant.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      git merge-base --is-ancestor d0d13c7e HEAD
+      for f in tests/unit/test-working-files.py tests/unit/test-working-files-untracked.py tests/integration/test-merge-gitignore.py tests/integration/test-feature-worktree.py tests/integration/test-check-domain-grant.py tests/integration/test-validate-digest.py tests/integration/test-bash-write-guard.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
+      git check-ignore -q .harness/harness/features/FEAT-0-probe/scratch/pytest.log
+      env -u HARNESS_AGENT_TYPE python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import working_files; assert 'scratch' in working_files.WORKING_DIRS"
+      if grep -nE "verbatim\*\* output|full output in your note|runner's full output|stay as DEC-238, DEC-255 and DEC-257|written outside the$|its verbatim output|then its output" .omp/agents/harness-qa.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness/teams/fix.yaml .claude/skills/harness-digest-dev/SKILL.md .harness/harness/docs/DECISIONS.md .claude/skills/harness/bin/validate-digest.py; then exit 1; fi
+      if grep -rn "/tmp/feat" .claude .omp; then exit 1; fi
+      for f in .claude/skills/harness-digest-dev/SKILL.md .omp/agents/harness-qa.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness/teams/fix.yaml; do grep -q "scratch/" "$f"; done
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-decision-anchors.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-refs.py .
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-weight.py .
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. The governing record is .harness/harness/docs/DECISIONS.md - read DEC-174, DEC-255, DEC-260, DEC-261 and this plan's D-01, D-05, D-08, D-10 and D-13. Run Python as env -u HARNESS_AGENT_TYPE python3. Operator ruling (b), notes/answers-validate-c0-amend2.md. DEC-261 is on origin/main (d0d13c7e) and not on this branch: before any edit, bring origin/main in by the route T-09's intent names (rebase onto current main) so DEC-261's section exists to edit; the verify's first line checks it. `.agents/skills` is a tracked symlink to `../.claude/skills`, so every `.agents/skills/...` path in the ruling is the `.claude/skills/...` file listed here; no generation or skill-sync step applies. Test-first: write the step 5 cases, run them against the unchanged tree and keep the failing output in scratch/ with its one-paragraph summary in notes/red-T-12.txt before step 1; the passing run's summary goes in notes/green-T-12.txt. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes on the final tree.
+
+      1. Scratch is a working-file class (D-13). bin/working_files.py: WORKING_DIRS becomes ("notes", "runs", "observations", "scratch"); its module docstring and the targets docstring name scratch/. Every consumer keyed on WORKING_DIRS - targets and clean (abandon, the rejected station write, merge-distill, skip-distill, feature-worktree.py clean), untracked and untracked_counts (GATE 2b in feature-worktree.py remove and bash-write-guard.py's native worktree-remove check from T-11) - then covers scratch/ with no change of its own; change only the comments, docstrings and printed sentences in feature-worktree.py, bash-write-guard.py, gh-sync.py and plan-merge.py that enumerate notes/, runs/ and observations/ so they name scratch/ too. .gitignore and templates/gitignore.snippet gain .harness/*/features/*/scratch/ beside the existing three feature rules, and their comment names it; merge-gitignore.py's HEADER and module docstring name scratch/ (the rules themselves come from the snippet). references/checkout-upgrade.md's working-files checklist adds ':(glob).harness/*/features/*/scratch/**' to the git rm --cached pathspecs. .harness/README.md's committed-versus-local paragraph names scratch/ as the place raw verification output lives and removed with the other working files.
+
+      2. Grants. In .harness/team-config.yaml and templates/team-config.yaml, every member whose dispatch runs a verify or a suite - harness-qa, harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-documentor - gains { path: .harness/*/features/*/scratch/**, upsert: true } (the template keeps its own .harness/features/* path form), so a Write and a Bash redirect into the feature's scratch/ are admitted by check-domain.py and bash-write-guard.py; no other grant changes.
+
+      3. Decision record (D-13). In DEC-261's section of DECISIONS.md, replace "It is written outside the repository and deleted once the check that reads it has run" with: it is written under the feature's git-ignored scratch/ (.harness/<segment>/features/<id>/scratch/), never committed, and removed with the feature's other local working files (DEC-260); and replace "`runs/` records and QA manifests stay as DEC-238, DEC-255 and DEC-257 set them." with: `runs/` records and QA manifests (runs/<id>/qa/manifest-*.json) are local working files under DEC-260, never committed. Keep every other sentence of DEC-261, its core rule included (raw output is scratch, never committed; one summary per check). DEC-238 and DEC-257 were already amended and struck by T-08; touch them only if a sentence there still says runs/ records or QA manifests are committed. Add DEC-260 to DEC-261's Refs. Regenerate the index with gen-decisions-index.py; rewrite DEC-261's hand-written ruling tail only if it names committed runs/ or manifests.
+
+      4. Instructions: a summary, never the output. .omp/agents/harness-qa.md step 3 ("Keep the tested commit and the runner's full output in your note"): keep in the note one summary per suite - what ran (the runner command and kind), at which commit, the verdict and the pass/fail/skip counts - and write the runner's raw output to the feature's scratch/, never into the note. teams/validate.yaml (the "keep the tested commit and full output in your note" clause) and teams/fix.yaml (the same clause): the same sentence. harness-digest-dev/SKILL.md, the paragraph opening "Report the result as `task_verify`": paste into your receipt the verify command exactly as plan.yaml spells it, the commit it ran at, the verdict and the counts; write the raw output to the feature's scratch/, never into the receipt; validate-digest.py refuses task_verify: pass when the receipt is missing or does not carry the command (DEC-261). validate-digest.py _receipt_error: its two refusal messages ask for the receipt to hold the verify command and the summary, and never for the output; the check itself - the receipt exists and carries the verify command verbatim - is unchanged. INV-47 is retired by this feature (D-02), so no gate reads a review note's body; nothing changes there.
+
+      5. Tests. tests/unit/test-working-files.py: on a temp feature directory holding scratch/pytest.log beside notes/x.md, targets lists scratch/ after observations/ and clean removes it; untracked_counts on a git-initialised repository with two untracked files under scratch/ reports {"scratch": 2}. tests/unit/test-working-files-untracked.py: its WORKING pattern and pathspecs include scratch, and a probe path .harness/harness/features/FEAT-0-probe/scratch/pytest.log is reported ignored by git check-ignore and refused when tracked. tests/integration/test-merge-gitignore.py: a project .gitignore lacking the scratch rule gains it, and --check names it as missing without writing. tests/integration/test-feature-worktree.py: remove refuses with exit 4 while the feature directory holds one untracked file under scratch/, printing "WOULD DISCARD WORKING FILES <feature>/scratch/ (1 files)", and clean --yes on a done feature removes scratch/. tests/integration/test-check-domain-grant.py: a Write by harness-qa and by harness-backend-dev to .harness/harness/features/FEAT-0-probe/scratch/run.log is allowed. Expected red before steps 1 to 4: every new case fails - WORKING_DIRS has no scratch, the probe path is not ignored and the grant is absent; keep that summary for qa.

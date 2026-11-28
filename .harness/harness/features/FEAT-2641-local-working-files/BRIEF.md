@@ -89,6 +89,11 @@ note the main checkout cannot see.
 - SC-18 (operator): On a shipped feature, `gh-sync.py skip-distill <feature-dir> --reason-file <path> --yes` appends one `feature.json` judgement of kind `distill` with decision `declined`, commits that `feature.json` alone, and only once that commit has succeeded deletes the feature's `notes/`, `runs/` and `observations/` — the retained worktree's copy when one exists, named by the short or the full id — and each `.harness/notes/` path `project_notes` lists, leaving an unlisted note; it does so with `github.sync` off or no authenticated `gh` alike and never prints a SKIP; a refused commit deletes nothing, and a re-run commits the recorded decline without a second judgement; without `--yes` it changes nothing; a feature not at `done`, or a refused judgement write, writes and deletes nothing.
   verify: automated
   evidence: integration
+- SC-19 (operator): A feature's `scratch/` (`.harness/*/features/*/scratch/`) is a fifth local working-file class (operator ruling (b), DEC-261 fold-in): `git check-ignore` reports `.harness/harness/features/FEAT-0-probe/scratch/pytest.log` ignored and the guard test refuses a tracked one; `merge-gitignore.py` appends its rule to a `.gitignore` that lacks it and `--check` names it without writing; `bin/working_files.py` `WORKING_DIRS` includes `scratch`, so every terminal cleanup removes it, `feature-worktree.py remove` refuses with exit 4 naming `scratch/` with its file count while it holds an untracked file, and `feature-worktree.py clean --yes` removes it; harness-qa and each engineering dev may write into their feature's `scratch/`.
+  verify: automated
+  evidence: integration
+- SC-20 (code maintainer): Read at the pin, DEC-261 states that `runs/` records and QA manifests are local working files under DEC-260 and that raw verification output is written to the feature's `scratch/`, with its core rule (raw output never committed; one summary per check) unchanged; `harness-qa.md`, `teams/validate.yaml`, `teams/fix.yaml` and `harness-digest-dev/SKILL.md` tell the writer to record a summary (what ran, which commit, verdict, counts) and keep raw output in `scratch/`, never pasting it into a note or receipt; `validate-digest.py`'s receipt refusal asks only for the verify command and the summary; no instruction under `.claude/` or `.omp/` names a `/tmp/feat…` path for raw output; the reviewer cites the lines.
+  verify: inspection
 
 ## Verification gaps
 
@@ -148,6 +153,4 @@ note the main checkout cannot see.
 
 ## Approval
 
-status: approved
-approved-by: operator
-date: 2026-11-28
+status: pending
