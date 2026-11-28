@@ -118,10 +118,11 @@ def _validate_recorded_blocks(doc, path):
         _validate_recorded_block(doc, path, block_name)
 
 
-# The refusal code THIS module raises for a validation failure (invalid JSON or schema
-# violation) or a UTF-8 encoding failure -- distinct from harness_merge's own 6 (lock
-# timeout) and 9 (destination refusal), so a caller can tell "somebody else holds the lock"
-# and "wrong path" apart from "the write would have produced a document nothing can read".
+# The refusal code for a document nothing can read: invalid JSON or a non-mapping (parse_doc
+# here), and a schema violation or UTF-8 encoding failure (feature_record.write) -- distinct
+# from harness_merge's own 6 (lock timeout) and 9 (destination refusal), so a caller can tell
+# "somebody else holds the lock" and "wrong path" apart from "the write would have produced a
+# document nothing can read".
 SCHEMA_REFUSAL_CODE = 11
 
 
