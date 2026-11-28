@@ -776,14 +776,16 @@ reads every gate run as exactly one of three outcomes:
 | Outcome | What the gate does | What the agent sees |
 |---|---|---|
 | **Refusal** | `exit 2`, or a structured deny on stdout | the call is blocked, with the gate's reason |
-| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, a spawn error, or a kill at the 30-second budget | the call proceeds, with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged (pre, post, dispatch, yield), never deduplicated, never an error result |
+| **Unavailable** | its own failure: one stdout line `{"decision": "unavailable", "gate": "<script stem>", "reason": …}` at exit 0; the extension synthesizes the same for an abnormal exit, a signal, a missing gate or interpreter, a spawn error, or a kill at the 30-second budget | the call proceeds (pre, post, dispatch), with passive context `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` on every occurrence, phase-tagged, never deduplicated, never an error result; a yield is refused, never passed (BUG-2565) |
 | **Allow** | `exit 0` and nothing else | nothing |
 
 A refusal outranks an unavailable line in the same output; omp discards `additionalContext` on a
 blocked call, so beside a refusal the notices follow the denial in the refusal reason. The four gates that fire on every call
-— `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — resolve
-their own failure as **unavailable**, because failing them closed would wedge every agent on one
-gate's bug. Three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
+— `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py`, `validate-digest.py` — report
+their own failure as **unavailable**. For the first three the call proceeds, because failing them
+closed would wedge every agent on one gate's bug; the yield phase alone refuses on
+`validate-digest.py`'s unavailable outcome, so a yield it cannot check is refused, never passed
+(BUG-2565). Three narrow command gates — `gh-close-gate.py`, `branch-create-gate.py`,
 `plan-sign-gate.py` — match their command first, with the standard library and before any
 dependency loads; an unrelated command is untouched, and a guarded one whose gate cannot run —
 an unreadable or malformed `harness.json` included — is **refused** by name, while a readable
@@ -793,6 +795,42 @@ cannot start or finish, so a timeout refuses only a guarded command).
 failures (a broken root at exit 2, for any command), and when its process cannot start or finish
 — a timeout included — `narrowGateApplies`, a port of its `merge_ref`, refuses only a matching
 `git merge` or `gh pr merge` (`--abort`, `--continue` and `--quit` exempt).
+
+**Stale hook code (BUG-2566).** OMP imports `.omp/extensions/harness-hooks.ts` once, at process
+start, so a long-running session keeps enforcing the code it loaded. At module load the extension
+records a fingerprint, by content (sha256), of the hook modules the process loaded from
+`.omp/extensions`, which is `harness-hooks.ts` alone (`HOOK_FINGERPRINT_MODULES`). The fingerprint is
+resolved from the checkout the extension was loaded from (`import.meta.url`), never from the cwd. A
+missing module is recorded as absent, and a path that is not a regular file is recorded by its kind
+and never opened.
+
+The digest schema directory and the agent definitions are not fingerprinted. The loaded hook reads
+neither, and gate scripts such as `validate-digest.py` start as a new process per call. OMP
+rediscovers agent definitions on every task spawn, so each new spawn receives the current digest
+contract; this does not update a child already running.
+
+Before any other check, every governed call re-reads the fingerprint. The governed calls are every
+tool call of a Harness persona session, Main's task dispatch, and Main's Bash whose command names
+merge (`MERGE_COMMAND_PREFILTER`). When the fingerprint differs from load, the call is refused with
+one line that names the changed paths and tells the operator to restart omp
+(`staleHookRefusal`). There is no warn-and-continue mode.
+
+The one exception is a persona's yield of a BLOCKED digest. It proceeds to yield validation as it
+does in a held run (DEC-204), so an in-flight child can still submit a BLOCKED digest recording why
+it stopped. Yield validation still judges that digest normally, so the exception does not guarantee
+that the run completes or releases its claim. A persona's refusal tells it that, while the process
+is stale, it may yield only a BLOCKED digest. Main's other calls are never checked, so the operator
+can always repair and restart.
+
+These do not trip the check:
+
+- a touched timestamp with unchanged bytes;
+- an edit to a digest schema or an agent definition;
+- a change in a different checkout, such as a feature worktree for a session started in the main
+  checkout.
+
+Restoring the original bytes clears the refusal. The baseline is taken at module load, so a session
+started before this check shipped cannot detect staleness and must be restarted once.
 
 **Asynchronous, bounded, parallel (DEC-100).** Every Python policy process — gate or helper — is
 spawned asynchronously and awaited, so a pending process never freezes OMP's event loop and a
@@ -944,7 +982,7 @@ script; it is not restated here.
 of its own tier's budget — the only signal that fires while there is still headroom to displace an
 entry rather than overflow into the truncation backstop above (issue #613).
 
-The hook injects **global craft, then project craft, then every repository tier present** (sorted by
+The hook supplies **global craft, then project craft, then every repository tier present** (sorted by
 segment name), and labels each block by scope alone. Precedence is repository over project over global, by specificity — and the hook says so in the injected text whenever a repository block is present. Because the hook cannot know which repository a spawn serves, a repository block whose segment is not the one the agent was dispatched against is **not authoritative** for that agent's work — the agent must read the segment name.
 
 **Decision vs observation — a hard boundary:**
@@ -1329,14 +1367,16 @@ object.
 
 ### 8.3 Dispatch, rejection and durable-record failures
 
-**Dispatch:** the OMP task hook owns structured-output configuration
-(`.omp/extensions/harness-hooks.ts:278`). A Harness dispatcher must not supply `outputSchema` or
-`schemaMode`, either at the task top level or inside `tasks[]`; the hook
-refuses the call before its claim side effect and names the forbidden location. It resolves the
-target persona's canonical schema, projects a ref-free provider bundle and injects that bundle with
-`schemaMode: strict`. An unreadable or malformed schema, missing persona, unresolved or escaping
-reference, reference cycle, or unsupported projection keyword refuses dispatch. There is no loose
-schema fallback.
+**Dispatch:** each harness agent definition owns its structured-output configuration. It carries
+`structured: true` and an `output:` generated from its persona schema plus `common.json` by
+`.claude/skills/harness/bin/gen-agent-output.py` (`digest_projection.provider_bundle`), and
+`check-omp-port.py` (`agent_output_errors`) fails when it drifts. Global `task.structured` stays at
+OMP's default (off), so the task tool exposes no schema parameter; the task hook neither refuses
+nor revises a dispatcher's schema controls and hands `dispatch-guard.py` one normalized target per
+dispatch (`normalizeTaskDispatches`). A schema that cannot be projected fails generation and the
+port gate. There is no loose schema fallback. Agent frontmatter cannot set strict mode, so the
+yield hook refuses a yield with no data whatever its type, and a yield `validate-digest.py` cannot
+check is refused, never passed (`validatorUnavailableRefusal`).
 
 **Yield:** YieldTool `data` must itself be the object. Missing data, JSON null, a string, a list, a
 wrapper around the object, undeclared properties, omitted required properties, and semantic or
@@ -1364,10 +1404,13 @@ Historical readers scan from the end for the final safe fenced mapping
 rewrite old bytes, or mistake historical prose for a current return.
 
 **Live cutover gate:** deleting the text and null-repair paths required a credentialled OMP run in
-which explicit null was rejected and the same job then completed with a valid object under its
-injected strict schema. Unit and integration tests do not substitute for this host settlement
-probe. If that live gate fails for a future cutover, stop and amend the design; do not waive it with
-a green local suite.
+which explicit null was rejected and the same job then completed with a valid object; that earlier
+probe ran under the then-injected strict schema. The current live gate is this route's own probe,
+`.harness/harness/features/BUG-2565-digest-frontmatter-contract/notes/research-frontmatter-binding-probe.md`:
+generated frontmatter hid both schema parameters, rejected an off-schema yield and accepted a
+conforming one on OMP 19.2.1. Unit and integration tests do not substitute for this host
+settlement probe. If that live gate fails for a future cutover, stop and amend the design; do not
+waive it with a green local suite.
 
 **Host boundary:** this object-only digest path is OMP-native, and OMP is the only host (DEC-233).
 The request reaching `validate-digest.py` keeps the internal `SubagentStop` label as part of the

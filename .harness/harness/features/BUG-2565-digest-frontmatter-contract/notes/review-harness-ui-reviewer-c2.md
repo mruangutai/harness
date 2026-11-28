@@ -1,0 +1,1 @@
+**PASS — Mode B scoped out.** Fix-round delta `bb401aae..ed064577` changes 25 paths (16 feature records, 5 documentation/skill files, 2 tooling scripts, 2 test paths), with no rendered or interactive UI changes; `org.html` is unchanged and the feature has no `DESIGN.md` at the pin. Accessibility and light/dark parity are not applicable.

@@ -176,7 +176,11 @@ declared, the wrong-field-type disaster guard, the linkage guard). 3 a NEW proje
 linked, AND its station field made to carry every declared station (fix cycle c2, SC-01 — the
 field lands in the SAME run, it never waits for a second one); the operator must record the new
 number in that repo's harness.json before anything else runs, and 3 is that signal — its
-meaning is unchanged by c2 or c3. 4 a write was attempted and the run did not fully land: the
+meaning is unchanged by c2 or c3. 3 also reports an ADOPTED board (#2618): before creating, the
+module searches `owner`'s projects for '<repo> board'; exactly one, linked to the repository, is
+adopted and provisioned as an EXISTING board (linkage guard, add-only options), so the operator
+records its number instead of a retry creating a second board. Several candidates, or one whose
+link cannot be proven, refuse at 2 with nothing written. 4 a write was attempted and the run did not fully land: the
 link failed, or the field work failed after a successful create+link. Every 4 path names the
 CREATED project's number on stderr, because a retry that cannot see it re-enters the create
 branch and produces a SECOND duplicate board — the exact disaster `project_resolve`'s own
@@ -196,8 +200,8 @@ is not wrapped, because a failure there has no created number to report. Every G
 is a genuine zero-mutation failure (the owner-id read failed, or the mutation was rejected and
 returned null), so 2 is correct for those. A non-GhError inside it — a `json.loads` ValueError on
 the createProjectV2 response, where gh exited 0 and the board therefore EXISTS — exits 2 while a
-board exists, and no catch here could name its number. Closing it needs a read-back
-(`project_resolve` by title) that this module does not do today.
+board exists, and no catch here could name its number. The next run's adoption search (#2618)
+finds that board by title and adopts it if linked, or refuses naming it if not.
 
 A FRESH BOARD IS NOT EMPTY — MEASURED 2026-08-23 on project 7, owner mruangutai (fix cycle c3).
 A brand-new Projects v2 project ALREADY carries a `Status` single-select field whose options are
@@ -682,8 +686,8 @@ def _extend_to_union(project_id, field_id, owner, number, field, declared):
 def cmd_provision(repo_arg):
     """Create or repair the declared board. Exits 0 (correct), 2 (unusable declaration/caller,
     zero mutations), 3 (a new project was created, linked and its station field made to carry
-    every declared station — record the number) or 4 (a write was attempted and did not fully
-    land; stderr names the created number). See the module docstring's PROVISION'S EXIT CODES
+    every declared station, or the one linked '<repo> board' was adopted and repaired as an
+    existing board — record the number) or 4 (a write was attempted and did not fully land; stderr names the created number). See the module docstring's PROVISION'S EXIT CODES
     and A FRESH BOARD IS NOT EMPTY paragraphs for the full contract.
     """
     root = harness_boundary.resolve_root(_BIN_DIR)
@@ -700,61 +704,126 @@ def cmd_provision(repo_arg):
     # GhError from this call (owner unresolvable, org-owned board) propagates unhandled and
     # mutates nothing.
     resolved = factory_gh.project_resolve(owner, number)
+    adopted = None
     if resolved is None:
         if not repo_name:
             factory_cli.refuse(
                 _TOOL, "cannot link the new project", "github.repo is not declared",
                 "pin github.repo in harness.json before provisioning",
             )
-        # Fix cycle c1, MUST-FIX 2: the created project's number is printed BEFORE anything
-        # that can still fail (the link call) -- an exit code that follows a partial mutation
-        # must never read like "nothing mutated" (exit 2, this module's OWN caller/declaration
-        # code), and a naive retry that saw exit 2 here would re-enter this branch and create a
-        # SECOND duplicate board, the exact disaster `project_resolve`'s own docstring names.
-        created = factory_gh.project_create(owner, f"{repo_name} board")
-        _out(f"no project {number} on {owner} -- created project {created['number']}; record "
-             f"number {created['number']} in {repo_name}'s harness.json")
-        try:
-            factory_gh.project_link_repository(created["id"], repo_name)
-        except SystemExit:
-            raise
-        except BaseException as exc:
-            # Fix cycle c4, finding 1, SECOND instance: this catch was GhError-only too, and
-            # `project_link_repository` sends TWO `run_gh(json_out=True)` calls
-            # (factory_gh.py:613, 622) whose `json.loads` raises ValueError, plus an unguarded
-            # `repository["id"]`. A project already exists at this point, so the same reasoning
-            # applies verbatim -- exit 2 here would claim nothing was written and a retry would
-            # duplicate the board. Broadened alongside `_fresh_board_station_field`'s, because
-            # leaving it would keep the module docstring's "4 is never conflated with 2" false
-            # for a different line.
-            if not isinstance(exc, factory_gh.GhError):
-                exc = f"unexpected {type(exc).__name__}: {exc}"
-            print(
-                f"factory: {_TOOL}: created project {created['number']} on {owner} but "
-                f"failed to link {repo_name} -- {exc}; the project EXISTS (record "
-                f"{created['number']} in {repo_name}'s harness.json now to avoid a duplicate "
-                f"on retry) -- link it manually (project_link_repository) or re-run once the "
-                f"failure is resolved",
-                file=sys.stderr,
-            )
-            sys.exit(4)
-        _out(f"linked {repo_name} to project {created['number']}")
-        # Fix cycle c2 (SC-01): the station field lands HERE, in the SAME run as the project --
-        # it never waits for a second one. Every input is already in hand: `created["id"]` is
-        # the new project's node id, and both `field` and `declared` come from the DECLARATION
-        # (harness.json's `github.board`), never from the board number, so neither depends on
-        # the operator having recorded the new number yet.
-        # Fix cycle c3: this branch PROBES rather than assuming the field is absent. c2 asserted
-        # here that a just-created project "is empty by construction, so `field` cannot already
-        # be taken" -- MEASURED FALSE against the real API on 2026-08-23 (project 7, owner
-        # mruangutai): a brand-new Projects v2 project already carries a `Status` single-select
-        # with Todo / In Progress / Done, and createProjectV2Field returned "Name has already
-        # been taken" (exit 4). The whole field decision lives in `_fresh_board_station_field`,
-        # which is the ONLY caller of the exact-replace path -- see its docstring.
-        _fresh_board_station_field(created, repo_name, owner, field, declared)
+        adopted = _adoptable_board(owner, repo_name, number)
+        if adopted is None:
+            _create_board(owner, number, repo_name, field, declared)
+        resolved, number = adopted, adopted["number"]
+    _provision_existing(owner, number, resolved["id"], repo_name, field, declared)
+    if adopted is not None:
+        _out(f"record number {number} in {repo_name}'s harness.json")
         sys.exit(3)
 
-    project_id = resolved["id"]
+
+# #2618: a create whose number was never recorded (exit 4, or a lost stdout) left a board titled
+# '<repo> board' under the owner. Before creating, a run looks for it: exactly one, linked to the
+# repository, is ADOPTED and provisioned as an EXISTING board -- linkage guard, add-only options,
+# never the exact replace reserved for a board the same run created. Several candidates, or one
+# whose link to the repository cannot be proven, refuse with zero writes.
+_TITLED_BOARDS_QUERY = """query($owner: String!, $title: String!) {
+  user(login: $owner) {
+    projectsV2(first: 100, query: $title) {
+      nodes { id number title }
+      pageInfo { hasNextPage }
+    }
+  }
+}
+"""
+
+
+def _titled_boards(owner, title):
+    """Read-only: `owner`'s projects titled exactly `title`, as {id, number, title} nodes.
+    Raises GhError rather than return a partial list past one page."""
+    argv = ["api", "graphql", "-f", "query=" + _TITLED_BOARDS_QUERY,
+            "-f", "owner=" + owner, "-f", "title=" + title]
+    data = factory_gh.run_gh(argv, json_out=True).get("data") or {}
+    conn = (data.get("user") or {}).get("projectsV2") or {}
+    if (conn.get("pageInfo") or {}).get("hasNextPage"):
+        raise factory_gh.GhError(argv, None, "", "", "titled-project search exceeds one page",
+                                 f"{owner}: {title}", "find the board by hand and record its number")
+    return [n for n in conn.get("nodes", []) if n.get("title") == title]
+
+
+def _adoptable_board(owner, repo_name, number):
+    """The one adoptable board's node, None when there is no candidate; refuses (exit 2) on
+    several candidates or on one whose link to `repo_name` cannot be proven."""
+    title = f"{repo_name} board"
+    found = _titled_boards(owner, title)
+    if not found:
+        return None
+    numbers = ", ".join(str(n["number"]) for n in found)
+    if len(found) > 1 or repo_name not in _project_linked_repos(owner, found[0]["number"]):
+        factory_cli.refuse(
+            _TOOL, "cannot adopt an existing board",
+            f"{owner} projects {numbers} titled '{title}'; adoption needs exactly one, linked "
+            f"to {repo_name}",
+            f"record the right board in {repo_name}'s harness.json github.board.number (link "
+            f"it first with project_link_repository if needed)",
+        )
+    _out(f"no project {number} on {owner} -- adopting project {numbers}, titled '{title}' and "
+         f"linked to {repo_name}, as an existing board")
+    return found[0]
+
+
+def _create_board(owner, number, repo_name, field, declared):
+    """Create, link and field a NEW board; always exits (3 created, 4 a follow-up write failed)."""
+    # Fix cycle c1, MUST-FIX 2: the created project's number is printed BEFORE anything
+    # that can still fail (the link call) -- an exit code that follows a partial mutation
+    # must never read like "nothing mutated" (exit 2, this module's OWN caller/declaration
+    # code), and a naive retry that saw exit 2 here would re-enter this branch and create a
+    # SECOND duplicate board, the exact disaster `project_resolve`'s own docstring names.
+    created = factory_gh.project_create(owner, f"{repo_name} board")
+    _out(f"no project {number} on {owner} -- created project {created['number']}; record "
+         f"number {created['number']} in {repo_name}'s harness.json")
+    try:
+        factory_gh.project_link_repository(created["id"], repo_name)
+    except SystemExit:
+        raise
+    except BaseException as exc:
+        # Fix cycle c4, finding 1, SECOND instance: this catch was GhError-only too, and
+        # `project_link_repository` sends TWO `run_gh(json_out=True)` calls
+        # (factory_gh.py:613, 622) whose `json.loads` raises ValueError, plus an unguarded
+        # `repository["id"]`. A project already exists at this point, so the same reasoning
+        # applies verbatim -- exit 2 here would claim nothing was written and a retry would
+        # duplicate the board. Broadened alongside `_fresh_board_station_field`'s, because
+        # leaving it would keep the module docstring's "4 is never conflated with 2" false
+        # for a different line.
+        if not isinstance(exc, factory_gh.GhError):
+            exc = f"unexpected {type(exc).__name__}: {exc}"
+        print(
+            f"factory: {_TOOL}: created project {created['number']} on {owner} but "
+            f"failed to link {repo_name} -- {exc}; the project EXISTS (record "
+            f"{created['number']} in {repo_name}'s harness.json now to avoid a duplicate "
+            f"on retry) -- link it manually (project_link_repository) or re-run once the "
+            f"failure is resolved",
+            file=sys.stderr,
+        )
+        sys.exit(4)
+    _out(f"linked {repo_name} to project {created['number']}")
+    # Fix cycle c2 (SC-01): the station field lands HERE, in the SAME run as the project --
+    # it never waits for a second one. Every input is already in hand: `created["id"]` is
+    # the new project's node id, and both `field` and `declared` come from the DECLARATION
+    # (harness.json's `github.board`), never from the board number, so neither depends on
+    # the operator having recorded the new number yet.
+    # Fix cycle c3: this branch PROBES rather than assuming the field is absent. c2 asserted
+    # here that a just-created project "is empty by construction, so `field` cannot already
+    # be taken" -- MEASURED FALSE against the real API on 2026-08-23 (project 7, owner
+    # mruangutai): a brand-new Projects v2 project already carries a `Status` single-select
+    # with Todo / In Progress / Done, and createProjectV2Field returned "Name has already
+    # been taken" (exit 4). The whole field decision lives in `_fresh_board_station_field`,
+    # which is the ONLY caller of the exact-replace path -- see its docstring.
+    _fresh_board_station_field(created, repo_name, owner, field, declared)
+    sys.exit(3)
+
+
+def _provision_existing(owner, number, project_id, repo_name, field, declared):
+    """Repair an EXISTING board: linkage guard, then create the field or widen its options."""
 
     # Step 2.5, THE LINKAGE GUARD (fix cycle c1, MUST-FIX 1): `project_resolve` above confirmed
     # only that project `number` EXISTS under `owner` -- never that it is linked to `repo_name`.

@@ -17,6 +17,157 @@ autoloadSkills:
 - harness-handoff
 - harness-expertise
 - harness-principles
+structured: true
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - VERDICT
+  - DIGEST
+  - artifact
+  properties:
+    VERDICT:
+      enum:
+      - PASS
+      - FAIL
+      - BLOCKED
+      - ESCALATE
+    DIGEST:
+      type: object
+      additionalProperties: false
+      required:
+      - headline
+      - open_questions
+      - files_touched
+      - expertise_update
+      - docs_updated
+      - gaps
+      - stale_found
+      properties:
+        headline:
+          type: string
+        open_questions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - question
+            - blocking
+            properties:
+              id:
+                type: string
+              question:
+                type: string
+              blocking:
+                type: boolean
+        files_touched:
+          type: array
+          items:
+            type: string
+        expertise_update:
+          type: array
+          items:
+            anyOf:
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - entry
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - add
+                  - replace
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                entry:
+                  type: string
+                why:
+                  type: string
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - drop
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                why:
+                  type: string
+        docs_updated:
+          type: array
+          items:
+            type: string
+        gaps:
+          type: array
+          items:
+            type: string
+        stale_found:
+          type: array
+          items:
+            type: string
+    artifact:
+      type: string
 ---
 
 HARNESS_AGENT_ID: harness-documentor

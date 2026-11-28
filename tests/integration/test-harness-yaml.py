@@ -1008,6 +1008,37 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
                 raise AssertionError(f"ACCEPTED what it must reject ({label}): {verify_line!r}")
 
 
+def test_load_plan_refuses_a_folded_verify_while_pending():
+    """#2618: a folded `verify: >` scalar loads as a different string than the plan text (its
+    newlines collapse), so the lead's verbatim copy and the member's cross-check disagree and a
+    correct task returns BLOCKED. While a plan is pending, load_plan refuses every folded
+    indicator, naming the task and the literal `|` fix. Every verify line below passes the
+    row-86 shape check on its own, so a refusal can only come from the style rule."""
+    import harness_yaml as hy
+
+    def plan(indicator, status="pending"):
+        return _pending_plan("python3 tests/unit/test-thing.py", status).replace(
+            "verify: |", f"verify: {indicator}")
+
+    for indicator in (">", ">-", ">+"):
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                artifact_accessors.load_plan(_plan(tmp, plan(indicator)))
+            except hy.PlanSchemaError as e:
+                msg = str(e)
+                assert "T-01" in msg, f"{indicator}: message does not name the task: {msg}"
+                assert "folded" in msg and "'|'" in msg, f"{indicator}: no fix named: {msg}"
+            else:
+                raise AssertionError(f"ACCEPTED a folded verify: {indicator!r} on a pending plan")
+
+    # Controls: the same text as a literal block loads while pending, and a folded block on an
+    # approved plan still loads (signed text is carried verbatim, never re-checked).
+    for indicator, status in (("|", "pending"), ("|-", "pending"), (">", "approved")):
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = artifact_accessors.load_plan(_plan(tmp, plan(indicator, status)))
+            assert doc["tasks"][0]["verify"].startswith("python3 "), doc
+
+
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
@@ -1201,6 +1232,7 @@ TESTS = [
     test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
     test_load_plan_accepts_a_station_only_record_and_only_with_a_station,
     test_load_plan_verify_shape_gated_on_pending_approval,
+    test_load_plan_refuses_a_folded_verify_while_pending,
     test_feat64_load_str_boundary_is_typed,
     test_feat64_require_or_die_cleanup_boundary_is_typed,
 ]

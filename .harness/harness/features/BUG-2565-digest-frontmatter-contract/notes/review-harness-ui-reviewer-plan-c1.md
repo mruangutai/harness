@@ -1,0 +1,1 @@
+Mode A: Scoped out — `plan.yaml` T-01–T-06 cover agent tool contracts and refusal text, schema generation and checks, probes, and reference documentation; no user-facing UI changes or `DESIGN.md` to audit.

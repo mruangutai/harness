@@ -24,3 +24,10 @@ from `measurements/{baseline,pin}.jsonl.gz`). Baseline e12381fd, implementation 
   "decompressed jsonl sha256" (CR-4); its values are unchanged, because the old root replacement never
   matched the base64 payload. Regenerated with `--reuse`: derived lines, `build-divergences.md`, the rulings
   and the measurements are unchanged.
+- Merged `main` after review (operator ruling at ship, "merge-disclose"). PR #2629 conflicted with seven commits on `main`
+  (#2605, #2617, #2620, #2621, #2623, #2625, #2626). The only conflict was the generated `DECISIONS-INDEX.md`, which was
+  regenerated. None of the incoming changes touch the feature.json code: they cover plan loading (`refuse_folded_verify`),
+  board provisioning, the BUG-2565/2566 hooks and new canonical-reader rows. These receipts prove identity at pin
+  `c91df7a5` (review_sha `c039c32d`). The T-03 verify's "no measured input changed after the pin" assertion is
+  therefore red at the merge commit by design, and the operator accepted that rather than re-measuring. At the merge
+  commit, the canonical-reader audit reports 0 unresolved sites across 112 files and the T-01 and T-02 verifies exit 0.

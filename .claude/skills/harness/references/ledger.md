@@ -1,7 +1,7 @@
 # The ledger — feature.json is the record of judgement, not a summary of it
 
 Read this on your first cycle, and again before any raise, stop or succession. The playbook
-carries the verbs and the seven kinds; this is what each means and why. Evidence and history:
+carries the verbs; this is what each means, the seven judgement kinds, and why. Evidence and history:
 DEC-227, DEC-229, DEC-230, DEC-157.
 
 Every write goes through `feature-record.py`; you never edit `feature.json` by hand.
@@ -19,9 +19,8 @@ record — a FAIL run it follows owes a `regate`; a handoff note at `seq-N` it s
 the judgement land in one write. A reason for a judgement the open does not owe is refused too.
 You never write those two kinds with `judgement` after the fact; INV-43 grades a late succession
 as retrospective forever.
-After every return, ONE command:
-`feature-record.py close-run --file <feature.json> --id <run-id> --digest <digest.md> --verdict <V> --cycles-used <C> [--task T-NN --station <s>] [--judgement kind=<k>,decision=<d>,reason=<r>] [--code-grade n_a] [--refused-return --evidence <authorization> --by <operator>]`
-— in order: the digest is validated against the run's recorded persona; `run-end`; the task
+After every return, ONE command: `feature-record.py close-run`, its flags as the playbook's step 6
+spells them (`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/SKILL.md`) — in order: the digest is validated against the run's recorded persona; `run-end`; the task
 station when `--task`/`--station` are paired; the judgement, recorded as you; `spend`. **The first
 refusal stops it, names its stage, and keeps every earlier durable write** — fix what the named
 stage refused; never re-issue the later stages by hand (BUG-1723). On success it prints one line
@@ -89,13 +88,6 @@ effects and wrong scalar types refuse. Persist the normalized note reference and
 never a mutable external link. Mirror recovery uses the same resolver and authorization protocol.
 Retryable yield refusals retain the same live job's claim until its corrected return is accepted;
 host terminal cleanup still releases jobs that actually end without an accepted return.
-
-The `plan` run graded a document and no code: close it with `--code-grade n_a`. Omitting the flag
-declares the run reviewed code, and INV-6 then demands a `review_sha` that cannot exist before the
-Building → Review seam (BUG-1080). Every other run omits it.
-
-**Three writes are yours and stay separate from close-run:** `STATE.md`'s `## Current` (DEC-150),
-the phase handoff note, and the commit.
 
 ## Judgements
 

@@ -1484,12 +1484,12 @@ def case_31_repository_binding_read_from_the_feature_worktree():
 
 
 def case_30_schema_controls_are_not_the_guards():
-    """FEAT-1928: harness-hooks.ts is the one schema authority — it refuses a dispatcher's
-    outputSchema/schemaMode and injects the persona's strict schema BEFORE this guard runs.
+    """BUG-2565: harness-hooks.ts neither refuses nor revises a dispatcher's schema controls; it
+    leaves the host call unrevised and hands this guard a normalized target for each dispatch,
+    and each harness agent's schema comes from its agent definition.
     The guard stays the governed preflight and claim boundary for an otherwise accepted
     dispatch: the same dispatch, with or without schema controls in its tool_input, gets the
-    same allow and records the same claim. A guard that refused them too would be a second,
-    divergent copy of the hook's rule; one that skipped the claim would leak a slot."""
+    same allow and records the same claim. A guard that skipped the claim would leak a slot."""
     outcomes = {}
     for label, extra in (("plain", {}),
                          ("with controls", {"outputSchema": {"type": "object"},

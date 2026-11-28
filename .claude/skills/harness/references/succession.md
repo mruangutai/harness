@@ -56,8 +56,7 @@ STATE.md `## Current`, feature.json and the cited run digests, read by the loop'
 Your dispatch names a worktree by absolute path. Work inside it for the whole run, by absolute path
 and by `git -C`. Creating it and removing it are the main session's acts.
 
-**Never run `feature-worktree.py remove`.** `git worktree remove` succeeds at exit 0 from inside the
-tree it removes, so an orchestrator obeying that instruction deletes its own working directory.
+**Never run `feature-worktree.py remove`**: removing the worktree is the main session's act.
 Your part of a terminal state is to finish landing your artifacts and report; the `post-merge`
 hook removes the checkout when the merge lands, and `check-state.py` INV-29 refuses while a
 worktree still stands for a feature at a terminal state.

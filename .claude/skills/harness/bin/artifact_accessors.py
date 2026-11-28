@@ -100,7 +100,9 @@ def load_harness_json(path=None, *, text=None, context=None):
 def load_plan(path):
     """Load a plan through strict YAML parsing and the canonical plan validator."""
     import harness_yaml
-    return harness_yaml.validate_plan_doc(harness_yaml.load_file(path), path)
+    doc = harness_yaml.validate_plan_doc(harness_yaml.load_file(path), path)
+    harness_yaml.refuse_folded_verify(doc, path)
+    return doc
 
 
 class FleetError(Exception):

@@ -1,16 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  DIGEST_PERSONAS,
-  DIGEST_PERSONA_ALIASES,
-  DigestSchemaBundleError,
-  canonicalDigestPersona,
-  loadDigestSchemaBundle,
-} from "../../.omp/extensions/digest-schema.ts";
 import {
   DEFAULT_CONTEXT_WARN_TOKENS,
   DEFAULT_PLAN_PHASE_WARN_MINUTES,
@@ -86,8 +79,6 @@ const toolApi = (tools: Map<string, any> = new Map()) => ({
 // FEAT-1928: a yield's `data` IS the digest object; the validator receives it unmodified.
 const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
 const RETURN_THE_OBJECT = "return the digest as an object: yield({data: {VERDICT, DIGEST, artifact}})";
-// The canonical schema directory the hook loads from: the gate tree this extension ships in.
-const DIGEST_SCHEMA_DIR = gatePath(join("..", "schemas", "digest"));
 // FEAT-2225: one member-ops receipt line as T-01's core prints it; the host returns it verbatim.
 const MEMBER_OPS_RECEIPT = JSON.stringify({
   batch: "b".repeat(64),
@@ -181,6 +172,8 @@ describe("OMP task lifecycle adapter", () => {
     distillAuthority?: (payload: Record<string, unknown>) => PolicyAnswer;
     // FEAT-2274: a gate's own answer, ahead of every default below; undefined falls through.
     gate?: (script: string, args: string[], payload: PolicyPayload) => PolicyAnswer | undefined;
+    // BUG-2566: the stale-hook check; undefined keeps the module's own.
+    staleCheck?: () => string | undefined;
   } = {}) {
     const tools = new Map<string, any>();
     const handlers = new Map<string, Function>();
@@ -393,7 +386,7 @@ describe("OMP task lifecycle adapter", () => {
       if (script === "merge-gate.py" && options.mergeGate) return options.mergeGate(objectPayload(payload));
       return { blocked: false, stdout: "" };
     };
-    registerHarnessHooks(pi, runner);
+    registerHarnessHooks(pi, runner, options.staleCheck);
     return { handlers, calls, runner, settle, tools };
   }
 
@@ -1700,217 +1693,69 @@ describe("OMP task lifecycle adapter", () => {
   // `data` object is the digest the validator receives.
   const leadCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
   const mainCtx = () => ompContext("/repo", "Main", undefined, "main-session");
-  const guardCalls = (calls: Array<{ script: string }>) =>
+  const guardCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "dispatch-guard.py");
   const digestCalls = <Call extends { script: string }>(calls: Call[]) =>
     calls.filter((call) => call.script === "validate-digest.py");
   const ASSIGNMENT = "HARNESS-FEATURE: FEAT-90-long-run\nbuild it";
 
-  test("refuses outputSchema or schemaMode at the top level and in any item, naming it, the main session included", async () => {
-    for (const dispatcher of ["lead", "main"]) {
-      const { handlers, calls } = fixture();
-      const ctx = dispatcher === "main" ? mainCtx() : leadCtx();
-      if (dispatcher === "main") {
-        await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, ctx);
-      } else {
-        await start(handlers, ctx);
+  // BUG-2565 (SC-03): schema controls are not the hook's. Each harness agent's schema comes
+  // from its agent definition, so the hook neither refuses nor revises a dispatcher's
+  // outputSchema/schemaMode; it hands dispatch-guard.py one normalized target per dispatch.
+  const SC03_CASES: Array<[string, Record<string, unknown>, Array<Record<string, unknown>>]> = [
+    ["flat-output-only",
+      { agent: "harness-pm", task: "probe", name: "flat-output-only", outputSchema: { type: "object" } },
+      [{ agent: "harness-pm", task: "probe", name: "flat-output-only" }]],
+    ["flat-mode-only",
+      { agent: "harness-pm", task: "probe", name: "flat-mode-only", schemaMode: "strict" },
+      [{ agent: "harness-pm", task: "probe", name: "flat-mode-only" }]],
+    ["flat-both",
+      { agent: "harness-pm", task: "probe", name: "flat-both", outputSchema: { type: "object" }, schemaMode: "strict" },
+      [{ agent: "harness-pm", task: "probe", name: "flat-both" }]],
+    ["batch-output-only", { context: "shared", tasks: [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-output-only-qa", outputSchema: { type: "object" } },
+      { agent: "scout", task: "probe-scout", name: "batch-output-only-scout", outputSchema: { type: "object" } },
+    ] }, [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-output-only-qa" },
+      { agent: "scout", task: "probe-scout", name: "batch-output-only-scout" },
+    ]],
+    ["batch-mode-only", { context: "shared", tasks: [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-mode-only-qa", schemaMode: "permissive" },
+      { agent: "scout", task: "probe-scout", name: "batch-mode-only-scout", schemaMode: "permissive" },
+    ] }, [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-mode-only-qa" },
+      { agent: "scout", task: "probe-scout", name: "batch-mode-only-scout" },
+    ]],
+    ["batch-both", { context: "shared", tasks: [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-both-qa", outputSchema: { type: "object" }, schemaMode: "permissive" },
+      { agent: "scout", task: "probe-scout", name: "batch-both-scout", outputSchema: { type: "object" }, schemaMode: "permissive" },
+    ] }, [
+      { agent: "harness-qa", task: "probe-qa", name: "batch-both-qa" },
+      { agent: "scout", task: "probe-scout", name: "batch-both-scout" },
+    ]],
+  ];
+
+  for (const [label, input, targets] of SC03_CASES) {
+    test(`BUG-2565: ${label} is neither refused nor revised, for Main and a governed lead`, async () => {
+      for (const dispatcher of ["main", "lead"]) {
+        const { handlers, calls } = fixture();
+        const ctx = dispatcher === "main" ? mainCtx() : leadCtx();
+        if (dispatcher === "main") {
+          await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, ctx);
+        } else {
+          await start(handlers, ctx);
+        }
+        const call = structuredClone(input);
+        const before = structuredClone(call);
+        const result = await handlers.get("tool_call")?.({ toolName: "task", toolCallId: label, input: call }, ctx) as
+          Record<string, unknown> | undefined;
+        expect({ dispatcher, block: result?.block, input: result?.input })
+          .toEqual({ dispatcher, block: undefined, input: undefined });
+        expect(call).toStrictEqual(before);
+        expect(guardCalls(calls).map((guard) => objectPayload(guard.payload).tool_input)).toStrictEqual(targets);
       }
-      const flat = await handlers.get("tool_call")?.({
-        toolName: "task", toolCallId: "flat",
-        input: { agent: "harness-backend-dev", task: ASSIGNMENT, outputSchema: { type: "object" } },
-      }, ctx);
-      expect(flat?.block).toBe(true);
-      expect(flat?.reason).toContain("never carry outputSchema:");
-      const batch = await handlers.get("tool_call")?.({
-        toolName: "task", toolCallId: "batch",
-        input: {
-          context: "shared",
-          schemaMode: "strict",
-          tasks: [
-            { agent: "harness-backend-dev", task: ASSIGNMENT },
-            { agent: "scout", task: "look", schemaMode: "permissive" },
-          ],
-        },
-      }, ctx);
-      expect(batch?.block).toBe(true);
-      expect(batch?.reason).toContain("never carry schemaMode, tasks[1].schemaMode:");
-      expect(guardCalls(calls)).toEqual([]);
-    }
-  });
-
-  test("injects every one of the 16 personas' own strict bundle, leaving other targets and fields alone", async () => {
-    const { handlers, calls } = fixture();
-    await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
-    const scout = { agent: "scout", name: "Look", task: "look" };
-    const tasks = [
-      ...DIGEST_PERSONAS.map((agent) => ({ agent, task: ASSIGNMENT, tools: ["read"] })),
-      scout,
-    ];
-    const result = await handlers.get("tool_call")?.({
-      toolName: "task", toolCallId: "all", input: { context: "shared", tasks },
-    }, mainCtx());
-    expect(result?.block).toBeUndefined();
-    const revised = result?.input as { context: string; tasks: Array<Record<string, unknown>> };
-    expect(revised.context).toBe("shared");
-    expect(revised.tasks).toHaveLength(17);
-    DIGEST_PERSONAS.forEach((persona, index) => {
-      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona);
-      expect(revised.tasks[index]).toEqual({ ...tasks[index], outputSchema: bundle, schemaMode: "strict" });
     });
-    expect(revised.tasks[16]).toBe(scout);
-    // BUG-2305: a successful dispatch carries no note telling the dispatcher about the fields.
-    expect(result).not.toHaveProperty("additionalContext");
-    // The governed preflight still judges every harness target of the accepted call.
-    expect(guardCalls(calls)).toHaveLength(17);
-  });
-
-  test("injects into a flat governed dispatch and keeps its other fields", async () => {
-    const { handlers } = fixture();
-    await start(handlers);
-    const input = { agent: "harness-qa", name: "Check", task: ASSIGNMENT, context: "ctx" };
-    const result = await handlers.get("tool_call")?.({
-      toolName: "task", toolCallId: "flat", input,
-    }, leadCtx());
-    expect(result).toEqual({
-      input: { ...input, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa"), schemaMode: "strict" },
-    });
-  });
-
-  // BUG-2305: OMP persists the revised call, so a dispatcher may send the injected pair back.
-  // Keys reversed at every depth, so only structural equality — not JSON text — accepts it.
-  const reordered = (value: unknown): unknown => Array.isArray(value)
-    ? value.map(reordered)
-    : value && typeof value === "object"
-      ? Object.fromEntries(Object.entries(value as Record<string, unknown>).reverse()
-        .map(([key, item]) => [key, reordered(item)]))
-      : value;
-  const mainFixture = async () => {
-    const f = fixture();
-    await f.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
-    return f;
-  };
-  const dispatch = async (handlers: Map<string, any>, input: Record<string, unknown>) =>
-    await handlers.get("tool_call")?.({ toolName: "task", toolCallId: "copy", input }, mainCtx()) as
-      Record<string, any> | undefined;
-
-  test("BUG-2305: every persona's injected bundle, copied back strict, is accepted flat and per item", async () => {
-    for (const persona of DIGEST_PERSONAS) {
-      const { handlers, calls } = await mainFixture();
-      const first = await dispatch(handlers, { agent: persona, name: "One", task: ASSIGNMENT });
-      const injected = first?.input.outputSchema;
-      const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona);
-      expect(injected).toEqual(bundle);
-      for (const copy of [structuredClone(injected), reordered(structuredClone(injected))]) {
-        expect(copy).not.toBe(injected);
-        const flatInput = { agent: persona, name: "Two", task: ASSIGNMENT, outputSchema: copy, schemaMode: "strict" };
-        const flat = await dispatch(handlers, flatInput);
-        expect({ persona, block: flat?.block, reason: flat?.reason }).toEqual({ persona, block: undefined, reason: undefined });
-        expect(flat).toEqual({ input: { ...flatInput, outputSchema: bundle, schemaMode: "strict" } });
-        expect(flat?.input.outputSchema).not.toBe(copy);
-        const item = { agent: persona, name: "Three", task: ASSIGNMENT, outputSchema: copy, schemaMode: "strict" };
-        const batch = await dispatch(handlers, { context: "shared", tasks: [item] });
-        expect({ persona, block: batch?.block, reason: batch?.reason }).toEqual({ persona, block: undefined, reason: undefined });
-        expect(batch).toEqual({ input: { context: "shared", tasks: [{ ...item, outputSchema: bundle, schemaMode: "strict" }] } });
-        expect(batch?.input.tasks[0].outputSchema).not.toBe(copy);
-      }
-      expect(guardCalls(calls)).toHaveLength(5);
-    }
-  });
-
-  test("BUG-2305: a batch accepts copies at any position beside plain and non-harness items", async () => {
-    const { handlers, calls } = await mainFixture();
-    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
-    const pm = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-pm");
-    const tasks = [
-      { agent: "harness-qa", task: ASSIGNMENT, outputSchema: reordered(structuredClone(qa)), schemaMode: "strict" },
-      { agent: "harness-backend-dev", task: ASSIGNMENT },
-      { agent: "scout", task: "look" },
-      { agent: "harness-pm", task: ASSIGNMENT, schemaMode: "strict", outputSchema: structuredClone(pm) },
-    ];
-    const result = await dispatch(handlers, { context: "shared", tasks });
-    expect(result?.block).toBeUndefined();
-    expect(result?.input.tasks).toEqual([
-      { ...tasks[0], outputSchema: qa, schemaMode: "strict" },
-      { ...tasks[1], outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev"), schemaMode: "strict" },
-      tasks[2],
-      { ...tasks[3], outputSchema: pm, schemaMode: "strict" },
-    ]);
-    expect(result).not.toHaveProperty("additionalContext");
-    expect(guardCalls(calls)).toHaveLength(4);
-  });
-
-  test("BUG-2305: every other schema control is refused flat and per item, naming field and location", async () => {
-    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
-    const changed = { ...structuredClone(qa), additionalProperties: true };
-    const target = (controls: Record<string, unknown>, agent = "harness-qa") =>
-      ({ agent, name: "Check", task: agent.startsWith("harness-") ? ASSIGNMENT : "look", ...controls });
-    const cases: Array<[string, Record<string, unknown>, string, string?]> = [
-      ["changed schema, strict", { outputSchema: changed, schemaMode: "strict" }, "outputSchema"],
-      ["wrong persona's bundle", { outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-pm"), schemaMode: "strict" }, "outputSchema"],
-      ["exact, permissive", { outputSchema: structuredClone(qa), schemaMode: "permissive" }, "schemaMode"],
-      ["exact, null mode", { outputSchema: structuredClone(qa), schemaMode: null }, "schemaMode"],
-      ["exact, boolean mode", { outputSchema: structuredClone(qa), schemaMode: true }, "schemaMode"],
-      ["exact, number mode", { outputSchema: structuredClone(qa), schemaMode: 1 }, "schemaMode"],
-      ["exact, object mode", { outputSchema: structuredClone(qa), schemaMode: { mode: "strict" } }, "schemaMode"],
-      ["schema without mode", { outputSchema: structuredClone(qa) }, "outputSchema"],
-      ["mode without schema", { schemaMode: "strict" }, "schemaMode"],
-      ["non-harness schema", { outputSchema: structuredClone(qa) }, "outputSchema", "scout"],
-      ["non-harness mode", { schemaMode: "strict" }, "schemaMode", "scout"],
-      ["non-harness pair", { outputSchema: structuredClone(qa), schemaMode: "strict" }, "outputSchema", "scout"],
-    ];
-    for (const [label, controls, field, agent] of cases) {
-      const { handlers, calls } = await mainFixture();
-      const flat = await dispatch(handlers, target(controls, agent));
-      expect({ label, block: flat?.block }).toEqual({ label, block: true });
-      expect(flat?.reason).toMatch(new RegExp(`never carry (\\S+, )*${field}[,:]`));
-      const batch = await dispatch(handlers, { context: "shared", tasks: [target(controls, agent)] });
-      expect({ label, block: batch?.block }).toEqual({ label, block: true });
-      expect(batch?.reason).toContain(`tasks[0].${field}`);
-      expect(guardCalls(calls)).toEqual([]);
-    }
-  });
-
-  test("BUG-2305: batch top-level controls stay refused even as an exact copy, one or both", async () => {
-    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
-    for (const controls of [
-      { outputSchema: structuredClone(qa) }, { schemaMode: "strict" },
-      { outputSchema: structuredClone(qa), schemaMode: "strict" },
-    ]) {
-      const { handlers, calls } = await mainFixture();
-      const result = await dispatch(handlers, {
-        context: "shared", ...controls, tasks: [{ agent: "harness-qa", task: ASSIGNMENT }],
-      });
-      expect(result?.block).toBe(true);
-      for (const field of Object.keys(controls)) expect(result?.reason).toMatch(new RegExp(`never carry (\\S+, )*${field}[,:]`));
-      expect(guardCalls(calls)).toEqual([]);
-    }
-  });
-
-  test("BUG-2305: an accepted copy never masks a later invalid item", async () => {
-    const { handlers, calls } = await mainFixture();
-    const qa = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-qa");
-    const result = await dispatch(handlers, {
-      context: "shared",
-      tasks: [
-        { agent: "harness-qa", task: ASSIGNMENT, outputSchema: structuredClone(qa), schemaMode: "strict" },
-        { agent: "harness-pm", task: ASSIGNMENT },
-        { agent: "harness-qa", task: ASSIGNMENT, outputSchema: structuredClone(qa), schemaMode: "permissive" },
-      ],
-    });
-    expect(result?.block).toBe(true);
-    expect(result?.reason).toContain("never carry tasks[2].outputSchema, tasks[2].schemaMode:");
-    expect(result?.reason).not.toContain("tasks[0]");
-    expect(guardCalls(calls)).toEqual([]);
-  });
-
-  test("BUG-2305: a copied pair for a persona whose bundle cannot load is refused before any claim", async () => {
-    const { handlers, calls } = await mainFixture();
-    const result = await dispatch(handlers, {
-      agent: "harness-nobody", task: ASSIGNMENT, outputSchema: { type: "object" }, schemaMode: "strict",
-    });
-    expect(result?.block).toBe(true);
-    expect(guardCalls(calls)).toEqual([]);
-  });
+  }
 
   test("no injection note when nothing was injected", async () => {
     const { handlers } = fixture();
@@ -1925,26 +1770,6 @@ describe("OMP task lifecycle adapter", () => {
       expect(result?.block).toBeUndefined();
       expect(result?.additionalContext).toBeUndefined();
     }
-  });
-
-  test("refuses a harness dispatch whose schema cannot load, before any claim, with no loose fallback", async () => {
-    const { handlers, calls } = fixture();
-    await start(handlers);
-    const result = await handlers.get("tool_call")?.({
-      toolName: "task", toolCallId: "nobody",
-      input: {
-        context: "shared",
-        tasks: [
-          { agent: "harness-backend-dev", task: ASSIGNMENT },
-          { agent: "harness-nobody", task: ASSIGNMENT },
-        ],
-      },
-    }, leadCtx());
-    expect(result).toEqual({
-      block: true,
-      reason: expect.stringContaining('unknown persona "harness-nobody"'),
-    });
-    expect(guardCalls(calls)).toEqual([]);
   });
 
   test("hands the yield's data to validate-digest.py unmodified as digest_object", async () => {
@@ -1976,6 +1801,17 @@ describe("OMP task lifecycle adapter", () => {
         block: true, reason: expect.stringContaining(RETURN_THE_OBJECT),
       });
     }
+    expect(digestCalls(calls)).toEqual([]);
+  });
+
+  // BUG-2565 (D-04): agent frontmatter cannot set strict mode, so OMP's own rejection of a
+  // data-less yield is not guaranteed; the hook refuses it whatever its type.
+  test("BUG-2565: a data-less result yield is refused and never reaches the validator", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { type: "result" } }, leadCtx())).toEqual({
+      block: true, reason: expect.stringContaining(RETURN_THE_OBJECT),
+    });
     expect(digestCalls(calls)).toEqual([]);
   });
 
@@ -2472,7 +2308,7 @@ describe("OMP task lifecycle adapter", () => {
       });
   });
 
-  test("FEAT-2274: an unavailable dispatch-guard keeps the schema injection, one notice per target", async () => {
+  test("FEAT-2274: an unavailable dispatch-guard leaves the call unrevised, one notice per target", async () => {
     const begins: Array<[Record<string, unknown>, (h: Map<string, Function>) => Promise<unknown>]> = [
       [leadCtx(), (h) => start(h)],
       [mainCtx(), async (h) => h.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx())],
@@ -2488,26 +2324,92 @@ describe("OMP task lifecycle adapter", () => {
         toolName: "task", toolCallId: "unavailable-guard", input: { context: "shared", tasks },
       }, ctx);
       expect(result).toEqual({
-        input: {
-          context: "shared",
-          tasks: tasks.map((item) => ({
-            ...item, outputSchema: loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, item.agent), schemaMode: "strict",
-          })),
-        },
         additionalContext: [notice("dispatch-guard", "dispatch"), notice("dispatch-guard", "dispatch")].join("\n"),
       });
+      expect(result).not.toHaveProperty("input");
       expect(guardCalls(calls)).toHaveLength(2);
     }
   });
 
-  test("FEAT-2274: an unavailable digest validator lets the yield through and says so; a refusal still blocks", async () => {
-    const { handlers } = unavailableAt(["validate-digest.py"]);
-    await start(handlers);
-    expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx()))
-      .toEqual({ additionalContext: notice("validate-digest", "yield") });
-    // SC-09: the contract refusal for a missing digest object is not reclassified.
-    expect(await handlers.get("tool_call")?.({ toolName: "yield", input: { data: "not an object" } }, leadCtx()))
-      .toEqual({ block: true, reason: expect.stringContaining(RETURN_THE_OBJECT) });
+  // BUG-2565 (D-02, D-05): validate-digest.py still reports its own failure as unavailable, but
+  // the yield it was checking is refused, never passed. Each expectation is written out in
+  // full here, so a refusal that drops the retry or stop instruction fails.
+  const D02_TAIL = "Your object was not checked, and Harness never passes an unchecked return. "
+    + "This is a Harness fault, not a violation found in your object: do not change a valid object "
+    + "to get past it. Yield the same object once more; if it is refused again for this same cause, "
+    + "stop yielding and end your turn with one line naming this cause, because no yield can pass "
+    + "until validate-digest runs.";
+  const processEnds = (gate: string): Array<[string, hooks.PolicyProcess, string]> => [
+    ["declared", {
+      status: 0, signal: null, stderr: "",
+      stdout: `${JSON.stringify({ decision: "unavailable", gate, reason: "probe-declared" })}\n`,
+    }, `${gate}: probe-declared`],
+    ["exit 1", { status: 1, signal: null, stdout: "", stderr: "boom" }, `${gate} exited 1: boom`],
+    ["exit 3", { status: 3, signal: null, stdout: "", stderr: "boom" }, `${gate} exited 3: boom`],
+    ["SIGKILL", { status: null, signal: "SIGKILL", stdout: "", stderr: "" }, `${gate} was terminated by SIGKILL`],
+    ["spawn error", { status: null, signal: null, stdout: "", stderr: "", error: new Error("spawn probe") },
+      `${gate} could not be started: spawn probe`],
+    ["timed out", { status: null, signal: null, stdout: "", stderr: "", timedOut: true },
+      `${gate} exceeded its 30-second budget and was killed`],
+  ];
+  const answeredBy = (gate: string, proc: hooks.PolicyProcess) => fixture({
+    gate: (script, _args, payload) => script === gate ? hooks.classifyPolicyRun(script, payload, proc) : undefined,
+  });
+
+  test("BUG-2565: a validator that could not run refuses the yield, class by class, with the full D-02 text", async () => {
+    const expected: Record<string, string> = {
+      "declared": "Harness refused this yield: validate-digest: probe-declared. " + D02_TAIL,
+      "exit 1": "Harness refused this yield: validate-digest exited 1: boom. " + D02_TAIL,
+      "exit 3": "Harness refused this yield: validate-digest exited 3: boom. " + D02_TAIL,
+      "SIGKILL": "Harness refused this yield: validate-digest was terminated by SIGKILL. " + D02_TAIL,
+      "spawn error": "Harness refused this yield: validate-digest could not be started: spawn probe. " + D02_TAIL,
+      "timed out": "Harness refused this yield: validate-digest exceeded its 30-second budget and was killed. " + D02_TAIL,
+    };
+    for (const [label, proc] of processEnds("validate-digest")) {
+      const { handlers, calls } = answeredBy("validate-digest.py", proc);
+      await start(handlers);
+      const result = await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx());
+      expect({ label, result }).toEqual({ label, result: { block: true, reason: expected[label] } });
+      expect(digestCalls(calls)).toHaveLength(1);
+    }
+  });
+
+  test("BUG-2565: an unavailable check-domain still lets a governed write proceed, class by class, and says so", async () => {
+    for (const [label, proc, detail] of processEnds("check-domain")) {
+      const { handlers } = answeredBy("check-domain.py", proc);
+      await start(handlers);
+      const result = await handlers.get("tool_call")?.(fileCall("write", { path: "/repo/src/a.ts", content: "x" }), leadCtx());
+      expect({ label, block: result?.block }).toEqual({ label, block: undefined });
+      expect(result?.additionalContext).toContain(detail);
+    }
+  });
+
+  test("BUG-2565: a contract refusal reaches the child with the validator's own reason, never the could-not-run text", async () => {
+    const cases: Array<[string, hooks.PolicyProcess, (reason: string) => void]> = [
+      ["exit 2", { status: 2, signal: null, stdout: "", stderr: "reason-x\n" },
+        (reason) => expect(reason).toContain("reason-x")],
+      ["decision block", { status: 0, signal: null, stderr: "",
+        stdout: `${JSON.stringify({ decision: "block", reason: "reason-y" })}\n` },
+      (reason) => expect(reason).toBe("reason-y")],
+      ["permission deny", { status: 0, signal: null, stderr: "", stdout: `${JSON.stringify({
+        hookSpecificOutput: { permissionDecision: "deny", permissionDecisionReason: "reason-y" } })}\n` },
+      (reason) => expect(reason).toBe("reason-y")],
+    ];
+    for (const [label, proc, check] of cases) {
+      const { handlers } = answeredBy("validate-digest.py", proc);
+      await start(handlers);
+      const result = await handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx());
+      expect({ label, block: result?.block }).toEqual({ label, block: true });
+      check(result.reason);
+      expect(result.reason).not.toContain("was not checked");
+    }
+  });
+
+  test("BUG-2565: a validator that ran and passed lets the yield through silently; a refusal still blocks", async () => {
+    const passed = fixture({ gate: (script) => script === "validate-digest.py" ? { blocked: false, stdout: "" } : undefined });
+    await start(passed.handlers);
+    expect(await passed.handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx()))
+      .toBeUndefined();
     const refused = fixture();
     await start(refused.handlers);
     expect(await refused.handlers.get("tool_call")?.({ toolName: "yield", input: { data: PASS_DIGEST } }, leadCtx()))
@@ -2538,6 +2440,93 @@ describe("OMP task lifecycle adapter", () => {
       expect(await spawn(handlers, { agent: "scout", invocationKind: "eval" })).toBeUndefined();
       expect(await spawn(handlers, { agent: "task", invocationKind: "eval" })).toBeUndefined();
     }
+  });
+
+  // BUG-2566 (D-02): a stale process refuses every governed call before any policy runs; only a
+  // persona's BLOCKED yield passes, through the unchanged held-run and yield validation path.
+  const STALE = "stale-fixture-reason restart omp";
+  const STALE_PERSONA = `${STALE} While this process is stale, you may yield only a BLOCKED digest that names this cause.`;
+  const staleCheck = () => STALE;
+  const HELD_RUN_START = (script: string, args: string[]) => script === "inflight_registry.py" && args[0] === "run-start"
+    ? { blocked: true, stdout: JSON.stringify({ ok: false, cause: "lineage", retryable: false, message: "held by the BUG-2566 fixture" }) }
+    : undefined;
+  const personaCtx = () => ompContext("/repo", "LeadOne", "OrchestratorOne", "parent-session");
+  async function stalePersona(held = false) {
+    const hooks = fixture({ staleCheck, ...(held ? { gate: HELD_RUN_START } : {}) });
+    await start(hooks.handlers);
+    return hooks;
+  }
+  async function staleMain() {
+    const hooks = fixture({ staleCheck });
+    await hooks.handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, mainCtx());
+    return hooks;
+  }
+  const PASS_DIGEST = { VERDICT: "PASS", DIGEST: { headline: "done" }, artifact: "none" };
+  const BLOCKED_DIGEST = { VERDICT: "BLOCKED", DIGEST: { headline: "stale hook" }, artifact: "none" };
+
+  const STALE_PERSONA_CALLS: Array<[string, string, Record<string, unknown>]> = [
+    ["read", "read", { path: "a" }],
+    ["write", "write", { path: "a", content: "x" }],
+    ["edit", "edit", { path: "a", edits: [] }],
+    ["bash", "bash", { command: "ls" }],
+    ["task", "task", { agent: "harness-qa", task: "HARNESS-FEATURE: FEAT-90-long-run\nqa" }],
+    ["yield of a PASS object", "yield", { data: PASS_DIGEST }],
+    ["yield of an array", "yield", { data: [PASS_DIGEST] }],
+    ["yield of a PASS object's JSON text", "yield", { data: JSON.stringify(PASS_DIGEST) }],
+    ["yield of malformed text", "yield", { data: "not json" }],
+    ["data-less finalize", "yield", { type: "result" }],
+  ];
+  test.each(STALE_PERSONA_CALLS)("BUG-2566 SC-02: a stale persona's %s is refused before any policy call", async (_label, toolName, input) => {
+    const { handlers, calls } = await stalePersona();
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, personaCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
+  });
+
+  test("BUG-2566 SC-02: a stale held persona's read is refused as stale, not as held", async () => {
+    const { handlers, calls } = await stalePersona(true);
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName: "read", toolCallId: "call-stale", input: { path: "a" } }, personaCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE_PERSONA }, 0]);
+  });
+
+  const STALE_MAIN_CALLS: Array<[string, string, Record<string, unknown>]> = [
+    ["task", "task", { agent: "harness-orchestrator", task: "HARNESS-FEATURE: FEAT-90-long-run\nrun" }],
+    ["merge Bash", "bash", { command: "echo merge" }],
+  ];
+  test.each(STALE_MAIN_CALLS)("BUG-2566 SC-02: a stale Main %s is refused with the bare reason", async (_label, toolName, input) => {
+    const { handlers, calls } = await staleMain();
+    const before = calls.length;
+    const result = await handlers.get("tool_call")?.({ toolName, toolCallId: "call-stale", input }, mainCtx());
+    expect([result, calls.length - before]).toEqual([{ block: true, reason: STALE }, 0]);
+  });
+
+  const STALE_BLOCKED_YIELDS: Array<[string, boolean, unknown]> = [
+    ["ready run, object", false, BLOCKED_DIGEST],
+    ["ready run, JSON text", false, JSON.stringify(BLOCKED_DIGEST)],
+    ["held run, object", true, BLOCKED_DIGEST],
+    ["held run, JSON text", true, JSON.stringify(BLOCKED_DIGEST)],
+  ];
+  test.each(STALE_BLOCKED_YIELDS)("BUG-2566 SC-02: a stale persona's BLOCKED yield (%s) reaches validation once", async (_label, held, data) => {
+    const { handlers, calls } = await stalePersona(held);
+    const before = calls.filter((call) => call.script === "validate-digest.py").length;
+    const result = await handlers.get("tool_call")?.({ toolName: "yield", toolCallId: "call-blocked", input: { data } }, personaCtx());
+    const validations = calls.filter((call) => call.script === "validate-digest.py");
+    expect(String(result?.reason ?? "")).not.toContain("stale-fixture-reason");
+    expect(validations.length - before).toBe(1);
+    const last = validations[validations.length - 1];
+    expect([last.args, payloadOf(last)?.digest_object]).toEqual([["--hook"], BLOCKED_DIGEST]);
+  });
+
+  const MAIN_UNGOVERNED: Array<[string, Record<string, unknown>]> = [
+    ["read", { path: "a" }],
+    ["edit", { path: "a", edits: [] }],
+    ["write", { path: "a", content: "x" }],
+    ["bash", { command: "git status" }],
+  ];
+  test.each(MAIN_UNGOVERNED)("BUG-2566 SC-03: a stale Main %s is not checked", async (toolName, input) => {
+    const { handlers } = await staleMain();
+    expect(await handlers.get("tool_call")?.({ toolName, toolCallId: "call-main", input }, mainCtx())).toBeUndefined();
   });
 });
 
@@ -2831,149 +2820,6 @@ describe("narrowGateApplies", () => {
       .filter(([command, applies]) => hooks.narrowGateApplies("merge-gate.py", command) !== applies)
       .map(([command, applies]) => `${applies ? "missed" : "overmatched"}: ${JSON.stringify(command)}`);
     expect(mismatched).toEqual([]);
-  });
-});
-
-// FEAT-1928: the in-process provider adapter over schemas/digest/.
-describe("loadDigestSchemaBundle", () => {
-  const STRUCTURAL = new Set(["type", "properties", "required", "additionalProperties", "items", "enum", "anyOf"]);
-  const TYPES = new Set(["object", "array", "string", "integer", "number", "boolean", "null"]);
-
-  // Every keyword anywhere in a bundle must be structural, `additionalProperties` only ever
-  // false, every type one of the seven, and every enum non-empty; a `$ref` is off the whitelist
-  // like any other. The OpenAI strict rules the bundle itself must meet ride the same walk:
-  // every array declares `items`, and every property, element and anyOf alternative declares
-  // a type, an enum or an anyOf (so `items: {}` and `items: true` are violations).
-  function offWhitelist(node: unknown, at: string): string[] {
-    if (!node || typeof node !== "object" || Array.isArray(node)) return [`${at}: not a schema`];
-    const schema = node as Record<string, unknown>;
-    const types = schema.type === undefined ? [] : Array.isArray(schema.type) ? schema.type : [schema.type];
-    const own = types.includes("array") && !("items" in schema) ? [`${at}: array without items`] : [];
-    const typedChild = (child: unknown, where: string): string[] => {
-      const shaped = !!child && typeof child === "object" && !Array.isArray(child)
-        && ["type", "enum", "anyOf"].some((keyword) => keyword in child);
-      return [...(shaped ? [] : [`${where}: untyped`]), ...offWhitelist(child, where)];
-    };
-    return [...own, ...Object.entries(schema).flatMap(([keyword, value]) => {
-      const where = `${at}/${keyword}`;
-      if (!STRUCTURAL.has(keyword)) return [where];
-      if (keyword === "additionalProperties") return value === false ? [] : [where];
-      if (keyword === "type") {
-        return (Array.isArray(value) ? value : [value]).every((name) => TYPES.has(name as string)) ? [] : [where];
-      }
-      if (keyword === "enum") return Array.isArray(value) && value.length ? [] : [where];
-      if (keyword === "properties") {
-        return Object.entries(value as Record<string, unknown>)
-          .flatMap(([name, child]) => typedChild(child, `${where}/${name}`));
-      }
-      if (keyword === "items") return typedChild(value, where);
-      if (keyword === "anyOf") return (value as unknown[]).flatMap((branch, index) => typedChild(branch, `${where}/${index}`));
-      return [];
-    })];
-  }
-
-  function schemaDir(files: Record<string, unknown>): string {
-    const dir = mkdtempSync(join(tmpdir(), "feat1928-schemas-"));
-    for (const [name, content] of Object.entries(files)) {
-      writeFileSync(join(dir, name), typeof content === "string" ? content : JSON.stringify(content));
-    }
-    return dir;
-  }
-
-  const load = (files: Record<string, unknown>) => () => loadDigestSchemaBundle(schemaDir(files), "harness-qa");
-
-  test("loads all 16 personas as ref-free bundles over the structural whitelist only", () => {
-    expect(DIGEST_PERSONAS).toHaveLength(16);
-    expect(DIGEST_PERSONAS.flatMap((persona) =>
-      offWhitelist(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona), persona))).toEqual([]);
-    for (const persona of DIGEST_PERSONAS) {
-      expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, persona).type).toBe("object");
-    }
-  });
-
-  test("a repeat load, an alias and another path to the same directory give the same contract", () => {
-    const bundle = loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev");
-    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "harness-backend-dev")).toEqual(bundle);
-    expect(loadDigestSchemaBundle(DIGEST_SCHEMA_DIR, "main-session")).toEqual(bundle);
-    expect(loadDigestSchemaBundle(join(DIGEST_SCHEMA_DIR, "..", "digest"), "backend-dev")).toEqual(bundle);
-  });
-
-  // #2328: a long-running process must inject the contract on disk now, not the one it first read.
-  test("a schema file changed on disk is reflected by the next load", () => {
-    const entry = (required: string[]) => ({ type: "object", additionalProperties: false, required,
-      properties: Object.fromEntries(required.map((name) => [name, { type: "string" }])) });
-    const persona = { type: "object", additionalProperties: false, required: ["x"],
-      properties: { x: { $ref: "common.json#/$defs/entry" } } };
-    const projected = (required: string[]) => ({ ...persona, properties: { x: entry(required) } });
-    const dir = schemaDir({ "harness-qa.json": persona, "common.json": { $defs: { entry: entry(["op"]) } } });
-    expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op"]));
-    writeFileSync(join(dir, "common.json"), JSON.stringify({ $defs: { entry: entry(["op", "persona"]) } }));
-    expect(loadDigestSchemaBundle(dir, "harness-qa")).toEqual(projected(["op", "persona"]));
-  });
-
-  test("canonicalises personas with digest_schema.py's own table", () => {
-    const bin = join(DIGEST_SCHEMA_DIR, "..", "..", "bin");
-    const proc = spawnSync("python3", ["-c", [
-      "import json, sys",
-      `sys.path.insert(0, ${JSON.stringify(bin)})`,
-      "import digest_schema",
-      "print(json.dumps({'personas': list(digest_schema.PERSONAS), 'aliases': digest_schema.ALIASES}))",
-    ].join("\n")], { encoding: "utf8" });
-    expect(proc.stderr).toBe("");
-    expect(JSON.parse(proc.stdout)).toEqual({ personas: [...DIGEST_PERSONAS], aliases: { ...DIGEST_PERSONA_ALIASES } });
-    expect(canonicalDigestPersona("qa")).toBe("harness-qa");
-    expect(canonicalDigestPersona("lead")).toBe("harness-eng-lead");
-    expect(() => canonicalDigestPersona("harness-nobody")).toThrow(DigestSchemaBundleError);
-  });
-
-  test("names the file and pointer of malformed JSON, an unresolved or missing reference, and an unsupported keyword", () => {
-    expect(load({ "harness-qa.json": "{not json" }))
-      .toThrow(/^digest schema harness-qa\.json#: malformed JSON/);
-    expect(load({
-      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/missing" } } },
-      "common.json": { $defs: {} },
-    })).toThrow('digest schema harness-qa.json#/properties/x: unresolved reference "common.json#/$defs/missing"');
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { $ref: "absent.json#/x" } } } }))
-      .toThrow(/^digest schema harness-qa\.json#\/properties\/x: cannot read .*absent\.json \(ENOENT\)/);
-    expect(load({
-      "harness-qa.json": { type: "object", properties: { x: { type: "string", oneOf: [{ type: "string" }] } } },
-    })).toThrow('digest schema harness-qa.json#/properties/x/oneOf: unsupported keyword "oneOf"');
-    expect(load({ "harness-qa.json": { type: "object", additionalProperties: true } }))
-      .toThrow("unsupported additionalProperties true");
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { $ref: "https://example.com/s.json#/a" } } } }))
-      .toThrow(/unsupported reference/);
-    // OpenAI strict rejects the whole yield tool on one array without items ("array schema
-    // missing items", measured live on Codex), so the file is refused before it can ship.
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array" } } } }))
-      .toThrow("digest schema harness-qa.json#/properties/x: array schema without items");
-    expect(load({
-      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/list" } } },
-      "common.json": { $defs: { list: { type: ["string", "array"] } } },
-    })).toThrow("digest schema common.json#/$defs/list: array schema without items");
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array", items: {} } } } }))
-      .toThrow("digest schema harness-qa.json#/properties/x/items: array items admits any value");
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { type: "array", items: true } } } }))
-      .toThrow("digest schema harness-qa.json#/properties/x/items: array items must be a typed schema, got true");
-    expect(load({ "harness-qa.json": { type: "object", properties: { x: { pattern: "\\S" } } } }))
-      .toThrow("digest schema harness-qa.json#/properties/x: a property admits any value");
-  });
-
-  test("refuses a reference cycle and a reference that escapes the schema directory", () => {
-    expect(load({
-      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/a" } } },
-      "common.json": { $defs: { a: { $ref: "#/$defs/b" }, b: { $ref: "#/$defs/a" } } },
-    })).toThrow(/reference cycle/);
-    const outside = mkdtempSync(join(tmpdir(), "feat1928-outside-"));
-    writeFileSync(join(outside, "shared.json"), JSON.stringify({ $defs: { a: { type: "string" } } }));
-    const dir = schemaDir({
-      "harness-qa.json": { type: "object", properties: { x: { $ref: `../${outside.split("/").pop()}/shared.json#/$defs/a` } } },
-    });
-    expect(() => loadDigestSchemaBundle(dir, "harness-qa")).toThrow(/escapes the schema directory/);
-    const linked = schemaDir({
-      "harness-qa.json": { type: "object", properties: { x: { $ref: "common.json#/$defs/a" } } },
-    });
-    symlinkSync(join(outside, "shared.json"), join(linked, "common.json"));
-    expect(() => loadDigestSchemaBundle(linked, "harness-qa")).toThrow(/escapes the schema directory/);
   });
 });
 
@@ -3736,25 +3582,6 @@ describe("BUG-1898 run-start claims on the real registry", () => {
     expect(held?.block).toBe(true);
   });
 
-  // FEAT-1928: schema refusal and schema loading finish before dispatch-guard.py runs, so a
-  // schema-refused dispatch leaves the real registry exactly as it found it.
-  test("a schema-refused dispatch records no claim", async () => {
-    const w = world();
-    const parent = await lead(w);
-    for (const input of [
-      { agent: "harness-qa", name: "Check", task: ASSIGN, outputSchema: { type: "object" } },
-      { context: "shared", tasks: [{ agent: "harness-qa", name: "Check", task: ASSIGN, schemaMode: "permissive" }] },
-      { agent: "harness-nobody", name: "Nobody", task: ASSIGN },
-    ]) {
-      const verdict = await parent.s.handlers.get("tool_call")?.({
-        toolName: "task", toolCallId: "refused", input,
-      }, parent.ctx);
-      expect(verdict?.block).toBe(true);
-    }
-    expect(w.calls.filter((call) => call.script === "dispatch-guard.py")).toEqual([]);
-    expect(governed(w.root)).toEqual([]);
-  });
-
   // #1908: a parked agent is revived cold — OMP builds a NEW session from its session file,
   // so the extension runs in a fresh instance, and the hub's message reaches it through
   // agent.prompt(): agent_start fires, before_agent_start never does. The only record of who
@@ -4090,9 +3917,7 @@ describe("FEAT-2225 expertise_apply through the real policyRunner into the real 
     cpSync(join(SOURCE, ".claude/skills/harness/bin"), join(root, ".claude/skills/harness/bin"), { recursive: true });
     mkdirSync(join(root, ".agents"), { recursive: true });
     symlinkSync("../.claude/skills", join(root, ".agents/skills"));
-    for (const name of ["harness-hooks.ts", "digest-schema.ts"]) {
-      cpSync(join(SOURCE, ".omp/extensions", name), join(root, ".omp/extensions", name));
-    }
+    cpSync(join(SOURCE, ".omp/extensions/harness-hooks.ts"), join(root, ".omp/extensions/harness-hooks.ts"));
     // Runtime-selected: the module under test is the copy inside this temporary checkout.
     return (await import(join(root, ".omp/extensions/harness-hooks.ts"))).registerHarnessHooks;
   }
@@ -4618,5 +4443,149 @@ describe("FEAT-2337 async bounded policy runtime", () => {
   test.each(MALFORMED)("FEAT-2397: %s fails loudly and is never delivered", async (_label, stdout) => {
     const session = host({}, { "inject-expertise.py": { answer: injected(stdout), after: 0 } });
     await expect(session.begin()).rejects.toThrow("inject-expertise.py returned invalid JSON");
+  });
+});
+
+// BUG-2566 (D-01, D-03): the loaded hook module is fingerprinted by content at module load. Each
+// case imports its own copied tree, whose hook module was loaded at the fixed mtime M seconds.
+describe("BUG-2566 stale hook fingerprint", () => {
+  const REPO = join(import.meta.dir, "..", "..");
+  const M = 1800000000;
+  const H = ".omp/extensions/harness-hooks.ts";
+  const S = ".agents/skills/harness/schemas/digest";
+  type StaleModule = { staleHookRefusal: () => string | undefined };
+
+  async function staleTree(): Promise<{ root: string; module: StaleModule }> {
+    const root = realpathSync(mkdtempSync(join(tmpdir(), "bug2566-")));
+    cpSync(join(REPO, ".omp", "extensions"), join(root, ".omp", "extensions"), { recursive: true });
+    cpSync(join(REPO, ".claude", "skills", "harness", "schemas", "digest"), join(root, S), { recursive: true });
+    utimesSync(join(root, H), M, M);
+    // A dynamic import on purpose: each case loads a fresh copy of the module from its own temp
+    // root, which is the module-load boundary under test; no static path exists.
+    return { root, module: await import(join(root, H)) as StaleModule };
+  }
+
+  function expectStale(reason: string | undefined) {
+    expect(typeof reason).toBe("string");
+    expect(reason).not.toContain("\n");
+    expect(reason).toContain("restart omp");
+    // The path is reported relative to the loaded checkout's root, never to the cwd.
+    expect(reason).toContain(`no longer matches ${H} on disk`);
+  }
+
+  test("BUG-2566 SC-01: an untouched loaded module is not stale", async () => {
+    const { module } = await staleTree();
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-01: an appended comment line makes the module stale", async () => {
+    const { root, module } = await staleTree();
+    writeFileSync(join(root, H), `${readFileSync(join(root, H), "utf8")}// changed\n`);
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a deleted module is stale", async () => {
+    const { root, module } = await staleTree();
+    rmSync(join(root, H));
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a same-size byte change with the load-time mtime restored is stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    const bytes = readFileSync(path);
+    const size = statSync(path).size;
+    const changed = Buffer.from(bytes);
+    changed[changed.length - 1] = changed[changed.length - 1] === 0x20 ? 0x0a : 0x20;
+    writeFileSync(path, changed);
+    utimesSync(path, M, M);
+    expect(statSync(path).size).toBe(size);
+    expect(statSync(path).mtimeMs).toBe(M * 1000);
+    expectStale(module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-01: a module replaced by a FIFO is stale and never blocks", async () => {
+    const { root } = await staleTree();
+    const probe = join(root, "fifo-probe.ts");
+    writeFileSync(probe, [
+      'import { lstatSync, rmSync } from "node:fs";',
+      'import { spawnSync } from "node:child_process";',
+      `const module = await import(${JSON.stringify(join(root, H))});`,
+      `rmSync(${JSON.stringify(join(root, H))});`,
+      `const made = spawnSync("mkfifo", [${JSON.stringify(join(root, H))}]);`,
+      `if (made.status !== 0 || !lstatSync(${JSON.stringify(join(root, H))}).isFIFO()) process.exit(3);`,
+      "console.log(JSON.stringify(module.staleHookRefusal()));",
+      "",
+    ].join("\n"));
+    const child = spawnSync(process.execPath, [probe], { encoding: "utf8", timeout: 5000, killSignal: "SIGKILL" });
+    expect([child.signal, child.error, child.status]).toEqual([null, undefined, 0]);
+    expectStale(JSON.parse(child.stdout));
+  }, 15000);
+
+  test("BUG-2566 SC-04: a touched mtime with unchanged bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    utimesSync(join(root, H), M + 5, M + 5);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a rewrite with identical bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    writeFileSync(path, readFileSync(path));
+    utimesSync(path, M + 5, M + 5);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a change restored to the original bytes is not stale", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, H);
+    const original = readFileSync(path);
+    writeFileSync(path, Buffer.concat([original, Buffer.from("// changed\n")]));
+    expectStale(module.staleHookRefusal());
+    writeFileSync(path, original);
+    utimesSync(path, M + 10, M + 10);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a changed digest schema file is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    const path = join(root, S, "common.json");
+    writeFileSync(path, `${readFileSync(path, "utf8")}\n`);
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a removed digest schema file is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    rmSync(join(root, S, "harness-pm.json"));
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: a new extension module this process never loaded is not fingerprinted", async () => {
+    const { root, module } = await staleTree();
+    writeFileSync(join(root, ".omp", "extensions", "digest-schema.ts"), "export {};\n");
+    expect(module.staleHookRefusal()).toBeUndefined();
+  });
+
+  test("BUG-2566 SC-04: edits to another checkout leave this one fresh", async () => {
+    const a = await staleTree();
+    const b = await staleTree();
+    writeFileSync(join(b.root, H), `${readFileSync(join(b.root, H), "utf8")}// changed\n`);
+    expect(a.module.staleHookRefusal()).toBeUndefined();
+    expectStale(b.module.staleHookRefusal());
+  });
+
+  test("BUG-2566 SC-05: the check on the real module has a median under 5 ms", () => {
+    const check = (hooks as unknown as StaleModule).staleHookRefusal;
+    const results: Array<string | undefined> = [];
+    for (let i = 0; i < 20; i += 1) results.push(check());
+    const durations: number[] = [];
+    for (let i = 0; i < 200; i += 1) {
+      const begun = performance.now();
+      results.push(check());
+      durations.push(performance.now() - begun);
+    }
+    durations.sort((x, y) => x - y);
+    expect(results.every((result) => result === undefined)).toBe(true);
+    expect(durations[100]).toBeLessThan(5);
   });
 });

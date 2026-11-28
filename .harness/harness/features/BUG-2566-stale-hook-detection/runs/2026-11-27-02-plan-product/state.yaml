@@ -1,0 +1,48 @@
+schema_version: 2
+run_id: 2026-11-27-02-plan-product
+run_uid: 17ee26ada72a40f68ac6bf3840400cc4
+feature: BUG-2566-stale-hook-detection
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: answers
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2566-stale-hook-detection/notes/research-rulings-q02-q04.md
+    note: Q-02..Q-04 applied; DEC-204/DEC-100 back to keep; T-02 SPEC only; check exit 0
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [answers]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    max_cycles: 1
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/BUG-2566-stale-hook-detection/notes/review-harness-code-reviewer-plan-c2.md
+    note: valid return; c1 highs resolved/moot; 4 substance (3 med) + 2 form; fan-in panel-c2.md
+  - id: apply
+    persona: harness-pm
+    seq: 3
+    depends_on: [scope]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-5
+    completed_at: seq-6
+    artifact: .harness/harness/features/BUG-2566-stale-hook-detection/notes/research-apply-c2.md
+    note: 2 form fixed; record-panel c2 and set-panel exit 0; 10 c1 resolved T-01; 6 c2 open; check exit 0

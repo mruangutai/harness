@@ -52,10 +52,15 @@ yield({data: {
 
 This example is complete for `harness-documentor`. For every Harness persona:
 
-1. The dispatcher omits `outputSchema` and `schemaMode`. The OMP task hook refuses either key at
-   task top level or inside `tasks[]` before its claim side effect.
-2. The hook loads `.claude/skills/harness/schemas/digest/harness-<persona>.json`, resolves
-   `common.json`, projects a ref-free provider bundle, and injects it with `schemaMode: strict`.
+1. Each agent definition carries `structured: true` and an `output:` generated from
+   `.claude/skills/harness/schemas/digest/harness-<persona>.json` plus `common.json` by
+   `.claude/skills/harness/bin/gen-agent-output.py`; `check-omp-port.py` fails on drift.
+2. Global `task.structured` stays off, so the task tool exposes no schema parameter and the
+   dispatcher supplies none. Agent frontmatter cannot set strict mode, so the yield hook refuses a
+   yield with no data, and a yield the validator cannot check is refused, never passed. Measured on
+   OMP 19.2.1: a hook refusal does not use up one of OMP's schema retries, and after three
+   refusals the dispatcher saw a `failed` task result naming the cause, with no refused object as
+   task data (the child's own final text may quote it).
 3. The agent passes one mapping as YieldTool `data`. The top level is exactly `VERDICT`, `DIGEST`,
    and `artifact`; every persona-schema property is present. Conditional fields stay present with
    `none` or `[]`, null is forbidden, and minimal list-item variants are closed.
@@ -66,8 +71,8 @@ This example is complete for `harness-documentor`. For every Harness persona:
 
 | Failure | Operational response |
 |---|---|
-| Dispatcher supplied `outputSchema` or `schemaMode` | remove the named key and retry the task call; do not merge or override the canonical schema |
-| Schema load, reference resolution or provider projection failed | repair the named canonical schema failure; no loose-schema dispatch is permitted |
+| Schema projection failed (reported by `gen-agent-output.py` or `check-omp-port.py`) | repair the named persona schema and run `gen-agent-output.py` again; no loose-schema agent definition is permitted |
+| `validate-digest.py` could not run | the yield is refused, never passed; the child yields the same object once more and then stops naming the cause, and the operator repairs the validator |
 | YieldTool data is missing, null, text, a list, wrapped, or schema-invalid | the same job returns the complete valid object after the retryable tool error |
 | Semantic or cross-file validation failed | correct the named evidence, state or digest field; never synthesize `BLOCKED` on the producer's behalf |
 | Lead artifact is missing, unsafe, outside its checkout family, non-regular, unreadable or unwritable | fix the named path or filesystem condition and retry the yield; never choose another file |

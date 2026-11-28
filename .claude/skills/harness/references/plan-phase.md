@@ -21,10 +21,7 @@ no `plan.yaml` yet may start; an existing plan whose `approval.status` is not `p
 missing status included, is refused at exit 2 with the target and the status it records. A
 standalone validator plan panel (`harness-validator-lead`, `HARNESS-MISSION: plan`) needs an
 existing pending plan. The lead's scope reader carries `HARNESS-MISSION: plan` too, so a plan
-signed while the lead runs stops that reader before it works. Before this, a free-form validator
-prompt alone did not reliably identify a plan panel at dispatch time: its first authoritative
-plan signal was the scope reader's `reviewed` field at yield, after the panel's work. The
-explicit marker now supplies that signal before the lead spawns. Plan panels run before
+signed while the lead runs stops that reader before it works. Plan panels run before
 signature: a signed plan that genuinely needs changes takes the DEC-229 task-set amendment, whose
 `APPROVAL-RESET:` receipt returns it to `pending` for a renewed signature — then the panel.
 Nothing else reopens a signed plan, and a signed plan that needs no change needs no panel.

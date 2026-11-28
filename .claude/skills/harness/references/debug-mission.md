@@ -1,7 +1,7 @@
 # Mission debug — investigate first, then it becomes a mission judgement (DEC-139)
 
-Read this when your dispatch names mission **debug**. Missions map and deepen were retired with the
-codebase map tier; debug is the only mission outside the plan-to-ship loop that survives.
+Read this when your dispatch names mission **debug**, the one mission outside the plan-to-ship
+loop.
 
 For *symptom known, cause unknown*. When the cause is already known there is nothing to
 investigate — the change goes through the grilling's mission judgement like any other, and a known

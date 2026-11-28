@@ -6,9 +6,6 @@ Use the example for your persona and verdict, never another persona's fields.
 
 ## dev — frontend, backend, ai, data
 
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-backend-dev.json`;
-frontend, ai and data have their own `harness-<persona>.json` with the same fields.
-
 ```js
 yield({data: {
   "VERDICT": "PASS",
@@ -28,8 +25,6 @@ yield({data: {
 ```
 
 ## dev-ops
-
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-dev-ops.json`.
 
 ```js
 yield({data: {
@@ -52,9 +47,8 @@ yield({data: {
 
 ## Refusing an under-specified task
 
-Dev refusal uses the backend schema above; dev-ops uses its own schema. Every field remains
-required on a refusal: `VERDICT: BLOCKED`, concrete task id, `suite: n/a`, `task_verify: n/a`,
-no work paths, `artifact: none`, and the missing specification named in the role's fields.
+Dev refusal uses the dev shape above; dev-ops uses its own schema. The required fields:
+`harness-digest-dev` § Refusing an under-specified task.
 
 ```js
 yield({data: {
