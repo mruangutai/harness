@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CLI = ROOT / ".claude/skills/harness/bin/worktree-state.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import f58_sparse_fixture as F  # noqa: E402
 import git_support as G  # noqa: E402
 

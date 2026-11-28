@@ -186,11 +186,11 @@ def _scanned(name, under_tests):
 def discover(root):
     found = []
     worktrees = os.path.realpath(os.path.join(root, ".claude", "worktrees"))
-    tests = os.path.join(os.path.abspath(root), "tests")
+    root_is_tests = os.path.basename(os.path.abspath(root)) == "tests"
     for current, dirs, files in os.walk(root):
         dirs[:] = [name for name in dirs if name not in {".git", "node_modules", ".venv"}
                    and os.path.realpath(os.path.join(current, name)) != worktrees]
-        under_tests = (os.path.abspath(current) + os.sep).startswith(tests + os.sep)
+        under_tests = root_is_tests or os.path.relpath(current, root).split(os.sep)[0] == "tests"
         found.extend(os.path.join(current, name) for name in files
                      if _scanned(name, under_tests))
     return sorted(found)

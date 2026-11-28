@@ -38,6 +38,7 @@ ROOT = HERE.parents[1]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
 import f58_sparse_fixture as F  # noqa: E402
 import git_support as G  # noqa: E402
 import feature_corpus as fc  # noqa: E402

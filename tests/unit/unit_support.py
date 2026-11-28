@@ -12,8 +12,8 @@ then import any bin module and any shared tests/*_support.py module.
     TESTS  ROOT/tests
 
 A file that honours a bin override (test-check-state-shipped-ctx.py's CHECK_STATE_BIN_DIR) keeps
-it: after this import it inserts the override at sys.path[0] itself, so the override wins over
-BIN. This module reads no environment variable, so an override set for one file reaches no other.
+it: after this import it inserts the override at sys.path[0] itself. The override wins over BIN
+only for the modules it contains; a module missing from it still imports from BIN. This module reads no environment variable, so an override set for one file reaches no other.
 """
 import sys
 from pathlib import Path

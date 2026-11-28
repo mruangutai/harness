@@ -23,6 +23,7 @@ CHECK = BIN / "check-state.py"
 REPAIR = BIN / "worktree-state.py"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
 import f58_sparse_fixture as F  # noqa: E402
 import git_support as G  # noqa: E402
 from isolated_bin import isolated_bin  # noqa: E402
