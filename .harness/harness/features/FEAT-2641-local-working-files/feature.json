@@ -1,0 +1,43 @@
+{
+  "feature_id": "FEAT-2641-local-working-files",
+  "branch": "feat/FEAT-2641-local-working-files",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T02:33:26+00:00",
+      "tokens": 125793,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "4cae3940e3f73dd0249ef38b0306107b679f47ad5feffe80c88dd2302dec781f"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-28T03:20:46+00:00",
+      "code_grade": "n_a"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T02:33:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "changes enforcement surfaces (check-state invariants, gh-sync ship refusal, prune-run-evidence, gitignore template, merge-distill receipts) and amends live decisions; patch rule's third condition fails; DEC-174 applies"
+    },
+    {
+      "at": "2026-11-28T03:20:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run returned ESCALATE: OQ-02 (working files of shipped-but-undistilled features) is a scope question only the operator can rule; no re-panel before that answer since it may change the tasks a re-read would cover"
+    }
+  ],
+  "mission": "plan"
+}

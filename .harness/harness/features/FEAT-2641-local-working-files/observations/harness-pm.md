@@ -1,0 +1,9 @@
+# Observations — harness-pm — FEAT-2641-local-working-files
+
+- 2026-11-27: A grilling "Settled" item can rest on a mechanism that does not exist: the skip-distill path it named had no implementation anywhere (rg over .claude, .omp, DECISIONS.md), so the plan had to add a verb rather than amend one. Grep for each named command before treating it as existing.
+- 2026-11-27: Ignored files are invisible to git status --porcelain and git worktree remove deletes them silently; any feature that moves records from tracked to ignored must add a removal gate keyed on git ls-files --others, or the post-merge sweep destroys them.
+- 2026-11-27: The decisions_affected floor named 13 DECs; grepping DECISIONS.md for each retired INV number found 8 more entries (DEC-131, 154, 157, 160, 203, 208, 237, 255) whose text names a retired invariant. Grep the record for every retired identifier, not only for the surface keyword.
+- 2026-11-28: A cleanup placed inside a command whose terminal write belongs to its caller (gh-sync reject --superseded-by none) deletes before the station exists; route that path to a separate verb gated on the terminal station instead of cleaning in-process.
+- 2026-11-28: Tests that copy the repository .gitignore into fixtures (test-merge-gate BUG-2399, test-feature-worktree aborted-run) silently change meaning when the root ignore file changes; grep tests for ROOT .gitignore copies before planning any ignore-rule change.
+- 2026-11-28: A record split across checkouts (ship writes the owner copy, the worktree copy keeps review) means any station-gated verb must read both copies; reading only the deletion copy refuses every shipped feature.
+- 2026-11-28: Amend rows quoting one clause per entry let neighbouring live sentences survive; grep each amended entry for every retired identifier and add a row per surviving sentence (19 extra rows here).
