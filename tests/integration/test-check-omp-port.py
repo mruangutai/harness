@@ -2,43 +2,42 @@
 """Behavior tests for check-omp-port.py."""
 
 from __future__ import annotations
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
 
+from integration_support import ROOT, BIN
+
+import contextlib
 import json
-import shutil
-import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 import artifact_accessors
+from check_support import Checks
 
-ROOT = Path(__file__).resolve().parents[2]
-CHECK = ROOT / ".claude/skills/harness/bin/check-omp-port.py"
+CHECK = BIN / "check-omp-port.py"
+
 
 def run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, str(CHECK), str(root)], text=True, capture_output=True)
 
 
-def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
-    td = tempfile.TemporaryDirectory()
-    dst = Path(td.name)
+@contextlib.contextmanager
+def fixture():
+    """Yield a temporary copy of the trees check-omp-port.py reads; removed on exit."""
     # `.claude/worktrees/` holds every live feature checkout — ~1 GB here, growing with
     # concurrent feature work — and check-omp-port.py never reads it: its only traversal is
     # `agent_dir.glob("harness-*.md")`. Copying it made this file 239s of the integration
     # suite's 240s wall clock (issue #1525).
     skip_worktrees = shutil.ignore_patterns("worktrees")
-    for rel in (".omp", ".agents", ".claude"):
-        src = ROOT / rel
-        shutil.copytree(src, dst / rel, symlinks=True, ignore=skip_worktrees)
-    shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
-    return td, dst
+    with tempfile.TemporaryDirectory() as td:
+        dst = Path(td)
+        for rel in (".omp", ".agents", ".claude"):
+            shutil.copytree(ROOT / rel, dst / rel, symlinks=True, ignore=skip_worktrees)
+        shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
+        yield dst
 
 
 def case_symlink_topology():
@@ -73,80 +72,60 @@ def _per_call_model_off(config: Path) -> bool:
 def case_per_call_model_pinned_off():
     results = [("live .omp/config.yml pins task.perCallModel to the string off",
                 _per_call_model_off(ROOT / ".omp" / "config.yml"), "")]
-    for label, replacement in PER_CALL_MODEL_MUTATIONS:
-        td, root = fixture()
-        try:
-            config = root / ".omp" / "config.yml"
-            text = config.read_text()
+    # load_omp_config needs only a .yml path, not a tree around it.
+    text = (ROOT / ".omp" / "config.yml").read_text()
+    with tempfile.TemporaryDirectory() as td:
+        for label, replacement in PER_CALL_MODEL_MUTATIONS:
+            config = Path(td) / f"{label}.yml"
             config.write_text(text.replace(PER_CALL_MODEL_PIN, replacement))
             results.append((f"a task.perCallModel {label} pin fails the off assertion",
                             PER_CALL_MODEL_PIN in text and not _per_call_model_off(config), ""))
-        finally:
-            td.cleanup()
     return results
 
 
-# GRADE-2 REASON: the strict-reader contract is one ordered integration scenario across
-# config, agent frontmatter, and provider YAML; each mutation requires a fresh fixture.
+def _append_async_block(root: Path) -> None:
+    config = root / ".omp" / "config.yml"
+    config.write_text(config.read_text(encoding="utf-8") + "\nasync:\n  enabled: true\n",
+                      encoding="utf-8")
+
+
+def _duplicate_agent_name(root: Path) -> None:
+    agent = root / ".omp" / "agents" / "harness-backend-dev.md"
+    agent.write_text(agent.read_text(encoding="utf-8").replace(
+        "name: harness-backend-dev", "name: harness-backend-dev\nname: harness-backend-dev", 1),
+        encoding="utf-8")
+
+
+def _duplicate_provider(root: Path) -> None:
+    provider = root / ".omp" / "providers" / "openai.yml"
+    text = provider.read_text(encoding="utf-8")
+    provider.write_text(text + "\n" + text, encoding="utf-8")
+
+
 def case_live_tree_passes():
+    """The strict reader refuses a duplicate key in config, agent frontmatter and provider YAML,
+    each on a fresh fixture; a refusal that does not happen aborts the file."""
     clean = run(ROOT)
-    td, strict_root = fixture()
-    try:
-        config = strict_root / ".omp" / "config.yml"
-        config.write_text(
-            config.read_text(encoding="utf-8")
-            + "\nasync:\n  enabled: true\n",
-            encoding="utf-8",
-        )
-        duplicate_config = run(strict_root)
-        assert duplicate_config.returncode == 1 and "duplicate key" in (
-            duplicate_config.stderr), duplicate_config.stderr
-
-        td.cleanup()
-        td, strict_root = fixture()
-        agent = strict_root / ".omp" / "agents" / "harness-backend-dev.md"
-        text = agent.read_text(encoding="utf-8")
-        agent.write_text(
-            text.replace(
-                "name: harness-backend-dev",
-                "name: harness-backend-dev\nname: harness-backend-dev",
-                1,
-            ),
-            encoding="utf-8",
-        )
-        duplicate_frontmatter = run(strict_root)
-        assert duplicate_frontmatter.returncode == 1 and "duplicate key" in (
-            duplicate_frontmatter.stderr), duplicate_frontmatter.stderr
-
-        td.cleanup()
-        td, strict_root = fixture()
-        provider = strict_root / ".omp" / "providers" / "openai.yml"
-        text = provider.read_text(encoding="utf-8")
-        provider.write_text(text + "\n" + text, encoding="utf-8")
-        duplicate_provider = run(strict_root)
-        assert duplicate_provider.returncode == 1 and "duplicate key" in (
-            duplicate_provider.stderr), duplicate_provider.stderr
-    finally:
-        td.cleanup()
+    for mutate in (_append_async_block, _duplicate_agent_name, _duplicate_provider):
+        with fixture() as root:
+            mutate(root)
+            duplicate = run(root)
+        assert duplicate.returncode == 1 and "duplicate key" in duplicate.stderr, duplicate.stderr
     return [("live provider-neutral tree passes", clean.returncode == 0, clean.stderr)]
 
 
 def case_missing_agents_md_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         (root / "AGENTS.md").unlink()
         result = run(root)
         return [
             ("missing AGENTS.md fails", result.returncode == 1, ""),
             ("missing guidance is named", "AGENTS.md" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_concrete_model_in_canonical_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         agent = root / ".omp" / "agents" / "harness-backend-dev.md"
         agent.write_text(agent.read_text().replace("model: '@standard'", "model: anthropic/claude-sonnet-5"))
         result = run(root)
@@ -154,15 +133,12 @@ def case_concrete_model_in_canonical_fails():
             ("concrete model in canonical agent fails", result.returncode == 1, ""),
             ("provider coupling is named", "provider-neutral model alias" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_thinking_level_disagrees_with_alias_fails():
     """DEC-233: the alias↔thinking-level pairing was enforced only by the deleted
     sync-agent-adapters.py. A `@review` role at `medium` must be refused here, naming both."""
-    td, root = fixture()
-    try:
+    with fixture() as root:
         agent = root / ".omp" / "agents" / "harness-code-reviewer.md"
         agent.write_text(agent.read_text().replace("thinking-level: high", "thinking-level: medium"))
         result = run(root)
@@ -170,13 +146,10 @@ def case_thinking_level_disagrees_with_alias_fails():
             ("thinking-level disagreeing with alias fails", result.returncode == 1, result.stderr),
             ("both values are named", "@review" in result.stderr and "medium" in result.stderr, result.stderr),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_missing_async_enablement_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         config = root / ".omp" / "config.yml"
         config.write_text(config.read_text().replace("async:\n  enabled: true\n", ""))
         result = run(root)
@@ -184,13 +157,10 @@ def case_missing_async_enablement_fails():
             ("missing explicit async enablement fails", result.returncode == 1, ""),
             ("async liveness contract is named", "async.enabled" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_task_wall_clock_limit_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         config = root / ".omp" / "config.yml"
         config.write_text(config.read_text().replace("maxRuntimeMs: 0", "maxRuntimeMs: 60000"))
         result = run(root)
@@ -198,8 +168,6 @@ def case_task_wall_clock_limit_fails():
             ("task wall clock limit fails", result.returncode == 1, ""),
             ("wall-clock contract is named", "task.maxRuntimeMs" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_task_structured_off():
@@ -215,8 +183,7 @@ def case_task_structured_off():
     )
     rows = []
     for label, value, accepted in variants:
-        td, root = fixture()
-        try:
+        with fixture() as root:
             config = root / ".omp" / "config.yml"
             lines = [line for line in config.read_text().splitlines(keepends=True)
                      if not line.lstrip().startswith("structured:")]
@@ -231,8 +198,6 @@ def case_task_structured_off():
                 rows.append((f"task.structured {label} fails",
                              result.returncode == 1 and "task.structured" in result.stderr,
                              result.stderr))
-        finally:
-            td.cleanup()
     return rows
 
 
@@ -272,20 +237,16 @@ def case_agent_output_drift():
     )
     rows = []
     for label, mutate, named in fixtures:
-        td, root = fixture()
-        try:
+        with fixture() as root:
             mutate(root)
             result = run(root)
             rows.append((f"agent output drift: {label} fails naming {named}",
                          result.returncode == 1 and named in result.stderr, result.stderr))
-        finally:
-            td.cleanup()
     return rows
 
 
 def case_missing_lifecycle_wiring_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
         extension.write_text(extension.read_text().replace("task:subagent:lifecycle", "task:lifecycle"))
         result = run(root)
@@ -293,8 +254,6 @@ def case_missing_lifecycle_wiring_fails():
             ("missing OMP child lifecycle wiring fails", result.returncode == 1, ""),
             ("lifecycle wiring gap is named", "task:subagent:lifecycle" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 LIFECYCLE_REGISTRATION = re.compile(
@@ -306,8 +265,7 @@ def case_lifecycle_on_the_wrong_bus_fails():
     (`pi.events`), never on the extension hook dispatcher (`pi.on`). A registration on
     `pi.on` still carries the marker string, so a presence check passed while terminal
     children were never released. The mutant rewrites the registration to the wrong bus."""
-    td, root = fixture()
-    try:
+    with fixture() as root:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
         mutated = LIFECYCLE_REGISTRATION.sub('pi.on("task:subagent:lifecycle"',
                                              extension.read_text())
@@ -320,8 +278,6 @@ def case_lifecycle_on_the_wrong_bus_fails():
              result.stderr.strip()[-300:]),
             ("the wrong-bus gap is named", "pi.events" in result.stderr, result.stderr[-300:]),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_missing_sign_gate_wiring_fails():
@@ -329,8 +285,7 @@ def case_missing_sign_gate_wiring_fails():
     harness-hooks.ts's own bash gate list until this fix — invisible to this checker because
     the script was never in `required_wiring`. This proves the checker would now catch that
     class of gap recurring for ANY gate script, not just this one instance."""
-    td, root = fixture()
-    try:
+    with fixture() as root:
         extension = root / ".omp" / "extensions" / "harness-hooks.ts"
         extension.write_text(extension.read_text().replace("plan-sign-gate.py", "plan-sign-gate-REMOVED.sh"))
         result = run(root)
@@ -338,13 +293,10 @@ def case_missing_sign_gate_wiring_fails():
             ("missing plan-sign-gate.py wiring fails", result.returncode == 1, ""),
             ("sign-gate wiring gap is named", "plan-sign-gate.py" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_nonblocking_nested_agent_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         agent = root / ".omp" / "agents" / "harness-backend-dev.md"
         agent.write_text(agent.read_text().replace("blocking: true\n", ""))
         result = run(root)
@@ -352,25 +304,19 @@ def case_nonblocking_nested_agent_fails():
             ("nonblocking nested Harness agent fails", result.returncode == 1, ""),
             ("nested supervision contract is named", "blocking: true" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 def case_missing_command_door_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         (root / ".omp" / "commands" / "harness-ship.md").unlink()
         result = run(root)
         return [
             ("missing command door fails", result.returncode == 1, ""),
             ("missing door is named", "harness-ship.md" in result.stderr, ""),
         ]
-    finally:
-        td.cleanup()
 
 
 def case_absent_canonical_command_root_fails():
-    td, root = fixture()
-    try:
+    with fixture() as root:
         shutil.rmtree(root / ".omp" / "commands")
         result = run(root)
         missing_doors = sum(
@@ -381,39 +327,25 @@ def case_absent_canonical_command_root_fails():
             ("absent canonical command root fails", result.returncode == 1, ""),
             ("absent canonical root names all four doors", missing_doors == 4, result.stderr),
         ]
-    finally:
-        td.cleanup()
-
-
-
-def _feat64_escape_shim(tmpdir, script, patch_module, patch_attr, argv, env):
-    """FEAT-64 (SC-03): run `script` with `patch_module.patch_attr` replaced by a function that
-    raises RuntimeError('unrelated defect'); return the CompletedProcess. Used to prove an
-    unrelated programming defect ESCAPES the tool (non-zero, traceback) instead of entering its
-    quiet/best-effort path."""
-    shim = os.path.join(tmpdir, "feat64-shim.py")
-    with open(shim, "w") as f:
-        f.write("import sys, runpy\n"
-                f"sys.path.insert(0, {str(ROOT / '.claude/skills/harness/bin')!r})\n"
-                f"import {patch_module} as m\n"
-                "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
-                f"m.{patch_attr} = boom\n"
-                "sys.argv = [sys.argv[0]] + sys.argv[1:]\n"
-                f"runpy.run_path({script!r}, run_name='__main__')\n")
-    return subprocess.run([sys.executable, shim, *argv], capture_output=True, text=True, env=env)
 
 
 def case_feat64_unrelated_defect_escapes():
-    td, root = fixture()
-    try:
-        r = _feat64_escape_shim(td.name, str(CHECK), "artifact_accessors", "load_omp_config",
-                                [str(root)], dict(os.environ))
-        return [("FEAT-64: an unrelated RuntimeError in the config reader escapes check-omp-port "
-                 "(traceback, not 'cannot read')",
-                 r.returncode != 0 and "RuntimeError" in r.stderr and "cannot read .omp/config.yml" not in r.stderr,
-                 f"rc={r.returncode} stderr={r.stderr[-200:]!r}")]
-    finally:
-        td.cleanup()
+    """FEAT-64 (SC-03): with artifact_accessors.load_omp_config replaced by a function that raises
+    RuntimeError('unrelated defect'), the defect ESCAPES the tool (non-zero, traceback) instead of
+    entering its quiet/best-effort path. The patch raises before any tree content is read."""
+    with tempfile.TemporaryDirectory() as td:
+        shim = Path(td) / "feat64-shim.py"
+        shim.write_text("import sys, runpy\n"
+                        f"sys.path.insert(0, {str(BIN)!r})\n"
+                        "import artifact_accessors as m\n"
+                        "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
+                        "m.load_omp_config = boom\n"
+                        f"runpy.run_path({str(CHECK)!r}, run_name='__main__')\n")
+        r = subprocess.run([sys.executable, str(shim), str(ROOT)], capture_output=True, text=True)
+    return [("FEAT-64: an unrelated RuntimeError in the config reader escapes check-omp-port "
+             "(traceback, not 'cannot read')",
+             r.returncode != 0 and "RuntimeError" in r.stderr and "cannot read .omp/config.yml" not in r.stderr,
+             f"rc={r.returncode} stderr={r.stderr[-200:]!r}")]
 
 
 CASES = (
@@ -438,21 +370,12 @@ CASES = (
 
 
 def main() -> int:
-    results = []
+    C = Checks()
     for case in CASES:
-        results.extend(case())
-
-    failures = 0
-    for label, ok, detail in results:
-        if ok:
-            print(f"ok    {label}")
-        else:
-            failures += 1
-            print(f"FAIL  {label}" + (f" — {detail}" if detail else ""))
-
-    print(f"\n{len(results) - failures}/{len(results)} cases passed")
-    return 1 if failures else 0
+        for label, ok, detail in case():
+            C.check(label, ok, detail)
+    return C.report()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

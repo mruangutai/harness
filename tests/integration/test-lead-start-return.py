@@ -18,7 +18,8 @@ SC-04: correctly prepared runs still start and return through their authorized d
 destination, and the return-time refusals (missing binding, wrong identity or artifact, a
 plan approved after start) still stand.
 
-Output: one line per case, `PASS|FAIL [startup|control] <id>: <name>`, then any detail.
+Output: one line per case as it runs, `PASS|FAIL [startup|control] <id>: <name>`, then any
+detail, then the check_support summary.
 
     python3 tests/integration/test-lead-start-return.py                    -> behaviour only
     python3 tests/integration/test-lead-start-return.py --check-producers  -> plus the
@@ -26,6 +27,7 @@ Output: one line per case, `PASS|FAIL [startup|control] <id>: <name>`, then any 
     LEAD_START_UNION=<path to union.py>  optional: copy that union.py over the private bin's
         plan_merge/union.py, so the BUG-2582 cases can be red-proved against another revision
 """
+import contextlib
 import importlib.util
 import json
 import os
@@ -35,34 +37,36 @@ import subprocess
 import sys
 import tempfile
 
+from integration_support import ROOT as ROOT_PATH
 import yaml
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN_DIR)
-from isolated_bin import isolated_bin  # noqa: E402
-sys.path.insert(0, os.path.dirname(TESTS_DIR))
-from harness_config_support import write_config  # noqa: E402
+from check_support import Checks
+from harness_config_support import write_config
+from isolated_bin import isolated_bin
+
+ROOT = str(ROOT_PATH)
 
 FEATURE = "BUG-2110-lead-start-fixture"
-LEADS = {"harness-eng-lead": ("engineering", "eng"),
-         "harness-product-lead": ("product", "product"),
-         "harness-validator-lead": ("validator", "validator")}
-START_MISSION = {"harness-eng-lead": None, "harness-product-lead": "patch",
-                 "harness-validator-lead": "validate"}
+PRODUCT, VALIDATOR, ENG = "harness-product-lead", "harness-validator-lead", "harness-eng-lead"
+LEADS = {ENG: ("engineering", "eng"), PRODUCT: ("product", "product"),
+         VALIDATOR: ("validator", "validator")}
+START_MISSION = {ENG: (), PRODUCT: ("patch",), VALIDATOR: ("validate",)}
 READER = "harness-code-reviewer"
 PERSONAS = ("harness-orchestrator", READER, *LEADS)
 REGISTRY_REL = os.path.join(".harness", ".inflight-claims.json")
 PARENT = "Test.Orchestrator"
 HUMAN_ASSESSMENT = "# Team digest\n\nThe lead's regular human assessment of this run.\n"
 
-RESULTS = []
+C = Checks()
 _PRIVATE = {}
 
 
 def check(kind, case_id, name, ok, detail=""):
-    RESULTS.append((kind, case_id, name, bool(ok), detail))
+    C.check(f"[{kind}] {case_id}: {name}", ok, detail)
+
+
+def short(lead):
+    return LEADS[lead][1]
 
 
 # --- private subjects -------------------------------------------------------------------
@@ -138,6 +142,20 @@ def make_root(runs, plan=None):
     return root
 
 
+@contextlib.contextmanager
+def fresh_root(runs, plan=None):
+    """make_root, removed on exit."""
+    root = make_root(runs, plan)
+    try:
+        yield root
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def run_digest(root, lead):
+    return os.path.join(feature_dir(root), "runs", f"r1-{short(lead)}", "digest.md")
+
+
 def write_plan(root, status):
     approval = "" if status is None else f"approval:\n  status: {status}\n"
     with open(plan_path(root), "w") as handle:
@@ -185,45 +203,39 @@ def started(result, root, agent):
             and "harness_claim" in result.stdout)
 
 
-def start_case(kind, case_id, name, runs, plan, dispatched, text_of, expect_refusal,
-               mentions=(), dispatcher="harness-orchestrator"):
-    """One dispatch against a fresh checkout; `text_of(root)` builds the prompt."""
-    root = make_root(runs, plan)
-    try:
-        result = dispatch(root, dispatched, text_of(root), dispatcher)
+def start_case(kind, case_id, name, runs, plan, dispatched, missions, expect_refusal,
+               mentions=(), dispatcher="harness-orchestrator", extra=()):
+    """One dispatch against a fresh checkout of `prompt(root, *missions, extra=extra)`."""
+    with fresh_root(runs, plan) as root:
+        result = dispatch(root, dispatched, prompt(root, *missions, extra=extra), dispatcher)
         wanted = [token.replace("{plan}", os.path.realpath(plan_path(root)))
                   for token in mentions]
         named = all(token in result.stderr for token in wanted)
         ok = (refused_before_claim(result, root, dispatched) and named) if expect_refusal \
             else started(result, root, dispatched)
         check(kind, case_id, name, ok, outcome(result, root, dispatched))
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 # --- SC-02: plan-panel and mission starts -----------------------------------------------
 
-PRODUCT, VALIDATOR, ENG = "harness-product-lead", "harness-validator-lead", "harness-eng-lead"
-
 
 def sc02_plan_status_refusals():
     for lead in (PRODUCT, VALIDATOR):
-        short = lead.split("-")[1]
         for plan, observed in (("approved", "'approved'"), ("absent-status", "None")):
-            start_case("startup", f"SC-02/{short}/plan-{plan}",
+            start_case("startup", f"SC-02/{short(lead)}/plan-{plan}",
                        f"{lead} HARNESS-MISSION: plan on a plan with {plan} approval is "
                        "refused before any claim, naming target and observed status",
-                       [lead_run(lead)], plan, lead, lambda root: prompt(root, "plan"),
+                       [lead_run(lead)], plan, lead, ("plan",),
                        True, ("{plan}", observed))
-        start_case("control", f"SC-02/{short}/plan-pending",
+        start_case("control", f"SC-02/{short(lead)}/plan-pending",
                    f"{lead} HARNESS-MISSION: plan on a pending plan starts",
-                   [lead_run(lead)], "pending", lead, lambda root: prompt(root, "plan"), False)
+                   [lead_run(lead)], "pending", lead, ("plan",), False)
     start_case("control", "SC-02/product/draft-no-plan",
                "a product plan-team start with no plan file may draft it",
-               [lead_run(PRODUCT)], None, PRODUCT, lambda root: prompt(root, "plan"), False)
+               [lead_run(PRODUCT)], None, PRODUCT, ("plan",), False)
     start_case("startup", "SC-02/validator/no-plan",
                "a standalone validator plan panel with no plan file is refused",
-               [lead_run(VALIDATOR)], None, VALIDATOR, lambda root: prompt(root, "plan"),
+               [lead_run(VALIDATOR)], None, VALIDATOR, ("plan",),
                True, ("{plan}",))
 
 
@@ -232,61 +244,57 @@ def sc02_signed_plan_controls():
         start_case("control", f"SC-02/validator/{mission}-approved",
                    f"a validator {mission} start against an approved plan is not a plan panel",
                    [lead_run(VALIDATOR)], "approved", VALIDATOR,
-                   lambda root, m=mission: prompt(root, m), False)
+                   (mission,), False)
     start_case("control", "SC-02/product/patch-approved",
                "a product patch start declares patch explicitly and is not a plan panel",
-               [lead_run(PRODUCT)], "approved", PRODUCT, lambda root: prompt(root, "patch"), False)
+               [lead_run(PRODUCT)], "approved", PRODUCT, ("patch",), False)
     for label, extra in (("build", ()), ("simplify", ("SIMPLIFY: read harness-simplify first",))):
         start_case("control", f"SC-02/eng/{label}-no-mission",
                    f"a registered engineering-lead {label} start with no mission starts "
                    "against an approved plan",
-                   [lead_run(ENG)], "approved", ENG, lambda root, e=extra: prompt(root, extra=e),
-                   False)
-    for lead in LEADS:
-        suffix = LEADS[lead][1]
-        start_case("control", f"SC-02/{lead.split('-')[1]}/distill",
+                   [lead_run(ENG)], "approved", ENG, (), False, extra=extra)
+    for lead, (_, suffix) in LEADS.items():
+        start_case("control", f"SC-02/{suffix}/distill",
                    f"{lead} HARNESS-MISSION: distill still starts on its registered distill run",
                    [lead_run(lead, f"distill-{suffix}")], "approved", lead,
-                   lambda root: prompt(root, "distill"), False)
-        start_case("refusal", f"SC-02/{lead.split('-')[1]}/distill-unregistered",
+                   ("distill",), False)
+        start_case("refusal", f"SC-02/{suffix}/distill-unregistered",
                    f"{lead} HARNESS-MISSION: distill on a non-distill run is refused (FEAT-2225 F1)",
-                   [lead_run(lead)], "approved", lead, lambda root: prompt(root, "distill"), True)
+                   [lead_run(lead)], "approved", lead, ("distill",), True)
 
 
 def sc02_mission_refusals():
     for lead in (PRODUCT, VALIDATOR):
-        short = lead.split("-")[1]
-        start_case("startup", f"SC-02/{short}/mission-missing",
+        start_case("startup", f"SC-02/{short(lead)}/mission-missing",
                    f"{lead} with no HARNESS-MISSION is refused before any claim",
-                   [lead_run(lead)], "approved", lead, lambda root: prompt(root),
+                   [lead_run(lead)], "approved", lead, (),
                    True, ("HARNESS-MISSION", lead))
-        start_case("startup", f"SC-02/{short}/mission-conflicting",
+        start_case("startup", f"SC-02/{short(lead)}/mission-conflicting",
                    f"{lead} with conflicting HARNESS-MISSION lines is refused before any claim",
                    [lead_run(lead)], "pending", lead,
-                   lambda root: prompt(root, "plan", "patch"), True, ("HARNESS-MISSION", lead))
+                   ("plan", "patch"), True, ("HARNESS-MISSION", lead))
     for label, runs in (("zero", []), ("two", [lead_run(ENG), lead_run(ENG, "r2-eng")])):
         start_case("startup", f"SC-02/eng/{label}-no-mission",
                    f"an engineering-lead start with {label} matching runs is refused "
                    "independently of mission",
-                   runs, "approved", ENG, lambda root: prompt(root), True,
+                   runs, "approved", ENG, (), True,
                    ("exactly one matching open registered lead run",))
 
 
 def sc02_scope_reader():
     start_case("startup", "SC-02/scope/mission-missing",
                "the plan scope reader dispatched with no HARNESS-MISSION: plan is refused",
-               [lead_run(PRODUCT)], "pending", READER, lambda root: prompt(root), True,
+               [lead_run(PRODUCT)], "pending", READER, (), True,
                ("HARNESS-MISSION",), dispatcher=PRODUCT)
     start_case("control", "SC-02/scope/pending",
                "the plan scope reader with HARNESS-MISSION: plan on a pending plan starts",
-               [lead_run(PRODUCT)], "pending", READER, lambda root: prompt(root, "plan"), False,
+               [lead_run(PRODUCT)], "pending", READER, ("plan",), False,
                dispatcher=PRODUCT)
     start_case("control", "SC-02/scope/validator-code-review",
                "a validator's ordinary code-review dispatch needs no mission",
-               [lead_run(VALIDATOR)], "approved", READER, lambda root: prompt(root), False,
+               [lead_run(VALIDATOR)], "approved", READER, (), False,
                dispatcher=VALIDATOR)
-    root = make_root([lead_run(PRODUCT)], "pending")
-    try:
+    with fresh_root([lead_run(PRODUCT)], "pending") as root:
         lead = dispatch(root, PRODUCT, prompt(root, "plan"))
         write_plan(root, "approved")
         reader = dispatch(root, READER, prompt(root, "plan"), PRODUCT)
@@ -296,8 +304,6 @@ def sc02_scope_reader():
               "a scope-reader dispatch after the plan is approved under a running plan lead "
               "is refused before the reader works",
               ok, f"lead exit={lead.returncode}; reader {outcome(reader, root, READER)}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 # --- BUG-2582: the INV-34 station-only record starts a plan and converts --------------------
@@ -323,8 +329,12 @@ def plan_merge(root, stdin_text, *argv):
 # change. This group proves the whole path: the start, then the started run's `apply` converting
 # the record into the plan. A hand-written record, with no approval, is still refused.
 def bug2582_station_stub():
-    root = make_root([lead_run(PRODUCT)], None)
-    try:
+    bug2582_applied_stub()
+    bug2582_hand_written_stub()
+
+
+def bug2582_applied_stub():
+    with fresh_root([lead_run(PRODUCT)], None) as root:
         stub = plan_merge(root, STUB, "apply", "--file", plan_path(root), "--proposal", "-")
         lead = dispatch(root, PRODUCT, prompt(root, "plan"))
         check("control", "BUG-2582/stub-plan-start",
@@ -333,21 +343,25 @@ def bug2582_station_stub():
               stub.returncode == 0 and started(lead, root, PRODUCT),
               f"apply exit={stub.returncode}; {outcome(lead, root, PRODUCT)}")
         applied = plan_merge(root, PROPOSAL, "apply", "--file", plan_path(root), "--proposal", "-")
-        doc = {}
-        if applied.returncode == 0:
-            with open(plan_path(root)) as handle:
-                doc = yaml.safe_load(handle) or {}
-        ok = (applied.returncode == 0 and "station_only" not in doc
-              and [t.get("id") for t in doc.get("tasks") or []] == ["T-01"]
-              and doc.get("approval") == {"status": "pending"} and doc.get("status") == "plan")
         check("startup", "BUG-2582/stub-convert-after-start",
-              "the started plan run's apply converts the record into the plan", ok,
+              "the started plan run's apply converts the record into the plan",
+              converted(root, applied),
               " ".join(f"apply exit={applied.returncode} {applied.stdout} {applied.stderr}"
                        .split()))
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
-    root = make_root([lead_run(PRODUCT)], None)
-    try:
+
+
+def converted(root, applied):
+    """The apply succeeded and left the one-task pending plan with no station_only mark."""
+    if applied.returncode != 0:
+        return False
+    with open(plan_path(root)) as handle:
+        doc = yaml.safe_load(handle) or {}
+    return ("station_only" not in doc and [t.get("id") for t in doc.get("tasks") or []] == ["T-01"]
+            and doc.get("approval") == {"status": "pending"} and doc.get("status") == "plan")
+
+
+def bug2582_hand_written_stub():
+    with fresh_root([lead_run(PRODUCT)], None) as root:
         with open(plan_path(root), "w") as handle:
             handle.write(STUB)
         result = dispatch(root, PRODUCT, prompt(root, "plan"))
@@ -356,8 +370,6 @@ def bug2582_station_stub():
         check("startup", "BUG-2582/stub-hand-written-refused",
               "a hand-written station-only record with no approval still refuses the product "
               "plan start before any claim", ok, outcome(result, root, PRODUCT))
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 # --- SC-04: authorized start-to-return ----------------------------------------------------
@@ -427,7 +439,7 @@ def yield_return(root, agent, obj, binding=None, **identity):
 def victim_digest(binding, lead):
     """Another run's digest in the same feature, which no refused return may touch."""
     sibling = os.path.join(os.path.dirname(os.path.dirname(binding["artifact"])),
-                           "victim-" + LEADS[lead][1], "digest.md")
+                           "victim-" + short(lead), "digest.md")
     os.makedirs(os.path.dirname(sibling))
     with open(sibling, "w") as handle:
         handle.write(HUMAN_ASSESSMENT)
@@ -450,14 +462,13 @@ def refusal_variants(root, lead, binding, artifact_rel):
 
 def retained_refusals(root, lead, binding, artifact_rel):
     """Return-time refusals that must stand after a valid start; none may write anything."""
-    short = lead.split("-")[1]
     for label, (bound, identity, artifact) in refusal_variants(
             root, lead, binding, artifact_rel).items():
         before = snapshot(feature_dir(root))
         attempt = lead_object(lead, artifact, headline=f"refused {label} attempt")
         result = yield_return(root, lead, attempt, bound, **identity)
         unchanged = snapshot(feature_dir(root)) == before
-        check("control", f"SC-04/{short}/{label}",
+        check("control", f"SC-04/{short(lead)}/{label}",
               f"{lead} {label} return is still refused with nothing appended",
               result.returncode == 2 and unchanged,
               f"exit={result.returncode} unchanged={unchanged} {result.stderr.strip()[:400]!r}")
@@ -465,15 +476,14 @@ def retained_refusals(root, lead, binding, artifact_rel):
 
 def prepared_start(root, lead):
     """Dispatch, runtime claim registration and bind: (binding or None, the digest path)."""
-    mission = START_MISSION[lead]
-    start = dispatch(root, lead, prompt(root, *([mission] if mission else [])))
+    start = dispatch(root, lead, prompt(root, *START_MISSION[lead]))
     start_ok, start_detail = started(start, root, lead), outcome(start, root, lead)
     registered, bind_exit, answer = register_and_bind(root, lead)
     binding = answer.get("binding") or {}
-    expected = os.path.join(feature_dir(root), "runs", f"r1-{LEADS[lead][1]}", "digest.md")
+    expected = run_digest(root, lead)
     prepared = (start_ok and registered.get("ok") and bind_exit == 0
                 and binding.get("artifact") == expected)
-    check("control", f"SC-04/{lead.split('-')[1]}/start-bind",
+    check("control", f"SC-04/{short(lead)}/start-bind",
           f"{lead} with one registered run starts, registers its runtime claim and binds",
           prepared, f"{start_detail} registered={registered} answer={answer}")
     return (binding if prepared else None), expected
@@ -489,15 +499,14 @@ def authorized_append(root, lead, binding, expected):
     # Relative to the bytes just before this return, so a refusal that wrongly appended
     # fails its own case rather than this one.
     appended = after.get(expected) == before.get(expected, b"") + fenced(obj).encode()
-    check("control", f"SC-04/{lead.split('-')[1]}/authorized-append",
+    check("control", f"SC-04/{short(lead)}/authorized-append",
           f"{lead} return appends to exactly its registered destination",
           result.returncode == 0 and changed == [expected] and appended,
           f"exit={result.returncode} changed={changed} {result.stderr.strip()[:400]!r}")
 
 
 def sc04_lead(lead):
-    root = make_root([lead_run(lead)], "approved")
-    try:
+    with fresh_root([lead_run(lead)], "approved") as root:
         binding, expected = prepared_start(root, lead)
         if binding is None:
             return
@@ -506,32 +515,25 @@ def sc04_lead(lead):
             handle.write(HUMAN_ASSESSMENT)
         retained_refusals(root, lead, binding, os.path.relpath(expected, root))
         authorized_append(root, lead, binding, expected)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 def sc04_unregistered_witness(lead):
     """The #2110 gap: a lead with no registered run must stop at dispatch. When the guard
     lets it through, the rest of the path shows the return it could never make."""
-    short = lead.split("-")[1]
-    root = make_root([], "approved")
-    try:
-        mission = START_MISSION[lead]
-        start = dispatch(root, lead, prompt(root, *([mission] if mission else [])))
+    with fresh_root([], "approved") as root:
+        start = dispatch(root, lead, prompt(root, *START_MISSION[lead]))
         detail = outcome(start, root, lead)
         if start.returncode == 0:
             _registered, bind_exit, answer = register_and_bind(root, lead)
-            path = os.path.join(feature_dir(root), "runs", f"r1-{LEADS[lead][1]}", "digest.md")
+            path = run_digest(root, lead)
             back = yield_return(root, lead, lead_object(lead, os.path.relpath(path, root)),
                                 **runtime(lead))
             detail += (f" gap: bind_exit={bind_exit} bind_ok={answer.get('ok')} "
                        f"return_exit={back.returncode}")
-        check("startup", f"SC-04/{short}/unregistered-witness",
+        check("startup", f"SC-04/{short(lead)}/unregistered-witness",
               f"{lead} with no registered run is refused at dispatch, before any claim, "
               "instead of working to an unauthorizable return",
               refused_before_claim(start, root, lead), detail)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 def scope_return(root, status_after_start):
@@ -547,35 +549,27 @@ def scope_return(root, status_after_start):
     return lead, reader, back
 
 
+SCOPE_RETURNS = (
+    (None, "pending-return", "a pending-plan scope review starts and returns normally", 0, ""),
+    ("approved", "approved-after-start",
+     "a plan approved after a valid start is refused at the reader's return", 2, "pending"))
+
+
 def sc04_plan_scope():
-    root = make_root([lead_run(PRODUCT)], "pending")
-    try:
-        lead, reader, back = scope_return(root, None)
-        check("control", "SC-04/scope/pending-return",
-              "a pending-plan scope review starts and returns normally",
-              lead.returncode == 0 and reader.returncode == 0 and back.returncode == 0,
-              f"lead={lead.returncode} reader={reader.returncode} return={back.returncode} "
-              f"{back.stderr.strip()[:400]!r}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
-    root = make_root([lead_run(PRODUCT)], "pending")
-    try:
-        lead, reader, back = scope_return(root, "approved")
-        check("control", "SC-04/scope/approved-after-start",
-              "a plan approved after a valid start is refused at the reader's return",
-              lead.returncode == 0 and reader.returncode == 0 and back.returncode == 2
-              and "pending" in back.stderr,
-              f"lead={lead.returncode} reader={reader.returncode} return={back.returncode} "
-              f"{back.stderr.strip()[:400]!r}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+    for status, label, name, want_exit, needle in SCOPE_RETURNS:
+        with fresh_root([lead_run(PRODUCT)], "pending") as root:
+            lead, reader, back = scope_return(root, status)
+            check("control", f"SC-04/scope/{label}", name,
+                  lead.returncode == 0 and reader.returncode == 0
+                  and back.returncode == want_exit and needle in back.stderr,
+                  f"lead={lead.returncode} reader={reader.returncode} return={back.returncode} "
+                  f"{back.stderr.strip()[:400]!r}")
 
 
 def sc04_approved_plan_witness():
     """The #2097 gap: a plan panel on a signed plan must stop at dispatch. When the guard
     lets it through, the reader's return shows the refusal it would have met at yield."""
-    root = make_root([lead_run(PRODUCT)], "approved")
-    try:
+    with fresh_root([lead_run(PRODUCT)], "approved") as root:
         lead, reader, back = scope_return(root, None)
         detail = (f"lead {outcome(lead, root, PRODUCT)} reader exit={reader.returncode} "
                   f"gap: return_exit={back.returncode} {back.stderr.strip()[:300]!r}")
@@ -583,13 +577,10 @@ def sc04_approved_plan_witness():
               "a plan-panel lead start on an approved plan is refused at dispatch, before any "
               "claim, instead of its readers being refused at yield",
               refused_before_claim(lead, root, PRODUCT), detail)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 def sc04_distill_pin():
-    root = make_root([lead_run(VALIDATOR)], "approved")
-    try:
+    with fresh_root([lead_run(VALIDATOR)], "approved") as root:
         artifact = os.path.join(feature_dir(root), "notes", "review-distill.md")
         obj = reviewer_object("", artifact, code_grade="pass", reviewed="HEAD..HEAD")
         back = yield_return(root, READER, obj, harness_feature=FEATURE,
@@ -599,8 +590,6 @@ def sc04_distill_pin():
               "a forwarded distill mission still pins the reviewer's gate fields",
               back.returncode == 2 and "distill" in back.stderr,
               f"exit={back.returncode} {back.stderr.strip()[:400]!r}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
 
 
 # --- --check-producers: the dispatch-contract documents -----------------------------------
@@ -746,17 +735,6 @@ def check_producers():
                        blanket_requirements(read_doc(rel))[:2])
 
 
-def report():
-    failed = 0
-    for kind, case_id, name, ok, detail in RESULTS:
-        print(f"{'PASS' if ok else 'FAIL'} [{kind}] {case_id}: {name}")
-        if not ok:
-            failed += 1
-            print(f"      | {detail}")
-    print(f"{len(RESULTS) - failed} of {len(RESULTS)} cases passed")
-    return 1 if failed else 0
-
-
 def main(argv):
     try:
         sc02_plan_status_refusals()
@@ -774,7 +752,7 @@ def main(argv):
             check_producers()
     finally:
         shutil.rmtree(_PRIVATE.get("holder", ""), ignore_errors=True)
-    return report()
+    return C.report()
 
 
 if __name__ == "__main__":

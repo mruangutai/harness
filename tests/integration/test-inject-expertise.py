@@ -16,11 +16,7 @@ is neutralized to a fresh temp dir per case (not just per run) so the suite neve
 accidentally reads this machine's real global craft file — without this, cases
 3/4/5/6's empty/absent assertions would be inherited noise, not a controlled fixture.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN
 import json
 import re
 import os
@@ -29,14 +25,17 @@ import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(HERE, "inject-expertise.py")
+from check_support import Checks
 
-fails = 0
-case_count = 0
+BIN_DIR = str(BIN)
+SCRIPT = os.environ.get("INJECT_EXPERTISE_BIN") or os.path.join(BIN_DIR, "inject-expertise.py")
+QA = b'{"agent_type": "harness-qa"}'
+REPO_HDR = "## Your Expertise — harness repository (repository tier)"
+PROJECT_HDR = "## Your Expertise — this checkout's craft (project tier)"
+PRECEDENCE = "repository over project over global, by specificity"
+
+C = Checks()
+report = C.check
 
 
 def hook_env(root, home, create_marker=True):
@@ -61,7 +60,7 @@ def hook_env(root, home, create_marker=True):
     return env
 
 
-def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
+def run_hook(root, home, payload_bytes=QA, cwd=None, script=SCRIPT, create_marker=True):
     return subprocess.run([script], input=payload_bytes, capture_output=True,
                           env=hook_env(root, home, create_marker), cwd=cwd)
 
@@ -82,47 +81,41 @@ def fresh_home():
     return tempfile.mkdtemp()
 
 
-def report(name, ok, detail=""):
-    global fails, case_count
-    case_count += 1
-    if ok:
-        print(f"PASS {name}")
-    else:
-        fails += 1
-        print(f"FAIL {name}")
-        if detail:
-            print(f"        {detail}")
-
-
 def write(path, body):
+    """Write str or bytes to path, creating its directory."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "wb" if isinstance(body, bytes) else "w") as f:
         f.write(body)
 
 
-def lines_body(prefix, n):
-    return "\n".join(f"{prefix} line {i}" for i in range(1, n + 1)) + "\n"
+def fixture(files):
+    """A fresh temp root holding files ({relpath: body}) under it."""
+    root = tempfile.mkdtemp()
+    for rel, body in files.items():
+        write(os.path.join(root, rel), body)
+    return root
+
+
+def inject(root, payload=QA, **kw):
+    """Run the hook over root with a fresh HOME; return (result, context or empty string)."""
+    r = run_hook(root, fresh_home(), payload, **kw)
+    return r, get_context(r) or ""
 
 
 # --- Case 1: both tiers present, and the precedence rule -------------------
 def case1():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "GLOBAL BODY TEXT\n")
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY TEXT\n")
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    _, ctx = inject(fixture({".harness/expertise/harness-qa.md": "GLOBAL BODY TEXT\n", ".harness/harness/expertise/harness-qa.md": "REPO BODY TEXT\n"}))
     checks = [
-        "## Your Expertise — harness repository (repository tier)" in ctx,
+        REPO_HDR in ctx,
         "REPO BODY TEXT" in ctx,
-        "## Your Expertise — this checkout's craft (project tier)" in ctx,
-        "repository over project over global, by specificity" in ctx,
+        PROJECT_HDR in ctx,
+        PRECEDENCE in ctx,
         "read the segment name" in ctx,
         "authoritative on conflict" not in ctx,
         "most specific" not in ctx,
     ]
-    precedence_idx = ctx.find("repository over project over global, by specificity")
-    repo_header_idx = ctx.find("## Your Expertise — harness repository (repository tier)")
+    precedence_idx = ctx.find(PRECEDENCE)
+    repo_header_idx = ctx.find(REPO_HDR)
     order_ok = precedence_idx != -1 and repo_header_idx != -1 and precedence_idx < repo_header_idx
     ok = all(checks) and order_ok
     report("case1: both tiers present, precedence rule stated once", ok,
@@ -131,13 +124,9 @@ def case1():
 
 # --- Case 2: two repository segments (harness, sample-product) --------------
 def case2():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "HARNESS SEGMENT BODY\n")
-    write(os.path.join(root, ".harness/sample-product/expertise/harness-qa.md"), "SAMPLE SEGMENT BODY\n")
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
-    harness_hdr = "## Your Expertise — harness repository (repository tier)"
+    _, ctx = inject(fixture({".harness/harness/expertise/harness-qa.md": "HARNESS SEGMENT BODY\n",
+                             ".harness/sample-product/expertise/harness-qa.md": "SAMPLE SEGMENT BODY\n"}))
+    harness_hdr = REPO_HDR
     sample_hdr = "## Your Expertise — sample-product repository (repository tier)"
     checks = [
         harness_hdr in ctx,
@@ -152,14 +141,10 @@ def case2():
 
 # --- Case 3: no repository tier, craft only ---------------------------------
 def case3():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "CRAFT ONLY BODY, no forbidden word here\n")
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    r, ctx = inject(fixture({".harness/expertise/harness-qa.md": "CRAFT ONLY BODY, no forbidden word here\n"}))
     checks = [
         r.returncode == 0,
-        "## Your Expertise — this checkout's craft (project tier)" in ctx,
+        PROJECT_HDR in ctx,
         "repository" not in ctx,
     ]
     report("case3: craft only, no repository text of any kind", all(checks), str(checks))
@@ -167,10 +152,7 @@ def case3():
 
 # --- Case 4: no Expertise still receives the control-plane block -------------
 def case4():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    r, ctx = inject(fixture({}))
     ok = (
         r.returncode == 0
         and ctx.startswith("## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: ")
@@ -183,11 +165,9 @@ def case4():
 
 # --- Case 4b: the injected root is the control plane, not agent cwd ----------
 def case4b():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
+    root = fixture({})
     product_cwd = tempfile.mkdtemp()
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', cwd=product_cwd)
-    ctx = get_context(r) or ""
+    r, ctx = inject(root, cwd=product_cwd)
     root_line = next(
         (line for line in ctx.splitlines()
          if line.startswith("HARNESS_CONTROL_PLANE_ROOT: ")),
@@ -202,20 +182,11 @@ def case4b():
 
 # --- Case 4c: an unresolvable hook root remains loud and non-blocking --------
 def case4c():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    isolated = tempfile.mkdtemp()
-    script = os.path.join(isolated, "bin", "inject-expertise.py")
-    os.makedirs(os.path.dirname(script))
-    shutil.copyfile(SCRIPT, script)
-    shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
-                    os.path.join(os.path.dirname(script), "harness_boundary.py"))
-    shutil.copyfile(os.path.join(HERE, "artifact_accessors.py"),
-                    os.path.join(os.path.dirname(script), "artifact_accessors.py"))
-    os.chmod(script, 0o755)
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', script=script,
-                 create_marker=False)
-    ctx = get_context(r) or ""
+    isolated_bin = os.path.join(tempfile.mkdtemp(), "bin")
+    shutil.copytree(BIN_DIR, isolated_bin, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copy2(SCRIPT, os.path.join(isolated_bin, "inject-expertise.py"))
+    r, ctx = inject(fixture({}), script=os.path.join(isolated_bin, "inject-expertise.py"),
+                    create_marker=False)
     ok = r.returncode == 0 and "HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED" in ctx and "VERDICT: BLOCKED" in ctx
     report("case4c: unresolved root is injected loudly without blocking", ok,
            f"exit={r.returncode} context={ctx!r}")
@@ -223,7 +194,6 @@ def case4c():
 
 
 # --- FEAT-2397 #9: the response object, the in-process drift check, one-pass capping ---------
-QA = b'{"agent_type": "harness-qa"}'
 CHECKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-instruction-paths.py")
 DRIFT_FILES = (
     os.path.join(".omp", "agents", "harness-qa.md"),
@@ -304,7 +274,7 @@ def _cli_drift(root):
 def _real_checker_root(bodies):
     """A fixture control plane carrying the REAL checker and the bin modules it imports."""
     root = drift_root(None, bodies)
-    shutil.copytree(HERE, os.path.join(root, os.path.dirname(CHECKER_REL)),
+    shutil.copytree(BIN_DIR, os.path.join(root, os.path.dirname(CHECKER_REL)),
                     ignore=shutil.ignore_patterns("__pycache__"))
     return root
 
@@ -396,8 +366,8 @@ def baseline_capped_body(path, budget):
     return capped
 
 
-def _numbered(n, end="\n"):
-    return "".join(f"line {i}{end}" for i in range(1, n + 1)).encode()
+def _numbered(n, end="\n", prefix=""):
+    return "".join(f"{prefix}line {i}{end}" for i in range(1, n + 1)).encode()
 
 
 CAP_ROWS = (
@@ -438,9 +408,7 @@ def case_capped_body_matches_frozen_baseline():
                  os.path.join(root, ".harness/expertise/harness-qa.md"),
                  os.path.join(root, ".harness/harness/expertise/harness-qa.md"))
         for path in files:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(path, "wb") as handle:
-                handle.write(raw)
+            write(path, raw)
         got = get_context(run_hook(root, home, QA))
         want = baseline_context(root, files)
         report(f"capped body parity: {label}", got == want,
@@ -449,26 +417,18 @@ def case_capped_body_matches_frozen_baseline():
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
 def case5():
-    root = tempfile.mkdtemp()
+    root = fixture({".harness/expertise/harness-qa.md": "should not matter\n"})
     home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "should not matter\n")
-
-    r1 = run_hook(root, home, b'{}')
-    r2 = run_hook(root, home, b'not valid json{{{')
-    ok1 = r1.returncode == 0 and r1.stderr.decode("utf-8", errors="replace").strip() == ""
-    ok2 = r2.returncode == 0 and r2.stderr.decode("utf-8", errors="replace").strip() == ""
-    report("case5a: missing agent_type -> exit 0, no traceback", ok1,
-           f"exit={r1.returncode} stderr={r1.stderr!r}")
-    report("case5b: invalid JSON payload -> exit 0, no traceback", ok2,
-           f"exit={r2.returncode} stderr={r2.stderr!r}")
+    for label, payload in (("case5a: missing agent_type", b'{}'),
+                           ("case5b: invalid JSON payload", b'not valid json{{{')):
+        r = run_hook(root, home, payload)
+        ok = r.returncode == 0 and r.stderr.decode("utf-8", errors="replace").strip() == ""
+        report(f"{label} -> exit 0, no traceback", ok, f"exit={r.returncode} stderr={r.stderr!r}")
 
 
 def case5c():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "MUST NOT INJECT\n")
     payload = b'{"agent_type":"other","agent_type":"harness-qa"}'
-    result = run_hook(root, home, payload)
+    result, _ = inject(fixture({".harness/expertise/harness-qa.md": "MUST NOT INJECT\n"}), payload)
     output = result.stdout.decode("utf-8", errors="replace").strip()
     if output:
         report("case5c: duplicate hook-payload keys are rejected before expertise injection",
@@ -477,10 +437,8 @@ def case5c():
 
 # --- Case 6: non-harness agent ------------------------------------------------
 def case6():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/some-other-agent.md"), "irrelevant\n")
-    r = run_hook(root, home, b'{"agent_type": "some-other-agent"}')
+    r, _ = inject(fixture({".harness/expertise/some-other-agent.md": "irrelevant\n"}),
+                  b'{"agent_type": "some-other-agent"}')
     out = r.stdout.decode("utf-8", errors="replace").strip()
     ok = r.returncode == 0 and out == ""
     report("case6: non-harness agent -> exit 0, empty stdout", ok, f"exit={r.returncode} out={out!r}")
@@ -488,68 +446,46 @@ def case6():
 
 # --- Case 7: repository-tier budget -----------------------------------------
 def case7():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), lines_body("repo", 41))
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    _, ctx = inject(fixture({".harness/harness/expertise/harness-qa.md": _numbered(41, prefix="repo ")}))
     ok1 = "[TRUNCATED at 40 lines" in ctx and "TRUNCATED at 150" not in ctx
     report("case7a: 41-line repository file truncates at 40, not 150", ok1, ctx[:200])
 
-    root2 = tempfile.mkdtemp()
-    home2 = fresh_home()
-    write(os.path.join(root2, ".harness/expertise/harness-qa.md"), lines_body("craft", 41))
-    r2 = run_hook(root2, home2, b'{"agent_type": "harness-qa"}')
-    ctx2 = get_context(r2) or ""
+    _, ctx2 = inject(fixture({".harness/expertise/harness-qa.md": _numbered(41, prefix="craft ")}))
     ok2 = "TRUNCATED" not in ctx2
     report("case7b: 41-line craft file (no repo tier) — no truncation notice", ok2, ctx2[:200])
 
 
 # --- Case 8: 151-line craft file still truncates at 150 ---------------------
 def case8():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), lines_body("craft", 151))
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    _, ctx = inject(fixture({".harness/expertise/harness-qa.md": _numbered(151, prefix="craft ")}))
     ok = "[TRUNCATED at 150 lines" in ctx
     report("case8: 151-line craft file truncates at 150", ok, ctx[:200])
 
 
 # --- Case 10: repository tier with no craft tier -----------------------------
 def case10():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO ONLY BODY\n")
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    r, ctx = inject(fixture({".harness/harness/expertise/harness-qa.md": "REPO ONLY BODY\n"}))
     checks = [
         r.returncode == 0,
-        "## Your Expertise — harness repository (repository tier)" in ctx,
+        REPO_HDR in ctx,
         "REPO ONLY BODY" in ctx,
-        "repository over project over global, by specificity" in ctx,
-        "## Your Expertise — this checkout's craft (project tier)" not in ctx,
+        PRECEDENCE in ctx,
+        PROJECT_HDR not in ctx,
     ]
     report("case10: repository tier, no craft tier at all", all(checks), str(checks))
 
 
 # --- Case 11: never blocks, never parses YAML --------------------------------
 def case11():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "GLOBAL BODY ELEVEN\n")
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY ELEVEN\n")
-    write(os.path.join(root, ".harness/team-config.yaml"),
-          'broken: "unterminated\n\tbad: indent\n')
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    r, ctx = inject(fixture({".harness/expertise/harness-qa.md": "GLOBAL BODY ELEVEN\n", ".harness/harness/expertise/harness-qa.md": "REPO BODY ELEVEN\n",
+                             ".harness/team-config.yaml": 'broken: "unterminated\n\tbad: indent\n'}))
     stderr = r.stderr.decode("utf-8", errors="replace")
     checks = [
         r.returncode == 0,
-        "## Your Expertise — this checkout's craft (project tier)" in ctx,
+        PROJECT_HDR in ctx,
         "GLOBAL BODY ELEVEN" in ctx,
         "REPO BODY ELEVEN" in ctx,
-        "repository over project over global, by specificity" in ctx,
+        PRECEDENCE in ctx,
         "Traceback" not in stderr,
     ]
     report("case11: unparseable team-config.yaml, no fleet.yaml -> unaffected, no traceback", all(checks),
@@ -558,10 +494,8 @@ def case11():
 
 # --- Case 12: agent-name validation ------------------------------------------
 def case12():
-    root = tempfile.mkdtemp()
+    root = fixture({".harness/expertise/harness-qa.md": "SHOULD NOT LEAK GLOBAL\n", ".harness/harness/expertise/harness-qa.md": "SHOULD NOT LEAK REPO\n"})
     home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "SHOULD NOT LEAK GLOBAL\n")
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "SHOULD NOT LEAK REPO\n")
 
     bad_values = ["harness-", "harness-qa/../../etc", "harness-*", "harness-qa;id"]
     for val in bad_values:
@@ -580,20 +514,16 @@ def case12():
 
 # --- Case 13: dangling symlink -> unreadable-file guard is required ---------
 def case13():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "CRAFT BODY THIRTEEN\n")
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY THIRTEEN\n")
+    root = fixture({".harness/expertise/harness-qa.md": "CRAFT BODY THIRTEEN\n", ".harness/harness/expertise/harness-qa.md": "REPO BODY THIRTEEN\n"})
     sample_path = os.path.join(root, ".harness/sample-product/expertise/harness-qa.md")
     os.makedirs(os.path.dirname(sample_path), exist_ok=True)
     os.symlink(os.path.join(root, ".harness/sample-product/expertise/does-not-exist.md"), sample_path)
 
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
+    r, ctx = inject(root)
     stderr = r.stderr.decode("utf-8", errors="replace")
     checks = [
         r.returncode == 0,
-        "## Your Expertise — harness repository (repository tier)" in ctx,
+        REPO_HDR in ctx,
         "REPO BODY THIRTEEN" in ctx,
         "sample-product" not in ctx,
 
@@ -611,9 +541,7 @@ def case_feat65():
     shutil.copytree(os.path.dirname(SCRIPT), mbin)
     with open(os.path.join(mbin, "harness_boundary.py"), "a", encoding="utf-8") as f:
         f.write("\n\ndef resolve_root(bin_dir, strict=True):\n    raise RuntimeError('FEAT-65 injected')\n")
-    root, home = tempfile.mkdtemp(), fresh_home()
-    r = run_hook(root, home, json.dumps({"agent_type": "harness-qa"}).encode(),
-                 script=os.path.join(mbin, "inject-expertise.py"))
+    r, _ = inject(fixture({}), script=os.path.join(mbin, "inject-expertise.py"))
     stderr = r.stderr.decode("utf-8", "replace")
     report("feat65: an unexpected resolver defect is loud and nonzero, not absorbed",
            r.returncode not in (0, 2) and "FEAT-65 injected" in stderr,
@@ -643,9 +571,8 @@ def main():
     case11()
     case12()
     case13()
-    print(f"\n{case_count - fails}/{case_count} cases passed.")
-    return fails
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    main()
+    sys.exit(C.report())

@@ -7,13 +7,7 @@ subprocess invocations are unchanged. Shared fixtures live in gh_sync_support.py
 
     ./test-gh-sync-open.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import os
 import re
@@ -24,16 +18,43 @@ import io
 from unittest.mock import patch
 import gh_cost_log
 import harness_boundary
-import harness_merge
 from harness_config_support import build_config, write_config
 
 from gh_sync_support import (
     FAKE_GH, FAKE_GH_ATTACH_FAILS, FAKE_GH_STATIONS, FULL_STATIONS, SYNC, calls, check,
-    install_gh, load_gh_sync, nested_feature_dir, read_feature_json, report, run, stage,
-    write_feature_json, write_plan_yaml, write_validate_handoff, stage_fleet)
+    install_gh, label_create_fails, load_gh_sync, nested_feature_dir, read_feature_json, report,
+    run, stage, write_feature_json, write_plan_yaml, write_validate_handoff, stage_fleet)
 
 _MUTATION_TOKENS = ("issue create", "issue close", "issue edit", "label create", "project item-",
                     "api -X POST", "api -X PATCH", "api -X DELETE")
+
+# load_recorded's default record: what a feature with no mirrored github block reads as.
+_DEFAULT_REC = {"milestone": None, "parent": None, "attached": [], "issues": {},
+                "source_issues": [], "build_entry": None}
+
+
+def _patch_feature_json(feat, mutate):
+    """Read FEAT's feature.json, apply MUTATE to the document in place, write it back."""
+    path = os.path.join(feat, "feature.json")
+    doc = read_feature_json(path)
+    mutate(doc)
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
+
+
+def _bytes(path):
+    """The raw bytes at PATH, for a before/after "file unchanged" comparison."""
+    with open(path, "rb") as source:
+        return source.read()
+
+
+def _exit_message(fn, *args):
+    """str(SystemExit) when FN(*ARGS) raises SystemExit, None when it returns."""
+    try:
+        fn(*args)
+    except SystemExit as error:
+        return str(error)
+    return None
 
 
 def stage_recover(tmp, feat_name, milestone=None, parent=None, issues=None, source_issues=None):
@@ -125,23 +146,12 @@ def fleet_unproven_command_cases():
     for command in commands:
         with tempfile.TemporaryDirectory() as tmp:
             feat = stage_fleet(tmp)
-            path = os.path.join(feat, "feature.json")
-            doc = read_feature_json(path)
-            doc["github"] = {"parent": 12, "build_entry": "opened"}
-            with open(path, "w", encoding="utf-8") as target:
-                json.dump(doc, target, indent=2)
-            with open(path, "rb") as source:
-                before = source.read()
-            with open(os.path.join(feat, "plan.yaml"), "rb") as source:
-                plan_before = source.read()
+            path, plan = os.path.join(feat, "feature.json"), os.path.join(feat, "plan.yaml")
+            _patch_feature_json(feat, lambda doc: doc.update(github={"parent": 12, "build_entry": "opened"}))
+            before, plan_before = _bytes(path), _bytes(plan)
             result = run([command[0], feat] + command[1:], tmp)
-            with open(path, "rb") as source:
-                same_ledger = source.read() == before
-            with open(os.path.join(feat, "plan.yaml"), "rb") as source:
-                same_plan = source.read() == plan_before
-            mutations = [call for call in calls(tmp) if any(token in call for token in (
-                "issue create", "issue close", "issue edit", "label create", "project item-",
-                "api -X POST", "api -X PATCH", "api -X DELETE"))]
+            same_ledger, same_plan = _bytes(path) == before, _bytes(plan) == plan_before
+            mutations = [call for call in calls(tmp) if any(token in call for token in _MUTATION_TOKENS)]
             check(f"{command[0]} refuses unproven active fleet receipts before any mutation",
                   result.returncode == 2 and same_ledger and same_plan and not mutations
                   and "provenance" in result.stdout + result.stderr,
@@ -221,11 +231,7 @@ _CONFIG_FAILURES = (
 
 
 def _rebind(feat, factory_repo):
-    path = os.path.join(feat, "feature.json")
-    doc = read_feature_json(path)
-    doc["factory"]["repo"] = factory_repo
-    with open(path, "w", encoding="utf-8") as target:
-        json.dump(doc, target, indent=2)
+    _patch_feature_json(feat, lambda doc: doc["factory"].update(repo=factory_repo))
 
 
 def _refused_cleanly(result, feat, log):
@@ -278,11 +284,14 @@ def launch_failure_cases():
               and 0 < len(value[1]) <= 200, f"code={code} raised={raised!r} value={value!r}")
 
 
-def _open_with(script, feat_name="FEAT-05-export-fix"):
-    """Run `open` once against SCRIPT; return (result, call log, github receipt)."""
+def _open_with(script=FAKE_GH, feat_name="FEAT-05-export-fix", setup=None, **stage_kwargs):
+    """Run `open` once against SCRIPT on a fresh `stage` fixture, after SETUP(tmp, feat)
+    when given; return (result, call log, github receipt)."""
     with tempfile.TemporaryDirectory() as tmp:
         install_gh(tmp, script)
-        feat = stage(tmp, feat_name=feat_name)
+        feat = stage(tmp, feat_name=feat_name, **stage_kwargs)
+        if setup:
+            setup(tmp, feat)
         result = run(["open", feat], tmp)
         receipt = read_feature_json(os.path.join(feat, "feature.json")).get("github") or {}
         return result, calls(tmp), receipt
@@ -313,15 +322,9 @@ _EXISTING_LABEL = ('label with name "harness" already exists; use `--force` to u
                    'and description')
 
 
-def _label_fake(response):
-    """FAKE_GH whose `label create` prints RESPONSE on stderr and exits 1."""
-    return FAKE_GH.replace('  "label create") exit 0 ;;',
-                           "  \"label create\") echo '%s' >&2; exit 1 ;;" % response)
-
-
 def label_failure_case():
     """A failed label create stops dependent issue writes through the mirror SKIP."""
-    result, log, _receipt = _open_with(_label_fake("HTTP 403: Resource not accessible"))
+    result, log, _receipt = _open_with(label_create_fails(FAKE_GH, "HTTP 403: Resource not accessible"))
     check("failed first label create: SKIP, exit 0, and no dependent issue create",
           result.returncode == 0 and "gh-sync: SKIP" in result.stdout
           and not any("issue create" in l for l in log), f"out={result.stdout} log={log}")
@@ -337,7 +340,7 @@ def _label_effects(log):
 
 def label_exists_case():
     """Only gh's existing-label response is idempotent. Colours stay per label, never --force."""
-    result, log, _receipt = _open_with(_label_fake(_EXISTING_LABEL))
+    result, log, _receipt = _open_with(label_create_fails(FAKE_GH, _EXISTING_LABEL))
     creates, harness_colour, forced = _label_effects(log)
     check("existing label (exit 1, gh's already-exists stderr) is accepted: open creates its issues",
           result.returncode == 0 and "SKIP" not in result.stdout and len(creates) == 4,
@@ -408,10 +411,7 @@ def main():
     fleet_bound_command_cases()
     fleet_config_failure_cases()
     with tempfile.TemporaryDirectory() as tmp:
-        gh_path = os.path.join(tmp, "gh")
-        open(gh_path, "w").write(FAKE_GH)
-        os.chmod(gh_path, 0o755)
-        os.symlink(gh_path, os.path.join(tmp, "gh-on-path"))  # for which()
+        install_gh(tmp)
         feat = stage(tmp)
 
         # --- environmental skips exit 0
@@ -719,9 +719,7 @@ def main():
     _rec2 = _ghs.load_recorded(_d2)
 
     check("T-06C: a feature.json with no github: block returns the default, does not raise",
-          _rec2 == {"milestone": None, "parent": None,
-                    "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
-          str(_rec2))
+          _rec2 == _DEFAULT_REC, str(_rec2))
 
     # ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
     # table did not enumerate. Collapse row 1 (legitimate first sync) into row 2 (error) and
@@ -737,16 +735,12 @@ def main():
     _recAbsent = _ghs.load_recorded(_dabsent)
 
     check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
-          _recAbsent == {"milestone": None, "parent": None,
-                         "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
-          str(_recAbsent))
+          _recAbsent == _DEFAULT_REC, str(_recAbsent))
 
     # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
     # named here again for the fix1 spec's own enumeration).
     check("fix1 B row1b: dict present with no github key returns the default rec",
-          _rec2 == {"milestone": None, "parent": None,
-                    "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
-          str(_rec2))
+          _rec2 == _DEFAULT_REC, str(_rec2))
 
     # Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
     # save_recorded's pre-fix `open(p, "w")` guaranteed at open. THIS is the live truncation
@@ -758,26 +752,19 @@ def main():
     check("fix1 B row2: 0 bytes on disk",
           os.path.getsize(os.path.join(_dzero, "feature.json")) == 0, "fixture setup")
 
-    try:
-        _ghs.load_recorded(_dzero)
-        check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
-              False, "load_recorded returned instead of raising")
-    except SystemExit as e:
-        check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
-              "does not parse" in str(e) or "cannot be known" in str(e), str(e))
+    _msg = _exit_message(_ghs.load_recorded, _dzero)
+    check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
+          _msg is not None and ("does not parse" in _msg or "cannot be known" in _msg),
+          _msg or "load_recorded returned instead of raising")
 
     # Row 4: decode errors must refuse at the call site too, not merely in the shared accessor.
     _dutf8 = nested_feature_dir("FEAT-fix1b-non-utf8")
     _utf8_path = os.path.join(_dutf8, "feature.json")
     with open(_utf8_path, "wb") as _f:
         _f.write(b"\xff\xfe")
-    try:
-        _ghs.load_recorded(_dutf8)
-        check("fix1 B row4: non-UTF-8 feature.json refuses through load_recorded", False,
-              "load_recorded returned instead of raising")
-    except SystemExit as e:
-        check("fix1 B row4: non-UTF-8 feature.json refuses through load_recorded and names the file",
-              _utf8_path in str(e), str(e))
+    _msg = _exit_message(_ghs.load_recorded, _dutf8)
+    check("fix1 B row4: non-UTF-8 feature.json refuses through load_recorded and names the file",
+          _msg is not None and _utf8_path in _msg, _msg or "load_recorded returned instead of raising")
 
     # Row 2 (non-mapping document): a JSON document that parses fine but is not a mapping —
     # a bare list or a bare scalar. Same bug shape as the zero-byte case: `.get` would not
@@ -785,15 +772,11 @@ def main():
     for _label, _body in (("a_list", "[1, 2]\n"), ("a_scalar", '"just a string"\n')):
         _dnm = nested_feature_dir(f"FEAT-fix1b-nonmap-{_label}")
         open(os.path.join(_dnm, "feature.json"), "w").write(_body)
-        try:
-            _ghs.load_recorded(_dnm)
-            check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit", False,
-                  "load_recorded returned instead of raising")
-        except SystemExit as e:
-            check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit",
-                  "does not parse" in str(e) or "cannot be known" in str(e)
-                  or "not a mapping" in str(e) or "mapping" in str(e),
-                  str(e))
+        _msg = _exit_message(_ghs.load_recorded, _dnm)
+        check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit",
+              _msg is not None and ("does not parse" in _msg or "cannot be known" in _msg
+                                    or "mapping" in _msg),
+              _msg or "load_recorded returned instead of raising")
 
     # Row 4 (the operator's table does NOT enumerate this one): doc IS a dict, `github` IS
     # present, but is not itself a mapping (a string or a list). Treated as row 2 — loud
@@ -803,13 +786,9 @@ def main():
         _dgh = nested_feature_dir(f"FEAT-fix1b-row4-{_label}")
         json.dump({"feature_id": "F-row4", "github": _github_val},
                   open(os.path.join(_dgh, "feature.json"), "w"))
-        try:
-            _ghs.load_recorded(_dgh)
-            check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
-                  f"SystemExit", False, "load_recorded returned instead of raising")
-        except SystemExit as e:
-            check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
-                  f"SystemExit", len(str(e)) > 0, str(e))
+        _msg = _exit_message(_ghs.load_recorded, _dgh)
+        check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises SystemExit",
+              bool(_msg), _msg if _msg is not None else "load_recorded returned instead of raising")
 
     # ---------- fix1 Part A: save_recorded must be ATOMIC — feature.json is never observable
     # in a partial or empty state. Proven by forcing json.dump to fail PARTWAY through the
@@ -831,10 +810,8 @@ def main():
     _bad_rec = {"milestone": 9, "parent": 40, "parent_origin": "created",
                 "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}, "source_issues": []}
 
-    try:
+    with contextlib.suppress(Exception):
         _ghs.save_recorded(_datomic, _bad_rec)
-    except (TypeError, Exception):
-        pass
 
     with open(_atomic_path, "rb") as _f:
         _after_bytes = _f.read()
@@ -948,16 +925,8 @@ def main():
               f"rc={r.returncode} task_creates={len(task_create_linesX2)} github={ghX2}")
 
     # --- a feature with no plan.yaml (PLAN.md-only, stage()'s default) records source_issues
-    #     as an empty list rather than failing or omitting the key
-    with tempfile.TemporaryDirectory() as tmpX3:
-        install_gh(tmpX3)
-        featX3 = stage(tmpX3, feat_name="FEAT-26-no-source-issues")
-        r = run(["open", featX3], tmpX3)
-        docX3 = read_feature_json(os.path.join(featX3, "feature.json"))
-        ghX3 = docX3.get("github") or {}
-        check("open on a plan with no source_issues records none and still succeeds",
-              r.returncode == 0 and ghX3.get("source_issues") == [],
-              f"rc={r.returncode} github={ghX3}")
+    #     as an empty list: asserted on the first open of the T-02 "second open" fixture below,
+    #     which is exactly that shape.
 
     # --- save_recorded refuses, loudly, when feature.json is absent — the orchestrator
     #     instantiates it from templates/feature.json on the first cycle; a fresh document
@@ -967,17 +936,11 @@ def main():
     _recAbsentT02 = {"milestone": None, "parent": None, "attached": [],
                      "issues": {}, "source_issues": []}
 
-    try:
-        _ghs.save_recorded(_dabsentT02, _recAbsentT02)
-        check("save_recorded refuses when feature.json is absent", False,
-              "save_recorded returned instead of raising SystemExit")
-    except SystemExit as e:
-        _msgT02 = str(e)
-        check("save_recorded refuses when feature.json is absent",
-              "feature.json" in _msgT02
-              and os.path.join(_dabsentT02, "feature.json") in _msgT02
-              and "absent" in _msgT02,
-              _msgT02)
+    _msgT02 = _exit_message(_ghs.save_recorded, _dabsentT02, _recAbsentT02)
+    check("save_recorded refuses when feature.json is absent",
+          _msgT02 is not None and "feature.json" in _msgT02
+          and os.path.join(_dabsentT02, "feature.json") in _msgT02 and "absent" in _msgT02,
+          _msgT02 or "save_recorded returned instead of raising SystemExit")
 
     # ---------- T-04 (FEAT-26): closes emits the pull-request-body closing keywords derived
     # --- T-06: the `closes` subcommand is DELETED ------------------------------------------------
@@ -1027,88 +990,60 @@ def main():
     # D-04: a run failing AFTER any remote create records NOTHING (field absent). github.sync
     # true with github.repo unpinned is an invalid config (FEAT-2297): open refuses and records
     # nothing; not-applicable belongs to the sync-not-enabled skip alone.
-    with tempfile.TemporaryDirectory() as tmpT2a:
-        install_gh(tmpT2a, FAKE_GH)
-        featT2a = stage(tmpT2a, feat_name="FEAT-70-t02-opened")
-        rT2a = run(["open", featT2a], tmpT2a)
-        docT2a = read_feature_json(os.path.join(featT2a, "feature.json"))
-        ghT2a = docT2a.get("github") or {}
-        check("T-02 open records opened",
-              rT2a.returncode == 0 and ghT2a.get("build_entry") == "opened",
-              f"rc={rT2a.returncode} github={ghT2a!r} out={rT2a.stdout!r}")
+    def _seed_opened(_tmp, feat):
+        write_feature_json(
+            os.path.join(feat, "feature.json"), feature_id="FEAT-70-t02-nodowngrade",
+            github={"milestone": None, "parent": None, "attached": [], "issues": {},
+                    "build_entry": "opened"})
 
-    with tempfile.TemporaryDirectory() as tmpT2b:
-        install_gh(tmpT2b, FAKE_GH)
-        featT2b = stage(tmpT2b, sync=False, feat_name="FEAT-70-t02-syncfalse")
-        rT2b = run(["open", featT2b], tmpT2b)
-        docT2b = read_feature_json(os.path.join(featT2b, "feature.json"))
-        ghT2b = docT2b.get("github") or {}
-        check("T-02 sync false records not-applicable",
-              rT2b.returncode == 0 and ghT2b.get("build_entry") == "not-applicable"
-              and not calls(tmpT2b),
-              f"rc={rT2b.returncode} github={ghT2b!r} calls={calls(tmpT2b)!r}")
+    rT2b, logT2b, ghT2b = _open_with(sync=False, feat_name="FEAT-70-t02-syncfalse")
+    check("T-02 sync false records not-applicable",
+          rT2b.returncode == 0 and ghT2b.get("build_entry") == "not-applicable" and not logT2b,
+          f"rc={rT2b.returncode} github={ghT2b!r} calls={logT2b!r}")
 
-    with tempfile.TemporaryDirectory() as tmpT2c:
-        install_gh(tmpT2c, FAKE_GH)
-        featT2c = stage(tmpT2c, feat_name="FEAT-70-t02-unpinned")
-        _write_unpinned(tmpT2c)
-        rT2c = run(["open", featT2c], tmpT2c)
-        docT2c = read_feature_json(os.path.join(featT2c, "feature.json"))
-        ghT2c = docT2c.get("github") or {}
-        check("T-02 unpinned repo is refused at exit 2 and records nothing",
-              rT2c.returncode == 2 and "build_entry" not in ghT2c,
-              f"rc={rT2c.returncode} github={ghT2c!r}")
+    rT2c, _log, ghT2c = _open_with(feat_name="FEAT-70-t02-unpinned",
+                                   setup=lambda tmp, _feat: _write_unpinned(tmp))
+    check("T-02 unpinned repo is refused at exit 2 and records nothing",
+          rT2c.returncode == 2 and "build_entry" not in ghT2c,
+          f"rc={rT2c.returncode} github={ghT2c!r}")
 
-    with tempfile.TemporaryDirectory() as tmpT2d:
-        install_gh(tmpT2d, FAKE_GH_FAIL_FIRST)
-        featT2d = stage(tmpT2d, feat_name="FEAT-70-t02-firstfail")
-        rT2d = run(["open", featT2d], tmpT2d)
-        docT2d = read_feature_json(os.path.join(featT2d, "feature.json"))
-        ghT2d = docT2d.get("github") or {}
-        check("T-02 first-call failure records recovery-required",
-              rT2d.returncode == 0 and ghT2d.get("build_entry") == "recovery-required",
-              f"rc={rT2d.returncode} github={ghT2d!r} out={rT2d.stdout!r}")
+    rT2d, _log, ghT2d = _open_with(FAKE_GH_FAIL_FIRST, feat_name="FEAT-70-t02-firstfail")
+    check("T-02 first-call failure records recovery-required",
+          rT2d.returncode == 0 and ghT2d.get("build_entry") == "recovery-required",
+          f"rc={rT2d.returncode} github={ghT2d!r} out={rT2d.stdout!r}")
 
-    with tempfile.TemporaryDirectory() as tmpT2e:
-        install_gh(tmpT2e, FAKE_GH_PARTIAL)
-        featT2e = stage(tmpT2e, feat_name="FEAT-70-t02-partial")
-        rT2e = run(["open", featT2e], tmpT2e)
-        docT2e = read_feature_json(os.path.join(featT2e, "feature.json"))
-        ghT2e = docT2e.get("github") or {}
-        check("T-02 partial remote write records nothing",
-              rT2e.returncode == 0 and "build_entry" not in ghT2e
-              and ghT2e.get("milestone") == 7,
-              f"rc={rT2e.returncode} github={ghT2e!r} out={rT2e.stdout!r}")
+    rT2e, _log, ghT2e = _open_with(FAKE_GH_PARTIAL, feat_name="FEAT-70-t02-partial")
+    check("T-02 partial remote write records nothing",
+          rT2e.returncode == 0 and "build_entry" not in ghT2e and ghT2e.get("milestone") == 7,
+          f"rc={rT2e.returncode} github={ghT2e!r} out={rT2e.stdout!r}")
 
+    # One fixture, two opens: the first is the plain PLAN.md-only open (records opened, and no
+    # source_issues since there is no plan.yaml); the second must change nothing remotely.
     with tempfile.TemporaryDirectory() as tmpT2f:
         install_gh(tmpT2f, FAKE_GH)
         featT2f = stage(tmpT2f, feat_name="FEAT-70-t02-secondopen")
-        run(["open", featT2f], tmpT2f)
+        rT2a = run(["open", featT2f], tmpT2f)
+        ghT2a = read_feature_json(os.path.join(featT2f, "feature.json")).get("github") or {}
+        check("T-02 open records opened",
+              rT2a.returncode == 0 and ghT2a.get("build_entry") == "opened",
+              f"rc={rT2a.returncode} github={ghT2a!r} out={rT2a.stdout!r}")
+        check("open on a plan with no source_issues records none and still succeeds",
+              rT2a.returncode == 0 and ghT2a.get("source_issues") == [],
+              f"rc={rT2a.returncode} github={ghT2a}")
         n_before_f = len(calls(tmpT2f))
         rT2f = run(["open", featT2f], tmpT2f)
         new_f = calls(tmpT2f)[n_before_f:]
-        docT2f = read_feature_json(os.path.join(featT2f, "feature.json"))
-        ghT2f = docT2f.get("github") or {}
+        ghT2f = read_feature_json(os.path.join(featT2f, "feature.json")).get("github") or {}
         check("T-02 second open stays opened",
               rT2f.returncode == 0 and ghT2f.get("build_entry") == "opened"
               and not any("issue create" in l or "milestones" in l for l in new_f),
               f"github={ghT2f!r} new_calls={new_f!r}")
 
-    with tempfile.TemporaryDirectory() as tmpT2g:
-        install_gh(tmpT2g, FAKE_GH_FAIL_FIRST)
-        featT2g = stage(tmpT2g, feat_name="FEAT-70-t02-nodowngrade")
-        write_feature_json(
-            os.path.join(featT2g, "feature.json"),
-            feature_id="FEAT-70-t02-nodowngrade",
-            github={"milestone": None, "parent": None, "attached": [], "issues": {},
-                    "build_entry": "opened"},
-        )
-        rT2g = run(["open", featT2g], tmpT2g)
-        docT2g = read_feature_json(os.path.join(featT2g, "feature.json"))
-        ghT2g = docT2g.get("github") or {}
-        check("T-02 opened never downgrades",
-              rT2g.returncode == 0 and ghT2g.get("build_entry") == "opened",
-              f"rc={rT2g.returncode} github={ghT2g!r} out={rT2g.stdout!r}")
+    rT2g, _log, ghT2g = _open_with(FAKE_GH_FAIL_FIRST, feat_name="FEAT-70-t02-nodowngrade",
+                                   setup=_seed_opened)
+    check("T-02 opened never downgrades",
+          rT2g.returncode == 0 and ghT2g.get("build_entry") == "opened",
+          f"rc={rT2g.returncode} github={ghT2g!r} out={rT2g.stdout!r}")
 
     with tempfile.TemporaryDirectory() as tmpT2h:
         install_gh(tmpT2h, FAKE_GH)
@@ -1138,9 +1073,9 @@ def main():
         install_gh(tmpR1)
         featR1 = stage_recover(tmpR1, "FEAT-70-t03-dry", source_issues=[501])
         fj_path_R1 = os.path.join(featR1, "feature.json")
-        before_R1 = open(fj_path_R1, "rb").read()
+        before_R1 = _bytes(fj_path_R1)
         rR1 = run(["recover-terminal", featR1], tmpR1)
-        after_R1 = open(fj_path_R1, "rb").read()
+        after_R1 = _bytes(fj_path_R1)
         check("T-03 report and ask writes nothing",
               rR1.returncode == 0 and "would" in rR1.stdout
               and not non_preflight_calls(calls(tmpR1)) and before_R1 == after_R1,
@@ -1186,11 +1121,11 @@ def main():
               f"rc={rR4.returncode} github={ghR4!r} calls={logR4!r}")
 
         fj_path_R5 = os.path.join(featR3, "feature.json")
-        before_R5 = open(fj_path_R5, "rb").read()
+        before_R5 = _bytes(fj_path_R5)
         n_before_R5 = len(calls(tmpR3))
         rR5 = run(["recover-terminal", featR3, "--parent", "999", "--yes"], tmpR3)
         logR5 = calls(tmpR3)[n_before_R5:]
-        after_R5 = open(fj_path_R5, "rb").read()
+        after_R5 = _bytes(fj_path_R5)
         both_R5 = rR5.stdout + rR5.stderr
         check("T-03 parent contract error refuses",
               rR5.returncode == 2 and "999" in both_R5 and "1289" in both_R5

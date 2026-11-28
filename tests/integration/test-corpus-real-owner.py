@@ -18,22 +18,16 @@ The only tree written is one disposable validator pin of this repository at the 
 HEAD, made and removed through pinned-checkout.py. Nothing else — no owner file, no live
 worktree — is touched. A missing host prerequisite is announced and skipped, never passed.
 """
+from integration_support import ROOT, BIN
 import os
 import shutil
 import subprocess
 import sys
 import unittest
-from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(HERE.parent))
-import f58_sparse_fixture as F  # noqa: E402
-import git_support as G  # noqa: E402
-import feature_corpus as fc  # noqa: E402
+import f58_sparse_fixture as F
+import git_support as G
+import feature_corpus as fc
 
 FIXTURE_DIRS = ({f"harness/{fid}" for fid in (*F.HARNESS_FEATURES, F.RECORDLESS_FEATURE)}
                 | {f"{F.FLEET_SEGMENT}/{fid}" for fid in F.FLEET_FEATURES})
@@ -45,18 +39,36 @@ def skip(case, reason):
     case.skipTest(reason)
 
 
+def owner_or_skip(case):
+    """The owner root this checkout resolves to; a CorpusError skips the case."""
+    try:
+        return fc.owner_root(str(ROOT))
+    except fc.CorpusError as exc:
+        skip(case, f"no owner root resolves from {ROOT}: {exc}")
+
+
+def landed_names(root):
+    """'segment/id' for each landed directory at `root` as given (no owner_root resolution)."""
+    return {f"{segment}/{fid}" for segment, fid, _path in fc.landed_dirs(root)}
+
+
+def names(entries):
+    return {f"{e['segment']}/{e['id']}" for e in entries}
+
+
 def tracked_feature_dirs(owner):
     """Feature directories HEAD tracks at `owner`, by an independent route: `git ls-tree` per
     segment, not feature_corpus. Record-less directories count like any other."""
+    segments = G.git(owner, "ls-tree", "-d", "--name-only", "HEAD", ".harness/").stdout.split()
+    if not segments:
+        return set()
+    listed = G.git(owner, "ls-tree", "-d", "--name-only", "HEAD",
+                   *(f"{seg}/features/" for seg in segments), check=False).stdout
     found = set()
-    segments = subprocess.run(["git", "ls-tree", "-d", "--name-only", "HEAD", ".harness/"],
-                              cwd=owner, capture_output=True, text=True, check=True).stdout
-    for seg_path in segments.split():
-        names = subprocess.run(["git", "ls-tree", "-d", "--name-only", "HEAD",
-                                f"{seg_path}/features/"],
-                               cwd=owner, capture_output=True, text=True).stdout
-        segment = seg_path.split("/", 1)[1]
-        found.update(f"{segment}/{os.path.basename(n)}" for n in names.split())
+    for path in listed.split():
+        parts = path.split("/")   # .harness/<segment>/features/<id>
+        if len(parts) == 4 and parts[2] == "features":
+            found.add(f"{parts[1]}/{parts[3]}")
     return found
 
 
@@ -68,9 +80,8 @@ def audit_mismatch(caller, disk_owner):
     Untracked extra directories are not compared: the audit reports them, not gating (SC-04),
     and a live owner can carry one."""
     try:
-        landed = {f"{segment}/{fid}" for segment, fid, _path in
-                  fc.landed_dirs(fc.owner_root(caller))}
-        population = {f"{e['segment']}/{e['id']}" for e in fc.population(caller)}
+        landed = landed_names(fc.owner_root(caller))
+        population = names(fc.population(caller))
     except fc.CorpusError as exc:
         return [f"the audit refused: {exc}"]
     expected = tracked_feature_dirs(disk_owner)
@@ -93,10 +104,7 @@ def check_state(root):
 
 class RealOwner(unittest.TestCase):
     def setUp(self):
-        try:
-            self.owner = fc.owner_root(str(ROOT))
-        except fc.CorpusError as exc:
-            skip(self, f"no owner root resolves from {ROOT}: {exc}")
+        self.owner = owner_or_skip(self)
         self.linked = os.path.realpath(str(ROOT)) != self.owner
 
     def callers(self):
@@ -128,9 +136,7 @@ class TheEqualityRejectsMutants(unittest.TestCase):
     """The helper the real owner passes must fail a wrong root and a missing directory."""
 
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
 
     def test_a_correct_fixture_passes(self):
         self.assertEqual(audit_mismatch(self.fx.owner, self.fx.owner), [])
@@ -140,10 +146,8 @@ class TheEqualityRejectsMutants(unittest.TestCase):
         the audit both name exactly the fixture's directories, the record-less one included,
         from the owner and from a linked caller."""
         self.assertEqual(tracked_feature_dirs(self.fx.owner), FIXTURE_DIRS)
-        landed = {f"{s}/{i}" for s, i, _p in fc.landed_dirs(self.fx.owner)}
-        self.assertEqual(landed, FIXTURE_DIRS)
-        recordless = {f"{e['segment']}/{e['id']}" for e in fc.records(self.fx.owner)
-                      if e["record"] is None}
+        self.assertEqual(landed_names(self.fx.owner), FIXTURE_DIRS)
+        recordless = names(e for e in fc.records(self.fx.owner) if e["record"] is None)
         self.assertEqual(recordless, {f"harness/{F.RECORDLESS_FEATURE}"})
         linked = self.fx.add_worktree(F.HARNESS_FEATURES[0])
         for caller in (self.fx.owner, linked):
@@ -175,12 +179,8 @@ class DisposablePin(unittest.TestCase):
     audit runs; a structural break refuses before any invariant."""
 
     def setUp(self):
-        try:
-            self.owner = fc.owner_root(str(ROOT))
-        except fc.CorpusError as exc:
-            skip(self, f"no owner root resolves from {ROOT}: {exc}")
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.owner,
-                              capture_output=True, text=True)
+        self.owner = owner_or_skip(self)
+        head = G.git(self.owner, "rev-parse", "HEAD", check=False)
         if head.returncode != 0:
             skip(self, f"owner HEAD does not resolve at {self.owner}")
         self.sha = head.stdout.strip()

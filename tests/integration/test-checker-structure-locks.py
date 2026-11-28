@@ -8,11 +8,7 @@ proven RED on an isolated mutant of a COPY of the tree and silent on the tree as
 Split out of test-check-plan-routes.py so the test pool runs these whole-tree scans beside
 the routing cases rather than behind them; none of them reads a plan.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN, ROOT
 import ast
 import concurrent.futures
 import contextlib
@@ -24,20 +20,19 @@ import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
-    BIN_DIR, "check-plan-routes.py")
-REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+from check_support import Checks  # noqa: E402
+
+BIN_DIR = str(BIN)
+REPO_ROOT = str(ROOT)
+SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(BIN_DIR, "check-plan-routes.py")
 # The audit modules UNDER TEST sit beside SCRIPT, so a mutant copy of bin named through
 # CHECK_PLAN_ROUTES_BIN is what gets imported — never the repo copy.
 AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
 sys.path.insert(0, AUDIT_DIR)
 import structure_audit  # noqa: E402
 
-
-failures = []
+C = Checks()
+check = C.check
 
 
 def run(*args):
@@ -49,70 +44,87 @@ def run(*args):
                           text=True, timeout=60, env=env)
 
 
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+_BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
+_INDEX_REL = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
 
 
-def _consolidation_findings_for_tree(mutate=None):
-    """Run `consolidation_findings` over a COPY of bin/ so a mutant never touches the live
-    tree. `mutate(bin_dir)` edits the copy; None runs the tree as shipped."""
-    with tempfile.TemporaryDirectory() as td:
-        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
-        # FEAT-62's authority audit reads the decisions index and is LOUD without it — a bin/
-        # copy alone is not a tree the audit can pass, so the index rides along.
-        index_rel = os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md")
-        os.makedirs(os.path.dirname(os.path.join(td, index_rel)))
-        shutil.copy(os.path.join(REPO_ROOT, index_rel), os.path.join(td, index_rel))
-        if mutate is not None:
-            mutate(copy_bin)
-        return structure_audit.consolidation_findings(td)
+def _bin_path(root, *names):
+    return os.path.join(root, _BIN_REL, *names)
 
 
-def _append_to_gh_board(bin_dir, source):
-    with open(os.path.join(bin_dir, "gh_board.py"), "a", encoding="utf-8") as stream:
+def _append(path, source):
+    with open(path, "a", encoding="utf-8") as stream:
         stream.write(source)
 
 
-def _append_station_literal_mutant(bin_dir):
+def _append_bin(root, name, source):
+    _append(_bin_path(root, name), source)
+
+
+def _replace_once(path, old, new):
+    """Rewrite `path` with its first `old` replaced by `new`; the anchor must be present."""
+    with open(path, encoding="utf-8") as stream:
+        source = stream.read()
+    assert old in source, f"mutant anchor {old!r} not found"
+    with open(path, "w", encoding="utf-8") as stream:
+        stream.write(source.replace(old, new, 1))
+
+
+@contextlib.contextmanager
+def _tree_copy(dirs=()):
+    """A tempdir holding a COPY of bin/ and the decisions index, plus each repo dir in `dirs`,
+    so a mutant never touches the live tree. FEAT-62's authority audit reads the index and is
+    LOUD without it — a bin/ copy alone is not a tree the audit can pass, so the index rides along."""
+    with tempfile.TemporaryDirectory() as td:
+        shutil.copytree(BIN_DIR, _bin_path(td), ignore=shutil.ignore_patterns("__pycache__"))
+        os.makedirs(os.path.dirname(os.path.join(td, _INDEX_REL)))
+        shutil.copy(os.path.join(REPO_ROOT, _INDEX_REL), os.path.join(td, _INDEX_REL))
+        for rel in dirs:
+            shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        yield td
+
+
+def _consolidation_findings_for_tree(mutate=None):
+    """`consolidation_findings` over a COPY of bin/; `mutate(root)` edits the copy, None runs the
+    tree as shipped."""
+    with _tree_copy() as td:
+        if mutate is not None:
+            mutate(td)
+        return structure_audit.consolidation_findings(td)
+
+
+def _append_to_gh_board(root, source):
+    _append_bin(root, "gh_board.py", source)
+
+
+def _append_station_literal_mutant(root):
     # A predicate that respells the active bucket instead of calling is_active.
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+    _append_to_gh_board(root, '\n\ndef _mutant_is_live(station):\n'
                         '    return station in ("plan", "ready", "building", "review")\n')
 
 
-def _append_drifted_bucket_mutant(bin_dir):
+def _append_drifted_bucket_mutant(root):
     # Validate c1 CR-01: a copied active bucket that has ALREADY drifted — `review` omitted.
     # A feature in review is classified inactive by this predicate, and an exact-set lock
     # never sees it. Also the finished bucket drifted to two names, assigned not compared.
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_is_live(station):\n'
+    _append_to_gh_board(root, '\n\ndef _mutant_is_live(station):\n'
                         '    return station in ("plan", "ready", "building")\n'
                         '\n\n_MUTANT_OVER = frozenset({"done", "abandoned"})\n')
 
 
-def _append_work_started_control(bin_dir):
+def _append_work_started_control(root):
     # D-11 negative control: the historical one-off spans both buckets and is NOT a respelling.
-    _append_to_gh_board(bin_dir, '\n\ndef _control_work_started(statuses):\n'
+    _append_to_gh_board(root, '\n\ndef _control_work_started(statuses):\n'
                         '    return not set(statuses).isdisjoint({"building", "review", "done"})\n'
                         '\n\ndef _control_columns():\n'
                         '    return [k.capitalize() for k in ("ready", "building", "review")]\n')
 
 
-def _append_second_loader_mutant(bin_dir):
-    _append_to_gh_board(bin_dir, '\n\ndef _mutant_load(path):\n'
+def _append_second_loader_mutant(root):
+    _append_to_gh_board(root, '\n\ndef _mutant_load(path):\n'
                         '    import importlib.util\n'
                         '    spec = importlib.util.spec_from_file_location("m", path)\n'
                         '    return spec\n')
-
-
-def _mutant_findings(mutate, symbol, respelled):
-    """Findings from a mutant, plus whether exactly one names `symbol` and `respelled`."""
-    findings = _consolidation_findings_for_tree(mutate)
-    own = [f for f in findings if symbol in f and respelled in f]
-    return findings, len(findings) == len(own) and bool(own)
 
 
 def case_feat61_station_lock():
@@ -123,9 +135,10 @@ def case_feat61_station_lock():
     """
     clean = _consolidation_findings_for_tree()
     check("feat61_lock_clean_tree_has_no_findings", clean == [], "\n".join(clean))
-    station, ok = _mutant_findings(_append_station_literal_mutant, "gh_board.py::_mutant_is_live",
-                                   "respells factory_config.ACTIVE_STATIONS")
-    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding", ok, "\n".join(station))
+    station = _consolidation_findings_for_tree(_append_station_literal_mutant)
+    check("feat61_lock_station_literal_mutant_fails_for_its_own_finding",
+          _only_finding(station, "gh_board.py::_mutant_is_live", "respells factory_config.ACTIVE_STATIONS"),
+          "\n".join(station))
     drifted = _consolidation_findings_for_tree(_append_drifted_bucket_mutant)
     check("feat61_lock_drifted_bucket_mutant_fails_for_both_partial_buckets",
           len(drifted) == 2
@@ -142,9 +155,10 @@ def case_feat61_station_lock():
 def case_feat61_loader_lock():
     """FEAT-61 T-05 / SC-07, lock 2: a second spec_from_file_location under bin/ fails for its
     own finding only, and the CLI reports the shipped tree clean at exit 0."""
-    loader, ok = _mutant_findings(_append_second_loader_mutant, "gh_board.py::_mutant_load",
-                                  "second spec_from_file_location")
-    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding", ok, "\n".join(loader))
+    loader = _consolidation_findings_for_tree(_append_second_loader_mutant)
+    check("feat61_lock_second_loader_mutant_fails_for_its_own_finding",
+          _only_finding(loader, "gh_board.py::_mutant_load", "second spec_from_file_location"),
+          "\n".join(loader))
     r = run("--consolidation-audit")
     check("feat61_lock_cli_reports_clean_and_exits_0",
           r.returncode == 0 and r.stdout.strip().endswith("0 consolidation finding(s) under bin/"),
@@ -156,9 +170,6 @@ def case_feat61_loader_lock():
 # RED on an isolated mutant of the tree and silent on the tree as shipped. Mutants edit a COPY
 # that carries bin/, the decisions index, the workflows and the hooks — the four surfaces the
 # FEAT-62 rules read — so no case touches the live tree.
-_FEAT62_TREE_RELS = (
-    os.path.join(".harness", "harness", "docs", "DECISIONS-INDEX.md"),
-)
 _FEAT62_TREE_DIRS = (
     os.path.join(".github", "workflows"),
     os.path.join(".claude", "skills", "harness", "hooks"),
@@ -167,14 +178,7 @@ _FEAT62_TREE_DIRS = (
 
 def _feat62_findings_for_tree(mutate=None):
     """`feat62_findings` over a COPY of the surfaces it reads; `mutate(root)` edits the copy."""
-    with tempfile.TemporaryDirectory() as td:
-        copy_bin = os.path.join(td, ".claude", "skills", "harness", "bin")
-        shutil.copytree(BIN_DIR, copy_bin, ignore=shutil.ignore_patterns("__pycache__"))
-        for rel in _FEAT62_TREE_RELS:
-            os.makedirs(os.path.dirname(os.path.join(td, rel)), exist_ok=True)
-            shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
-        for rel in _FEAT62_TREE_DIRS:
-            shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+    with _tree_copy(_FEAT62_TREE_DIRS) as td:
         if mutate is not None:
             mutate(td)
         return structure_audit.feat62_findings(td)
@@ -182,13 +186,12 @@ def _feat62_findings_for_tree(mutate=None):
 
 def _checker_path(root, module=None):
     """The entry, or the check_state/<module>.py package file (FEAT-69)."""
-    bin_dir = os.path.join(root, ".claude", "skills", "harness", "bin")
-    return os.path.join(bin_dir, "check-state.py") if module is None else os.path.join(bin_dir, "check_state", module + ".py")
+    return _bin_path(root, "check-state.py" if module is None else os.path.join("check_state", module + ".py"))
 
 
 def _checker_files(root):
     """The entry then every package file, in name order (FEAT-69)."""
-    package = os.path.join(root, ".claude", "skills", "harness", "bin", "check_state")
+    package = _bin_path(root, "check_state")
     return [_checker_path(root)] + sorted(os.path.join(package, n) for n in os.listdir(package) if n.endswith(".py"))
 
 
@@ -200,18 +203,12 @@ def _owning_checker_file(root, needle):
     return owners[0]
 
 
-def _edit_checker(root, old, new, count=1):
-    path = _owning_checker_file(root, old)
-    with open(path, encoding="utf-8") as stream:
-        source = stream.read()
-    assert source.count(old) >= count, f"mutant anchor {old!r} not found"
-    with open(path, "w", encoding="utf-8") as stream:
-        stream.write(source.replace(old, new, count))
+def _edit_checker(root, old, new):
+    _replace_once(_owning_checker_file(root, old), old, new)
 
 
 def _append_checker(root, source, module=None):
-    with open(_checker_path(root, module), "a", encoding="utf-8") as stream:
-        stream.write(source)
+    _append(_checker_path(root, module), source)
 
 
 def _only_finding(findings, *needles):
@@ -317,35 +314,29 @@ def case_feat62_reads_lock():
           and all("INV-19" in x for x in f), "\n".join(f))
 
 
+_INV19_AUTH = '"the domain\'s ubiquitous language is recorded (a note)", '
+
+
 def case_feat62_authority_audit():
     """SC-05: a missing or STRUCK authority fails; every live row resolves."""
-    def missing(root):
-        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
-                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-9999"')
-    f = _feat62_findings_for_tree(missing)
-    check("feat62_authority_missing_decision_fails",
-          _only_finding(f, "INV-19", "DEC-9999", "does not resolve"), "\n".join(f))
-    def struck(root):
-        _edit_checker(root, '"the domain\'s ubiquitous language is recorded (a note)", "DEC-162"',
-                      '"the domain\'s ubiquitous language is recorded (a note)", "DEC-90"')
-    f = _feat62_findings_for_tree(struck)
-    check("feat62_authority_struck_decision_fails",
-          _only_finding(f, "INV-19", "DEC-90", "STRUCK", "DEC-188"), "\n".join(f))
+    for kind, dec, needles in (("missing", "DEC-9999", ("DEC-9999", "does not resolve")),
+                               ("struck", "DEC-90", ("DEC-90", "STRUCK", "DEC-188"))):
+        f = _feat62_findings_for_tree(
+            lambda root, d=dec: _edit_checker(root, _INV19_AUTH + '"DEC-162"', _INV19_AUTH + f'"{d}"'))
+        check(f"feat62_authority_{kind}_decision_fails", _only_finding(f, "INV-19", *needles), "\n".join(f))
     # Striking a decision the table stands on reddens the rows that cite it — the DEC-188
     # mechanism — proven by striking DEC-162 in the COPY's index.
     def strike_in_index(root):
-        path = os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
+        path = os.path.join(root, _INDEX_REL)
         with open(path, encoding="utf-8") as stream:
-            text = stream.read()
-        line = next(l for l in text.splitlines() if l.startswith("- DEC-162 "))
+            line = next(l for l in stream.read().splitlines() if l.startswith("- DEC-162 "))
         head, _, ruling = line.partition(" :: ")
-        with open(path, "w", encoding="utf-8") as stream:
-            stream.write(text.replace(line, f"{head} :: STRUCK 2026-09-21 under DEC-188 — {ruling}"))
+        _replace_once(path, line, f"{head} :: STRUCK 2026-09-21 under DEC-188 — {ruling}")
     f = _feat62_findings_for_tree(strike_in_index)
     check("feat62_authority_striking_a_cited_decision_reddens_its_rows",
           _only_finding(f, "INV-19", "DEC-162", "STRUCK"), "\n".join(f))
     def no_index(root):
-        os.remove(os.path.join(root, ".harness", "harness", "docs", "DECISIONS-INDEX.md"))
+        os.remove(os.path.join(root, _INDEX_REL))
     f = _feat62_findings_for_tree(no_index)
     check("feat62_authority_unreadable_index_is_loud_not_silent",
           _only_finding(f, "CANNOT RUN", "DECISIONS-INDEX.md"), "\n".join(f))
@@ -355,15 +346,14 @@ def case_feat62_changed_posture():
     """SC-06: a workflow or hook invoking check-state.py --changed fails; the live tree has none
     and CI still runs the full checker."""
     def workflow(root):
-        with open(os.path.join(root, ".github", "workflows", "tests.yml"), "a", encoding="utf-8") as stream:
-            stream.write("\n      - run: python3 .claude/skills/harness/bin/check-state.py --changed\n")
+        _append(os.path.join(root, ".github", "workflows", "tests.yml"),
+                "\n      - run: python3 .claude/skills/harness/bin/check-state.py --changed\n")
     f = _feat62_findings_for_tree(workflow)
     check("feat62_posture_workflow_mutant_fails",
           _only_finding(f, "workflows/tests.yml", "--changed", "edit-loop verb"), "\n".join(f))
     def hook(root):
-        with open(os.path.join(root, ".claude", "skills", "harness", "hooks", "post-merge"), "a",
-                  encoding="utf-8") as stream:
-            stream.write('\npython3 "$HARNESS_BIN/check-state.py" --changed\n')
+        _append(os.path.join(root, ".claude", "skills", "harness", "hooks", "post-merge"),
+                '\npython3 "$HARNESS_BIN/check-state.py" --changed\n')
     f = _feat62_findings_for_tree(hook)
     check("feat62_posture_hook_mutant_fails",
           _only_finding(f, "hooks/post-merge", "--changed"), "\n".join(f))
@@ -380,15 +370,6 @@ def case_feat62_changed_posture():
 
 
 # ------------------------------------------------------------------- FEAT-63 T-03 ---
-
-def _bin_path(root, name):
-    return os.path.join(root, ".claude", "skills", "harness", "bin", name)
-
-
-def _append_bin(root, name, source):
-    with open(_bin_path(root, name), "a", encoding="utf-8") as stream:
-        stream.write(source)
-
 
 def case_feat63_reparse_lock_covers_both_json_loaders():
     """SC-05: a checker re-parse of feature.json or harness.json inside an invariant is a
@@ -410,10 +391,7 @@ _BARE_CATCH = "\n\ndef _feat63_mutant():\n    try:\n        pass\n    except:\n 
 
 def _reduce_one_broad_catch(root):
     # FEAT-65: harness_boundary.py is the only script with an allowance left to reduce.
-    path = _bin_path(root, "harness_boundary.py")
-    src = open(path, encoding="utf-8").read()
-    assert "except Exception" in src
-    open(path, "w", encoding="utf-8").write(src.replace("except Exception", "except OSError", 1))
+    _replace_once(_bin_path(root, "harness_boundary.py"), "except Exception", "except OSError")
 
 
 def _feat63_checker_ceiling_checks():
@@ -471,13 +449,12 @@ _FEAT64_ZEROED = ("factory_decompose.py", "feature_record/schema.py", "gh_cost_l
                   "gh-sync.py", "post-merge-sweep.py", "run-unit-tests.py", "upgrade-config.py")
 
 
-def _feat64_ceiling_checks(mod):
+def _feat64_ceiling_checks():
+    ceilings = structure_audit.BROAD_CATCH_CEILINGS
     for name in _FEAT64_ZEROED:
-        check(f"feat64_ceiling_{name}_is_zero", mod.BROAD_CATCH_CEILINGS.get(name, 0) == 0,
-              f"ceiling {mod.BROAD_CATCH_CEILINGS.get(name)!r}")
-    check("feat64_ceiling_harness_boundary_is_exactly_two",
-          mod.BROAD_CATCH_CEILINGS.get("harness_boundary.py") == 2,
-          f"ceiling {mod.BROAD_CATCH_CEILINGS.get('harness_boundary.py')!r}")
+        check(f"feat64_ceiling_{name}_is_zero", ceilings.get(name, 0) == 0, f"ceiling {ceilings.get(name)!r}")
+    check("feat64_ceiling_harness_boundary_is_exactly_two", ceilings.get("harness_boundary.py") == 2,
+          f"ceiling {ceilings.get('harness_boundary.py')!r}")
 
 
 def _feat64_zero_ceiling_mutant_checks():
@@ -494,7 +471,7 @@ def _feat64_zero_ceiling_mutant_checks():
 def case_feat64_broad_catch_census_wave4():
     """SC-04: the sixteen FEAT-64 files sit at a ZERO ceiling; harness_boundary.py's two designed
     catches hold at exactly two, so a third fails against two; a reduction elsewhere is clean."""
-    _feat64_ceiling_checks(structure_audit)
+    _feat64_ceiling_checks()
     _feat64_zero_ceiling_mutant_checks()
     f = _feat62_findings_for_tree(lambda root: _append_bin(root, "harness_boundary.py", _BROAD_CATCH))
     check("feat64_census_third_harness_boundary_catch_fails_against_two",
@@ -645,8 +622,8 @@ def _cached_parse(source, filename="<unknown>", *args, **kwargs):
 
 
 def _run_case(index):
-    """One case in a pool worker: what it printed and the checks it failed, for replay."""
-    failures.clear()
+    """One case in a pool worker: what it printed, its check count and its failures, for replay."""
+    C.ran, C.failed = 0, []
     printed = io.StringIO()
     ast.parse = _cached_parse
     try:
@@ -654,7 +631,7 @@ def _run_case(index):
             CASES[index]()
     finally:
         ast.parse = _PARSE
-    return printed.getvalue(), list(failures)
+    return printed.getvalue(), C.ran, list(C.failed)
 
 
 def main():
@@ -663,15 +640,11 @@ def main():
     workers = min(len(CASES), os.cpu_count() or 2)
     with concurrent.futures.ProcessPoolExecutor(
             workers, mp_context=multiprocessing.get_context("spawn")) as pool:
-        for printed, case_failures in pool.map(_run_case, range(len(CASES))):
+        for printed, ran, case_failures in pool.map(_run_case, range(len(CASES))):
             sys.stdout.write(printed)
-            failures.extend(case_failures)
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        sys.exit(1)
-    print("\nALL PASS")
-    sys.exit(0)
-
+            C.ran += ran
+            C.failed.extend(case_failures)
+    sys.exit(C.report())
 
 if __name__ == "__main__":
     main()

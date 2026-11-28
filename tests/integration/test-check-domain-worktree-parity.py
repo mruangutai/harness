@@ -4,21 +4,133 @@
 Slice of the former test-check-domain.py (issue #1527). Its own file because this
 one block is the family's longest serial run: 49 cases, each a hook subprocess.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import os, shutil, subprocess, sys, tempfile
-from check_domain_support import (HOOK, ROOT, _env, drive, fixture, make_linked_worktree)
+import integration_support  # noqa: F401  (first: puts bin/ and tests/ on sys.path)
+import os, shutil, subprocess, sys
+import harness_boundary as _hb
+import harness_yaml as _hy
+from check_support import Checks
+from check_domain_support import HOOK, ROOT, _env, drive, fixture, make_linked_worktree
 
 
-WTG = []
+def _instantiate(pat):
+    """A glob to a concrete relative path, replacing the star INSIDE its segment."""
+    out = []
+    for seg in pat.strip("/").split("/"):
+        out.append("zz/zz" if seg == "**" else seg.replace("*", "zz"))
+    return "/".join(out)
 
 
-def wtg(name, ok, detail=""):
-    WTG.append((name, ok, detail))
+def _walk(node, roster):
+    if isinstance(node, dict):
+        nm, dom = node.get("name"), node.get("domain")
+        if isinstance(nm, str) and isinstance(dom, list):
+            roster.append((nm, dom))
+        for k, v in node.items():
+            if k not in ("name", "domain"):
+                _walk(v, roster)
+    elif isinstance(node, list):
+        for x in node:
+            _walk(x, roster)
+
+
+def _pick(domain):
+    """(glob, instantiated rel) for the first domain entry that is a control-plane target, or None."""
+    for entry in domain:
+        pat = entry.get("path") if isinstance(entry, dict) else entry
+        if not isinstance(pat, str):
+            continue
+        rel = _instantiate(pat)
+        if _hb.is_control_plane_target(rel):
+            return pat, rel
+    return None
+
+
+def _resolver(root):
+    def resolve(path):
+        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=20,
+                           env=_env(root))
+        return set(r.stdout.split())
+    return resolve
+
+
+def _test_writer_cases(check, resolve, root, wt_path):
+    unit_grants = resolve(os.path.join(root, "tests", "unit", "test-zz.py"))
+    integration_grants = resolve(os.path.join(root, "tests", "integration", "test-zz.py"))
+    expected_test_writers = {
+        "harness-qa", "harness-backend-dev", "harness-dev-ops"}
+    for agent in sorted(expected_test_writers):
+        check(f"tests/unit grants {agent}", agent in unit_grants,
+              f"resolved {sorted(unit_grants)!r}")
+        check(f"tests/integration grants {agent}", agent in integration_grants,
+              f"resolved {sorted(integration_grants)!r}")
+    for agent in ("harness-frontend-dev", "harness-ai-dev", "harness-data-engineer"):
+        check(f"tests/unit denies {agent}", agent not in unit_grants,
+              f"resolved {sorted(unit_grants)!r}")
+    bin_grants = resolve(os.path.join(
+        root, ".claude", "skills", "harness", "bin", "zz.sh"))
+    check("harness-qa cannot write governed bin shell",
+          "harness-qa" not in bin_grants, f"resolved {sorted(bin_grants)!r}")
+    wt_unit_grants = resolve(os.path.join(wt_path, "tests", "unit", "test-zz.py"))
+    check("tests/unit grants are identical in a linked worktree",
+          wt_unit_grants == unit_grants,
+          f"root={sorted(unit_grants)!r}, worktree={sorted(wt_unit_grants)!r}")
+
+
+def _one_level_cases(check, resolve, root, wt_path, roster):
+    for agent, domain in sorted(roster):
+        chosen = _pick(domain)
+        if chosen is None:
+            check(f"{agent}: in-worktree grant equals root grant",
+                  False,
+                  "no domain entry instantiates to a control-plane target, so no path in "
+                  "this agent's domain can be granted in the harness base. Reported as a "
+                  "failure rather than skipped: a skip here is a silent hole.")
+            continue
+        pat, rel = chosen
+        at_root = resolve(os.path.join(root, rel))
+        in_wt = resolve(os.path.join(wt_path, rel))
+        check(f"{agent}: in-worktree grant equals root grant, and names {agent}",
+              at_root == in_wt and agent in at_root,
+              f"glob {pat!r} -> {rel!r}; at root {sorted(at_root)!r}, in worktree "
+              f"{sorted(in_wt)!r}; equal={at_root == in_wt}, "
+              f"contains-self={agent in at_root}")
+
+
+def _deep_layout_cases(check, resolve, root, deep, roster):
+    """SC-02c — one case per agent at <segment>/<repo>/<id>/, all sixteen."""
+    for agent, domain in sorted(roster):
+        chosen = _pick(domain)
+        if chosen is None:
+            check(f"SC-02c {agent}: DEEP-layout grant equals root grant", False,
+                  "no domain entry instantiates to a control-plane target")
+            continue
+        pat, rel = chosen
+        at_root = resolve(os.path.join(root, rel))
+        in_deep = resolve(os.path.join(deep, rel))
+        check(f"SC-02c {agent}: DEEP-layout grant equals root grant, and names {agent}",
+              at_root == in_deep and agent in at_root,
+              f"glob {pat!r} -> {rel!r}; root {sorted(at_root)!r}, deep "
+              f"{sorted(in_deep)!r}; equal={at_root == in_deep}, self={agent in at_root}")
+
+
+def _linked_worktrees_cases(check, manifest_text):
+    """linked_worktrees: exactly the registered checkouts, and empty when there are none."""
+    lw_root = fixture(manifest_text)
+    try:
+        os.makedirs(os.path.join(lw_root, ".git"))
+        none_yet = _hb.linked_worktrees(lw_root)
+        check("linked_worktrees returns [] for a checkout with no worktrees",
+              none_yet == [], f"got {none_yet!r}")
+        a = make_linked_worktree(
+            lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+        b = make_linked_worktree(
+            lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-91"), "FEAT-91")
+        got, want = _hb.linked_worktrees(lw_root), sorted([_hb.real(a), _hb.real(b)])
+        check("linked_worktrees returns exactly the two registered checkouts, as realpaths",
+              got == want, f"got {got!r}, want {want!r}")
+    finally:
+        shutil.rmtree(lw_root, ignore_errors=True)
 
 
 def run_worktree_grant_parity():
@@ -60,21 +172,27 @@ def run_worktree_grant_parity():
     only reachable if the in-worktree half of every pair really traverses the worktree
     path.
     """
-    import harness_yaml as _hy
-    import harness_boundary as _hb
+    C = Checks()
+    check = C.check
 
-    fails = 0
-    tmp = tempfile.mkdtemp()
-
-    manifest_src = os.path.join(ROOT, ".harness", "team-config.yaml")
-    with open(manifest_src, encoding="utf-8") as f:
+    with open(os.path.join(ROOT, ".harness", "team-config.yaml"), encoding="utf-8") as f:
         manifest_text = f.read()
 
     # THE REAL MANIFEST, not FIXTURE_MANIFEST. The roster and the grants under test are
     # the shipped ones; a fixture manifest would assert parity for personas that do not
     # exist and would never notice a real grant losing its worktree parity.
     root = fixture(manifest_text)
+    try:
+        _parity_cases(check, root, manifest_text)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+    _linked_worktrees_cases(check, manifest_text)
 
+    print(f"\n{C.ran - len(C.failed)}/{C.ran} worktree grant-parity cases passed.\n")
+    return len(C.failed)
+
+
+def _parity_cases(check, root, manifest_text):
     # A REAL LINKED WORKTREE, both sides of the pointer pair, per D-09. A bare directory
     # made with os.makedirs resolves identically under today's fixed-segment strip, so
     # these cases would pass now and go red the moment T-04 lands — sixteen false
@@ -89,164 +207,49 @@ def run_worktree_grant_parity():
     # THE OWNER MUST BE A REAL CHECKOUT for worktree_owner to name it: it walks up to the
     # first `.git` entry, and a DIRECTORY is what makes a root the owner.
     parsed = _hb.worktree_owner(wt_path)
-    wtg("the fixture worktree is a REAL linked worktree, parsed and legitimate",
-        parsed is not None and parsed[1] is not None and parsed[2] is True,
-        f"worktree_owner({wt_path}) = {parsed!r} — a bare directory or an unparsed "
-        f"pointer here makes all sixteen cases below prove nothing")
-
-    def instantiate(pat):
-        """A glob to a concrete relative path, replacing the star INSIDE its segment."""
-        out = []
-        for seg in pat.strip("/").split("/"):
-            out.append("zz/zz" if seg == "**" else seg.replace("*", "zz"))
-        return "/".join(out)
+    check("the fixture worktree is a REAL linked worktree, parsed and legitimate",
+          parsed is not None and parsed[1] is not None and parsed[2] is True,
+          f"worktree_owner({wt_path}) = {parsed!r} — a bare directory or an unparsed "
+          f"pointer here makes all sixteen cases below prove nothing")
 
     roster = []
-
-    def walk(node):
-        if isinstance(node, dict):
-            nm, dom = node.get("name"), node.get("domain")
-            if isinstance(nm, str) and isinstance(dom, list):
-                roster.append((nm, dom))
-            for k, v in node.items():
-                if k not in ("name", "domain"):
-                    walk(v)
-        elif isinstance(node, list):
-            for x in node:
-                walk(x)
-
-    walk(_hy.yaml.safe_load(manifest_text))
+    _walk(_hy.yaml.safe_load(manifest_text), roster)
     names = sorted(n for n, _ in roster)
-    wtg("the roster walk finds exactly 16 agents carrying a name and a list domain",
-        len(roster) == 16,
-        f"found {len(roster)}: {names!r} — every case below is vacuous if this is wrong")
+    check("the roster walk finds exactly 16 agents carrying a name and a list domain",
+          len(roster) == 16,
+          f"found {len(roster)}: {names!r} — every case below is vacuous if this is wrong")
 
-    def resolve(path):
-        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                           stdin=subprocess.DEVNULL, timeout=20,
-                           env=_env(root))
-        return set(r.stdout.split())
+    resolve = _resolver(root)
+    _test_writer_cases(check, resolve, root, wt_path)
+    _one_level_cases(check, resolve, root, wt_path, roster)
+    _deep_cases(check, resolve, root, roster)
 
-    unit_path = os.path.join(root, "tests", "unit", "test-zz.py")
-    integration_path = os.path.join(root, "tests", "integration", "test-zz.py")
-    unit_grants = resolve(unit_path)
-    integration_grants = resolve(integration_path)
-    expected_test_writers = {
-        "harness-qa", "harness-backend-dev", "harness-dev-ops"}
-    for agent in sorted(expected_test_writers):
-        wtg(f"tests/unit grants {agent}", agent in unit_grants,
-            f"resolved {sorted(unit_grants)!r}")
-        wtg(f"tests/integration grants {agent}", agent in integration_grants,
-            f"resolved {sorted(integration_grants)!r}")
-    for agent in ("harness-frontend-dev", "harness-ai-dev", "harness-data-engineer"):
-        wtg(f"tests/unit denies {agent}", agent not in unit_grants,
-            f"resolved {sorted(unit_grants)!r}")
-    bin_grants = resolve(os.path.join(
-        root, ".claude", "skills", "harness", "bin", "zz.sh"))
-    wtg("harness-qa cannot write governed bin shell",
-        "harness-qa" not in bin_grants, f"resolved {sorted(bin_grants)!r}")
-    wt_unit_grants = resolve(os.path.join(wt_path, "tests", "unit", "test-zz.py"))
-    wtg("tests/unit grants are identical in a linked worktree",
-        wt_unit_grants == unit_grants,
-        f"root={sorted(unit_grants)!r}, worktree={sorted(wt_unit_grants)!r}")
 
-    for agent, domain in sorted(roster):
-        chosen = None
-        for entry in domain:
-            pat = entry.get("path") if isinstance(entry, dict) else entry
-            if not isinstance(pat, str):
-                continue
-            rel = instantiate(pat)
-            if _hb.is_control_plane_target(rel):
-                chosen = (pat, rel)
-                break
-        if chosen is None:
-            wtg(f"{agent}: in-worktree grant equals root grant",
-                False,
-                "no domain entry instantiates to a control-plane target, so no path in "
-                "this agent's domain can be granted in the harness base. Reported as a "
-                "failure rather than skipped: a skip here is a silent hole.")
-            continue
-        pat, rel = chosen
-        at_root = resolve(os.path.join(root, rel))
-        in_wt = resolve(os.path.join(wt_path, rel))
-        wtg(f"{agent}: in-worktree grant equals root grant, and names {agent}",
-            at_root == in_wt and agent in at_root,
-            f"glob {pat!r} -> {rel!r}; at root {sorted(at_root)!r}, in worktree "
-            f"{sorted(in_wt)!r}; equal={at_root == in_wt}, "
-            f"contains-self={agent in at_root}")
-
+def _deep_cases(check, resolve, root, roster):
     # ================= T-04: THE DEEP LAYOUT =================
     # Everything above pins the ONE-level shape and must stay green (SC-09). Everything
     # below is what NO path could reach before T-04: the fixed-segment strip left the
     # repository segment in the path, so the second candidate matched no glob.
-
     deep = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
-
-    # SC-02c — one case per agent at <segment>/<repo>/<id>/, all sixteen.
-    for agent, domain in sorted(roster):
-        chosen = None
-        for entry in domain:
-            pat = entry.get("path") if isinstance(entry, dict) else entry
-            if not isinstance(pat, str):
-                continue
-            rel = instantiate(pat)
-            if _hb.is_control_plane_target(rel):
-                chosen = (pat, rel)
-                break
-        if chosen is None:
-            wtg(f"SC-02c {agent}: DEEP-layout grant equals root grant", False,
-                "no domain entry instantiates to a control-plane target")
-            continue
-        pat, rel = chosen
-        at_root = resolve(os.path.join(root, rel))
-        in_deep = resolve(os.path.join(deep, rel))
-        wtg(f"SC-02c {agent}: DEEP-layout grant equals root grant, and names {agent}",
-            at_root == in_deep and agent in at_root,
-            f"glob {pat!r} -> {rel!r}; root {sorted(at_root)!r}, deep "
-            f"{sorted(in_deep)!r}; equal={at_root == in_deep}, self={agent in at_root}")
+    _deep_layout_cases(check, resolve, root, deep, roster)
 
     # THE DEPTH IS NOT LOAD-BEARING. A rule that asks which checkout it stands in does
     # not care how deep the path is; a rule with a segment count does. Four levels.
     very_deep = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "a", "b", "c", "FEAT-90"), "abcFEAT90")
     _probe = ".harness/zz/features/zz/BRIEF.md"
-    wtg("the depth is not load-bearing: <segment>/a/b/c/<id> resolves like the root",
-        resolve(os.path.join(very_deep, _probe)) == resolve(os.path.join(root, _probe))
-        and "harness-pm" in resolve(os.path.join(very_deep, _probe)),
-        f"deep-4 {sorted(resolve(os.path.join(very_deep, _probe)))!r} vs root "
-        f"{sorted(resolve(os.path.join(root, _probe)))!r}")
+    deep4 = resolve(os.path.join(very_deep, _probe))
+    root4 = resolve(os.path.join(root, _probe))
+    check("the depth is not load-bearing: <segment>/a/b/c/<id> resolves like the root",
+          deep4 == root4 and "harness-pm" in deep4,
+          f"deep-4 {sorted(deep4)!r} vs root {sorted(root4)!r}")
 
     # THE OLD MECHANISM IS GONE, not left standing beside its replacement. A dead regex
     # kept "for reference" is what leaves a segment count load-bearing for the next reader.
-    wtg("WORKTREE_REL_RE no longer exists on harness_boundary",
-        not hasattr(_hb, "WORKTREE_REL_RE"),
-        "the fixed-segment strip is still importable, so a caller can still use it")
-
-    # linked_worktrees: exactly the registered checkouts, and empty when there are none.
-    lw_root = fixture(manifest_text)
-    os.makedirs(os.path.join(lw_root, ".git"))
-    wtg("linked_worktrees returns [] for a checkout with no worktrees",
-        _hb.linked_worktrees(lw_root) == [],
-        f"got {_hb.linked_worktrees(lw_root)!r}")
-    a = make_linked_worktree(
-        lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
-    b = make_linked_worktree(
-        lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-91"), "FEAT-91")
-    wtg("linked_worktrees returns exactly the two registered checkouts, as realpaths",
-        _hb.linked_worktrees(lw_root) == sorted([_hb.real(a), _hb.real(b)]),
-        f"got {_hb.linked_worktrees(lw_root)!r}, want {sorted([_hb.real(a), _hb.real(b)])!r}")
-
-    for name, ok, detail in WTG:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(WTG) - fails}/{len(WTG)} worktree grant-parity cases passed.\n")
-    shutil.rmtree(tmp, ignore_errors=True)
-    return fails
+    check("WORKTREE_REL_RE no longer exists on harness_boundary",
+          not hasattr(_hb, "WORKTREE_REL_RE"),
+          "the fixed-segment strip is still importable, so a caller can still use it")
 
 
 def main():

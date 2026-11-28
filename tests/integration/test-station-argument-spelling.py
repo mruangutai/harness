@@ -8,14 +8,11 @@ WHY THIS FILE EXISTS: FEAT-41 D-14 migrated the station CLI argument to
 lowercase and left two instruction files behind teaching a spelling both
 tools hard-refuse. Nothing caught that. This file is that witness.
 
-THE SWEEP IS A PURE FUNCTION OF A ROOT, CALLED IN-PROCESS. Every helper below
-takes an explicit root argument. There is no environment variable that
-repoints the scope, no module-level scope override, no subprocess
-re-invocation of this file, and therefore no recursion guard and no
-conditionally-skipped rows. The negative control below calls the same
-helpers on a scratch root inside the same process — it never reaches past
-offenders().
+Every helper takes an explicit root; the negative control calls offenders() on a
+scratch copy in-process.
 """
+from integration_support import ROOT
+
 import glob
 import os
 import re
@@ -23,17 +20,13 @@ import shutil
 import sys
 import tempfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-sys.path.insert(0, os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin"))
-import factory_config  # noqa: E402
+import factory_config
+from check_support import Checks
 
-RESULTS = []
+REPO_ROOT = str(ROOT)
 
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
-    print(("PASS" if ok else "FAIL") + " - " + name + (" (" + detail + ")" if detail and not ok else ""))
+C = Checks()
+check = C.check
 
 
 # ACCEPTED SETS ARE DERIVED, NEVER SPELLED — a hand-written list here would be the same
@@ -80,12 +73,21 @@ def occurrences(root):
     return found
 
 
+def bad_rows(found):
+    """The rows of `found` whose token is not in that tool's accepted set."""
+    return [(path, tool, token) for path, tool, token in found
+            if token not in ACCEPTED_STATIONS[tool]]
+
+
 def offenders(root):
     """Every occurrence whose token is not in that tool's accepted set — the single
-    predicate both cases below assert on, which is what lets the negative control run
-    in-process."""
-    return [(path, tool, token) for path, tool, token in occurrences(root)
-            if token not in ACCEPTED_STATIONS[tool]]
+    predicate both cases below assert on (case 1 through bad_rows on the same sweep),
+    which is what lets the negative control run in-process."""
+    return bad_rows(occurrences(root))
+
+
+def fmt(rows):
+    return "; ".join(":".join(row) for row in rows)
 
 
 def case_every_argument_is_accepted():
@@ -100,30 +102,28 @@ def case_every_argument_is_accepted():
     for expected in EXPECTED_FILES:
         check(f"{expected} is among the swept occurrence files", expected in basenames, str(sorted(basenames)))
 
-    bad = offenders(REPO_ROOT)
-    check("every station argument in the instruction scope is an accepted station",
-          bad == [], "; ".join(f"{path}:{tool}:{token}" for path, tool, token in bad))
+    bad = bad_rows(found)
+    check("every station argument in the instruction scope is an accepted station", bad == [], fmt(bad))
+
+
+def copy_into(tmp, rels):
+    """Copy each repo-relative path in `rels` from REPO_ROOT to the same place under tmp."""
+    for rel in rels:
+        dst = os.path.join(tmp, rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy(os.path.join(REPO_ROOT, rel), dst)
 
 
 def case_reddens_on_a_reintroduced_capital():
     with tempfile.TemporaryDirectory() as tmp:
-        originals = (
-            os.path.join(".omp", "commands", "harness-plan.md"),
-            os.path.join(".claude", "skills", "harness", "references", "github-mirror.md"),
-        )
-        copies = {}
-        for rel in originals:
-            src = os.path.join(REPO_ROOT, rel)
-            dst = os.path.join(tmp, rel)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copy(src, dst)
-            copies[rel] = dst
+        plan_rel = os.path.join(".omp", "commands", "harness-plan.md")
+        mirror_rel = os.path.join(".claude", "skills", "harness", "references", "github-mirror.md")
+        copy_into(tmp, (plan_rel, mirror_rel))
 
         clean = offenders(tmp)
-        check("the unmutated scratch copy reports no offender", clean == [],
-              "; ".join(f"{path}:{tool}:{token}" for path, tool, token in clean))
+        check("the unmutated scratch copy reports no offender", clean == [], fmt(clean))
 
-        plan_copy = copies[os.path.join(".omp", "commands", "harness-plan.md")]
+        plan_copy = os.path.join(tmp, plan_rel)
         with open(plan_copy, encoding="utf-8") as handle:
             before = handle.read()
         after = before.replace('status <feature-dir> "$resume_station"', "status <feature-dir> Ready")
@@ -134,19 +134,13 @@ def case_reddens_on_a_reintroduced_capital():
         mutated = offenders(tmp)
         reddened = any(tool == "gh-sync.py status" and token == "Ready" and path == plan_copy
                         for path, tool, token in mutated)
-        check("the sweep reddens on a reintroduced capital",
-              bool(mutated) and reddened,
-              "; ".join(f"{path}:{tool}:{token}" for path, tool, token in mutated))
+        check("the sweep reddens on a reintroduced capital", reddened, fmt(mutated))
 
 
 def main():
-    for case in (
-        case_every_argument_is_accepted,
-        case_reddens_on_a_reintroduced_capital,
-    ):
-        case()
-    if any(not row[1] for row in RESULTS):
-        raise SystemExit(1)
+    case_every_argument_is_accepted()
+    case_reddens_on_a_reintroduced_capital()
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

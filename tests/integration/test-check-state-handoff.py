@@ -6,22 +6,21 @@ handoff is reported, never a crash), FEAT-54's `## Done when` corpus, FEAT-31 T-
 widening over every notes/handoff-*.md stem and T-10's empty-body check, each with its
 own mutation proof against an isolated bin/ copy.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+from integration_support import ROOT
+import itertools
 import json
 import re
 import os
 import subprocess
 import sys
-import shutil
 import tempfile
-from check_state_support import (SCRIPT, check_state_mutant,
+from check_state_support import (check_state_mutant,
                                  check_state_owner, isolated_bin, run, _root_env)
+from check_support import Checks
 from harness_config_support import write_config
+
+C = Checks()
+check = C.check
 
 
 # Every task main-session-direct: the plan-keyed exemption (DEC-174), the ONE way a feature
@@ -39,7 +38,31 @@ MSD = (
 )
 
 
-def case_g():
+G_NOTE = "## Next\n## Trust\n## Dead ends\n## Working set\n"
+NO_MODE = MSD.replace("    execution_mode: main-session-direct\n", "")
+_G_NUMBER = itertools.count(1)
+
+
+def _g_build(feat, status, notes=(), tasks=None):
+    """One INV-17 fixture with a strict feature record and canonical plan station."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _handoff_fixture(tmp, status, {f"handoff-{n}.md": G_NOTE for n in notes}, feat,
+                         plan_tail=STATION_ONLY if tasks is None else tasks)
+        return run(tmp)[1]
+
+
+def check_g(label, cond, out):
+    # NEVER on the exit code: a dead invariant exits exactly as a live one does when
+    # nothing else is wrong, so an exit assertion here would prove nothing.
+    check(f"case (g.{next(_G_NUMBER)}): {label}", cond, out.strip()[:400])
+
+
+def _unloaded_unexempt(out):
+    """The plan is refused and no exemption is claimed."""
+    return "plan.yaml does not load" in out and "exempt" not in out
+
+
+def case_g_firing():
     """M-01: INV-17 must REPORT a missing handoff, not crash on it.
 
     The F-02 conversion renamed the parsed phase value to `_phase` and left one
@@ -55,97 +78,64 @@ def case_g():
     Introduced by a fix and caught by review, not by any gate: no test covered INV-17's
     firing path at all.
     """
-    NOTE = "## Next\n## Trust\n## Dead ends\n## Working set\n"
-
-    def build(feat, status, notes=(), tasks="omit"):
-        """One INV-17 fixture with a strict feature record and canonical plan station."""
-        tmp = tempfile.mkdtemp()
-        h = os.path.join(tmp, ".harness")
-        fd = os.path.join(h, "harness", "features", feat)
-        os.makedirs(os.path.join(fd, "notes"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        with open(os.path.join(fd, "feature.json"), "w") as f:
-            json.dump({"feature_id": feat}, f)
-        for n in notes:
-            with open(os.path.join(fd, "notes", f"handoff-{n}.md"), "w") as f:
-                f.write(NOTE)
-        with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write(
-                f"schema: plan/1\nfeature: {feat}\nstatus: {str(status).lower()}\n"
-                + ("station_only: true\ntasks: []\n" if tasks == "omit" else tasks))
-        try:
-            return run(tmp)[1]
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
-
-    NO_MODE = MSD.replace("    execution_mode: main-session-direct\n", "")
-    results = []
-
-    def check(label, cond, out):
-        # NEVER on the exit code: a dead invariant exits exactly as a live one does when
-        # nothing else is wrong, so an exit assertion here would prove nothing.
-        results.append(cond)
-        print(f"{'ok' if cond else 'FAIL'} - case (g.{len(results)}): {label}")
-        if not cond:
-            print(f"        output: {out.strip()[:400]}")
-
     # 1 — the positive firing case, and M-01's regression: INV-17 must REPORT a missing
     # handoff, not raise NameError. The F-02 conversion left one reference to a deleted
     # regex match object, so the moment INV-17's condition was TRUE the script crashed at
     # exit 1 — indistinguishable from a real violation — and aborted every later invariant.
-    out = build("FEAT-TEST", "Review", notes=("plan",))
-    check("INV-17 RAISES on Review with handoff-build.md absent, and names it",
-          "handoff-build.md" in out and "Traceback" not in out, out)
+    out = _g_build("FEAT-TEST", "Review", notes=("plan",))
+    check_g("INV-17 RAISES on Review with handoff-build.md absent, and names it",
+            "handoff-build.md" in out and "Traceback" not in out, out)
 
     # 2 — no feature id is privileged. INV-17 once skipped, silently, every feature whose id
     # merely STARTED WITH one of two historical ids — a prefix match that reached unrelated
     # later features too. These synthetic ids share that prefix shape; each owes every note
     # its station demands, like any other feature.
     for feat in ("FEAT-0190-fixture", "FEAT-0290-fixture"):
-        out = build(feat, "Review")
-        check(f"INV-17 RAISES for {feat} at Review with no notes: no id is exempt",
-              all(f"notes/handoff-{s}.md is missing" in out for s in ("plan", "build")), out)
+        out = _g_build(feat, "Review")
+        check_g(f"INV-17 RAISES for {feat} at Review with no notes: no id is exempt",
+                all(f"notes/handoff-{s}.md is missing" in out for s in ("plan", "build")), out)
 
     # 3 — Done is shipped, and a shipped feature is checked for nothing (DEC-252): no note is
     # owed there, the validate note included.
-    out = build("FEAT-TEST", "Done", notes=("plan", "build"))
-    check("INV-17 owes nothing at Done: a shipped feature is not checked",
-          "handoff-" not in out, out)
+    out = _g_build("FEAT-TEST", "Done", notes=("plan", "build"))
+    check_g("INV-17 owes nothing at Done: a shipped feature is not checked",
+            "handoff-" not in out, out)
 
     # 4 — no seam has been crossed yet at Plan, so nothing is owed.
-    out = build("FEAT-TEST", "Plan")
-    check("INV-17 raises nothing at Plan with no notes at all",
-          "handoff-" not in out, out)
+    out = _g_build("FEAT-TEST", "Plan")
+    check_g("INV-17 raises nothing at Plan with no notes at all",
+            "handoff-" not in out, out)
 
+
+def case_g_exemption():
+    """Case (g) continued: the plan-keyed exemption and the guards that keep it honest."""
     # 5 — the plan-keyed exemption, positive direction. BOTH halves are asserted: silence
     # alone would pass against an exemption that granted itself without saying so.
-    out = build("FEAT-TEST", "Review", tasks=MSD)
-    check("all-main-session-direct at Review raises NO handoff violation AND reports the "
-          "exemption by name",
-          ("handoff-plan.md is missing" not in out
-           and any("exempt" in l and "FEAT-TEST" in l and "handoff-plan" in l
-                   and "handoff-build" in l and "VIOLATION" not in l
-                   for l in out.splitlines())), out)
+    out = _g_build("FEAT-TEST", "Review", tasks=MSD)
+    check_g("all-main-session-direct at Review raises NO handoff violation AND reports the "
+            "exemption by name",
+            ("handoff-plan.md is missing" not in out
+             and any("exempt" in l and "FEAT-TEST" in l and "handoff-plan" in l
+                     and "handoff-build" in l and "VIOLATION" not in l
+                     for l in out.splitlines())), out)
 
     # 6 — what stops the exemption degenerating into keyed-on-absence. Same absent notes as
     # case 5; the only difference is that the plan declares no execution modes. If this goes
     # quiet the predicate is reading the notes' absence, which is the condition INV-17
     # exists to detect.
-    out = build("FEAT-TEST", "Review", tasks=NO_MODE)
-    check("a plan with NO execution_mode keys still RAISES and reports no exemption",
-          "plan.yaml does not load" in out and "exempt" not in out, out)
+    out = _g_build("FEAT-TEST", "Review", tasks=NO_MODE)
+    check_g("a plan with NO execution_mode keys still RAISES and reports no exemption",
+            _unloaded_unexempt(out), out)
 
     # 7 — condition 2, the vacuity guard, in both its shapes. "Every task is
     # main-session-direct" is VACUOUSLY TRUE over an empty list, so without condition 2 a
     # stub plan would be silently exempted from a seam invariant.
-    out_empty = build("FEAT-TEST", "Review", tasks="tasks: []\n")
-    out_absent = build("FEAT-TEST", "Review", tasks="approval: approved\n")
-    check("an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt",
-          ("plan.yaml does not load" in out_empty and "exempt" not in out_empty
-           and "plan.yaml does not load" in out_absent and "exempt" not in out_absent),
-          out_empty + "\n---\n" + out_absent)
+    out_empty = _g_build("FEAT-TEST", "Review", tasks="tasks: []\n")
+    out_absent = _g_build("FEAT-TEST", "Review", tasks="approval: approved\n")
+    check_g("an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt",
+            _unloaded_unexempt(out_empty) and _unloaded_unexempt(out_absent),
+            out_empty + "\n---\n" + out_absent)
 
-    return all(results)
 
 
 # ---------------------------------------------------------------------------
@@ -182,8 +172,11 @@ Authority: plan-task:T-03.verify
 """
 
 
-def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
-    """A minimal canonical tree INV-17 will walk."""
+STATION_ONLY = "station_only: true\ntasks: []\n"
+
+
+def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST", plan_tail=STATION_ONLY):
+    """A minimal canonical tree INV-17 will walk; `plan_tail` follows plan.yaml's header."""
     h = os.path.join(tmp, ".harness")
     fdir = os.path.join(h, "harness", "features", feat)
     os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
@@ -193,7 +186,7 @@ def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
     with open(os.path.join(fdir, "plan.yaml"), "w") as f:
         f.write(
             f"schema: plan/1\nfeature: {feat}\nstatus: {str(status).lower()}\n"
-            "station_only: true\ntasks: []\n")
+            + plan_tail)
     for name, text in notes.items():
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)
@@ -208,14 +201,14 @@ def _shape_lines(out, needle):
 
 
 def _feat54_fixture_case(tmp, note, name="handoff-plan.md"):
-    fdir = _handoff_fixture(tmp, "Building", {name: note})
-    with open(os.path.join(fdir, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
-                "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
-                "    change_type: logic\n    execution_mode: main-session-direct\n"
-                "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
-                "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
-                "    intent: fixture\n")
+    fdir = _handoff_fixture(
+        tmp, "Building", {name: note},
+        plan_tail=("tasks:\n"
+                   "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
+                   "    change_type: logic\n    execution_mode: main-session-direct\n"
+                   "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
+                   "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
+                   "    intent: fixture\n"))
     with open(os.path.join(fdir, "BRIEF.md"), "w") as f:
         f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
     with open(os.path.join(fdir, "notes", "review-fixture.md"), "w") as f:
@@ -223,19 +216,14 @@ def _feat54_fixture_case(tmp, note, name="handoff-plan.md"):
     return fdir
 
 
-def _feat54_check_case(outcomes, label, note, expect_report, needles="Done when"):
-    needles = needles if isinstance(needles, tuple) else (needles,)
+def _feat54_check_case(label, note, expect_report, needles):
     with tempfile.TemporaryDirectory() as tmp:
         _feat54_fixture_case(tmp, note)
         _, out = run(tmp)
         lines = [line for line in out.splitlines()
                  if "handoff-plan.md" in line
                  and all(needle.lower() in line.lower() for needle in needles)]
-        ok = bool(lines) == expect_report
-        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
-        if not ok:
-            print(f"        {out.strip()[:300]}")
-        outcomes.append(ok)
+        check(f"FEAT-54 {label}", bool(lines) == expect_report, out.strip()[:300])
 
 
 def _feat54_case_notes():
@@ -271,47 +259,28 @@ def _feat54_case_notes():
     }
 
 
-def _feat54_shape_cases(outcomes):
+def _feat54_shape_cases():
     """One rule for every note, whenever it was written: no path is graded more leniently
     than another, so a note without the fifth section reports wherever it sits."""
     notes = _feat54_case_notes()
-    missing = notes["missing"]
-    malformed = notes["malformed"]
-    absent_targets = notes["absent_targets"]
-    unknown = notes["unknown"]
-    blank_scope = notes["blank_scope"]
-    reversed_order = notes["reversed_order"]
-    unsafe = notes["unsafe"]
-    unsafe_approval = notes["unsafe_approval"]
-    nested = notes["nested"]
-    duplicate = notes["duplicate"]
-
-    _feat54_check_case(
-        outcomes, "missing section reports", missing, True)
-    _feat54_check_case(
-        outcomes, "resolving block passes", HANDOFF_GOOD, False)
-    _feat54_check_case(
-        outcomes, "absent targets do not rot", absent_targets, False, ())
-    _feat54_check_case(
-        outcomes, "shape remains enforced", malformed, True, ("Scope", "2"))
-    _feat54_check_case(
-        outcomes, "grammar remains enforced", unknown, True, "legal prefixes")
-    _feat54_check_case(
-        outcomes, "blank Scope remains enforced", blank_scope, True, "non-empty")
-    _feat54_check_case(
-        outcomes, "Scope ordering remains enforced", reversed_order, True,
-        "before every Authority")
-    _feat54_check_case(
-        outcomes, "unsafe target grammar remains enforced", unsafe, True, "unsafe")
-    _feat54_check_case(
-        outcomes, "unsafe approval grammar remains enforced",
-        unsafe_approval, True, "unsafe")
-    _feat54_check_case(
-        outcomes, "nested heading cannot truncate validation",
-        nested, True, "unexpected line")
-    _feat54_check_case(
-        outcomes, "duplicate heading cannot truncate validation",
-        duplicate, True, "expected exactly 1")
+    notes["good"] = HANDOFF_GOOD
+    for label, key, expect, needles in (
+            ("missing section reports", "missing", True, ("Done when",)),
+            ("resolving block passes", "good", False, ("Done when",)),
+            ("absent targets do not rot", "absent_targets", False, ()),
+            ("shape remains enforced", "malformed", True, ("Scope", "2")),
+            ("grammar remains enforced", "unknown", True, ("legal prefixes",)),
+            ("blank Scope remains enforced", "blank_scope", True, ("non-empty",)),
+            ("Scope ordering remains enforced", "reversed_order", True,
+             ("before every Authority",)),
+            ("unsafe target grammar remains enforced", "unsafe", True, ("unsafe",)),
+            ("unsafe approval grammar remains enforced", "unsafe_approval", True,
+             ("unsafe",)),
+            ("nested heading cannot truncate validation", "nested", True,
+             ("unexpected line",)),
+            ("duplicate heading cannot truncate validation", "duplicate", True,
+             ("expected exactly 1",))):
+        _feat54_check_case(label, notes[key], expect, needles)
 
 
 FEATURE_PATH = re.compile(r"\.harness/[^/\s\"]+/features/")
@@ -330,27 +299,21 @@ def _config_strings(node):
             yield from _config_strings(value)
 
 
-def _feat54_config_case(outcomes):
+def _feat54_config_case():
     """INV-17 grades every note by the same rule, so no harness.json carries per-note data.
     A config value naming a path inside a features folder is one repository's history
     exported as policy: it exempts whatever it names and rots as folders are deleted. The
     project config and the template are both read."""
     hits = []
     for rel in (".harness/harness.json", ".claude/skills/harness/templates/harness.json"):
-        with open(os.path.join(_anchor_root, rel), encoding="utf-8") as f:
+        with open(ROOT / rel, encoding="utf-8") as f:
             doc = json.load(f)
         hits += [f"{rel}: {s}" for s in _config_strings(doc) if FEATURE_PATH.search(s)]
-    ok = not hits
-    print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no harness.json names a feature-folder path "
-          f"({len(hits)} found)")
-    if not ok:
-        print("        " + "\n        ".join(hits[:5]))
-    outcomes.append(ok)
+    check(f"FEAT-54 no harness.json names a feature-folder path ({len(hits)} found)",
+          not hits, "\n".join(hits[:5]))
 
 
-
-
-def _feat54_clean_corpus_case(outcomes):
+def _feat54_clean_corpus_case():
     with tempfile.TemporaryDirectory() as tmp:
         second = HANDOFF_GOOD.replace("implementation complete", "validation complete")
         _feat54_fixture_case(tmp, HANDOFF_GOOD)
@@ -362,12 +325,11 @@ def _feat54_clean_corpus_case(outcomes):
         before = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
         _, out = run(tmp)
         after = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
-        ok = "Done when" not in out and before == after
-        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 clean corpus is not mutated")
-        outcomes.append(ok)
+        check("FEAT-54 clean corpus is not mutated",
+              "Done when" not in out and before == after, out.strip()[:300])
 
 
-def _feat54_line_cap_case(outcomes):
+def _feat54_line_cap_case():
     with tempfile.TemporaryDirectory() as tmp:
         lines = ["# handoff", "## Next", "next", "## Trust"]
         lines += [f"trust {index}" for index in range(25)]
@@ -379,9 +341,7 @@ def _feat54_line_cap_case(outcomes):
         _feat54_fixture_case(tmp, note)
         _, out = run(tmp)
         hits = [line for line in out.splitlines() if "handoff-plan.md" in line]
-        ok = not hits
-        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no per-section cap")
-        outcomes.append(ok)
+        check("FEAT-54 no per-section cap", not hits, "\n".join(hits))
 
 
 def _feat54_resolution_mutant(iso_root):
@@ -407,32 +367,24 @@ def _feat54_resolution_mutant_counts(mutant):
     return len(real_hits), len(mutant_hits), result.returncode
 
 
-def _feat54_resolution_mode_mutant_case(outcomes):
+def _feat54_resolution_mode_mutant_case():
     """Prove SC-15 depends on check-state using shape-only authority validation."""
-    iso_root = tempfile.mkdtemp()
-    try:
+    with tempfile.TemporaryDirectory() as iso_root:
         mutant = _feat54_resolution_mutant(iso_root)
         if mutant is None:
-            print("FAIL - FEAT-54 state caller-mode mutant could not be constructed")
-            outcomes.append(False)
+            check("FEAT-54 state caller-mode mutant could not be constructed", False)
             return
         real_count, mutant_count, returncode = _feat54_resolution_mutant_counts(mutant)
-        ok = real_count == 0 and mutant_count > 0 and returncode == 1
-        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 state caller-mode mutation "
-              f"(real={real_count}, mutant={mutant_count})")
-        outcomes.append(ok)
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+        check(f"FEAT-54 state caller-mode mutation (real={real_count}, mutant={mutant_count})",
+              real_count == 0 and mutant_count > 0 and returncode == 1)
 
 
 def case_feat54_done_when():
-    outcomes = []
-    _feat54_shape_cases(outcomes)
-    _feat54_config_case(outcomes)
-    _feat54_clean_corpus_case(outcomes)
-    _feat54_line_cap_case(outcomes)
-    _feat54_resolution_mode_mutant_case(outcomes)
-    return all(outcomes)
+    _feat54_shape_cases()
+    _feat54_config_case()
+    _feat54_clean_corpus_case()
+    _feat54_line_cap_case()
+    _feat54_resolution_mode_mutant_case()
 
 
 def case_t14_widening():
@@ -444,10 +396,9 @@ def case_t14_widening():
         _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": bad_note})
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-midphase.md")
-        ok = len(hits) == 1 and "## dead ends" in hits[0]
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-d): a non-seam stem missing a heading "
-              f"is reported by name ({len(hits)} line(s))")
-        return ok
+        check(f"case (t14-d): a non-seam stem missing a heading is reported by name "
+              f"({len(hits)} line(s))", len(hits) == 1 and "## dead ends" in hits[0],
+              out.strip()[:400])
 
 
 def case_t14_cap():
@@ -459,11 +410,10 @@ def case_t14_cap():
         _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": long_note})
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-midphase.md")
-        ok = len(hits) == 1 and "cap 60" in hits[0]
         n = len(long_note.splitlines())
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-e): a non-seam stem over the cap is "
-              f"reported ({n} lines, {len(hits)} line(s))")
-        return ok
+        check(f"case (t14-e): a non-seam stem over the cap is reported ({n} lines, "
+              f"{len(hits)} line(s))", len(hits) == 1 and "cap 60" in hits[0],
+              out.strip()[:400])
 
 
 def case_t14_no_double():
@@ -476,10 +426,20 @@ def case_t14_no_double():
         _handoff_fixture(tmp, "Building", {"handoff-plan.md": bad_note})
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-plan.md")
-        ok = len(hits) == 1
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-f): a malformed seam-stem note is "
-              f"reported EXACTLY once, not twice (count {len(hits)})")
-        return ok
+        check(f"case (t14-f): a malformed seam-stem note is reported EXACTLY once, not "
+              f"twice (count {len(hits)})", len(hits) == 1, out.strip()[:400])
+
+
+def _missing_lines(out):
+    """VIOLATION lines reporting a missing handoff note."""
+    return [l for l in out.splitlines()
+            if l.startswith("  VIOLATION") and "is missing" in l and "handoff-" in l]
+
+
+def _exempt_lines(out, feat):
+    """Non-violation lines reporting `feat`'s handoff-build exemption."""
+    return [l for l in out.splitlines()
+            if "exempt" in l and feat in l and "handoff-build" in l and "VIOLATION" not in l]
 
 
 def case_t14_exempt_shape():
@@ -492,22 +452,17 @@ def case_t14_exempt_shape():
     feat = "FEAT-0190-fixture"
     with tempfile.TemporaryDirectory() as tmp:
         bad_note = HANDOFF_GOOD.replace("## Working set\n", "## Elsewhere\n")
-        fdir = _handoff_fixture(tmp, "Review", {"handoff-plan.md": bad_note}, feat=feat)
-        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
-            f.write(f"schema: plan/1\nfeature: {feat}\nstatus: review\n" + MSD)
+        _handoff_fixture(tmp, "Review", {"handoff-plan.md": bad_note}, feat=feat,
+                         plan_tail=MSD)
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-plan.md")
-        missing = [l for l in out.splitlines()
-                   if l.startswith("  VIOLATION") and "is missing" in l and "handoff-" in l]
-        reported = [l for l in out.splitlines()
-                    if "exempt" in l and feat in l and "handoff-build" in l
-                    and "VIOLATION" not in l]
-        ok = len(hits) == 1 and len(missing) == 0 and len(reported) == 1
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-g): a plan-exempt feature still has "
-              f"its EXISTING note shape-checked ({len(hits)} shape) while missing notes stay "
-              f"suppressed ({len(missing)} missing) and the exemption is reported "
-              f"({len(reported)} reported)")
-        return ok
+        missing = _missing_lines(out)
+        reported = _exempt_lines(out, feat)
+        check(f"case (t14-g): a plan-exempt feature still has its EXISTING note "
+              f"shape-checked ({len(hits)} shape) while missing notes stay suppressed "
+              f"({len(missing)} missing) and the exemption is reported ({len(reported)} "
+              f"reported)", len(hits) == 1 and len(missing) == 0 and len(reported) == 1,
+              out.strip()[:400])
 
 
 def case_t14_accepted():
@@ -522,10 +477,26 @@ def case_t14_accepted():
         })
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-")
-        ok = len(hits) == 0
-        print(f"{'ok' if ok else 'FAIL'} - case (t14-h): three well-formed notes, two seam "
-              f"stems and one non-seam, raise ZERO shape lines ({len(hits)})")
-        return ok
+        check(f"case (t14-h): three well-formed notes, two seam stems and one non-seam, "
+              f"raise ZERO shape lines ({len(hits)})", len(hits) == 0, "\n".join(hits))
+
+
+def _count_proof(tag, verdict, owner, mutant_text, status, notes, needle):
+    """Run the real check-state.py and a mutant beside an isolated bin/ copy on one fixture,
+    and pass only when the mutant reports fewer shape lines for `needle`. Equal counts are
+    INCONCLUSIVE and fail, never pass."""
+    with tempfile.TemporaryDirectory() as iso_root, tempfile.TemporaryDirectory() as tmp:
+        mpath = check_state_mutant(isolated_bin(iso_root), owner, mutant_text)
+        _handoff_fixture(tmp, status, notes)
+        _, real = run(tmp)
+        mut = subprocess.run([mpath], cwd=tmp, capture_output=True, text=True,
+                             env=_root_env(tmp)).stdout
+    n_real, n_mut = len(_shape_lines(real, needle)), len(_shape_lines(mut, needle))
+    if n_mut >= n_real:
+        check(f"case ({tag}): INCONCLUSIVE — original {n_real}, mutant {n_mut}; the mutant "
+              f"did not lose the finding", False)
+        return
+    check(f"case ({tag}): " + verdict.format(real=n_real, mut=n_mut), True)
 
 
 T14_MARKER = "# INV-17 handoff shape pass, all stems (FEAT-31 T-14)"
@@ -546,39 +517,22 @@ def case_t14_red():
     lines = src.splitlines(keepends=True)
     start = next((i for i, l in enumerate(lines) if T14_MARKER in l), None)
     if start is None:
-        print("FAIL - case (t14-red): marker comment not found, nothing was mutated")
-        return False
+        check("case (t14-red): marker comment not found, nothing was mutated", False)
+        return
     end = next((i for i in range(start, len(lines))
                 if lines[i].startswith("    if _ex_stems:")), None)
     if end is None:
-        print("FAIL - case (t14-red): could not find the end of the pass")
-        return False
+        check("case (t14-red): could not find the end of the pass", False)
+        return
     mutant_text = "".join(lines[:start] + lines[end:])
     if mutant_text == src:
-        print("FAIL - case (t14-red): INCONCLUSIVE — the mutation did not change the source")
-        return False
+        check("case (t14-red): INCONCLUSIVE — the mutation did not change the source", False)
+        return
 
-    iso_root = tempfile.mkdtemp()
-    mpath = check_state_mutant(isolated_bin(iso_root), owner, mutant_text)
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            bad_note = HANDOFF_GOOD.replace("## Dead ends\n", "## Not A Heading\n")
-            _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": bad_note})
-            env = dict(os.environ)
-            env = _root_env(tmp, env)
-            real = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
-            mut = subprocess.run([mpath], cwd=tmp, capture_output=True, text=True, env=env)
-        n_real = len(_shape_lines(real.stdout, "handoff-midphase.md"))
-        n_mut = len(_shape_lines(mut.stdout, "handoff-midphase.md"))
-        if n_mut >= n_real:
-            print(f"FAIL - case (t14-red): INCONCLUSIVE — original {n_real}, mutant "
-                  f"{n_mut}; the mutant did not lose the finding")
-            return False
-        print(f"ok - case (t14-red): the pass is load-bearing — original reports {n_real}, "
-              f"mutant reports {n_mut}")
-        return True
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+    bad_note = HANDOFF_GOOD.replace("## Dead ends\n", "## Not A Heading\n")
+    _count_proof("t14-red", "the pass is load-bearing — original reports {real}, mutant "
+                 "reports {mut}", owner, mutant_text, "Plan",
+                 {"handoff-midphase.md": bad_note}, "handoff-midphase.md")
 
 
 # ---------------------------------------------------------------------------
@@ -619,10 +573,8 @@ def case_t10_accepted():
         _handoff_fixture(tmp, "Building", {"handoff-plan.md": HANDOFF_GOOD})
         _, out = run(tmp)
         hits = _shape_lines(out, "handoff-plan.md")
-        ok = len(hits) == 0
-        print(f"{'ok' if ok else 'FAIL'} - case (t10-a): a handoff with a body under every "
-              f"heading raises no shape line ({len(hits)})")
-        return ok
+        check(f"case (t10-a): a handoff with a body under every heading raises no shape "
+              f"line ({len(hits)})", len(hits) == 0, "\n".join(hits))
 
 
 def _rejected(heading, label, tag):
@@ -635,29 +587,20 @@ def _rejected(heading, label, tag):
         heading_survived = heading in note.lower()
         named = hits and heading in hits[0] and "empty section" in hits[0]
         missed = hits and "missing section" in hits[0]
-        ok = bool(heading_survived and named and not missed)
-        print(f"{'ok' if ok else 'FAIL'} - case ({tag}): {label} emptied is reported as an "
-              f"empty section, not a missing one ({len(hits)} line(s))")
-        return ok
+        check(f"case ({tag}): {label} emptied is reported as an empty section, not a "
+              f"missing one ({len(hits)} line(s))",
+              heading_survived and named and not missed, out.strip()[:400])
 
 
-def case_t10_next_emptied():
-    """REJECTED — the case SC-15 names. `## Next` heading present, body blank."""
-    return _rejected("## next", "the Next section", "t10-b")
-
-
-def case_t10_trust_emptied():
-    return _rejected("## trust", "the Trust section", "t10-c1")
-
-
-def case_t10_deadends_emptied():
-    return _rejected("## dead ends", "the Dead ends section", "t10-c2")
-
-
-def case_t10_workingset_emptied():
-    """The other three emptied ONE AT A TIME, each its own case, so a check that
+def case_t10_emptied():
+    """REJECTED. (t10-b) is the case SC-15 names: `## Next` heading present, body blank.
+    The other three are emptied ONE AT A TIME, each its own case, so a check that
     inspects only "## Next" cannot pass all four."""
-    return _rejected("## working set", "the Working set section", "t10-c3")
+    for heading, label, tag in (("## next", "the Next section", "t10-b"),
+                                ("## trust", "the Trust section", "t10-c1"),
+                                ("## dead ends", "the Dead ends section", "t10-c2"),
+                                ("## working set", "the Working set section", "t10-c3")):
+        _rejected(heading, label, tag)
 
 
 def case_t10_red():
@@ -673,64 +616,44 @@ def case_t10_red():
     lines = src.splitlines(keepends=True)
     start = next((i for i, l in enumerate(lines) if T10_MARKER in l), None)
     if start is None:
-        print("FAIL - case (t10-red): marker comment not found, nothing was mutated")
-        return False
+        check("case (t10-red): marker comment not found, nothing was mutated", False)
+        return
     # The check ends at the `if miss or len(hl) > 60 or _empty:` line, which stays --
     # only the body computation and the `or _empty` clause are removed.
     end = next((i for i in range(start, len(lines))
                 if lines[i].strip().startswith("if miss or len(hl) > 60")), None)
     if end is None:
-        print("FAIL - case (t10-red): could not find the end of the check")
-        return False
+        check("case (t10-red): could not find the end of the check", False)
+        return
     mutant_lines = (lines[:start]
                     + [lines[end].replace(" or _empty:", ":")]
                     + [l for l in lines[end + 1:]
                        if "_empty" not in l])
     mutant_text = "".join(mutant_lines)
     if mutant_text == src:
-        print("FAIL - case (t10-red): INCONCLUSIVE — the mutation did not change the source")
-        return False
+        check("case (t10-red): INCONCLUSIVE — the mutation did not change the source", False)
+        return
 
-    iso_root = tempfile.mkdtemp()
-    mpath = check_state_mutant(isolated_bin(iso_root), owner, mutant_text)
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            _handoff_fixture(tmp, "Building",
-                             {"handoff-plan.md": _empty_section(HANDOFF_GOOD, "## next")})
-            env = dict(os.environ)
-            env = _root_env(tmp, env)
-            real = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
-            mut = subprocess.run([mpath], cwd=tmp, capture_output=True, text=True, env=env)
-        n_real = len(_shape_lines(real.stdout, "handoff-plan.md"))
-        n_mut = len(_shape_lines(mut.stdout, "handoff-plan.md"))
-        if n_mut >= n_real:
-            print(f"FAIL - case (t10-red): INCONCLUSIVE — original {n_real}, mutant {n_mut}; "
-                  f"the mutant did not lose the finding")
-            return False
-        print(f"ok - case (t10-red): the empty-body check is load-bearing — original "
-              f"{n_real}, mutant {n_mut}")
-        return True
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+    _count_proof("t10-red", "the empty-body check is load-bearing — original {real}, "
+                 "mutant {mut}", owner, mutant_text, "Building",
+                 {"handoff-plan.md": _empty_section(HANDOFF_GOOD, "## next")},
+                 "handoff-plan.md")
 
 
 def main():
-    results = []
-    results.append(case_g())
-    results.append(case_t14_widening())
-    results.append(case_t14_cap())
-    results.append(case_t14_no_double())
-    results.append(case_t14_exempt_shape())
-    results.append(case_t14_accepted())
-    results.append(case_t14_red())
-    results.append(case_t10_accepted())
-    results.append(case_t10_next_emptied())
-    results.append(case_t10_trust_emptied())
-    results.append(case_t10_deadends_emptied())
-    results.append(case_t10_workingset_emptied())
-    results.append(case_t10_red())
-    results.append(case_feat54_done_when())
-    return 0 if all(results) else 1
+    case_g_firing()
+    case_g_exemption()
+    case_t14_widening()
+    case_t14_cap()
+    case_t14_no_double()
+    case_t14_exempt_shape()
+    case_t14_accepted()
+    case_t14_red()
+    case_t10_accepted()
+    case_t10_emptied()
+    case_t10_red()
+    case_feat54_done_when()
+    return C.report()
 
 
 if __name__ == "__main__":

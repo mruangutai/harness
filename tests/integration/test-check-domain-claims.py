@@ -7,29 +7,35 @@ proves the pre-change hook allowed what the guard now refuses. Its own file rath
 a tail on test-check-domain-approval.py: at ~4s it was that file's outlier, and the
 surface is claim ownership, not approval.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import json, os, shutil, subprocess, sys, tempfile
+from integration_support import TESTS
+import functools, json, os, shutil, subprocess, sys, tempfile, time
+import inflight_registry
+from check_support import Checks
 from isolated_bin import isolated_bin
-from check_domain_support import (FIXTURE_MANIFEST, HOOK, TESTS_DIR, _env, drive, fixture,
-    make_linked_worktree)
+from check_domain_support import (FIXTURE_MANIFEST, HOOK, _env, drive, fixture,
+    fixture_fleet, make_linked_worktree)
+
+AGENT = "harness-documentor"
+PRIOR_FIXTURE = str(TESTS / "integration" / "fixtures" / "prior-check-domain.fixture")
+C = Checks()
 
 
-def bug1304_pre_change_hook(dest):
-    copied_bin = isolated_bin(dest)
+def check(name, ok, detail=""):
+    return C.check("[bug1304] " + name, ok, detail)
+
+
+@functools.cache
+def bug1304_pre_change_hook():
+    """The frozen prior hook in one isolated bin copy, built once: every fixture root reaches
+    it through HARNESS_PROJECT_DIR, so where the copy sits changes no answer."""
+    copied_bin = isolated_bin(tempfile.mkdtemp())
     hook = os.path.join(copied_bin, "check-domain.py")
-    fixture_path = os.path.join(
-        TESTS_DIR, "fixtures", "prior-check-domain.fixture")
-    shutil.copyfile(fixture_path, hook)
+    shutil.copyfile(PRIOR_FIXTURE, hook)
     os.chmod(hook, 0o755)
     return hook
 
 
-def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write",
+def _bug1304_fire(root, destination, agent=AGENT, hook=HOOK, tool="Write",
                   agent_id=None, parent_agent_id=None, feature=None):
     absolute = destination if os.path.isabs(destination) else os.path.join(root, destination)
     os.makedirs(os.path.dirname(absolute), exist_ok=True)
@@ -50,33 +56,46 @@ def _bug1304_fire(root, destination, agent, hook=HOOK, tool="Write",
                           text=True, env=_env(root))
 
 
-def bug1304_assert_pre_change_allows(results, name, root, destination, agent):
-    isolated = tempfile.mkdtemp()
-    prior = bug1304_pre_change_hook(isolated)
-    allowed = _bug1304_fire(root, destination, agent, hook=prior)
+def _rewrite_registry(path, mutate):
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    mutate(data)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+
+
+def _write_unreadable(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("{")
+
+
+def bug1304_assert_pre_change_allows(name, root, destination):
+    prior = bug1304_pre_change_hook()
+    allowed = _bug1304_fire(root, destination, hook=prior)
     stderr = allowed.stderr or ""
     quiet = not any(marker in stderr for marker in (
         "enforcement OFF", "was not enforced", "passing through"))
-    control = _bug1304_fire(
-        root, ".harness/forbidden/positive-control.md", agent, hook=prior)
-    results.append((
+    control = _bug1304_fire(root, ".harness/forbidden/positive-control.md", hook=prior)
+    check(
         name + " is allowed by the frozen pre-change hook",
         allowed.returncode == 0 and quiet and control.returncode == 2,
         f"allow={allowed.returncode} control={control.returncode} stderr={stderr[:160]!r}",
-    ))
-    shutil.rmtree(isolated, ignore_errors=True)
+    )
 
 
-def _bug1304_domain_expect(results, root, agent, name, destination, want,
-                           contains=None, tool="Write"):
-    response = _bug1304_fire(root, destination, agent, tool=tool)
-    text = response.stdout + response.stderr
-    ok = response.returncode == want and (contains is None or contains in text)
-    results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
+def _expect(name, response, want, contains=None):
+    output = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in output)
+    check(name, ok, f"exit={response.returncode} output={output[:240]!r}")
     return response
 
 
-def _bug1304_domain_context(agent, inflight_registry):
+def _bug1304_domain_expect(root, name, destination, want, contains=None):
+    return _expect(name, _bug1304_fire(root, destination), want, contains)
+
+
+def _bug1304_domain_context():
     manifest = FIXTURE_MANIFEST.replace(
         '          - { path: ".", read: true }',
         '          - { path: ".claude/worktrees/**", upsert: true }\n'
@@ -88,17 +107,16 @@ def _bug1304_domain_context(agent, inflight_registry):
     second = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-1304-B"), "B")
     inflight_registry.claim(
-        first, agent, "harness-product-lead", first,
+        first, AGENT, "harness-product-lead", first,
         feature="FEAT-1304-A-claim-guard")
     return {
         "manifest": manifest, "root": root, "first": first, "second": second,
-        "agent": agent, "main": ".harness/allowed/main.md",
+        "main": ".harness/allowed/main.md",
     }
 
 
-def _bug1304_domain_main_routes(results, context):
+def _bug1304_domain_main_routes(context):
     root = context["root"]
-    agent = context["agent"]
     first = context["first"]
     main = context["main"]
     cases = (
@@ -108,57 +126,46 @@ def _bug1304_domain_main_routes(results, context):
     )
     for label, destination in cases:
         _bug1304_domain_expect(
-            results, root, agent, f"{label}-checkout write is refused",
-            destination, 2, first)
-        bug1304_assert_pre_change_allows(
-            results, label, root, destination, agent)
+            root, f"{label}-checkout write is refused", destination, 2, first)
+        bug1304_assert_pre_change_allows(label, root, destination)
 
     _bug1304_domain_expect(
-        results, root, agent, "relative held-worktree write is allowed",
+        root, "relative held-worktree write is allowed",
         os.path.relpath(os.path.join(first, ".harness", "allowed", "own.md"), root), 0)
     _bug1304_domain_expect(
-        results, root, agent, "absolute held-worktree write is allowed",
+        root, "absolute held-worktree write is allowed",
         os.path.join(first, ".harness", "allowed", "own-absolute.md"), 0)
 
 
-def _bug1304_domain_unbound_routes(results, context):
-    agent = context["agent"]
+def _bug1304_domain_unbound_routes(context):
     root = fixture(context["manifest"])
-    response = _bug1304_fire(root, context["main"], agent)
-    results.append(("unbound agent remains allowed", response.returncode == 0,
-                    f"exit={response.returncode}"))
+    _bug1304_domain_expect(root, "unbound agent remains allowed", context["main"], 0)
     scratch = os.path.join(tempfile.mkdtemp(), "scratch.md")
-    _bug1304_domain_expect(
-        results, context["root"], agent, "scratch write remains allowed", scratch, 0)
+    _bug1304_domain_expect(context["root"], "scratch write remains allowed", scratch, 0)
 
 
-def _bug1304_domain_owner_claim(results, context, inflight_registry):
-    agent = context["agent"]
+def _bug1304_domain_owner_claim(context):
     root = fixture(context["manifest"])
     matching = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-1304-C"), "C")
     inflight_registry.claim(
-        root, agent, "harness-product-lead", root, feature="FEAT-404-no-worktree")
+        root, AGENT, "harness-product-lead", root, feature="FEAT-404-no-worktree")
     destination = ".harness/allowed/unmatched.md"
-    response = _bug1304_fire(root, destination, agent)
-    results.append(("unresolved owner-root claim remains unbound",
-                    response.returncode == 0, f"exit={response.returncode}"))
-    inflight_registry.claim(
-        root, agent, "harness-product-lead", root, feature="FEAT-1304-C-linked")
     _bug1304_domain_expect(
-        results, root, agent, "owner-root matching claim refuses main write",
-        destination, 2, matching)
-    bug1304_assert_pre_change_allows(
-        results, "owner-root matching claim", root, destination, agent)
-
-
-def _bug1304_domain_multi_and_malformed(results, context, inflight_registry):
-    agent = context["agent"]
+        root, "unresolved owner-root claim remains unbound", destination, 0)
     inflight_registry.claim(
-        context["second"], agent, "harness-product-lead", context["second"],
+        root, AGENT, "harness-product-lead", root, feature="FEAT-1304-C-linked")
+    _bug1304_domain_expect(
+        root, "owner-root matching claim refuses main write", destination, 2, matching)
+    bug1304_assert_pre_change_allows("owner-root matching claim", root, destination)
+
+
+def _bug1304_domain_multi_and_malformed(context):
+    inflight_registry.claim(
+        context["second"], AGENT, "harness-product-lead", context["second"],
         feature="FEAT-1304-B-claim-guard")
     _bug1304_domain_expect(
-        results, context["root"], agent, "two claims still allow either held worktree",
+        context["root"], "two claims still allow either held worktree",
         os.path.join(context["second"], ".harness", "allowed", "own.md"), 0)
 
     malformed = os.path.join(context["root"], ".claude", "worktrees", "broken")
@@ -167,35 +174,24 @@ def _bug1304_domain_multi_and_malformed(results, context, inflight_registry):
         handle.write("not-a-pointer\n")
     destination = os.path.join(malformed, ".harness", "allowed", "x.md")
     _bug1304_domain_expect(
-        results, context["root"], agent,
-        "malformed checkout pointer refuses with a nonempty claim set",
+        context["root"], "malformed checkout pointer refuses with a nonempty claim set",
         destination, 2, context["first"])
-    bug1304_assert_pre_change_allows(
-        results, "malformed checkout", context["root"], destination, agent)
+    bug1304_assert_pre_change_allows("malformed checkout", context["root"], destination)
 
 
-def _runtime_lineage_domain_routes(results, context, inflight_registry):
-    agent = context["agent"]
-    first_registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
-    first_data = json.load(open(first_registry, encoding="utf-8"))
-    first_data["claims"][0].update({
-        "agent_id": "DocumentorOne",
-        "parent_agent_id": "ProductLeadOne",
-    })
-    with open(first_registry, "w", encoding="utf-8") as handle:
-        json.dump(first_data, handle)
-
+def _runtime_lineage_domain_routes(context):
+    _rewrite_registry(
+        os.path.join(context["first"], inflight_registry.REGISTRY_REL),
+        lambda data: data["claims"][0].update({
+            "agent_id": "DocumentorOne",
+            "parent_agent_id": "ProductLeadOne",
+        }))
     receipt = inflight_registry.claim_with_receipt(
-        context["second"],
-        agent,
-        "harness-product-lead",
-        context["second"],
+        context["second"], AGENT, "harness-product-lead", context["second"],
         feature="FEAT-1304-B-claim-guard",
     )
     inflight_registry.attach_runtime_identity(
-        context["second"],
-        agent,
-        "FEAT-1304-B-claim-guard",
+        context["second"], AGENT, "FEAT-1304-B-claim-guard",
         claim_id=receipt["claim_id"],
         agent_id="DocumentorTwo",
         parent_agent_id="ProductLeadTwo",
@@ -204,185 +200,141 @@ def _runtime_lineage_domain_routes(results, context, inflight_registry):
         context["first"], ".harness", "allowed", "runtime-one.md")
     second_destination = os.path.join(
         context["second"], ".harness", "allowed", "runtime-two.md")
-    own = _bug1304_fire(
-        context["root"],
-        first_destination,
-        agent,
-        agent_id="DocumentorOne",
-        parent_agent_id="ProductLeadOne",
-    )
-    sibling = _bug1304_fire(
-        context["root"],
-        second_destination,
-        agent,
-        agent_id="DocumentorOne",
-        parent_agent_id="ProductLeadOne",
-    )
+    one = {"agent_id": "DocumentorOne", "parent_agent_id": "ProductLeadOne"}
+    own = _bug1304_fire(context["root"], first_destination, **one)
+    sibling = _bug1304_fire(context["root"], second_destination, **one)
     second = _bug1304_fire(
-        context["root"],
-        second_destination,
-        agent,
-        agent_id="DocumentorTwo",
-        parent_agent_id="ProductLeadTwo",
-    )
-    results.append((
-        "exact runtime lineage allows its own worktree",
-        own.returncode == 0,
-        f"exit={own.returncode} output={(own.stdout + own.stderr)[:180]!r}",
-    ))
-    results.append((
+        context["root"], second_destination,
+        agent_id="DocumentorTwo", parent_agent_id="ProductLeadTwo")
+    _expect("exact runtime lineage allows its own worktree", own, 0)
+    sibling_output = (sibling.stdout + sibling.stderr)[:240]
+    check(
         "exact runtime lineage refuses a same-persona sibling worktree",
         sibling.returncode == 2 and context["first"] in sibling.stderr,
-        f"exit={sibling.returncode} output={(sibling.stdout + sibling.stderr)[:180]!r}",
-    ))
+        f"exit={sibling.returncode} output={sibling_output!r}",
+    )
     # #1882: the refusal names the identity the guard judged, so the next occurrence of an
     # unexplained cross-feature block carries its own evidence instead of a guess.
-    results.append((
+    check(
         "the sibling refusal names the runtime identity it judged (#1882)",
         "agent_id=DocumentorOne" in sibling.stderr and "parent=ProductLeadOne" in sibling.stderr,
-        f"output={(sibling.stdout + sibling.stderr)[:240]!r}",
-    ))
-    no_identity = _bug1304_fire(context["root"], context["main"], agent)
-    results.append((
+        f"output={sibling_output!r}",
+    )
+    no_identity = _bug1304_fire(context["root"], context["main"])
+    check(
         "an identity-less refusal says so (#1882)",
         no_identity.returncode == 2 and "agent_id=none" in no_identity.stderr,
         f"exit={no_identity.returncode} output={(no_identity.stdout + no_identity.stderr)[:240]!r}",
-    ))
-    results.append((
-        "second runtime lineage retains its own worktree",
-        second.returncode == 0,
-        f"exit={second.returncode} output={(second.stdout + second.stderr)[:180]!r}",
-    ))
+    )
+    _expect("second runtime lineage retains its own worktree", second, 0)
 
 
-def _bug1304_domain_ambiguous(results, context, inflight_registry):
-    agent = context["agent"]
+def _bug1304_domain_ambiguous(context):
     root = fixture(context["manifest"])
     make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT"), "AMB1")
     make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-X"), "AMB2")
     inflight_registry.claim(
-        root, agent, "harness-product-lead", root, feature="FEAT-X-ambiguous")
+        root, AGENT, "harness-product-lead", root, feature="FEAT-X-ambiguous")
     _bug1304_domain_expect(
-        results, root, agent, "ambiguous claim refuses and names candidates",
+        root, "ambiguous claim refuses and names candidates",
         context["main"], 2, "FEAT, FEAT-X")
-    bug1304_assert_pre_change_allows(
-        results, "ambiguous claim", root, context["main"], agent)
+    bug1304_assert_pre_change_allows("ambiguous claim", root, context["main"])
 
 
-def _bug1304_domain_short_claim(results, context, inflight_registry):
-    agent = context["agent"]
+def _bug1304_domain_short_claim(context):
     root = fixture(context["manifest"])
     short = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "BUG-91"), "SHORT")
     inflight_registry.claim(
-        short, agent, "harness-product-lead", short,
+        short, AGENT, "harness-product-lead", short,
         feature="BUG-91-worktree-relative-path-fixture")
     _bug1304_domain_expect(
-        results, root, agent, "short-form worktree claim refuses main write",
-        context["main"], 2)
-    bug1304_assert_pre_change_allows(
-        results, "short-form", root, context["main"], agent)
+        root, "short-form worktree claim refuses main write", context["main"], 2)
+    bug1304_assert_pre_change_allows("short-form", root, context["main"])
 
 
-def _bug1304_domain_aged_claim(results, context, inflight_registry):
+def _age_claim(data):
+    data["claims"][0]["started_at"] = time.time() - 10 * 86400
+
+
+def _bug1304_domain_aged_claim(context):
     """DEC-204/DEC-233: a claim binds for exactly as long as its OMP supervisor lives. Age
     alone never releases it; a dead supervisor always does."""
     registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
-    data = json.load(open(registry, encoding="utf-8"))
-    data["claims"][0]["started_at"] = __import__("time").time() - 10 * 86400
-    with open(registry, "w", encoding="utf-8") as handle:
-        json.dump(data, handle)
+    _rewrite_registry(registry, _age_claim)
     _bug1304_domain_expect(
-        results, context["root"], context["agent"],
-        "ten-day-old claim with a live supervisor still refuses",
+        context["root"], "ten-day-old claim with a live supervisor still refuses",
         context["main"], 2, context["first"])
-    bug1304_assert_pre_change_allows(
-        results, "aged claim", context["root"], context["main"], context["agent"])
+    bug1304_assert_pre_change_allows("aged claim", context["root"], context["main"])
     dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
                           capture_output=True, text=True, check=True)
-    data["claims"][0]["supervisor_pid"] = int(dead.stdout)
-    data["claims"][0].pop("supervisor_started_at", None)
-    data["claims"][0]["started_at"] = __import__("time").time()
-    with open(registry, "w", encoding="utf-8") as handle:
-        json.dump(data, handle)
-    response = _bug1304_fire(context["root"], context["main"], context["agent"])
-    results.append((
+
+    def exited_supervisor(data):
+        data["claims"][0]["supervisor_pid"] = int(dead.stdout)
+        data["claims"][0].pop("supervisor_started_at", None)
+        data["claims"][0]["started_at"] = time.time()
+
+    _rewrite_registry(registry, exited_supervisor)
+    response = _bug1304_fire(context["root"], context["main"])
+    check(
         "fresh claim whose supervisor has exited no longer binds",
         context["first"] not in response.stdout + response.stderr,
-        f"exit={response.returncode} output={(response.stdout + response.stderr)[:180]!r}"))
+        f"exit={response.returncode} output={(response.stdout + response.stderr)[:180]!r}")
 
 
-def _bug1304_domain_unreadable(results, context, inflight_registry):
-    agent = context["agent"]
+def _bug1304_domain_unreadable(context):
     root = fixture(context["manifest"])
     worktree = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-BAD"), "BAD")
     inflight_registry.claim(
-        worktree, agent, "harness-product-lead", worktree,
+        worktree, AGENT, "harness-product-lead", worktree,
         feature="FEAT-BAD-unreadable")
     registry = os.path.join(worktree, inflight_registry.REGISTRY_REL)
-    with open(registry, "w", encoding="utf-8") as handle:
-        handle.write("{")
+    _write_unreadable(registry)
     _bug1304_domain_expect(
-        results, root, agent, "unreadable registry refuses and names file",
-        context["main"], 2, registry)
-    bug1304_assert_pre_change_allows(
-        results, "unreadable registry", root, context["main"], agent)
+        root, "unreadable registry refuses and names file", context["main"], 2, registry)
+    bug1304_assert_pre_change_allows("unreadable registry", root, context["main"])
     with open(registry, "w", encoding="utf-8") as handle:
         json.dump({"schema_version": 2, "claims": []}, handle)
-    response = _bug1304_fire(root, context["main"], agent)
-    results.append(("readable empty registry remains allowed",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_domain_expect(root, "readable empty registry remains allowed", context["main"], 0)
 
 
-def _bug1304_domain_partial_registry(results, context, inflight_registry):
-    agent = context["agent"]
+def _bug1304_domain_partial_registry(context):
     root = fixture(context["manifest"])
     own = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-OWN"), "OWN")
     corrupt = make_linked_worktree(
         root, os.path.join(root, ".claude", "worktrees", "FEAT-CORRUPT"), "CORRUPT")
     inflight_registry.claim(
-        own, agent, "harness-product-lead", own, feature="FEAT-OWN-readable")
+        own, AGENT, "harness-product-lead", own, feature="FEAT-OWN-readable")
     registry = os.path.join(corrupt, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(registry), exist_ok=True)
-    with open(registry, "w", encoding="utf-8") as handle:
-        handle.write("{")
-    response = _bug1304_fire(
-        root, os.path.join(own, ".harness", "allowed", "inside.md"), agent)
-    results.append(("readable member allows despite unrelated unreadable registry",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _write_unreadable(registry)
     _bug1304_domain_expect(
-        results, root, agent, "outside partial claim set refuses unreadable registry",
+        root, "readable member allows despite unrelated unreadable registry",
+        os.path.join(own, ".harness", "allowed", "inside.md"), 0)
+    _bug1304_domain_expect(
+        root, "outside partial claim set refuses unreadable registry",
         context["main"], 2, registry)
-    bug1304_assert_pre_change_allows(
-        results, "partial unreadable", root, context["main"], agent)
+    bug1304_assert_pre_change_allows("partial unreadable", root, context["main"])
 
 
 def _repository_fixture():
     # A wildcard control-plane grant reaches every product's `.harness/<segment>/docs/`, so
     # the repository decision, not the grant, must keep each product's segment its own.
-    root = fixture(FIXTURE_MANIFEST.replace(
+    workspace = tempfile.mkdtemp(prefix="harness-repository-binding-")
+    root = fixture_fleet(FIXTURE_MANIFEST.replace(
         "{ path: .harness/allowed/**, upsert: true }",
         "{ path: .harness/allowed/**, upsert: true }\n"
-        "          - { path: .harness/*/docs/**, upsert: true }"))
-    workspace = tempfile.mkdtemp(prefix="harness-repository-binding-")
-    os.makedirs(os.path.join(root, ".harness", "factory"), exist_ok=True)
-    with open(
-        os.path.join(root, ".harness", "factory", "fleet.yaml"),
-        "w",
-        encoding="utf-8",
-    ) as handle:
-        json.dump({
+        "          - { path: .harness/*/docs/**, upsert: true }"), json.dumps({
             "schema": "factory-fleet/1",
             "workspace_root": workspace,
             "repos": [
                 {"name": "acme/product-a", "default_branch": "main"},
                 {"name": "acme/product-b", "default_branch": "main"},
             ],
-        }, handle)
+        }))
     products = {
         name: os.path.join(workspace, name, "allowed", "change.md")
         for name in ("product-a", "product-b")
@@ -392,27 +344,14 @@ def _repository_fixture():
     return root, products
 
 
-def _repository_claim(
-    inflight_registry,
-    root,
-    repository,
-    feature,
-    agent_id,
-    parent_agent_id,
-):
-    agent = "harness-documentor"
+def _repository_claim(root, repository, feature, agent_id, parent_agent_id):
     receipt = inflight_registry.claim_with_receipt(
-        root,
-        agent,
-        "harness-product-lead",
-        root,
+        root, AGENT, "harness-product-lead", root,
         feature=feature,
         repository=repository,
     )
     if not inflight_registry.attach_runtime_identity(
-        root,
-        agent,
-        feature,
+        root, AGENT, feature,
         claim_id=receipt["claim_id"],
         agent_id=agent_id,
         parent_agent_id=parent_agent_id,
@@ -423,26 +362,15 @@ def _repository_claim(
 
 def _repository_fire(root, target, feature, agent_id, parent_agent_id, tool="Write"):
     return _bug1304_fire(
-        root,
-        target,
-        "harness-documentor",
-        tool=tool,
-        agent_id=agent_id,
-        parent_agent_id=parent_agent_id,
-        feature=feature,
+        root, target, tool=tool,
+        agent_id=agent_id, parent_agent_id=parent_agent_id, feature=feature,
     )
 
 
-def _record_repository_result(results, name, response, want, contains=None):
-    output = response.stdout + response.stderr
-    ok = response.returncode == want and (contains is None or contains in output)
-    results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
-
-
-def _repository_happy_routes(results, inflight_registry, feature):
+def _repository_happy_routes(feature):
     root, products = _repository_fixture()
     first = _repository_claim(
-        inflight_registry, root, "product-a", feature, "DocumentorOne", "ProductLeadOne")
+        root, "product-a", feature, "DocumentorOne", "ProductLeadOne")
     cases = (
         ("repository-bound child can repeat Write in its own product",
          _repository_fire(
@@ -480,109 +408,106 @@ def _repository_happy_routes(results, inflight_registry, feature):
          2, "mismatched"),
     )
     for name, response, want, contains in cases:
-        _record_repository_result(results, name, response, want, contains)
+        _expect(name, response, want, contains)
     _repository_claim(
-        inflight_registry, root, "product-a", feature, "DocumentorTwo", "ProductLeadOne")
+        root, "product-a", feature, "DocumentorTwo", "ProductLeadOne")
     sibling = _repository_fire(
         root, products["product-a"], feature, "DocumentorTwo", "ProductLeadOne")
-    _record_repository_result(
-        results, "same-role siblings retain distinct valid product claims", sibling, 0)
+    _expect(
+        "same-role siblings retain distinct valid product claims", sibling, 0)
     return first
 
 
-def _repository_missing_and_released(results, inflight_registry, feature):
+def _repository_missing_and_released(feature):
     missing_root, missing_products = _repository_fixture()
     missing = _repository_fire(
         missing_root, missing_products["product-a"], feature, "MissingChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "product write without a repository claim fails closed", missing, 2, "missing")
+    _expect(
+        "product write without a repository claim fails closed", missing, 2, "missing")
 
     released_root, released_products = _repository_fixture()
     receipt = _repository_claim(
-        inflight_registry, released_root, "product-a", feature,
+        released_root, "product-a", feature,
         "ReleasedChild", "ProductLeadOne")
     inflight_registry.release(released_root, claim_id=receipt["claim_id"], feature=feature)
     released = _repository_fire(
         released_root, released_products["product-a"], feature,
         "ReleasedChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "released repository claim fails closed", released, 2, "released")
+    _expect(
+        "released repository claim fails closed", released, 2, "released")
 
 
-def _repository_stale_and_ambiguous(results, inflight_registry, feature):
+def _repository_stale_and_ambiguous(feature):
     stale_root, stale_products = _repository_fixture()
     _repository_claim(
-        inflight_registry, stale_root, "product-a", feature, "StaleChild", "ProductLeadOne")
-    stale_path = os.path.join(stale_root, inflight_registry.REGISTRY_REL)
-    stale_data = json.load(open(stale_path, encoding="utf-8"))
-    stale_data["claims"][0]["supervisor_pid"] = 99999999
-    stale_data["claims"][0].pop("supervisor_started_at", None)
-    with open(stale_path, "w", encoding="utf-8") as handle:
-        json.dump(stale_data, handle)
+        stale_root, "product-a", feature, "StaleChild", "ProductLeadOne")
+
+    def never_alive(data):
+        data["claims"][0]["supervisor_pid"] = 99999999
+        data["claims"][0].pop("supervisor_started_at", None)
+
+    _rewrite_registry(os.path.join(stale_root, inflight_registry.REGISTRY_REL), never_alive)
     stale = _repository_fire(
         stale_root, stale_products["product-a"], feature, "StaleChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "stale repository claim fails closed", stale, 2, "stale")
+    _expect(
+        "stale repository claim fails closed", stale, 2, "stale")
 
     ambiguous_root, ambiguous_products = _repository_fixture()
     receipt = _repository_claim(
-        inflight_registry, ambiguous_root, "product-a", feature,
+        ambiguous_root, "product-a", feature,
         "AmbiguousChild", "ProductLeadOne")
-    ambiguous_path = os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL)
-    ambiguous_data = json.load(open(ambiguous_path, encoding="utf-8"))
-    duplicate = dict(ambiguous_data["claims"][0])
-    duplicate["claim_id"] = receipt["claim_id"] + "-duplicate"
-    ambiguous_data["claims"].append(duplicate)
-    with open(ambiguous_path, "w", encoding="utf-8") as handle:
-        json.dump(ambiguous_data, handle)
+
+    def duplicate_claim(data):
+        duplicate = dict(data["claims"][0])
+        duplicate["claim_id"] = receipt["claim_id"] + "-duplicate"
+        data["claims"].append(duplicate)
+
+    _rewrite_registry(
+        os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL), duplicate_claim)
     ambiguous = _repository_fire(
         ambiguous_root, ambiguous_products["product-a"], feature,
         "AmbiguousChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "ambiguous repository claim fails closed", ambiguous, 2, "ambiguous")
+    _expect(
+        "ambiguous repository claim fails closed", ambiguous, 2, "ambiguous")
 
 
-def _repository_collision_and_unreadable(
-    results, inflight_registry, feature, first_claim_id,
-):
+def _repository_collision_and_unreadable(feature, first_claim_id):
     collision_root, collision_products = _repository_fixture()
     _repository_claim(
-        inflight_registry, collision_root, "product-a", feature,
+        collision_root, "product-a", feature,
         "CollidingChild", "ProductLeadOne")
-    collision_path = os.path.join(collision_root, inflight_registry.REGISTRY_REL)
-    collision_data = json.load(open(collision_path, encoding="utf-8"))
-    foreign = dict(collision_data["claims"][0])
-    foreign["claim_id"] += "-foreign"
-    foreign["feature"] = "FEAT-496-other-dispatch"
-    collision_data["claims"].append(foreign)
-    with open(collision_path, "w", encoding="utf-8") as handle:
-        json.dump(collision_data, handle)
+
+    def foreign_claim(data):
+        foreign = dict(data["claims"][0])
+        foreign["claim_id"] += "-foreign"
+        foreign["feature"] = "FEAT-496-other-dispatch"
+        data["claims"].append(foreign)
+
+    _rewrite_registry(
+        os.path.join(collision_root, inflight_registry.REGISTRY_REL), foreign_claim)
     collision = _repository_fire(
         collision_root, collision_products["product-a"], feature,
         "CollidingChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "reused active runtime identity fails as collision",
+    _expect(
+        "reused active runtime identity fails as collision",
         collision, 2, "collision")
 
     unreadable_root, unreadable_products = _repository_fixture()
-    unreadable_path = os.path.join(unreadable_root, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(unreadable_path), exist_ok=True)
-    with open(unreadable_path, "w", encoding="utf-8") as handle:
-        handle.write("{")
+    _write_unreadable(os.path.join(unreadable_root, inflight_registry.REGISTRY_REL))
     unreadable = _repository_fire(
         unreadable_root, unreadable_products["product-a"], feature,
         "UnreadableChild", "ProductLeadOne")
-    _record_repository_result(
-        results, "unreadable repository registry fails closed", unreadable, 2, "unreadable")
+    _expect(
+        "unreadable repository registry fails closed", unreadable, 2, "unreadable")
     output = unreadable.stdout + unreadable.stderr
-    results.append((
+    check(
         "repository refusal does not expose registry paths or claim ids",
         inflight_registry.REGISTRY_REL not in output and first_claim_id not in output,
         output[:240],
-    ))
+    )
 
 
-def _repository_binding_in_feature_worktree(results, inflight_registry):
+def _repository_binding_in_feature_worktree():
     """#2056: a fleet feature plans in its harness planning worktree, and dispatch-guard records
     its claims where inflight_registry.feature_root puts the feature — that worktree's registry.
     The repository binding must be read from that same registry, not the owner root's, or every
@@ -593,57 +518,46 @@ def _repository_binding_in_feature_worktree(results, inflight_registry):
         root, os.path.join(root, ".claude", "worktrees", "harness", feature), feature)
     assert os.path.realpath(inflight_registry.feature_root(root, feature)) == os.path.realpath(worktree)
     _repository_claim(
-        inflight_registry, worktree, "product-a", feature, "DocumentorOne", "ProductLeadOne")
+        worktree, "product-a", feature, "DocumentorOne", "ProductLeadOne")
     for name, target in (
         ("worktree-registry binding allows the planning worktree's control-plane segment",
          os.path.join(worktree, ".harness", "product-a", "docs", "change.md")),
         ("worktree-registry binding allows the product checkout",
          products["product-a"]),
     ):
-        _record_repository_result(results, name, _repository_fire(
+        _expect(name, _repository_fire(
             root, target, feature, "DocumentorOne", "ProductLeadOne"), 0)
-    _record_repository_result(
-        results, "worktree-registry binding still refuses a stranger's lineage",
+    _expect(
+        "worktree-registry binding still refuses a stranger's lineage",
         _repository_fire(root, products["product-a"], feature, "Stranger", "ProductLeadOne"),
         2, "runtime repository binding")
 
 
-def _repository_binding_routes(results, inflight_registry):
+def _repository_binding_routes():
     """FEAT-495: wildcard product grants never outrank exact runtime repository lineage."""
     feature = "FEAT-93-product-write"
-    first = _repository_happy_routes(results, inflight_registry, feature)
-    _repository_missing_and_released(results, inflight_registry, feature)
-    _repository_stale_and_ambiguous(results, inflight_registry, feature)
-    _repository_collision_and_unreadable(
-        results, inflight_registry, feature, first["claim_id"])
-    _repository_binding_in_feature_worktree(results, inflight_registry)
+    first = _repository_happy_routes(feature)
+    _repository_missing_and_released(feature)
+    _repository_stale_and_ambiguous(feature)
+    _repository_collision_and_unreadable(feature, first["claim_id"])
+    _repository_binding_in_feature_worktree()
 
 
 def run_bug1304_claim_set():
     """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
-    import inflight_registry
-
-    results = []
-    context = _bug1304_domain_context("harness-documentor", inflight_registry)
-    _bug1304_domain_main_routes(results, context)
-    _bug1304_domain_unbound_routes(results, context)
-    _bug1304_domain_owner_claim(results, context, inflight_registry)
-    _bug1304_domain_multi_and_malformed(results, context, inflight_registry)
-    _runtime_lineage_domain_routes(results, context, inflight_registry)
-    _bug1304_domain_ambiguous(results, context, inflight_registry)
-    _bug1304_domain_short_claim(results, context, inflight_registry)
-    _bug1304_domain_aged_claim(results, context, inflight_registry)
-    _bug1304_domain_unreadable(results, context, inflight_registry)
-    _bug1304_domain_partial_registry(results, context, inflight_registry)
-    _repository_binding_routes(results, inflight_registry)
-
-    failures = 0
-    for name, ok, detail in results:
-        print(("PASS " if ok else "FAIL "), "[bug1304]", name)
-        if not ok:
-            failures += 1
-            print("      " + detail)
-    return failures
+    context = _bug1304_domain_context()
+    _bug1304_domain_main_routes(context)
+    _bug1304_domain_unbound_routes(context)
+    _bug1304_domain_owner_claim(context)
+    _bug1304_domain_multi_and_malformed(context)
+    _runtime_lineage_domain_routes(context)
+    _bug1304_domain_ambiguous(context)
+    _bug1304_domain_short_claim(context)
+    _bug1304_domain_aged_claim(context)
+    _bug1304_domain_unreadable(context)
+    _bug1304_domain_partial_registry(context)
+    _repository_binding_routes()
+    return len(C.failed)
 
 
 def main():

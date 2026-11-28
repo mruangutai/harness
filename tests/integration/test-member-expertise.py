@@ -17,21 +17,20 @@ Every case reads files only, and the whole script must finish inside DEADLINE_S.
 
     ./test-member-expertise.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import os
-import re
-import signal
-import sys
+from integration_support import ROOT as _ROOT
+import functools  # noqa: E402
+import os  # noqa: E402
+import re  # noqa: E402
+import signal  # noqa: E402
+import sys  # noqa: E402
 
 import artifact_accessors  # noqa: E402
+from check_support import Checks  # noqa: E402
 
-ROOT = _anchor_root
+ROOT = str(_ROOT)
 DEADLINE_S = 45
-FAILURES = []
+C = Checks()
+check = C.check
 
 PERSONAS = (
     "harness-orchestrator", "harness-product-lead", "harness-eng-lead", "harness-validator-lead",
@@ -44,22 +43,17 @@ REVIEWERS = ("harness-code-reviewer", "harness-security-reviewer", "harness-ui-r
 SKILLS = os.path.join(ROOT, ".claude", "skills")
 
 
-def check(name, ok, detail=""):
-    print(("PASS  " if ok else "FAIL  ") + name + ("" if ok or not detail else f" — {detail}"))
-    if not ok:
-        FAILURES.append(name)
-
-
 def _read(*parts):
     with open(os.path.join(*parts), encoding="utf-8") as fh:
         return fh.read()
 
 
+@functools.lru_cache(maxsize=None)
 def _tools(persona):
-    """The persona's frontmatter `tools:` list, read through the canonical frontmatter accessor."""
+    """The persona's frontmatter `tools:` list, read once through the canonical frontmatter accessor."""
     text = _read(ROOT, ".omp", "agents", f"{persona}.md")
     metadata, _body = artifact_accessors.load_frontmatter(text, persona)
-    return metadata.get("tools") or []
+    return tuple(metadata.get("tools") or ())
 
 
 # ---------------------------------------------------------------- configuration (SC-01, SC-03)
@@ -133,7 +127,7 @@ CASES = [
 
 
 def _deadline(_signum, _frame):
-    print(f"FAIL  suite exceeded {DEADLINE_S}s")
+    print(f"FAIL suite exceeded {DEADLINE_S}s")
     sys.exit(1)
 
 
@@ -143,8 +137,7 @@ def main():
     for case in CASES:
         case()
     signal.alarm(0)
-    print(f"\n{len(FAILURES)} failure(s)")
-    return 1 if FAILURES else 0
+    return C.report()
 
 
 if __name__ == "__main__":

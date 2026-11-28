@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """FEAT-104: closed schema enforcement on run state.yaml writes."""
+from integration_support import BIN
 import json
 import os
 import shutil
@@ -7,19 +8,29 @@ import subprocess
 import sys
 import tempfile
 
-TESTS = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS, "..", ".."))
-sys.path.insert(0, TESTS)
+from check_domain_support import FIXTURE_MANIFEST, fire, fire_write_payload, fixture  # noqa: E402
+from check_support import Checks  # noqa: E402
+from isolated_bin import isolated_bin  # noqa: E402
 
-from check_domain_support import FIXTURE_MANIFEST, fire, fire_write_payload, fixture
-from isolated_bin import isolated_bin
+_HOOK_BIN = str(BIN)
+RUN_STATE_SCHEMA = os.path.join(_HOOK_BIN, "..", "schemas", "run-state.json")
 
 # FEAT-65: the hook's own-failure posture is harness_boundary.hook_guard's ONE template.
 GUARD_LINE = ("check-domain: the hook failed internally ({detail}) — passing through; "
               "this is not a pass, nothing was checked.\n")
 # A governed FEATURE ARTIFACT the fixture persona may write, so the checkout and claim
 # rules are reached; its content is a clean version-2 checkpoint, so shape says nothing.
-FEAT65_ROUTE = ".harness/harness/features/FEAT-X/runs/feat65/state.yaml"
+def _run_path(slug):
+    return f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml"
+
+
+FEAT65_ROUTE = _run_path("feat65")
+
+
+def _run_hook(hook, root, stdin, argv=()):
+    """Spawn `hook` with raw `stdin` text (malformed or duplicate-key payloads included)."""
+    return subprocess.run([hook, *argv], input=stdin, capture_output=True, text=True,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
 
 
 def _feat65_fire(sibling, override, argv=(), stdin=None):
@@ -31,10 +42,8 @@ def _feat65_fire(sibling, override, argv=(), stdin=None):
         handle.write("\n\n" + override)
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, FEAT65_ROUTE), "content": _state()}}
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
-    return subprocess.run([os.path.join(iso, "check-domain.py"), *argv],
-                          input=json.dumps(payload) if stdin is None else stdin,
-                          capture_output=True, text=True, env=env)
+    return _run_hook(os.path.join(iso, "check-domain.py"), root,
+                     json.dumps(payload) if stdin is None else stdin, argv)
 
 
 def _feat65_guarded(result, line):
@@ -108,14 +117,9 @@ def _unavailable_gates(result):
     return gates
 
 
-_HOOK_BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-
-
 def _run_unreadable(root):
     """check-domain fed a payload it cannot parse."""
-    return subprocess.run([os.path.join(_HOOK_BIN, "check-domain.py")],
-                          input="{not json", capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+    return _run_hook(os.path.join(_HOOK_BIN, "check-domain.py"), root, "{not json")
 
 
 def _run_no_boundary():
@@ -128,9 +132,7 @@ def _run_no_boundary():
         shutil.copy(os.path.join(_HOOK_BIN, name), os.path.join(bare_bin, name))
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(bare, "anything.md"), "content": "x"}}
-    return subprocess.run([os.path.join(bare_bin, "check-domain.py")],
-                          input=json.dumps(payload), capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=bare))
+    return _run_hook(os.path.join(bare_bin, "check-domain.py"), bare, json.dumps(payload))
 
 
 def _exits(result, code, gates):
@@ -176,9 +178,7 @@ def _state(version="2", step_lines=None):
 
 
 def _fire_new(content, slug):
-    root = fixture(FIXTURE_MANIFEST)
-    path = f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml"
-    return fire(root, path, content)
+    return fire(fixture(FIXTURE_MANIFEST), _run_path(slug), content)
 
 
 def _full_step_state():
@@ -214,7 +214,7 @@ steps:
 
 def _existing_write(slug, before, after):
     root = fixture(FIXTURE_MANIFEST)
-    rel = f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml"
+    rel = _run_path(slug)
     target = os.path.join(root, rel)
     os.makedirs(os.path.dirname(target), exist_ok=True)
     with open(target, "w") as handle:
@@ -283,9 +283,7 @@ def _evidence_cases():
 
 
 def _declared_shape_case():
-    with open(os.path.join(
-            ROOT, ".claude", "skills", "harness", "schemas",
-            "run-state.json")) as handle:
+    with open(RUN_STATE_SCHEMA) as handle:
         schema = json.load(handle)
     schema_keys = set(schema["properties"]["steps"]["items"]["properties"])
     result = _fire_new(_full_step_state(), "full-step")
@@ -307,13 +305,11 @@ def _schema_copy_fire(schema_text, slug):
     with open(os.path.join(os.path.dirname(iso), "schemas", "run-state.json"), "w",
               encoding="utf-8") as handle:
         handle.write(schema_text)
-    return fire(root, f".harness/harness/features/FEAT-X/runs/{slug}/state.yaml",
-                _state("2"), hook=os.path.join(iso, "check-domain.py"))
+    return fire(root, _run_path(slug), _state("2"), hook=os.path.join(iso, "check-domain.py"))
 
 
 def _run_schema_contract_cases():
-    with open(os.path.join(ROOT, ".claude", "skills", "harness", "schemas",
-                           "run-state.json"), encoding="utf-8") as handle:
+    with open(RUN_STATE_SCHEMA, encoding="utf-8") as handle:
         live = handle.read()
     duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
     if duplicate == live:
@@ -381,10 +377,7 @@ def _strict_hook_payload_case():
         '"tool_name":"Write","tool_input":{"file_path":'
         + json.dumps(target) + ',"content":"x"}}'
     )
-    hook = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "check-domain.py")
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
-    result = subprocess.run(
-        [hook], input=payload, capture_output=True, text=True, env=env)
+    result = _run_hook(os.path.join(_HOOK_BIN, "check-domain.py"), root, payload)
     if result.returncode == 0:
         return None
     return (
@@ -392,21 +385,6 @@ def _strict_hook_payload_case():
         False,
         result,
     )
-
-
-def _report(cases):
-    failures = 0
-    for name, passed, result in cases:
-        if passed:
-            print("ok   ", name)
-            continue
-        failures += 1
-        print("FAIL ", name)
-        print(f"      exit {result.returncode}: {result.stderr.strip()[:500]}")
-    print(f"\n{len(cases) - failures}/{len(cases)} T-06 check-domain cases passed.")
-    print("coverage tokens: undeclared step key; schema_version floor")
-    print("ALL PASSED" if not failures else f"{failures} FAILING")
-    return failures
 
 
 def run_t06_cases():
@@ -422,8 +400,11 @@ def run_t06_cases():
         cases.append(strict_failure)
     cases.extend(_feat65_guard_cases())
     cases.extend(_feat2274_cases())
-    return _report(cases)
+    return cases
 
 
 if __name__ == "__main__":
-    raise SystemExit(1 if run_t06_cases() else 0)
+    C = Checks()
+    for name, passed, result in run_t06_cases():
+        C.check(name, passed, f"exit {result.returncode}: {result.stderr.strip()[:500]}")
+    sys.exit(C.report())

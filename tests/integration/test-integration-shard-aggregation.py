@@ -10,20 +10,21 @@ FEAT-2337 SC-05: the importable discovery and evidence seams take an explicit `k
 reads the same tested commit's top-level tests/unit/test-*.py, while the CLI keeps its
 integration-only, four-shard defaults and refuses any `--kind` option.
 """
+from integration_support import ROOT, BIN as _BIN  # isort: skip  (first: it sets sys.path)
 import importlib.util
 import json
 import os
-import sys
-from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
+from pathlib import Path
+from unittest import mock
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # tests/
-from git_support import commit_all, init_repo
+from check_support import Checks
+from git_support import checked_git, commit_all, git_out, init_repo
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ".claude/skills/harness/bin"
+BIN = _BIN.relative_to(ROOT)  # the same bin path inside the fixture repository
 BIN_FILES = ("check-integration-shards.py", "harness_boundary.py", "run_identity.py",
              "artifact_accessors.py")
 TESTED = ["tests/integration/test-a.py", "tests/integration/test-b.py",
@@ -33,27 +34,13 @@ WORKTREE_ONLY = "tests/integration/test-f.py"
 UNIT_TESTED = "tests/unit/test-unit.py"
 UNIT_HEAD_ONLY = "tests/unit/test-head-unit.py"
 UNIT_WORKTREE_ONLY = "tests/unit/test-worktree-unit.py"
-failures = []
-
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, "" if condition else detail)
-    if not condition:
-        failures.append(name)
-
-
-def git(root, *args):
-    return subprocess.run(["git", "-C", str(root), *args], text=True, capture_output=True,
-                          check=True).stdout.strip()
-
-
-def _git(args, cwd):
-    git(cwd, *args)
+C = Checks()
+check = C.check
 
 
 def commit(root, message):
-    commit_all(root, message, git=_git)
-    return git(root, "rev-parse", "HEAD")
+    commit_all(root, message, git=checked_git)
+    return git_out(root, "rev-parse", "HEAD")
 
 
 def write(root, rel, text="pass\n"):
@@ -63,10 +50,10 @@ def write(root, rel, text="pass\n"):
 
 def repository():
     root = Path(tempfile.mkdtemp())
-    init_repo(root, None, identity=("t@t", "t"), git=_git)
+    init_repo(root, None, identity=("t@t", "t"), git=checked_git)
     write(root, ".harness/team-config.yaml", "teams: []\n")
+    (root / BIN).mkdir(parents=True, exist_ok=True)
     for name in BIN_FILES:
-        (root / BIN).mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / BIN / name, root / BIN / name)
     write(root, "tests/integration/helper.py")
     write(root, "tests/integration/nested/test-deep.py")
@@ -93,22 +80,23 @@ def manifest(sha, index, paths, rcs=None):
             "completed_files": [{"path": p, "returncode": rc} for p, rc in zip(paths, rcs)]}
 
 
+def shards(sha, *selections, **fields):
+    """The four shard manifests at `sha`; shard i selects selections[i-1], or nothing."""
+    picks = list(selections) + [[]] * (4 - len(selections))
+    return {f"shard-{i}/manifest.json": dict(manifest(sha, i, paths), **fields)
+            for i, paths in enumerate(picks, 1)}
+
+
 def exact(sha):
-    return {"shard-1/manifest.json": manifest(sha, 1, TESTED[:2]),
-            "shard-2/manifest.json": manifest(sha, 2, TESTED[2:3]),
-            "shard-3/manifest.json": manifest(sha, 3, TESTED[3:]),
-            "shard-4/manifest.json": manifest(sha, 4, [])}
+    return shards(sha, TESTED[:2], TESTED[2:3], TESTED[3:])
 
 
 def gate(repo, sha, docs, checks="success", matrix="success", raw=None, extra=()):
     out = Path(tempfile.mkdtemp())
     try:
-        for rel, doc in docs.items():
-            (out / rel).parent.mkdir(parents=True, exist_ok=True)
-            (out / rel).write_text(json.dumps(doc))
-        for rel, text in (raw or {}).items():
-            (out / rel).parent.mkdir(parents=True, exist_ok=True)
-            (out / rel).write_text(text)
+        texts = {rel: json.dumps(doc) for rel, doc in docs.items()}
+        for rel, text in {**texts, **(raw or {})}.items():  # raw text replaces a doc
+            write(out, rel, text)
         args = ["--commit", sha, "--shards", "4", "--manifest-dir", str(out), *extra]
         if checks is not None:
             args += ["--checks-result", checks]
@@ -116,7 +104,8 @@ def gate(repo, sha, docs, checks="success", matrix="success", raw=None, extra=()
             args += ["--matrix-result", matrix]
         env = dict(os.environ, HARNESS_PROJECT_DIR=str(repo))
         return subprocess.run([str(repo / BIN / "check-integration-shards.py"), *args],
-                              cwd=repo, env=env, text=True, capture_output=True, timeout=60)
+                              cwd=repo, env=env, text=True, capture_output=True, timeout=60,
+                              check=False)
     finally:
         shutil.rmtree(out, ignore_errors=True)
 
@@ -160,8 +149,7 @@ def manifest_cases(repo, tested, head):
         {"again/manifest.json": manifest(tested, 4, [])}))), 1, "shard 4 has 2 manifests")
     expect("extra manifest", gate(repo, tested, edited(tested, lambda d: d.update(
         {"shard-5/manifest.json": manifest(tested, 5, [])}))), 1, "shard_index 5 outside 1..4")
-    expect("malformed JSON", gate(repo, tested, edited(
-        tested, lambda d: d.pop("shard-2/manifest.json")),
+    expect("malformed JSON", gate(repo, tested, exact(tested),
         raw={"shard-2/manifest.json": "{not json"}), 2, "shard-2/manifest.json: malformed JSON")
     expect("wrong commit (HEAD) in manifest", gate(repo, tested, edited(
         tested, lambda d: d["shard-2/manifest.json"].update(tested_commit=head))), 1,
@@ -197,31 +185,22 @@ def coverage_cases(repo, empty, tested, head):
     expect("failing completed file", gate(repo, tested, edited(
         tested, lambda d: d["shard-1/manifest.json"]["completed_files"][0].update(returncode=1))),
         1, f"{TESTED[0]} returned 1")
-    expect("empty expected suite", gate(repo, empty, {
-        f"shard-{i}/manifest.json": manifest(empty, i, []) for i in range(1, 5)}), 1,
+    expect("empty expected suite", gate(repo, empty, shards(empty)), 1,
         "no tests/integration/test-*.py")
-    head_docs = {f"shard-{i}/manifest.json": manifest(head, i, []) for i in range(1, 5)}
-    head_docs["shard-1/manifest.json"] = manifest(head, 1, TESTED[:3] + [HEAD_ONLY])
+    head_docs = shards(head, TESTED[:3] + [HEAD_ONLY])
     expect("HEAD's own coverage is not the tested commit's", gate(repo, tested, head_docs), 1,
            f"{TESTED[3]}: omitted")
 
 
 def load_gate(repo):
     """The fixture's own copy, imported with its root, the way a validator reuses the seams."""
-    saved_path, saved_env = list(sys.path), os.environ.get("HARNESS_PROJECT_DIR")
-    os.environ["HARNESS_PROJECT_DIR"] = str(repo)
-    try:
+    with mock.patch.dict(os.environ, HARNESS_PROJECT_DIR=str(repo)), \
+            mock.patch.object(sys, "path", list(sys.path)):
         spec = importlib.util.spec_from_file_location(
             "fixture_check_integration_shards", repo / BIN / "check-integration-shards.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return module
-    finally:
-        sys.path[:] = saved_path
-        if saved_env is None:
-            os.environ.pop("HARNESS_PROJECT_DIR", None)
-        else:
-            os.environ["HARNESS_PROJECT_DIR"] = saved_env
+    return module
 
 
 def unit_receipt(sha, paths):
@@ -230,8 +209,9 @@ def unit_receipt(sha, paths):
     return {"manifest-unit.json": doc}
 
 
-def _seam_defects(module, repo, sha, paths):
-    expected, error = module.discover_expected(str(repo), sha, kind="unit")
+def _seam_defects(module, unit, sha, paths):
+    """`unit` is the (expected, error) pair unit discovery returned once for `sha`."""
+    expected, error = unit
     return [error] if error else module.evidence_defects(unit_receipt(sha, paths), sha, 1,
                                                          expected, kind="unit")
 
@@ -246,8 +226,7 @@ UNIT_SEAM_ROWS = (
 )
 
 
-def _discovery_checks(module, repo, tested):
-    unit = module.discover_expected(str(repo), tested, kind="unit")
+def _discovery_checks(module, repo, tested, unit):
     check("unit discovery reads only the tested commit's top-level tests/unit/test-*.py",
           unit == ([UNIT_TESTED], None), repr(unit))
     default = module.discover_expected(str(repo), tested)
@@ -257,17 +236,17 @@ def _discovery_checks(module, repo, tested):
 
 def kind_seam_cases(repo, tested, head):
     module = load_gate(repo)
-    _discovery_checks(module, repo, tested)
+    unit = module.discover_expected(str(repo), tested, kind="unit")
+    _discovery_checks(module, repo, tested, unit)
     for label, paths, status, needle in UNIT_SEAM_ROWS:
-        defects = _seam_defects(module, repo, tested, paths)
+        defects = _seam_defects(module, unit, tested, paths)
         text = " | ".join(message for _status, message in defects)
         check(f"{label}: exit {status}", module.exit_status(defects) == status, text)
         check(f"{label}: diagnostic '{needle}'", needle in text, text)
     expect("the CLI has no --kind option", gate(repo, tested, exact(tested),
            extra=("--kind", "unit")), 2, "unrecognized argument '--kind'")
     expect("unit receipts are refused under the CLI's integration default", gate(
-        repo, head, {f"shard-{i}/manifest.json": dict(manifest(head, i, []), kind="unit")
-                     for i in range(1, 5)}), 1, "kind 'unit' is not integration")
+        repo, head, shards(head, kind="unit")), 1, "kind 'unit' is not integration")
 
 
 def main():
@@ -281,8 +260,7 @@ def main():
         kind_seam_cases(repo, tested, head)
     finally:
         shutil.rmtree(repo, ignore_errors=True)
-    print(f"{len(failures)} failed")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":

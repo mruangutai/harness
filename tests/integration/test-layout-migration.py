@@ -11,14 +11,9 @@ CASES ARE NEVER RENUMBERED — cases 1, 14 and 15 are cited by number in D-04, i
 and in the brief. A new case is appended at the end (case 17 is the plan-phase Q3
 bidirectional table check, appended under that rule).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT, BIN  # first: puts bin/ and tests/ on sys.path
 
 import contextlib
-import importlib.util
 import io
 import os
 import re
@@ -26,93 +21,72 @@ import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
-sys.path.insert(0, HERE)  # the module imports harness_yaml, which lives beside it
-sys.path.insert(0, os.path.dirname(TESTS_DIR))
+from check_support import Checks  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
-
-results = []
-
-
-def check(name, ok, detail=""):
-    results.append((name, bool(ok), detail))
-
-
-def load_module():
-    spec = importlib.util.spec_from_file_location(
-        "layout_migration", os.path.join(HERE, "layout_migration.py"))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
-
-
-try:
-    lm = load_module()
-except FileNotFoundError:
-    print("FAIL - layout_migration.py does not exist yet (red-first run)")
-    sys.exit(1)
-
-
-# ---------------------------------------------------------------- fixture text
+import layout_migration as lm  # noqa: E402
 # One stub body per (reader file, form). The text carries the FRAGMENT the row's
 # pattern matches, in the spelling the real file uses at 88b1182 — a join, a grant
 # path, a glob — never a copy of the real script.
-import layout_fixtures as lf
+import layout_fixtures as lf  # noqa: E402
 
-MARKER_REL = lm.MARKER  # the path is never restated (#382)
-FLEET_TEXT = lf.FLEET_TEXT
-STUB = lf.STUB
-FEATURES_READERS = lf.FEATURES_READERS
-DOCS_READERS = lf.DOCS_READERS
+ROOT = str(ROOT)
+HERE = str(BIN)
+C = Checks()
+check = C.check
+
+EXAMINED_RE = re.compile(
+    r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) reader file\(s\)")
+LAYOUT_RE = re.compile(r"layout: (\d+) surface\(s\) clean, (\d+) mixed, (\d+) cannot-verify")
+
+# (evidence surface, shape) -> (directory under the fixture root, file name, text).
+EVIDENCE = {
+    ("features", "legacy"): (".harness/features/FEAT-01-x", "feature.json", "{}"),
+    ("features", "migrated"): (".harness/repoA/features/FEAT-01-x", "feature.json", "{}"),
+    ("docs", "legacy"): ("docs/harness", "SPEC.md", "# spec\n"),
+    ("docs", "migrated"): (".harness/repoA/docs", "SPEC.md", "# spec\n"),
+}
+
+
+def _write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def _stub_text(rel, form):
+    stub = lf.STUB[rel]
+    special = {"both": stub["legacy"] + stub["migrated"],
+               "neither": "nothing relevant here\n",
+               "unreadable": stub["legacy"]}
+    return special.get(form) or stub[form]
 
 
 def build(root, marker=True, features_evidence=("legacy",), docs_evidence=("legacy",),
           forms=None):
     """Write a fixture tree. forms maps reader relpath -> legacy|migrated|both|neither|
-    unreadable|absent; unnamed readers default to legacy."""
+    unreadable; unnamed readers default to legacy."""
     forms = dict(forms or {})
     write_config(os.path.join(root, ".harness", "harness.json"), {"github": {"sync": False}})
-    if "legacy" in features_evidence:
-        p = os.path.join(root, ".harness", "features", "FEAT-01-x")
-        os.makedirs(p, exist_ok=True)
-        open(os.path.join(p, "feature.json"), "w").write("{}")
-    if "migrated" in features_evidence:
-        p = os.path.join(root, ".harness", "repoA", "features", "FEAT-01-x")
-        os.makedirs(p, exist_ok=True)
-        open(os.path.join(p, "feature.json"), "w").write("{}")
-    if "legacy" in docs_evidence:
-        p = os.path.join(root, "docs", "harness")
-        os.makedirs(p, exist_ok=True)
-        open(os.path.join(p, "SPEC.md"), "w").write("# spec\n")
-    if "migrated" in docs_evidence:
-        p = os.path.join(root, ".harness", "repoA", "docs")
-        os.makedirs(p, exist_ok=True)
-        open(os.path.join(p, "SPEC.md"), "w").write("# spec\n")
+    wanted = {"features": features_evidence, "docs": docs_evidence}
+    for (surface, shape), (rel_dir, name, text) in EVIDENCE.items():
+        if shape in wanted[surface]:
+            _write(os.path.join(root, *rel_dir.split("/"), name), text)
     if marker:
-        mp = os.path.join(root, MARKER_REL)
-        os.makedirs(os.path.dirname(mp), exist_ok=True)
-        open(mp, "w").write(FLEET_TEXT)
-    for rel in FEATURES_READERS + DOCS_READERS:
+        _write(os.path.join(root, lm.MARKER), lf.FLEET_TEXT)  # the path is never restated (#382)
+    for rel in lf.FEATURES_READERS + lf.DOCS_READERS:
         form = forms.get(rel, "legacy")
-        if form == "absent":
-            continue
         path = os.path.join(root, *rel.split("/"))
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        if form == "both":
-            text = STUB[rel]["legacy"] + STUB[rel]["migrated"]
-        elif form == "neither":
-            text = "nothing relevant here\n"
-        else:
-            text = STUB[rel][form] if form != "unreadable" else STUB[rel]["legacy"]
-        with open(path, "w") as f:
-            f.write(text)
+        _write(path, _stub_text(rel, form))
         if form == "unreadable":
             os.chmod(path, 0)
 
+
+def add_undeclared_segment(tmp, name="FEAT-old"):
+    """Grow a features/ shape under .harness/archive, a segment the fleet does not declare."""
+    p = os.path.join(tmp, ".harness", "archive", "features", name)
+    os.makedirs(p)
+    with open(os.path.join(p, "feature.json"), "w") as f:
+        f.write("{}")
 
 
 def run(root, table=None):
@@ -136,15 +110,16 @@ def reader_line(out, rel):
 # zero counts, and this case demands non-zero on all three counts. It also proves the marker is a SOUND
 # rather than circular control: presence of the marker and agreement of the forms are
 # different properties, and this case asserts the second while only assuming the first.
-code, out = run(REPO_ROOT)
-m = re.search(r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) reader file\(s\)", out)
-s = re.search(r"layout: (\d+) surface\(s\) clean, (\d+) mixed, (\d+) cannot-verify", out)
-check("case 1: real root exits 0", code == 0, out)
-check("case 1: non-zero feature-dir count", m and int(m.group(1)) > 0, out)
-check("case 1: non-zero doc-root count", m and int(m.group(2)) > 0, out)
-check("case 1: non-zero reader-file count", m and int(m.group(3)) > 0, out)
+# Cases 21 and 22 read this same scan: nothing writes to the real tree in between.
+real_code, real_out = run(ROOT)
+m = EXAMINED_RE.search(real_out)
+s = LAYOUT_RE.search(real_out)
+check("case 1: real root exits 0", real_code == 0, real_out)
+check("case 1: non-zero feature-dir count", m and int(m.group(1)) > 0, real_out)
+check("case 1: non-zero doc-root count", m and int(m.group(2)) > 0, real_out)
+check("case 1: non-zero reader-file count", m and int(m.group(3)) > 0, real_out)
 check("case 1: X+Y+Z == 2 — every declared surface judged, none skipped",
-      s and int(s.group(1)) + int(s.group(2)) + int(s.group(3)) == 2, out)
+      s and int(s.group(1)) + int(s.group(2)) + int(s.group(3)) == 2, real_out)
 
 # ------------------------------------------------------------------- case 2
 with tempfile.TemporaryDirectory() as tmp:
@@ -155,7 +130,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 3
 with tempfile.TemporaryDirectory() as tmp:
-    forms = {r: "migrated" for r in FEATURES_READERS}
+    forms = {r: "migrated" for r in lf.FEATURES_READERS}
     forms[".harness/team-config.yaml"] = "legacy"
     build(tmp, features_evidence=("migrated",), forms=forms)
     code, out = run(tmp)
@@ -172,7 +147,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 5
 with tempfile.TemporaryDirectory() as tmp:
-    forms = {r: "migrated" for r in DOCS_READERS}
+    forms = {r: "migrated" for r in lf.DOCS_READERS}
     forms[".agents/skills/harness/bin/gen-decisions-index.py"] = "legacy"
     build(tmp, docs_evidence=("migrated",), forms=forms)
     code, out = run(tmp)
@@ -190,7 +165,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # ------------------------------------------------------------------- case 6
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, features_evidence=("migrated",), docs_evidence=("migrated",),
-          forms={r: "migrated" for r in FEATURES_READERS + DOCS_READERS})
+          forms={r: "migrated" for r in lf.FEATURES_READERS + lf.DOCS_READERS})
     code, out = run(tmp)
     check("case 6: fully migrated, both surfaces -> exit 0", code == 0, out)
 
@@ -199,12 +174,12 @@ with tempfile.TemporaryDirectory() as tmp:
 # on them blocks the sequence it exists to unblock.
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, features_evidence=("migrated",), docs_evidence=("legacy",),
-          forms={r: "migrated" for r in FEATURES_READERS})
+          forms={r: "migrated" for r in lf.FEATURES_READERS})
     code, out = run(tmp)
     check("case 7: FEATURES migrated, DOCS legacy -> exit 0", code == 0, out)
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, features_evidence=("legacy",), docs_evidence=("migrated",),
-          forms={r: "migrated" for r in DOCS_READERS})
+          forms={r: "migrated" for r in lf.DOCS_READERS})
     code, out = run(tmp)
     check("case 8: DOCS migrated, FEATURES legacy -> exit 0", code == 0, out)
 
@@ -214,7 +189,7 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run(tmp)
     line = reader_line(out, "check-domain.py")
     check("case 9: a reader carrying NEITHER form -> exit 2, named, tagged [neither]",
-          code == 2 and "[neither]" in line and code != 0 and code != 1, out)
+          code == 2 and "[neither]" in line, out)
 
 # ------------------------------------------------------------------- case 10
 with tempfile.TemporaryDirectory() as tmp:
@@ -258,8 +233,8 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run(tmp)
     check("case 14: readers present but no fleet marker -> exit 0, NOT APPLICABLE",
           code == 0 and "NOT APPLICABLE: no harness control-plane marker at " in out, out)
-    m = re.search(r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) reader file\(s\)", out)
-    s = re.search(r"layout: (\d+) surface\(s\) clean, (\d+) mixed, (\d+) cannot-verify", out)
+    m = EXAMINED_RE.search(out)
+    s = LAYOUT_RE.search(out)
     check("case 14: both trailer lines print with all counts zero",
           m and s and set(map(int, m.groups() + s.groups())) == {0}, out)
 
@@ -267,7 +242,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, marker=True)  # all-legacy readers, legacy evidence on BOTH surfaces
     code, out = run(tmp)
-    m = re.search(r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) reader file\(s\)", out)
+    m = EXAMINED_RE.search(out)
     check("case 15: marker added, legacy everywhere -> CLEAN with non-zero counts "
           "(case 14 passed because of the marker, not an empty scan)",
           code == 0 and m and int(m.group(1)) > 0 and int(m.group(3)) > 0, out)
@@ -327,9 +302,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # cannot-verify naming the path — never silent, never an unclearable MIXED.
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp)  # legacy everywhere, fleet declares only repoA
-    p = os.path.join(tmp, ".harness", "archive", "features", "FEAT-old")
-    os.makedirs(p)
-    open(os.path.join(p, "feature.json"), "w").write("{}")
+    add_undeclared_segment(tmp)
     code, out = run(tmp)
     check("case 19: evidence under an UNDECLARED segment -> exit 2, phrase + path named",
           code == 2 and "undeclared segment" in out and "archive" in out, out)
@@ -412,10 +385,7 @@ _parity("CANNOT_VERIFY no-evidence",
         dict(features_evidence=(), docs_evidence=("legacy",)))
 _parity("CANNOT_VERIFY undeclared-segment (carries detail)",
         dict(),
-        extra=lambda tmp: (
-            os.makedirs(os.path.join(tmp, ".harness", "archive", "features", "F-old")),
-            open(os.path.join(tmp, ".harness", "archive", "features", "F-old",
-                              "feature.json"), "w").write("{}")))
+        extra=lambda tmp: add_undeclared_segment(tmp, "F-old"))
 _parity("CLEAN names nobody at either site", dict())
 # no-rows cannot be produced through a fixture tree (it requires a reader-table
 # override, and the REAL gate runs the real module) — its wording remains covered by
@@ -426,10 +396,9 @@ _parity("CLEAN names nobody at either site", dict())
 # real root; this pins the docs half specifically — evidence at the migrated root
 # (.harness/harness/docs/SPEC.md) and every DOCS reader speaking the migrated form —
 # so a partial docs rollback or a stray legacy re-introduction reds here by name.
-code, out = run(REPO_ROOT)
-docs_line = next((l for l in out.splitlines() if l.startswith("docs:")), "")
+docs_line = next((l for l in real_out.splitlines() if l.startswith("docs:")), "")
 check("case 21: real root's harness/docs surface is CLEAN with migrated evidence",
-      code == 0 and "docs: CLEAN — evidence migrated" in docs_line, out)
+      real_code == 0 and "docs: CLEAN — evidence migrated" in docs_line, real_out)
 
 # ------------------------------------------------------------------- case 22
 # FEAT-25 T-03 / BUG-1290 T-04: the REAL tree's FEATURES surface, now that
@@ -437,16 +406,8 @@ check("case 21: real root's harness/docs surface is CLEAN with migrated evidence
 # BUG-1290 T-03; D-04 moved the reader row with it). Case 1 already scans the real
 # root; this pins the features half specifically — evidence at the migrated root
 # and every FEATURES reader, including factory_config.py, speaking the migrated form.
-code, out = run(REPO_ROOT)
-features_line = next((l for l in out.splitlines() if l.startswith("features:")), "")
+features_line = next((l for l in real_out.splitlines() if l.startswith("features:")), "")
 check("case 22: real root's harness/features surface is CLEAN with migrated evidence",
-      code == 0 and "features: CLEAN — evidence migrated" in features_line, out)
+      real_code == 0 and "features: CLEAN — evidence migrated" in features_line, real_out)
 
-# ---------------------------------------------------------------------- report
-fails = 0
-for name, ok, detail in results:
-    print(("ok   - " if ok else "FAIL - ") + name)
-    if not ok and detail:
-        print("       " + str(detail)[:800].replace("\n", "\n       "))
-        fails += 1
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

@@ -16,36 +16,29 @@ host enforces `spawns:` as a hard preflight allowlist that only a live dispatch 
 would otherwise exercise. Cross-squad hosting (DEC-118 as amended by FEAT-59) is exactly
 the case where a lead's allowlist and its team file drift apart.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import importlib.util
-import os
-import re
-import subprocess
-import sys
+from integration_support import BIN as _BIN  # noqa: F401  (puts bin/ and tests/ on sys.path)
+import functools  # noqa: E402
+import os  # noqa: E402
+import re  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+
+from check_support import Checks  # noqa: E402
 
 try:
-    import harness_yaml
+    import harness_yaml  # noqa: E402
 except ModuleNotFoundError:
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        import harness_yaml
-    except ModuleNotFoundError:
-        print("test-plan-team: PyYAML is not importable from this interpreter "
-              f"({sys.executable}).\n"
-              "  install:  python3 -m pip install --user --break-system-packages pyyaml\n"
-              "  This is REQUIRED, not optional (DEC-171 am.1).", file=sys.stderr)
-        sys.exit(1)
+    print("test-plan-team: PyYAML is not importable from this interpreter "
+          f"({sys.executable}).\n"
+          "  install:  python3 -m pip install --user --break-system-packages pyyaml\n"
+          "  This is REQUIRED, not optional (DEC-171 am.1).", file=sys.stderr)
+    sys.exit(1)
 
 import yaml  # noqa: E402  (harness_yaml import above establishes PyYAML is present)
 
 REPO = os.environ.get("HARNESS_PROJECT_DIR") or os.getcwd()
 TEAMS = os.path.join(REPO, ".claude", "skills", "harness", "teams")
 BIN = os.path.join(REPO, ".claude", "skills", "harness", "bin")
-SKILL_MD = os.path.join(REPO, ".claude", "skills", "harness", "SKILL.md")
 # The plan-phase procedure moved out of the playbook into a reference read at that seam
 # (FEAT-59 playbook split, DEC-158); the verbatim goal-check question lives there now.
 PLAN_PHASE_MD = os.path.join(REPO, ".claude", "skills", "harness", "references", "plan-phase.md")
@@ -59,23 +52,10 @@ FIX_YAML = os.path.join(TEAMS, "fix.yaml")
 
 FEAT = "FEAT-90-fixture"   # synthetic: route resolution is by path shape, never a real folder
 LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
-KINDS = ("substance", "form", "proportionality")
 
-fails = 0
-ran = 0
-
-
-def check(name, ok, detail=""):
-    # Counted, never a literal total: a frozen count reddens the moment a case is added.
-    global fails, ran
-    ran += 1
-    if ok:
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}")
-        for line in str(detail).splitlines():
-            print(f"      | {line}")
+# Counted, never a literal total: a frozen count reddens the moment a case is added.
+C = Checks()
+check = C.check
 
 
 def read(path):
@@ -89,8 +69,10 @@ def _normalize_prose(text):
     return re.sub(r"\s+", " ", text.replace("*", ""))
 
 
+@functools.lru_cache(maxsize=None)
 def _resolve(path):
-    """`check-domain.py --resolve <path>` — plan-time route resolution, stdin closed."""
+    """Memoized per path: cases (2) and (9) ask the same deterministic question.
+    `check-domain.py --resolve <path>` — plan-time route resolution, stdin closed."""
     return subprocess.run(
         [CHECK_DOMAIN, "--resolve", path], capture_output=True, text=True,
         stdin=subprocess.DEVNULL, timeout=20, cwd=REPO,
@@ -118,14 +100,29 @@ def _spawns_of(lead):
     return yaml.safe_load(frontmatter_text).get("spawns") or []
 
 
+def _loop_backs(team_steps):
+    """(step, loop_back) for every step whose on_fail carries a loop_back."""
+    for step in team_steps:
+        on_fail = step.get("on_fail") or {}
+        loop_back = on_fail.get("loop_back") if isinstance(on_fail, dict) else None
+        if loop_back is not None:
+            yield step, loop_back
+
+
+@functools.lru_cache(maxsize=None)
+def _omp_files():
+    """The sorted harness-*.md files under .omp/agents/ (listed once for cases 4a and 5)."""
+    return tuple(sorted(f for f in os.listdir(AGENTS_OMP) if re.match(r"^harness-.*\.md$", f)))
+
+
 def _rendered(out, cycle, persona="backend-dev"):
     return (out.replace("{{feat}}", FEAT).replace("{{cycle}}", str(cycle))
                .replace("{{persona}}", persona))
 
 
 plan, steps, steps_by_id = _load_team(PLAN_YAML)
-validate, v_steps, v_by_id = _load_team(VALIDATE_YAML)
-fix, f_steps, f_by_id = _load_team(FIX_YAML)
+_, v_steps, v_by_id = _load_team(VALIDATE_YAML)
+_, f_steps, f_by_id = _load_team(FIX_YAML)
 should_not_exist = steps_by_id["should-not-exist"]
 scope = steps_by_id["scope"]
 READERS = ("scope", "should-not-exist", "design")
@@ -235,12 +232,8 @@ for team_name, team_steps in (("plan", steps), ("validate", v_steps), ("fix", f_
 
 # --- 3. every loop_back step's outputs carry {{cycle}} ------------------------------
 for team_name, team_steps in (("plan", steps), ("fix", f_steps)):
-    for step in team_steps:
+    for step, _loop_back in _loop_backs(team_steps):
         sid = step["id"]
-        on_fail = step.get("on_fail") or {}
-        loop_back = on_fail.get("loop_back") if isinstance(on_fail, dict) else None
-        if loop_back is None:
-            continue
         outputs = step.get("outputs") or []
         try:
             ok = (not outputs) or all("{{cycle}}" in o for o in outputs)
@@ -253,8 +246,7 @@ for team_name, team_steps in (("plan", steps), ("fix", f_steps)):
 # --- 4. should-not-exist is outside the canonical roster; the borrowed readers are
 #        Validation squad; the fix dev is Engineering squad; nobody hosts a lead ------
 try:
-    omp_names = {os.path.splitext(f)[0] for f in os.listdir(AGENTS_OMP)
-                 if re.match(r"^harness-.*\.md$", f)}
+    omp_names = {os.path.splitext(f)[0] for f in _omp_files()}
     check("(4a) should-not-exist persona is not a canonical .omp/agents/ role",
           should_not_exist["persona"] not in omp_names, should_not_exist["persona"])
 except Exception as e:
@@ -303,7 +295,7 @@ except Exception as e:
 
 # --- 5. the roster census is unchanged: sixteen, by name -----------------------------
 try:
-    omp_files = sorted(f for f in os.listdir(AGENTS_OMP) if re.match(r"^harness-.*\.md$", f))
+    omp_files = list(_omp_files())
     check("(5) .omp/agents/ holds exactly sixteen harness-*.md files",
           len(omp_files) == 16, omp_files)
 except Exception as e:
@@ -316,12 +308,8 @@ for team_name, path, team_steps in (("plan", PLAN_YAML, steps), ("fix", FIX_YAML
         check(f"(6) {team_name}.yaml carries no literal `then: halt`", "then: halt" not in raw)
     except Exception as e:
         check(f"(6) {team_name}.yaml carries no literal `then: halt`", False, e)
-    for step in team_steps:
+    for step, loop_back in _loop_backs(team_steps):
         sid = step["id"]
-        on_fail = step.get("on_fail") or {}
-        loop_back = on_fail.get("loop_back") if isinstance(on_fail, dict) else None
-        if loop_back is None:
-            continue
         try:
             ok = loop_back.get("then") == "escalate" and "max_cycles" in loop_back
             check(f"(6) {team_name}/{sid}'s loop_back carries then: escalate and a max_cycles",
@@ -508,5 +496,4 @@ check("(10z) template's decisions_affected is the instantiated empty list, not a
       re.search(r"^decisions_affected: \[\]$", DISPOSITION_SLICES["template"], re.M) is not None,
       DISPOSITION_SLICES["template"])
 
-print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

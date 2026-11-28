@@ -7,17 +7,14 @@ Every `gh` call goes to a python fake on FACTORY_GH. The fake answers `auth stat
 
     ./test-check-state-inv37-offline.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import os
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from check_state_support import _run_with_gh_streams
+from check_support import Checks
 from harness_config_support import write_config
 
 BOUND = "FEAT-9002-bound-fixture"
@@ -86,8 +83,8 @@ def _feature(h, segment, feat, github, factory=None):
         f.write(f"schema: plan/1\nfeature: {feat}\nstatus: ready\ntasks:\n  - {json.dumps(task)}\n")
 
 
-def _bound(h, github, repo="org/prod", factory=None):
-    _feature(h, "prod", BOUND, github, {"repo": repo} if factory is None else factory)
+def _bound(h, github, factory=None):
+    _feature(h, "prod", BOUND, github, {"repo": "org/prod"} if factory is None else factory)
 
 
 def _run(tmp, fake):
@@ -105,30 +102,32 @@ def _has(lines, *needles):
 OPENED = {"build_entry": "opened", "repo": "org/prod"}
 
 
-def _i1_offline_valid_opened_is_clean():
+def _scenario(github, factory=None, owner=None, **root_kw):
+    """One fresh root with the bound feature (and an OWNER feature when owner is not None), run once."""
     with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp)
-        _bound(h, OPENED)
-        lines, reads, tb = _run(tmp, fake)
+        h, fake = _root(tmp, **root_kw)
+        _bound(h, github, factory)
+        if owner is not None:
+            _feature(h, "harness", OWNER, owner)
+        return _run(tmp, fake)
+
+
+def _i1_offline_valid_opened_is_clean():
+    lines, reads, tb = _scenario(OPENED)
     return ("(i.1) offline: a fleet-listed bound feature with an opened receipt for factory.repo "
             "is clean and reads nothing remote", not tb and not lines and reads == [],
             f"lines={lines} reads={reads}")
 
 
 def _i2_offline_terminal_with_owner_sync_off_is_clean():
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp, owner_sync=False)
-        _bound(h, {"build_entry": "recovered-terminal", "repo": "org/prod"})
-        lines, reads, tb = _run(tmp, fake)
+    lines, reads, tb = _scenario({"build_entry": "recovered-terminal", "repo": "org/prod"},
+                                 owner_sync=False)
     return ("(i.2) offline, owner sync off: a recovered-terminal bound receipt is clean",
             not tb and not lines and reads == [], f"lines={lines} reads={reads}")
 
 
 def _offline_receipt_case(github):
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp)
-        _bound(h, github)
-        lines, reads, tb = _run(tmp, fake)
+    lines, reads, tb = _scenario(github)
     graded = (not tb and reads == [] and _has(lines, BOUND, "no usable Build-entry receipt")
               and not _has(lines, "invalid authoritative"))
     return graded, lines
@@ -161,10 +160,7 @@ def _i5_offline_unproven_active_mirror():
 def _i6_offline_invalid_binding_still_fails():
     failures = []
     for repo in ("not a repository", 5, "", "org/gone"):
-        with tempfile.TemporaryDirectory() as tmp:
-            h, fake = _root(tmp)
-            _bound(h, OPENED, repo=repo)
-            lines, reads, tb = _run(tmp, fake)
+        lines, reads, tb = _scenario(OPENED, factory={"repo": repo})
         if tb or reads or not _has(lines, BOUND, "invalid authoritative repository binding"):
             failures.append((repo, lines, reads))
     return ("(i.6) offline: malformed, non-string, empty and unlisted factory.repo stay invalid "
@@ -174,10 +170,7 @@ def _i6_offline_invalid_binding_still_fails():
 def _i12_offline_non_mapping_factory_is_invalid():
     failures = []
     for factory in ("org/prod", ["org/prod"]):
-        with tempfile.TemporaryDirectory() as tmp:
-            h, fake = _root(tmp)
-            _bound(h, OPENED, factory=factory)
-            lines, reads, tb = _run(tmp, fake)
+        lines, reads, tb = _scenario(OPENED, factory=factory)
         if tb or reads or not _has(lines, BOUND, "invalid authoritative", "expected a mapping"):
             failures.append((factory, lines, reads))
     return ("(i.12) offline: a non-mapping factory is an invalid binding, never an owner "
@@ -185,37 +178,22 @@ def _i12_offline_non_mapping_factory_is_invalid():
 
 
 def _i7_online_matching_remote_is_clean_and_read():
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp, online=True)
-        _bound(h, OPENED)
-        lines, reads, tb = _run(tmp, fake)
+    lines, reads, tb = _scenario(OPENED, online=True)
     return ("(i.7) online: full remote verification runs and a matching config is clean",
             not tb and not lines and any("repos/org/prod/contents/" in r for r in reads),
             f"lines={lines} reads={reads}")
 
 
 def _i8_online_remote_failure_stays_a_violation():
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp, online=True, remote=False)
-        _bound(h, OPENED)
-        lines, reads, tb = _run(tmp, fake)
+    lines, reads, tb = _scenario(OPENED, online=True, remote=False)
     return ("(i.8) online: an unreadable remote product config is still an invalid binding",
             not tb and reads != [] and _has(lines, BOUND, "invalid authoritative repository binding"),
             f"lines={lines} reads={reads}")
 
 
 def _i9_owner_controls_beside_a_bound_feature():
-    results = {}
-    for entry in ("opened", None):
-        with tempfile.TemporaryDirectory() as tmp:
-            h, fake = _root(tmp)
-            _bound(h, OPENED)
-            owner = {"build_entry": entry, "repo": "org/repo"} if entry else {}
-            _feature(h, "harness", OWNER, owner)
-            lines, _reads, tb = _run(tmp, fake)
-        results[entry] = (tb, lines)
-    clean_tb, clean = results["opened"]
-    bad_tb, bad = results[None]
+    clean, _reads, clean_tb = _scenario(OPENED, owner={"build_entry": "opened", "repo": "org/repo"})
+    bad, _reads, bad_tb = _scenario(OPENED, owner={})
     ok = (not clean_tb and not bad_tb and not clean
           and _has(bad, OWNER, "receipt absent or incomplete") and not _has(bad, BOUND))
     return ("(i.9) offline: owner features keep their receipt results beside a clean bound one",
@@ -223,16 +201,9 @@ def _i9_owner_controls_beside_a_bound_feature():
 
 
 def _i10_offline_legacy_and_sync_off_controls():
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp)
-        _bound(h, OPENED)
-        _feature(h, "harness", OWNER, {"build_entry": "opened", "milestone": 3, "parent": 40})
-        legacy, _reads, legacy_tb = _run(tmp, fake)
-    with tempfile.TemporaryDirectory() as tmp:
-        h, fake = _root(tmp, owner_sync=False)
-        _bound(h, OPENED)
-        _feature(h, "harness", OWNER, {})
-        sync_off, _reads, off_tb = _run(tmp, fake)
+    legacy, _reads, legacy_tb = _scenario(
+        OPENED, owner={"build_entry": "opened", "milestone": 3, "parent": 40})
+    sync_off, _reads, off_tb = _scenario(OPENED, owner={}, owner_sync=False)
     return ("(i.10) offline: legacy owner provenance and an unbound sync-off feature stay clean "
             "beside a valid bound one", not legacy_tb and not off_tb and not legacy and not sync_off,
             f"legacy={legacy} sync_off={sync_off}")
@@ -261,13 +232,13 @@ def main():
                  _i10_offline_legacy_and_sync_off_controls,
                  _i11_offline_bound_feature_without_a_plan_is_ineligible,
                  _i12_offline_non_mapping_factory_is_invalid)
-    allok = True
-    for name, ok, detail in (scenario() for scenario in scenarios):
-        print(f"{'ok' if ok else 'FAIL'} - {name}")
-        if not ok:
-            print("      " + detail)
-        allok = allok and ok
-    return 0 if allok else 1
+    # Every scenario builds its own temp root, so they run concurrently; map keeps the order.
+    with ThreadPoolExecutor() as pool:
+        results = list(pool.map(lambda scenario: scenario(), scenarios))
+    C = Checks()
+    for name, ok, detail in results:
+        C.check(name, ok, detail)
+    return C.report()
 
 
 if __name__ == "__main__":

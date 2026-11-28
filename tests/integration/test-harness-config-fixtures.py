@@ -17,17 +17,16 @@ valid-base-plus-corruption case passes because its base was built. Anything else
 unless CLASSIFIED below with evidence. Site ids follow the canonical reader audit's convention:
 `file::symbol::kind#n`.
 """
+from integration_support import ROOT
+
 import ast
 import json
 import os
 import re
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "tests"))
+from git_support import git  # noqa: E402
 from harness_config_support import build_config  # noqa: E402
 
 HELPERS = {"build_config", "write_config"}
@@ -59,17 +58,30 @@ def _names_config(text):
     return isinstance(text, str) and text.endswith("harness.json")
 
 
+def _bound_names(node):
+    """The plain names an assignment with a value binds; tuple and attribute targets bind none."""
+    if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+        return []
+    return [t.id for t in (node.targets if isinstance(node, ast.Assign) else [node.target]) if isinstance(t, ast.Name)]
+
+
 class _Module:
     """One Python source: its scopes' assignments, imports and the writers it defines."""
 
     def __init__(self, relative, source):
         self.relative, self.tree = relative, ast.parse(source, filename=relative)
         self.parents = {child: node for node in ast.walk(self.tree) for child in ast.iter_child_nodes(node)}
-        self.imports = {}
+        self.imports = {item.asname or item.name: (node.module, item.name) for node in ast.walk(self.tree)
+                        if isinstance(node, ast.ImportFrom) and node.module for item in node.names}
+        self.bindings = self._bindings()
+
+    def _bindings(self):
+        """(scope, name) -> values assigned to that plain name directly in that scope, in one pass."""
+        bindings = {}
         for node in ast.walk(self.tree):
-            if isinstance(node, ast.ImportFrom) and node.module:
-                for item in node.names:
-                    self.imports[item.asname or item.name] = (node.module, item.name)
+            for name in _bound_names(node):
+                bindings.setdefault((self.scope_of(node), name), []).append(node.value)
+        return bindings
 
     def scope_of(self, node):
         while node in self.parents:
@@ -88,14 +100,7 @@ class _Module:
 
     def assigned(self, name, scope):
         """Values bound to `name` in `scope`, falling back to the module's own top level."""
-        for where in (scope, self.tree) if scope is not self.tree else (self.tree,):
-            values = [node.value for node in ast.walk(where) if isinstance(node, (ast.Assign, ast.AnnAssign))
-                      and node.value is not None and self.scope_of(node) is where
-                      and any(isinstance(t, ast.Name) and t.id == name
-                              for t in (node.targets if isinstance(node, ast.Assign) else [node.target]))]
-            if values:
-                return values
-        return []
+        return self.bindings.get((scope, name)) or self.bindings.get((self.tree, name), [])
 
 
 def _into(call, handle):
@@ -151,12 +156,17 @@ class Census:
     def _writer(self, module, func):
         """The writer a call reaches: defined here, imported by name, or called as `module.helper`."""
         if isinstance(func, ast.Name):
-            origin = module.imports.get(func.id)
-            other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
+            other, original = self._imported(module, func.id)
             return self.writers.get((module.relative, func.id)) or (
-                other and self.writers.get((other.relative, origin[1])))
+                other and self.writers.get((other.relative, original)))
         other = isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and self.by_name.get(func.value.id)
         return other and self.writers.get((other.relative, func.attr))
+
+    def _imported(self, module, name):
+        """(module, original name) that `name` is imported from among the sources, or (None, None)."""
+        origin = module.imports.get(name)
+        other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
+        return (other, origin[1]) if other else (None, None)
 
     # --- what a site writes, and where -------------------------------------------------------
     def _raw_writes(self, module):
@@ -203,10 +213,9 @@ class Census:
     def _values_of(self, module, name):
         """(module, expression) for every value `name` is assigned here or in the module it is imported from."""
         yield from ((module, value) for value in module.assigned(name.id, module.scope_of(name)))
-        origin = module.imports.get(name.id)
-        other = origin and self.by_name.get(origin[0].rsplit(".", 1)[-1])
+        other, original = self._imported(module, name.id)
         if other:
-            yield from ((other, value) for value in other.assigned(origin[1], other.tree))
+            yield from ((other, value) for value in other.assigned(original, other.tree))
 
     def _mentions_config(self, module, node):
         return node is not None and self._resolve(
@@ -222,30 +231,30 @@ class Census:
 
     # --- producers -----------------------------------------------------------------------------
     def producers(self, module):
-        """(kind, node, value) for every harness.json producer in `module`."""
+        """(kind, node, (source module, value)) for every harness.json producer in `module`."""
         if module.relative == HELPER_MODULE:
             return
         for path, value, node in self._raw_writes(module):
             if self._mentions_config(module, path):
-                yield "raw-write", node, value
+                yield "raw-write", node, (module, value)
         for node in ast.walk(module.tree):
             if isinstance(node, ast.Dict):
-                yield from self._mapping_entries(node)
+                yield from self._mapping_entries(module, node)
             elif isinstance(node, ast.Call):
-                yield from self._remote_payloads(node)
+                yield from self._remote_payloads(module, node)
                 yield from self._indirect_writes(module, node)
 
     @staticmethod
-    def _mapping_entries(node):
+    def _mapping_entries(module, node):
         for key, value in zip(node.keys, node.values):
             if isinstance(key, ast.Constant) and _names_config(key.value):
-                yield "mapping-entry", node, value
+                yield "mapping-entry", node, (module, value)
 
     @staticmethod
-    def _remote_payloads(node):
+    def _remote_payloads(module, node):
         for keyword in (k for k in node.keywords if k.arg == "product_configs"):
             payloads = keyword.value.values if isinstance(keyword.value, ast.Dict) else [keyword.value]
-            yield from (("remote-payload", node, value) for value in payloads)
+            yield from (("remote-payload", node, (module, value)) for value in payloads)
 
     def _indirect_writes(self, module, node):
         writer = self._writer(module, node.func)
@@ -259,8 +268,7 @@ class Census:
     def run(self):
         for relative in sorted(self.modules):
             module, ordinals = self.modules[relative], {}
-            for kind, node, value in self.producers(module):
-                source, value = value if isinstance(value, tuple) else (module, value)
+            for kind, node, (source, value) in self.producers(module):
                 key = (module.symbol(node), kind)
                 ordinals[key] = ordinals.get(key, 0) + 1
                 site = f"{relative}::{key[0]}::{kind}#{ordinals[key]}"
@@ -306,8 +314,8 @@ def budget_fixture_findings(text):
 def population(arguments):
     if arguments:
         return [os.path.relpath(os.path.abspath(a), ROOT) for a in arguments]
-    listed = subprocess.run(["git", "ls-files", "tests"], cwd=ROOT, capture_output=True, text=True, check=True)
-    return sorted(p for p in listed.stdout.split() if p.endswith((".py", ".ts")) or p == BUDGET_FIXTURE)
+    listed = git(ROOT, "ls-files", "tests").stdout.split()
+    return sorted(p for p in listed if p.endswith((".py", ".ts")) or p == BUDGET_FIXTURE)
 
 
 def census(paths):

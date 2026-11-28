@@ -23,20 +23,18 @@ positive (fires) and a negative (silent) case, filtered on its own INV tag so a 
 invariant's noise (INV-34 on a plan-less directory, INV-17 on a fixture note) cannot decide
 a case.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import io
+from integration_support import BIN
+import contextlib
 import json
 import os
-import sys
 import subprocess
+import sys
 import tempfile
+from check_support import Checks
 from check_state_support import run, isolated_bin, _root_env
 from harness_config_support import write_config
+
+HERE = str(BIN)
 
 FEAT = "FEAT-TEST"
 
@@ -138,22 +136,19 @@ def _check(feature, brief=None, notes=None, config=CONFIG, station=None):
         return run(tmp)
 
 
-def _run(rid, verdict="PASS", squad="eng"):
-    return {"id": rid, "squad": squad, "verdict": verdict}
+def _run(rid, verdict="PASS", squad="eng", **extra):
+    return {"id": rid, "squad": squad, "verdict": verdict, **extra}
 
 
-def _j(kind, decision=None):
+def _j(kind, decision=None, **extra):
     return {"at": "2026-09-11T10:00:00Z", "by": "harness-orchestrator", "kind": kind,
-            "decision": kind if decision is None else decision, "reason": "fixture"}
+            "decision": kind if decision is None else decision, "reason": "fixture", **extra}
 
 
 # THE MINIMAL IN-ERA RECORD: `judgements: []` marks the feature as written under the FEAT-59
 # contract, so INV-39/40 grade it rather than noting it as legacy.
 def _in_era(**extra):
-    doc = {"feature_id": FEAT, "cycles_used": 0, "max_total_cycles": 10,
-           "review_sha": "abc1234", "judgements": [], "runs": []}
-    doc.update(extra)
-    return doc
+    return _legacy(**{"judgements": [], **extra})
 
 
 def _legacy(**extra):
@@ -258,7 +253,7 @@ def case_inv39():
     results.append(("(39.f) max_total_cycles equal to the default needs no decision",
                     not _lines(out, "INV-39"), out[:400]))
 
-    code, out = _check(_legacy(cycles_used=18, max_total_cycles=17), BRIEF_OLD)
+    _, out = _check(_legacy(cycles_used=18, max_total_cycles=17), BRIEF_OLD)
     results.append(("(39.g) a record predating the FEAT-59 keys is NOTED, not failed",
                     not _violations(out, "INV-39") and len(_notes(out, "INV-39")) == 1
                     and "not graded" in _notes(out, "INV-39")[0], out[:400]))
@@ -386,20 +381,15 @@ _SIGNED_PLAN = ("schema: plan/1\nfeature: FEAT-TEST\n"
                 "  - id: T-02\n    title: b\n    traces: [SC-01]\n    change_type: logic\n"
                 "    execution_mode: main-session-direct\n    depends_on: []\n    status: ready\n"
                 "    intent: two\n    files: [b.py#f]\n    verify: python3 b.py\n")
-_PLAN_MERGE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                           ".claude", "skills", "harness", "bin", "plan-merge.py")
+_PLAN_MERGE = os.path.join(HERE, "plan-merge.py")
 
 
 def _amend_j(decision, **extra):
-    entry = {"at": "2026-09-15T12:00:00+00:00", "by": "harness-orchestrator", "kind": "amendment",
-             "decision": decision, "reason": "fixture"}
-    entry.update(extra)
-    return entry
+    return _j("amendment", decision, **{"at": "2026-09-15T12:00:00+00:00", **extra})
 
 
 def _sign_through_plan_merge(plan):
     """Sign `plan` THROUGH plan-merge.py sign-approval so the hashes are the real ones."""
-    import subprocess
     env = dict(os.environ)
     env.pop("HARNESS_AGENT_TYPE", None)
     r = subprocess.run([sys.executable, _PLAN_MERGE, "sign-approval", "--file", plan,
@@ -428,7 +418,7 @@ def _signed(plan_text=_SIGNED_PLAN, mutate=None, judgements=(), sign=True):
         if mutate is not None:
             _rewrite(plan, mutate)
         _rewrite(os.path.join(fdir, "feature.json"),
-                 lambda text: json.dumps(dict(json.load(io.StringIO(text)),
+                 lambda text: json.dumps(dict(json.loads(text),
                                               judgements=list(judgements)), indent=1) + "\n")
         return run(tmp)
 
@@ -443,10 +433,6 @@ def _inv40_after(mutate=None, judgements=(), sign=True):
     return _violations(out, "INV-40"), out
 
 
-def _one_naming(v, task):
-    return len(v) == 1 and task in v[0]
-
-
 def _tasks_named(v):
     return {tid for tid in ("T-01", "T-02") if any(tid in x for x in v)}
 
@@ -459,8 +445,11 @@ def case_inv40_signed_text_detects_unledgered_edits():
              not _lines(out, "INV-40") and "plan.yaml does not load" not in out, out[:400])
     v, out = _inv40_after(_change_intent)
     intent = ("(40d.b) an unledgered intent change is ONE violation naming the task and the remedy",
-              _one_naming(v, "T-01") and "record-amendments" in v[0] and "T-02" not in v[0], out[:500])
-    return [fresh, intent]
+              _one_saying(v, "T-01") and "record-amendments" in v[0] and "T-02" not in v[0], out[:500])
+    # 40d.m reads the scenario 40d.b ran: the same fixture, mutation and output.
+    beside = ("(40d.m) the text trigger reports beside, not instead of, the other triggers",
+              len(v) == 1, out[:400])
+    return [fresh, intent, beside]
 
 
 def case_inv40_signed_text_grades_every_signed_field():
@@ -469,7 +458,7 @@ def case_inv40_signed_text_grades_every_signed_field():
     v, out = _inv40_after(lambda t: t.replace("files: [a.py]", "files: [a.py, c.py]"))
     files = ("(40d.g) a files change is caught", len(v) == 1, out[:400])
     v, out = _inv40_after(lambda t: t.replace("verify: python3 b.py", "verify: python3 b.py -v"))
-    verify = ("(40d.h) a verify change is caught, on the task it belongs to", _one_naming(v, "T-02"), out[:400])
+    verify = ("(40d.h) a verify change is caught, on the task it belongs to", _one_saying(v, "T-02"), out[:400])
     v, out = _inv40_after(lambda t: _change_intent(t).replace("intent: two", "intent: two, revised"))
     both = ("(40d.i) two independently changed tasks are two violations",
             len(v) == 2 and _tasks_named(v) == {"T-01", "T-02"}, out[:500])
@@ -485,10 +474,10 @@ def case_inv40_signed_text_amendment_coverage():
     overruled = ("(40d.d) an OVERRULED matching amendment still covers — the ledger is the record",
                  not v, out[:400])
     v, out = _inv40_after(_change_intent, [_amend_j("T-02.intent")])
-    other_task = ("(40d.e) an amendment for ANOTHER task does not cover", _one_naming(v, "T-01"), out[:400])
+    other_task = ("(40d.e) an amendment for ANOTHER task does not cover", _one_saying(v, "T-01"), out[:400])
     v, out = _inv40_after(_change_intent, [dict(_amend_j("T-01.intent"), kind="regate")])
     other_kind = ("(40d.f) another judgement kind naming the task does not cover",
-                  _one_naming(v, "T-01"), out[:400])
+                  _one_saying(v, "T-01"), out[:400])
     return [matching, overruled, other_task, other_kind]
 
 
@@ -504,10 +493,7 @@ def case_inv40_signed_text_scope():
                 not v, out[:400])
     v, out = _inv40_after(lambda t: _change_intent(t).replace("status: approved", "status: pending"))
     pending = ("(40d.l) a pending approval is not graded by this trigger", not v, out[:400])
-    v, out = _inv40_after(_change_intent)
-    beside = ("(40d.m) the text trigger reports beside, not instead of, the other triggers",
-              len(v) == 1, out[:400])
-    return [reflow, unsigned, pending, beside]
+    return [reflow, unsigned, pending]
 
 
 def case_inv40_signed_text():
@@ -529,17 +515,19 @@ def _write(path, text):
         f.write(text)
 
 
+@contextlib.contextmanager
 def _isolated(replacements):
-    """A private copy of bin/ with each `{filename: text}` sibling replaced."""
-    iso = isolated_bin(tempfile.mkdtemp())
-    for name, text in replacements.items():
-        _write(os.path.join(iso, name), text)
-    return iso
+    """A private copy of bin/ with each `{filename: text}` sibling replaced, removed on exit."""
+    with tempfile.TemporaryDirectory() as scratch:
+        iso = isolated_bin(scratch)
+        for name, text in replacements.items():
+            _write(os.path.join(iso, name), text)
+        yield iso
 
 
-def _run_from(bin_dir, tmp):
+def _run_from(bin_dir, tmp, *args):
     """check-state's (code, stdout, stderr) from `bin_dir`'s copy against fixture `tmp`."""
-    r = subprocess.run([os.path.join(bin_dir, "check-state.py")], cwd=tmp,
+    r = subprocess.run([os.path.join(bin_dir, "check-state.py"), *args], cwd=tmp,
                        capture_output=True, text=True, env=_root_env(tmp))
     return r.returncode, r.stdout, r.stderr
 
@@ -609,8 +597,9 @@ def _null_spec_gate(iso):
 def case_feat61_module_loading():
     """load_repo_module behind INV-42 and INV-40: the finding names the original exception
     and a failed exec leaves no registration behind."""
-    _, out, err = _plain(_isolated({"check-skill-weight.py": _RAISING_MODULE,
-                                   "plan_merge/approval.py": _REGISTRATION_OBSERVER}))
+    with _isolated({"check-skill-weight.py": _RAISING_MODULE,
+                    "plan_merge/approval.py": _REGISTRATION_OBSERVER}) as iso:
+        _, out, err = _plain(iso)
     v42 = _violations(out, "INV-42")
     return [
         ("(61.a) a check-skill-weight exec exception is INV-42 CANNOT RUN naming it",
@@ -626,14 +615,16 @@ def case_feat61_module_loading():
 def case_feat61_module_loading_spec_and_registration():
     """A null spec is an ImportError naming the path, and the dataclass loader sees its own
     name while it runs."""
-    _, out, err = _plain(_null_spec_gate(_isolated({})))
+    with _isolated({}) as iso:
+        _, out, err = _plain(_null_spec_gate(iso))
     v42 = _violations(out, "INV-42")
     null_spec = ("(61.c) a null module spec is INV-42 CANNOT RUN as an ImportError naming the path",
                  len(v42) == 1 and "did not import (ImportError: cannot load "
                  "'check_skill_weight' from " in v42[0]
                  and "check-skill-weight.py: no module spec or loader)" in v42[0]
                  and "Traceback" not in err, out[:600])
-    _, out, err = _plain(_isolated({"check-skill-weight.py": _DATACLASS_PROBE}))
+    with _isolated({"check-skill-weight.py": _DATACLASS_PROBE}) as iso:
+        _, out, err = _plain(iso)
     registered = ("(61.d) the dataclass loader observes its own name in sys.modules during exec",
                   not _lines(out, "INV-42") and "Traceback" not in err, out[:600])
     return [null_spec, registered]
@@ -648,8 +639,9 @@ def _v2_run(tmp, bin_dir):
 
 
 def _inv16_with_schema(schema_text):
-    with tempfile.TemporaryDirectory() as tmp:
-        _, out, _ = _v2_run(tmp, _isolated({os.path.join("..", "schemas", "run-state.json"): schema_text}))
+    with tempfile.TemporaryDirectory() as tmp, \
+            _isolated({os.path.join("..", "schemas", "run-state.json"): schema_text}) as iso:
+        _, out, _ = _v2_run(tmp, iso)
     return _violations(out, "INV-16"), out[:600]
 
 
@@ -659,7 +651,7 @@ _CANNOT = "run-state schema CANNOT be checked: "
 def case_feat61_run_schema():
     """load_run_step_contract behind INV-16: strict decode refuses a duplicate key the old
     json.load silently resolved last-wins."""
-    with open(os.path.join(os.path.dirname(_anchor_bin), "schemas", "run-state.json"), encoding="utf-8") as f:
+    with open(os.path.join(os.path.dirname(HERE), "schemas", "run-state.json"), encoding="utf-8") as f:
         live = f.read()
     duplicate = live.replace('  "title":', '  "title": "duplicate",\n  "title":', 1)
     if duplicate == live:
@@ -743,13 +735,11 @@ def case_refused_terminal_digest():
 # ----------------------------------------------------------------------------- INV-43 ---
 
 def _timed(rid, started, verdict="PASS"):
-    return {"id": rid, "squad": "eng", "verdict": verdict, "started_at": started,
-            "ended_at": started}
+    return _run(rid, verdict, started_at=started, ended_at=started)
 
 
 def _succ_at(at):
-    return {"at": at, "by": "harness-orchestrator", "kind": "succession",
-            "decision": "continue", "reason": "fixture"}
+    return _j("succession", "continue", at=at)
 
 
 # BUG-1723 SC-03 / D-02: a succession judgement whose `at` postdates the first run after its
@@ -949,6 +939,7 @@ A fixture.
 status: approved
 date: 2026-09-11
 """
+_INV49_MANUAL = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: manual")
 
 
 def _inv49_check(brief, station="building"):
@@ -983,7 +974,7 @@ def case_inv49_active_kind():
 
 
 def case_inv49_manual_no_gap():
-    manual = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: manual")
+    manual = _INV49_MANUAL
     _, out = _inv49_check(manual)
     v = _violations(out, "INV-49")
     return [("(49.d) verify: manual needs a gaps line naming the SC too",
@@ -991,9 +982,8 @@ def case_inv49_manual_no_gap():
 
 
 def case_inv49_manual_gap_recorded():
-    manual = _INV49_BASE.replace("verify: automated  evidence: integration", "verify: manual")
     manual_with_gap = _inv49_with_gap(
-        manual, "SC-01 is verify: manual: carried by the operator's own read.")
+        _INV49_MANUAL, "SC-01 is verify: manual: carried by the operator's own read.")
     _, out = _inv49_check(manual_with_gap)
     return [("(49.e) a manual SC named under '## Verification gaps' is silent",
              not _lines(out, "INV-49"), out[:400])]
@@ -1025,16 +1015,6 @@ def case_inv49():
             + case_inv49_inspection_exempt() + case_inv49_old_shape_exempt()
             + case_inv49_no_plan_exempt())
 
-
-
-def _report(results):
-    ok = True
-    for name, passed, detail in results:
-        print(f"{'ok' if passed else 'FAIL'} - case {name}")
-        if not passed:
-            ok = False
-            print(f"        {str(detail).strip()[:300]}")
-    return ok
 
 
 # ----------------------------------------------------------------------------- INV-44 ---
@@ -1138,13 +1118,9 @@ def case_inv44():
 # imported -- a silent fallback that kept grading with a number nobody maintained. The ruling
 # (grilling 2026-09-21) makes it CANNOT RUN like every other import boundary in this gate.
 
-def _feat63_oversized_record(tmp):
-    """A record past 300 lines: the OLD fallback would have printed an over-budget finding for
-    it; the boundary must print CANNOT RUN instead and nothing about 300."""
-    fy = os.path.join(tmp, ".harness", "harness", "features", FEAT, "feature.json")
-    doc = json.loads(open(fy, encoding="utf-8").read())
-    doc["runs"] = [{"id": f"pad-{i}", "squad": "product", "verdict": "PASS"} for i in range(80)]
-    _write(fy, json.dumps(doc, indent=2) + "\n")
+# A record past 300 lines: the OLD fallback would have printed an over-budget finding for it;
+# the boundary must print CANNOT RUN instead and nothing about 300.
+_OVERSIZED_RUNS = [_run(f"pad-{i}", squad="product") for i in range(80)]
 
 
 def _diagnosed_import_failure(out, err):
@@ -1160,10 +1136,9 @@ def case_feat63_inv23_import_boundary():
     FEAT-2297 the config loader itself depends on it (jsonschema's one guard lives there), so the
     failure is the single diagnosed config violation naming the module and its error, and no
     config-dependent invariant — INV-23 included — grades anything on top of it."""
-    iso = _isolated({"feature_record/schema.py": _RAISING_MODULE})
-    with tempfile.TemporaryDirectory() as tmp:
-        _fixture(tmp, _in_era(), BRIEF_NEW)
-        _feat63_oversized_record(tmp)
+    with _isolated({"feature_record/schema.py": _RAISING_MODULE}) as iso, \
+            tempfile.TemporaryDirectory() as tmp:
+        _fixture(tmp, _in_era(runs=_OVERSIZED_RUNS), BRIEF_NEW)
         _code, out, err = _run_from(iso, tmp)
     return [
         ("(63.a) an unimportable feature_record.schema is the diagnosed config violation naming the failure",
@@ -1242,25 +1217,27 @@ def case_inv37_binding():
             factory["issues"] = {"T-01": 51}
             config = {"github": {"repo": "acme/product", "sync": shape != "bound-owner-off"}}
             _fixture(tmp, _in_era(factory=factory, github=github), config=config, station="ready")
-            observed = subprocess.run([os.path.join(_anchor_bin, "check-state.py"), "--only", "INV-37"],
-                                      cwd=tmp, env=_root_env(tmp), capture_output=True, text=True)
-            findings = _violations(observed.stdout, "INV-37")
+            code, out, err = _run_from(HERE, tmp, "--only", "INV-37")
+            findings = _violations(out, "INV-37")
             results.append((f"INV-37 uses binding/provenance, never factory claims ({shape})",
                             bool(findings) is (shape != "opened")
-                            and observed.returncode == (0 if shape == "opened" else 1),
-                            observed.stdout + observed.stderr))
+                            and code == (0 if shape == "opened" else 1),
+                            out + err))
     return results
 
 
 def main():
-    return 0 if _report(case_inv37_binding() + case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
+    C = Checks()
+    for name, passed, detail in (case_inv37_binding() + case_inv38() + case_inv39() + case_inv40() + case_inv40_signed_text()
                         + case_feat61_module_loading() + case_feat61_module_loading_spec_and_registration()
                         + case_feat61_run_schema() + case_feat61_run_schema_natural_errors()
                         + case_feat1928_durable_digest_record() + case_refused_terminal_digest()
                         + case_inv41() + case_inv49() + case_inv43_chronology() + case_inv43_unreadable()
                         + case_inv43_matching() + case_inv43_scope() + case_inv43_era_boundary()
                         + case_inv44()
-                        + case_feat63_inv23_import_boundary() + case_inv47_member_verdicts()) else 1
+                        + case_feat63_inv23_import_boundary() + case_inv47_member_verdicts()):
+        C.check(name, passed, detail)
+    return C.report()
 
 
 if __name__ == "__main__":

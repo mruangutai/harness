@@ -25,32 +25,27 @@ wiring. Modes:
     --benchmark          the SC-04 acceptance measurement, run on its own on an idle host
     --benchmark-verdict  FILE  the benchmark's assertion and exit status over recorded evidence
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import ROOT as _ROOT, TESTS as _TESTS
+from check_support import Checks  # noqa: E402
+from git_support import git  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
-import ast
-import platform
-import re
-import json
-import os
-import shutil
-import stat
-import statistics
-import subprocess
-import sys
-import tempfile
-import time
+import ast  # noqa: E402
+import atexit  # noqa: E402
+import platform  # noqa: E402
+import re  # noqa: E402
+import json  # noqa: E402
+import os  # noqa: E402
+import shutil  # noqa: E402
+import statistics  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+import time  # noqa: E402
 
-ROOT = _anchor_root
-TESTS = _anchor_tests
+ROOT = str(_ROOT)
+SUITES_DIR = str(_TESTS / "integration")
 STARTED = time.monotonic()
 NOTICE_PHRASE = "nothing was checked"
-BROAD = ["check-domain.py", "bash-write-guard.py", "dispatch-guard.py", "validate-digest.py"]
-NARROW = ["gh-close-gate.py", "branch-create-gate.py", "plan-sign-gate.py", "merge-gate.py"]
 NARROW_SUITES = {
     "gh-close-gate.py": "test-gh-close-gate.py",
     "branch-create-gate.py": "test-branch-create-gate.py",
@@ -66,18 +61,8 @@ MATCHING = {
 }
 UNRELATED = "git status"
 
-fails = 0
-passes = 0
-
-
-def check(name, ok, detail=""):
-    global fails, passes
-    if ok:
-        passes += 1
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
+C = Checks()
+check = C.check
 
 
 # ---------------------------------------------------------------------------------------------
@@ -89,7 +74,7 @@ const cases = JSON.parse(await Bun.stdin.text());
 // FEAT-2337: the five Bash gates run as real processes through the production runPolicy; every
 // other step a governed session needs (run start, authorization, expertise) answers at once, the
 // same in every arm, so a handler timing holds the five-gate portion and nothing else.
-const BASH_GATES = ["gh-close-gate.py", "branch-create-gate.py", "bash-write-guard.py", "plan-sign-gate.py", "merge-gate.py"];
+const BASH_GATES = __BASH_GATES__;
 const live = (seen = []) => async (cwd, script, args, payload) => {
   if (!BASH_GATES.includes(script)) {
     const started = script === "inflight_registry.py" && args[0] === "run-start";
@@ -185,13 +170,10 @@ console.log(JSON.stringify(out));
 def make_root():
     """A copied gate root. Returns its path; the caller plants faults in it."""
     d = tempfile.mkdtemp(prefix="feat2274-runtime-")
-    shutil.copytree(os.path.join(ROOT, ".omp", "extensions"),
-                    os.path.join(d, ".omp", "extensions"))
-    shutil.copytree(os.path.join(ROOT, ".claude", "skills", "harness", "bin"),
-                    os.path.join(d, ".claude", "skills", "harness", "bin"),
-                    ignore=shutil.ignore_patterns("__pycache__"))
-    shutil.copytree(os.path.join(ROOT, ".claude", "skills", "harness", "schemas"),
-                    os.path.join(d, ".claude", "skills", "harness", "schemas"))
+    atexit.register(shutil.rmtree, d, ignore_errors=True)
+    for rel in (".omp/extensions", ".claude/skills/harness/bin", ".claude/skills/harness/schemas"):
+        shutil.copytree(os.path.join(ROOT, rel), os.path.join(d, rel),
+                        ignore=shutil.ignore_patterns("__pycache__"))
     os.makedirs(os.path.join(d, ".agents"))
     os.symlink(os.path.join("..", ".claude", "skills"), os.path.join(d, ".agents", "skills"))
     os.makedirs(os.path.join(d, ".harness"))
@@ -199,8 +181,8 @@ def make_root():
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
     with open(os.path.join(d, "driver.ts"), "w") as f:
-        f.write(DRIVER)
-    subprocess.run(["git", "init", "-q", d], check=True)
+        f.write(DRIVER.replace("__BASH_GATES__", json.dumps(BASH_GATES)))
+    git(d, "init", "-q")
     return d
 
 
@@ -218,14 +200,14 @@ def drive(root, cases, env=None):
     return json.loads(r.stdout.strip().splitlines()[-1])
 
 
-def bash_payload(root, command, agent="harness-backend-dev"):
-    return {"agent_type": agent, "hook_event_name": "PreToolUse", "cwd": root,
+def bash_payload(root, command):
+    return {"agent_type": "harness-backend-dev", "hook_event_name": "PreToolUse", "cwd": root,
             "harness_feature": "FEAT-9999-runtime-probe",
             "tool_name": "Bash", "tool_input": {"command": command}}
 
 
-def write_payload(root, agent="harness-backend-dev"):
-    return {"agent_type": agent, "hook_event_name": "PreToolUse", "cwd": root,
+def write_payload(root):
+    return {"agent_type": "harness-backend-dev", "hook_event_name": "PreToolUse", "cwd": root,
             "harness_feature": "FEAT-9999-runtime-probe",
             "tool_name": "Write",
             "tool_input": {"file_path": os.path.join(root, "README.md"), "content": "x\n"}}
@@ -244,10 +226,15 @@ def _read(path):
 
 
 def _write(path, lines):
-    mode = os.stat(path).st_mode
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
-    os.chmod(path, mode)
+
+
+def plant_prefix(root, script, prefix):
+    path = gate_file(root, script)
+    lines = _read(path)
+    lines.insert(1, prefix)
+    _write(path, lines)
 
 
 def plant_guarded_crash(root, script):
@@ -271,10 +258,7 @@ def plant_guarded_crash(root, script):
 
 def plant_startup_failure(root, script):
     """Python fails before any guard exists: a syntax error on the line after the shebang."""
-    path = gate_file(root, script)
-    lines = _read(path)
-    lines.insert(1, "this is not python (FEAT-2274 injected startup failure\n")
-    _write(path, lines)
+    plant_prefix(root, script, "this is not python (FEAT-2274 injected startup failure\n")
 
 
 def plant_missing(root, script):
@@ -295,10 +279,7 @@ def plant_unexecutable(root, script):
 
 def plant_killed(root, script):
     """The gate dies by signal: status null, signal SIGKILL."""
-    path = gate_file(root, script)
-    lines = _read(path)
-    lines.insert(1, "import os as _k, signal as _s; _k.kill(_k.getpid(), _s.SIGKILL)\n")
-    _write(path, lines)
+    plant_prefix(root, script, "import os as _k, signal as _s; _k.kill(_k.getpid(), _s.SIGKILL)\n")
 
 
 def plant_dependency_failure(root):
@@ -325,10 +306,8 @@ def plant_owed_merge(root):
                 "    change_type: test\n    execution_mode: main-session-direct\n"
                 "    files: [fixture.py]\n    status: ready\n    verify: python3 test.py\n"
                 "    intent: Exercise the merge gate fixture.\n")
-    for argv in (["checkout", "-q", "-b", "feature/test"],
-                 ["-c", "user.email=t@example.invalid", "-c", "user.name=T",
-                  "commit", "-q", "--allow-empty", "-m", "fixture"]):
-        subprocess.run(["git", "-C", root, *argv], check=True)
+    git(root, "checkout", "-q", "-b", "feature/test")
+    git(root, "commit", "-q", "--allow-empty", "-m", "fixture")
     return {"HARNESS_PROJECT_DIR": root, "GH_BIN": "/nonexistent/feat2337-gh"}
 
 
@@ -383,13 +362,6 @@ BARRIER = ("import os as _b, time as _bt\n"
            f"_bs = lambda: all(_b.path.exists(_b.path.join(_bh, g + '.started')) for g in {BASH_GATES!r})\n"
            "while not _bs() and _bt.monotonic() < _bu: _bt.sleep(0.01)\n"
            "open(_b.path.abspath(__file__) + '.met', 'w').write('met' if _bs() else 'alone')\n")
-
-
-def plant_prefix(root, script, prefix):
-    path = gate_file(root, script)
-    lines = _read(path)
-    lines.insert(1, prefix)
-    _write(path, lines)
 
 
 def clock(root, ms):
@@ -631,9 +603,8 @@ def run_benchmark():
 
 
 def finish():
-    elapsed = time.monotonic() - STARTED
-    print(f"\n{passes} passed, {fails} failed in {elapsed:.1f}s")
-    sys.exit(1 if fails else 0)
+    print(f"\nelapsed {time.monotonic() - STARTED:.1f}s")
+    sys.exit(C.report())
 
 
 MODE = sys.argv[1] if len(sys.argv) > 1 else ""
@@ -682,13 +653,17 @@ for label, plant in ADAPTER_FAULTS:
 # ---------------------------------------------------------------------------------------------
 # 3. Unavailable smoke for every other broad gate (guarded crash through the real emitter)
 # ---------------------------------------------------------------------------------------------
+def dispatch_payload(root, **tool_input):
+    return {"agent_type": "harness-orchestrator", "hook_event_name": "PreToolUse", "cwd": root,
+            "tool_name": "Task", "harness_runtime": "omp", "supervisor_pid": os.getpid(),
+            "tool_input": {"agent": "harness-product-lead",
+                           "task": "HARNESS-FEATURE: FEAT-9999-runtime-probe\nprobe",
+                           **tool_input}}
+
+
 SMOKE_PAYLOADS = {
     "bash-write-guard.py": lambda root: bash_payload(root, "echo hello"),
-    "dispatch-guard.py": lambda root: {
-        "agent_type": "harness-orchestrator", "hook_event_name": "PreToolUse", "cwd": root,
-        "tool_name": "Task", "harness_runtime": "omp", "supervisor_pid": os.getpid(),
-        "tool_input": {"agent": "harness-product-lead",
-                       "task": "HARNESS-FEATURE: FEAT-9999-runtime-probe\nprobe"}},
+    "dispatch-guard.py": dispatch_payload,
     "validate-digest.py": lambda root: {
         "agent_type": "harness-documentor", "hook_event_name": "SubagentStop", "cwd": root,
         "digest_object": {"VERDICT": "PASS"}},
@@ -733,16 +708,6 @@ check("validate-digest, unknown persona schema: allowed and reported unavailable
 # PM, DEC-174 eng-lead, distill, run-dir, feature-tree root, claim/run-start) are covered at
 # the script level in test-dispatch-guard.py.
 root = make_root()
-
-
-def dispatch_payload(root, **tool_input):
-    return {"agent_type": "harness-orchestrator", "hook_event_name": "PreToolUse", "cwd": root,
-            "tool_name": "Task", "harness_runtime": "omp", "supervisor_pid": os.getpid(),
-            "tool_input": {"agent": "harness-product-lead",
-                           "task": "HARNESS-FEATURE: FEAT-9999-runtime-probe\nprobe",
-                           **tool_input}}
-
-
 refusals = drive(root, [
     case(root, "dispatch-guard.py", dispatch_payload(root, name="Named")),
     case(root, "dispatch-guard.py", dispatch_payload(root, task="probe without a feature line")),
@@ -765,16 +730,19 @@ check("dispatch-guard, per-call model: the same outcome as the dispatch without 
 # 4. Shared adapter failure matrix, in full, on ONE narrow gate (gh-close-gate):
 #    a matching command is refused, an unrelated one is untouched
 # ---------------------------------------------------------------------------------------------
+def drive_pair(root, script):
+    """A matching and an unrelated command through one narrow gate: (matching, unrelated)."""
+    return drive(root, [case(root, script, bash_payload(root, MATCHING[script])),
+                        case(root, script, bash_payload(root, UNRELATED))])
+
+
 NARROW_FAULTS = ADAPTER_FAULTS[1:] + [
     ("dependency failure after applicability", lambda root, _s: plant_dependency_failure(root)),
 ]
 for label, plant in NARROW_FAULTS:
     root = make_root()
     plant(root, "gh-close-gate.py")
-    m, u = drive(root, [
-        case(root, "gh-close-gate.py", bash_payload(root, MATCHING["gh-close-gate.py"])),
-        case(root, "gh-close-gate.py", bash_payload(root, UNRELATED)),
-    ])
+    m, u = drive_pair(root, "gh-close-gate.py")
     check(f"narrow gh-close-gate, {label}: a matching command is refused",
           m.get("blocked") is True and "threw" not in m, repr(m))
     check(f"narrow gh-close-gate, {label}: an unrelated command is allowed silently",
@@ -785,20 +753,14 @@ for label, plant in NARROW_FAULTS:
 for script in ("branch-create-gate.py", "plan-sign-gate.py"):
     root = make_root()
     plant_dependency_failure(root)
-    m, u = drive(root, [
-        case(root, script, bash_payload(root, MATCHING[script])),
-        case(root, script, bash_payload(root, UNRELATED)),
-    ])
+    m, u = drive_pair(root, script)
     check(f"narrow {script}, dependency failure: a matching command is refused",
           m.get("blocked") is True, repr(m))
     check(f"narrow {script}, dependency failure: an unrelated command is allowed silently",
           u.get("blocked") is False and u.get("unavailable") is None, repr(u))
     root = make_root()
     plant_missing(root, script)
-    m, u = drive(root, [
-        case(root, script, bash_payload(root, MATCHING[script])),
-        case(root, script, bash_payload(root, UNRELATED)),
-    ])
+    m, u = drive_pair(root, script)
     check(f"narrow {script}, missing gate: a matching command is refused",
           m.get("blocked") is True, repr(m))
     check(f"narrow {script}, missing gate: an unrelated command is allowed silently",
@@ -810,7 +772,7 @@ for script in ("branch-create-gate.py", "plan-sign-gate.py"):
 # ---------------------------------------------------------------------------------------------
 def corpus(suite):
     """`APPLICABILITY_CORPUS` read as a literal, without executing the suite."""
-    tree = ast.parse(open(os.path.join(TESTS, suite), encoding="utf-8").read())
+    tree = ast.parse(open(os.path.join(SUITES_DIR, suite), encoding="utf-8").read())
     for node in tree.body:
         if isinstance(node, ast.Assign) and any(
                 isinstance(t, ast.Name) and t.id == "APPLICABILITY_CORPUS" for t in node.targets):
@@ -828,14 +790,12 @@ for script, suite in NARROW_SUITES.items():
     py_root, py_env = python_leg(script)
     start_root = make_root()
     plant_startup_failure(start_root, script)
-    cases = []
-    for command, _should in entries:
-        cases.append({"kind": "applies", "script": script, "command": command})
     py = drive(py_root, [case(py_root, script, bash_payload(py_root, c)) for c, _ in entries],
                py_env)
-    ts = drive(start_root, cases)
-    started = drive(start_root, [case(start_root, script, bash_payload(start_root, c))
-                                 for c, _ in entries])
+    start = drive(start_root,
+                  [{"kind": "applies", "script": script, "command": c} for c, _ in entries]
+                  + [case(start_root, script, bash_payload(start_root, c)) for c, _ in entries])
+    ts, started = start[:len(entries)], start[len(entries):]
     for (command, should), p, t, s in zip(entries, py, ts, started):
         check(f"{script} python classifier: {command!r} -> {'match' if should else 'unrelated'}",
               p.get("blocked") is should, repr(p))

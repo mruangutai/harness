@@ -15,66 +15,64 @@ registered live on the Bash route this test itself runs under, and a literal
 `checkout -b` substring in the tool invoking python would be denied before
 this file's own subprocess.run ever fired.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-import ast
-import json
-import os
-import shutil
-import subprocess
-import sys
-import tempfile
+from integration_support import ROOT as _ROOT, BIN as _BIN
+import ast  # noqa: E402
+import json  # noqa: E402
+import os  # noqa: E402
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+from concurrent.futures import ThreadPoolExecutor  # noqa: E402
 
+from check_support import Checks  # noqa: E402
+from git_support import checked_git, commit_all, init_repo  # noqa: E402
 from harness_config_support import build_config, write_config  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(
-    HERE, "branch-create-gate.py")
-# HERE = <repo>/.agents/skills/harness/bin — four levels up is the repo root.
-REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+REPO_ROOT = str(_ROOT)
+GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or str(_BIN / "branch-create-gate.py")
+# A gh path that does not exist: the issue form denies "'gh' is not installed" offline.
+NO_GH = "/no/such/gh/binary/anywhere"
 
-RESULTS = []
+C = Checks()
+check = C.check
 
 
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
-
-
-def fire(cmd, root=REPO_ROOT, gh_bin=None):
-    payload = json.dumps({"tool_input": {"command": cmd}})
+def fire_raw(payload, root, gh_bin=None, gate=GATE):
     # ONE NAME, ONE VALUE (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name; the
     # reverted sha-3952814 copy the parity proof diffs against reads HARNESS_PROJECT_DIR
     # first, so that one name points both copies at the same root, and three self-gate
-    # cases read the real github block that way.
+    # cases read the real github block that way. gh_bin None removes GH_BIN from the env.
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     if gh_bin is not None:
         env["GH_BIN"] = gh_bin
     else:
         env.pop("GH_BIN", None)
-    return subprocess.run([GATE], input=payload, capture_output=True,
+    return subprocess.run([gate], input=payload, capture_output=True,
                           text=True, env=env)
 
 
-def fire_raw(payload, root, gh_bin=None):
-    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
-    if gh_bin is not None:
-        env["GH_BIN"] = gh_bin
-    else:
-        env.pop("GH_BIN", None)
-    return subprocess.run([GATE], input=payload, capture_output=True,
-                          text=True, env=env)
+def fire(cmd, root=REPO_ROOT, gh_bin=None, gate=GATE):
+    return fire_raw(json.dumps({"tool_input": {"command": cmd}}), root, gh_bin, gate)
 
 
-def out_json(r):
-    return json.loads(r.stdout)
+def _hook(r):
+    """(decision, reason, body) from the gate's hook JSON; (None, marker, None) when unparseable."""
+    try:
+        body = json.loads(r.stdout)
+        out = body.get("hookSpecificOutput", {})
+        return out.get("permissionDecision"), out.get("permissionDecisionReason", ""), body
+    except Exception as e:
+        return None, f"<unparseable stdout: {e}: {r.stdout!r}>", None
+
+
+def _fire_corpus(run):
+    """(command, should_match, result) per corpus row in corpus order; the rows run
+    concurrently because each spawn is independent and reads its root and bin only."""
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(run, [cmd for cmd, _ in APPLICABILITY_CORPUS]))
+    return [(cmd, match, r) for (cmd, match), r in zip(APPLICABILITY_CORPUS, results)]
 
 
 # ============ THE APPLICABILITY CORPUS (FEAT-2274 SC-02) ============
@@ -136,12 +134,7 @@ def run_assertion_1():
 def run_assertion_2():
     cmd = "git check" + "out -b feat/FEAT-99-nope"
     r = fire(cmd)
-    try:
-        body = out_json(r)
-        decision = body.get("hookSpecificOutput", {}).get("permissionDecision")
-        reason = body.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-    except Exception as e:
-        decision, reason = None, f"<unparseable stdout: {e}: {r.stdout!r}>"
+    decision, reason, _ = _hook(r)
     check("DENY: a branch naming a flow that does not exist on disk",
           decision == "deny" and "FEAT-99-nope" in reason,
           f"decision={decision!r} reason={reason!r} stdout={r.stdout!r} stderr={r.stderr!r}")
@@ -168,35 +161,27 @@ def run_assertion_3():
     # exactly, a suffixed variant would extract a flow id the corpus can't find.
     cmd = "git check" + "out -b feat/" + FIXTURE_FLOW
     r = fire(cmd, root=_flow_fixture(True))
-    try:
-        body = out_json(r)
-        # An allow for form 1 (flow branches) carries no permissionDecision key at
-        # all — it prints a systemMessage and exits 0. Absence of a deny IS the
-        # allow signal for this form.
-        denied = body.get("hookSpecificOutput", {}).get("permissionDecision") == "deny"
-        matched = FIXTURE_FLOW in json.dumps(body)
-    except Exception as e:
-        denied, matched = True, False
-        body = f"<unparseable stdout: {e}: {r.stdout!r}>"
+    # An allow for form 1 (flow branches) carries no permissionDecision key at
+    # all — it prints a systemMessage and exits 0. Absence of a deny IS the
+    # allow signal for this form; unparseable stdout matches nothing and fails.
+    decision, reason, body = _hook(r)
+    denied = decision == "deny"
+    matched = body is not None and FIXTURE_FLOW in json.dumps(body)
+    body = reason if body is None else body
     check("ALLOW: a branch naming a flow that DOES exist on disk",
           (not denied) and matched,
           f"body={body} stderr={r.stderr!r}")
 
     r = fire(cmd, root=_flow_fixture(False))
-    try:
-        decision = out_json(r).get("hookSpecificOutput", {}).get("permissionDecision")
-    except Exception as e:
-        decision = f"<unparseable stdout: {e}: {r.stdout!r}>"
+    decision, _, _ = _hook(r)
     check("DENY: the same branch once the fixture flow directory is absent",
-          decision == "deny", f"decision={decision!r} stderr={r.stderr!r}")
+          decision == "deny", f"decision={decision!r} stdout={r.stdout!r} stderr={r.stderr!r}")
 
 
 # ============ Assertion 4: self-gating on github.sync / github.repo ============
-def _fixture(github_block):
+def _marked_root():
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
-    write_config(os.path.join(d, ".harness", "harness.json"),
-                 {} if github_block is None else {"github": github_block})
     # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.py resolves through
     # harness_boundary.resolve_root, which honours the override only when
     # .harness/team-config.yaml is readable underneath it. A fixture holding only
@@ -204,6 +189,13 @@ def _fixture(github_block):
     # real github block instead of the one this fixture exists to set.
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write("agents: {}\n")
+    return d
+
+
+def _fixture(github_block):
+    d = _marked_root()
+    write_config(os.path.join(d, ".harness", "harness.json"),
+                 {} if github_block is None else {"github": github_block})
     return d
 
 
@@ -240,11 +232,7 @@ def run_assertion_5():
     # id proves the flow-id extraction ran).
     cmd = "git check" + "out -b feat/FEAT-99-nope-parse-check"
     r = fire(cmd)
-    try:
-        body = out_json(r)
-        reason = body.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-    except Exception as e:
-        reason = f"<unparseable: {e}: {r.stdout!r}>"
+    _, reason, _ = _hook(r)
     check("form 1 (flow id) parses: deny names the exact flow id extracted",
           "FEAT-99-nope-parse-check" in reason,
           f"reason={reason!r}")
@@ -254,13 +242,8 @@ def run_assertion_5():
     # installed" — proving the sed extraction pulled a number and the gate tried
     # to verify it, without touching the network or gh auth state.
     cmd = "git check" + "out -b fix/123-typo"
-    r = fire(cmd, gh_bin="/no/such/gh/binary/anywhere")
-    try:
-        body = out_json(r)
-        reason = body.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
-        decision = body.get("hookSpecificOutput", {}).get("permissionDecision")
-    except Exception as e:
-        reason, decision = f"<unparseable: {e}: {r.stdout!r}>", None
+    r = fire(cmd, gh_bin=NO_GH)
+    decision, reason, _ = _hook(r)
     check("form 2 (issue number) parses: 'gh' not installed deny names issue #123",
           decision == "deny" and "#123" in reason and "not installed" in reason,
           f"decision={decision!r} reason={reason!r}")
@@ -301,11 +284,7 @@ def _faulted_bin(module=None, text=""):
 
 
 def _run_in(mbin, command, root):
-    return subprocess.run([os.path.join(mbin, "branch-create-gate.py")],
-                          input=json.dumps({"tool_input": {"command": command}}),
-                          capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=root,
-                                   GH_BIN="/no/such/gh/binary/anywhere"))
+    return fire(command, root, NO_GH, os.path.join(mbin, "branch-create-gate.py"))
 
 
 def _named_refusal(r, detail):
@@ -322,8 +301,7 @@ def run_corpus_agreement():
     is held to the working gate first: a matched name always draws an answer (a deny or a
     systemMessage), an unrelated command draws nothing."""
     root = _fixture({"sync": True, "repo": "acme/widgets"})
-    for cmd, match in APPLICABILITY_CORPUS:
-        r = fire(cmd, root=root, gh_bin="/no/such/gh/binary/anywhere")
+    for cmd, match, r in _fire_corpus(lambda cmd: fire(cmd, root, NO_GH)):
         check(f"corpus row agrees with the healthy gate ({'match' if match else 'unrelated'}): "
               f"{cmd!r}", r.returncode == 0 and bool(r.stdout.strip()) == match,
               f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-200:]!r}")
@@ -340,8 +318,7 @@ def run_feat65():
     check("FEAT-65: an unexpected resolver defect REFUSES a matching branch creation at exit 2, "
           "named", _named_refusal(r, "RuntimeError: FEAT-65 injected"),
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
-    for cmd, match in APPLICABILITY_CORPUS:
-        r = _run_in(mbin, cmd, REPO_ROOT)
+    for cmd, match, r in _fire_corpus(lambda cmd: _run_in(mbin, cmd, REPO_ROOT)):
         if match:
             check(f"resolver defect: a matching command is refused, named: {cmd!r}",
                   _named_refusal(r, "RuntimeError: FEAT-65 injected"),
@@ -390,18 +367,13 @@ def run_issue_2107():
                            "feature.json"), "w", encoding="utf-8") as f:
         json.dump({"feature_id": FIXTURE_FLOW, "status": "planned",
                    "github": {"parent": "\u00b2"}}, f, ensure_ascii=False)
-    git = ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
-    for args in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "landed"]):
-        subprocess.run(git + args, check=True, capture_output=True)
+    init_repo(root, None, git=checked_git)
+    commit_all(root, "landed", git=checked_git)
     r = fire("git check" + "out -b feat/" + FIXTURE_FLOW, root=root)
-    try:
-        doc = out_json(r).get("hookSpecificOutput", {})
-    except ValueError:
-        doc = {}
-    reason = doc.get("permissionDecisionReason", "")
+    decision, reason, _ = _hook(r)
     check("#2107: a flow branch over a landed feature.json with github.parent \"²\" is DENIED by "
           "name, never exit 1",
-          r.returncode == 0 and doc.get("permissionDecision") == "deny"
+          r.returncode == 0 and decision == "deny"
           and FIXTURE_FLOW in reason and "feature.json" in reason and "parent" in reason,
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
@@ -430,27 +402,25 @@ _CONFIG_CONTROLS = (
 def _config_root(derive):
     """A marked root whose harness.json is `derive(valid builder config)` as text, or none at
     all when `derive` is None — every invalid config is a visibly corrupted valid one."""
-    root = _fixture(None)
-    path = os.path.join(root, ".harness", "harness.json")
-    os.remove(path)
+    root = _marked_root()
     if derive is not None:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
             f.write(derive(build_config()))
     return root
 
 
 def _config_fault_case(label, derive):
     root = _config_root(derive)
-    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", root)
+    r = fire("git check" + "out -b fix/123-typo", root, NO_GH)
     check(f"config fault ({label}): a matching branch creation is refused at exit 2, named",
           _named_refusal(r, _CONFIG_READ), f"rc={r.returncode} stderr={r.stderr[-300:]!r}")
-    r = _run_in(os.path.dirname(GATE), "git status", root)
+    r = fire("git status", root, NO_GH)
     check(f"config fault ({label}): an unrelated command exits 0 untouched", _untouched(r),
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
 
 def _config_control_case(label, derive):
-    r = _run_in(os.path.dirname(GATE), "git check" + "out -b fix/123-typo", _config_root(derive))
+    r = fire("git check" + "out -b fix/123-typo", _config_root(derive), NO_GH)
     check(f"valid config, {label}: a matching branch creation exits 0 untouched",
           _untouched(r), f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr[-300:]!r}")
 
@@ -484,17 +454,8 @@ def main():
     run_body_failure()
     run_issue_2107()
     run_config_faults()
-
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(RESULTS) - fails}/{len(RESULTS)} cases passed.")
-    return fails
+    return C.report()
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())
