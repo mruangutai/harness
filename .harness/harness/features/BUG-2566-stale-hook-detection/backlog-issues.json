@@ -1,0 +1,6 @@
+{
+  "chore:omp-hooks.test.ts: staleTree() never removes its temp directories (about 13 per suite run); add an afterAll cleanup": {
+    "number": 2624,
+    "typed": true
+  }
+}
