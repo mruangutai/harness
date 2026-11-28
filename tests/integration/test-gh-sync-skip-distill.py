@@ -24,19 +24,13 @@ import tempfile
 
 import working_files
 from gh_sync_support import BIN_DIR, SYNC, check, report, stage_working_files, working_dirs_present
+from git_support import checked_git, git, init_repo  # tests/ is on sys.path via gh_sync_support
 
 FEATURE_WORKTREE = os.path.join(BIN_DIR, "feature-worktree.py")
 REASON = "the observations repeat expertise   already merged;\n nothing new to distill"
 REASON_NORMAL = "the observations repeat expertise already merged; nothing new to distill"
 IGNORES = ("/.harness/*/features/*/notes/\n/.harness/*/features/*/runs/\n"
            "/.harness/*/features/*/observations/\n/.harness/notes/\n")
-
-
-def git(cwd, *args, check_ok=True):
-    r = subprocess.run(["git", "-C", cwd] + list(args), capture_output=True, text=True)
-    if check_ok and r.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)} in {cwd} failed: {r.stderr}")
-    return r
 
 
 def feature_doc(feature_id, **extra):
@@ -52,10 +46,7 @@ def owner_fixture(tmp, feature_id="FEAT-901-shipped", station="done", extra_doc=
     one. Returns (owner, feature dir, {note name: path}, reason file, gh log)."""
     owner = os.path.join(tmp, "O")
     os.makedirs(os.path.join(owner, ".harness", "harness", "docs"))
-    git(owner, "init", "-q")
-    git(owner, "symbolic-ref", "HEAD", "refs/heads/main")
-    git(owner, "config", "user.email", "test@example.com")
-    git(owner, "config", "user.name", "Test")
+    init_repo(owner, "main", identity=("test@example.com", "Test"), git=checked_git)
     open(os.path.join(owner, ".harness", "team-config.yaml"), "w").write("agents: {}\n")
     open(os.path.join(owner, ".harness", "harness", "docs", "SPEC.md"), "w").write("# probe\n")
     open(os.path.join(owner, ".gitignore"), "w").write(IGNORES)

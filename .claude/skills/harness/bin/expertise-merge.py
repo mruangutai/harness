@@ -1085,10 +1085,9 @@ def _check_identities(entries):
             _refuse(EXIT_EVIDENCE, f"IDENTITY MISMATCH batch={entry['id']} in {entry['receipt']}: content does not hash to its identity")
 
 
-def load_active(root, feature, base_sha):
+def load_active(root, feature):
     """(all entries, active entries, receipt manifest) of the feature's local receipts. Missing,
-    unreadable or tampered evidence refuses with 15; nothing here writes. base_sha is not read:
-    receipts are never on a base (D-04); validate-digest.py still passes it."""
+    unreadable or tampered evidence refuses with 15; nothing here writes."""
     real_root = os.path.realpath(root)
     entries, manifest = [], []
     for path in receipt_paths(feature_directory(real_root, feature)):
@@ -1268,7 +1267,7 @@ def replay_feature(root, feature, base, check_only):
     All-or-nothing: any refusal leaves every file byte-identical. `check_only` never writes."""
     real_root = os.path.realpath(root)
     base_sha = resolve_base(real_root, base)
-    entries, active, manifest = load_active(real_root, feature, base_sha)
+    entries, active, manifest = load_active(real_root, feature)
     _check_coverage(real_root, base_sha, entries)
     plans = [_plan_destination(real_root, base_sha, rel, batches)
              for rel, batches in _by_destination(active).items()]
@@ -1333,7 +1332,7 @@ def _supersession_context(real_root, caller, rel, refs, base, own, receipt):
     if not refs:
         return None, None
     base_sha = resolve_base(real_root, base)
-    entries, _, _ = load_active(real_root, caller["feature"], base_sha)
+    entries, _, _ = load_active(real_root, caller["feature"])
     stub = dict(caller, id="pending", seq=len(own["batches"]) + 1 if own else 1, destination=rel, supersedes=refs,
                 receipt=os.path.relpath(receipt, real_root), ops=[], originals=[], recorded_at_ns=0)
     validated = active_entries(entries + [stub])
@@ -1502,10 +1501,10 @@ def _require_files(real_root, receipt, dest, rel):
         _refuse(EXIT_EVIDENCE, f"MISSING FILE {rel}")
 
 
-def _recorded_batches(real_root, feature, caller, rel, base):
+def _recorded_batches(real_root, feature, caller, rel):
     """(the caller's active batches for `rel` in sequence, every recorded write to `rel`), after the
     receipt identity is bound. The writes include superseded batches: they still landed."""
-    entries, active, _ = load_active(real_root, feature, resolve_base(real_root, base) if base else None)
+    entries, active, _ = load_active(real_root, feature)
     runtime_id = caller["runtime_id"]
     _check_caller_identity([e for e in entries if e["runtime_id"] == runtime_id], caller)
     mine = sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
@@ -1602,7 +1601,7 @@ def verify_receipt(root, feature, persona, runtime_id, parent_id, tier, segment,
     caller = _caller(feature, persona, runtime_id, parent_id)
     real_root, rel, dest, receipt = _locate(root, feature, persona, runtime_id, tier, segment)
     _require_files(real_root, receipt, dest, rel)
-    mine, writes = _recorded_batches(real_root, feature, caller, rel, base)
+    mine, writes = _recorded_batches(real_root, feature, caller, rel)
     unreported = _match_claimed(mine, _claimed_ops(claimed, persona))
     data, sections = _read_destination(dest, rel)
     _refuse_mismatches(mine, sections)
@@ -1645,7 +1644,8 @@ def _add_verify_parser(sub):
     p_verify = sub.add_parser("verify-receipt", help="read-only: check a member's claimed ops against its receipt")
     _add_identity_arguments(p_verify)
     p_verify.add_argument("--claimed", required=True, help="path to the expertise_update list, or - for stdin")
-    p_verify.add_argument("--base", help="main commit sha; limits receipts to this PR's")
+    p_verify.add_argument("--base", help="main commit sha whose merge-base with HEAD anchors the write chain; "
+                                         "default: the default branch")
     p_verify.set_defaults(func=cmd_verify_receipt)
 
 

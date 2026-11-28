@@ -214,8 +214,10 @@ class Ctx:
         self.abandoned = {f for f in self.features if self.station(f) in TERMINAL_STATIONS}
 
     def _load_eras(self):
-        # INV-32's era boundary, resolved ONCE (BUG-1071; see _era_start_for).
-        self.era_start = self._era_start_for("INV-32", "panel_era_start", "adversarial panel")
+        # INV-32's era boundary, resolved ONCE (BUG-1071): the YYYY-MM-DD before which INV-32
+        # grades nothing, or None - null (no pre-adversarial-panel era, the schema default) or no
+        # valid config (reported by _load_config, and runner.main grades nothing then).
+        self.era_start = self.cj["panel_era_start"] if self.cj_valid else None
 
     def _load_git_top(self):
         # THE GIT TOP LEVEL, resolved ONCE for INV-33 below (FEAT-41 T-14 / issue #867).
@@ -353,12 +355,6 @@ class Ctx:
 
     def path(self, feat, tail):
         return os.path.join(self.feature_dir(feat), tail)
-
-    def _era_start_for(self, inv, key, what):
-        """The YYYY-MM-DD boundary before which `inv` grades nothing, or None: null (this project
-        has no pre-`what` era — the schema default) or no valid config (reported by
-        _load_config, and runner.main grades nothing then). `inv` and `what` name the caller."""
-        return self.cj[key] if self.cj_valid else None
 
     def _record_doc(self, feat, fy):
         """The parsed feature.json document, or None and the INV-6 finding that explains why:

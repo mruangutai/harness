@@ -13,10 +13,7 @@ import shutil
 import sys
 import tempfile
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-BIN = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN)
+from unit_support import BIN  # noqa: F401  (puts bin/ on sys.path)
 
 stations = importlib.import_module("plan_merge.stations")
 import working_files  # noqa: E402

@@ -2567,7 +2567,7 @@ def _active_batches(context):
     import harness_merge
     try:
         merge = harness_boundary.load_repo_module("expertise_merge", EXPERTISE_MERGE_BIN)
-        return merge.load_active(context["root"], context["feature"], None)[1]
+        return merge.load_active(context["root"], context["feature"])[1]
     except harness_boundary.RepoModuleError as error:
         raise _Untrusted(f"expertise-merge.py could not be loaded ({error})") from error
     except harness_merge.MergeRefusal as refusal:
