@@ -117,6 +117,27 @@ def case_unicode_round_trips():
     check("case6: unicode summary round-trips without raising", ok, detail)
 
 
+def case_exposure_shape():
+    """Case 7 -- exposure is optional on a row, closed when present, and the practicality rule
+    caps a discounted row at med (FEAT-2622 D-02, D-05)."""
+    mod = pf()
+    row = {"id": mod.finding_id("scope", "a stale cache entry"), "severity": "med",
+           "reader": "scope", "kind": "substance", "summary": "a stale cache entry",
+           "disposition": "open"}
+    plausible = {"trigger": "plausible", "vs_today": "regression", "control": "chance"}
+    discounted = {"trigger": "contrived", "vs_today": "no_worse", "control": "user"}
+    faults = mod.shape_faults(row)
+    check("case7a: a row without exposure stays legal", faults == [], faults)
+    faults = mod.shape_faults({**row, "exposure": plausible})
+    check("case7b: a row with a well-formed exposure is legal", faults == [], faults)
+    faults = mod.shape_faults({**row, "exposure": {"trigger": "rare"}})
+    check("case7c: a malformed exposure is a fault naming exposure",
+          any("exposure" in fault for fault in faults), faults)
+    faults = mod.shape_faults({**row, "severity": "high", "exposure": discounted})
+    check("case7d: a discounted row above med breaks the practicality rule",
+          any("practicality rule" in fault for fault in faults), faults)
+
+
 def main():
     case_id_shape()
     case_normalization_does_not_change_id()
@@ -125,6 +146,7 @@ def main():
     case_empty_reader_exits_2()
     case_whitespace_only_summary_exits_2()
     case_unicode_round_trips()
+    case_exposure_shape()
 
     fails = 0
     for name, ok, detail in RESULTS:

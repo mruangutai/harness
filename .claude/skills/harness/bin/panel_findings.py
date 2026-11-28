@@ -50,12 +50,64 @@ FINDING_KINDS = ("substance", "form", "proportionality")
 PROPORTIONALITY_SCOPES = ("task", "mission")
 DISPOSITIONS = ("open", "resolved")
 REQUIRED_KEYS = ("id", "severity", "reader", "kind", "summary", "disposition")
-FINDING_KEYS = REQUIRED_KEYS + ("scope", "resolved_by")
+# `exposure` is optional on a row: record-panel requires it on every row it newly writes, and a
+# legacy row without it stays legal (FEAT-2622 D-05).
+FINDING_KEYS = REQUIRED_KEYS + ("scope", "resolved_by", "exposure")
 # The plan panel's reader SLOTS (#2102): `panel.readers[].reader` names one of these, never the
 # persona that filled it (scope = code-reviewer, should-not-exist = fable-advisor, design =
 # ui-reviewer, goalcheck = pm). A FINDING's `reader` is different: it is the reporting persona,
 # as each reviewer's contract writes it, and half of the finding's id, so it is not a slot.
 PANEL_READERS = ("should-not-exist", "scope", "design", "goalcheck")
+
+# THE PRACTICALITY RULE (FEAT-2622; DEC-206 and DEC-123 as amended). Every reader finding states
+# its exposure: how often its trigger occurs in real use, its consequence compared with the
+# status quo, and who controls the trigger. A contrived trigger whose outcome is no worse than
+# today, and which no adversary controls, is at most med: DEC-31's non-gating band. `unrated` is
+# a lead's transcription of a reader that gave no exposure, and is never discounted.
+EXPOSURE_TRIGGERS = ("routine", "plausible", "contrived")
+EXPOSURE_VS_TODAY = ("regression", "no_worse")
+EXPOSURE_CONTROLS = ("harness", "chance", "user", "adversary")
+EXPOSURE_UNRATED = "unrated"
+_EXPOSURE_ENUMS = (("trigger", EXPOSURE_TRIGGERS), ("vs_today", EXPOSURE_VS_TODAY),
+                   ("control", EXPOSURE_CONTROLS))
+
+
+def exposure_faults(value):
+    """Every way `value` departs from an exposure record, one line each; [] when it is the
+    string unrated or a {trigger, vs_today, control} mapping with legal values."""
+    if value == EXPOSURE_UNRATED:
+        return []
+    if not isinstance(value, dict):
+        return [f"exposure {value!r} is neither a mapping nor {EXPOSURE_UNRATED!r}"]
+    keys = [key for key, _allowed in _EXPOSURE_ENUMS]
+    faults = [f"exposure is missing {key}" for key in keys if key not in value]
+    faults += [f"exposure carries {key}, outside {', '.join(keys)}"
+               for key in sorted(map(str, value)) if key not in keys]
+    faults += [f"exposure {key} {value[key]!r} is not one of {' | '.join(allowed)}"
+               for key, allowed in _EXPOSURE_ENUMS if key in value and value[key] not in allowed]
+    return faults
+
+
+def is_discounted(exposure):
+    """True only for a well-formed exposure that is contrived, no worse than today and not
+    adversary-controlled; unrated and anything malformed are never discounted."""
+    return (isinstance(exposure, dict) and not exposure_faults(exposure)
+            and exposure["trigger"] == "contrived" and exposure["vs_today"] == "no_worse"
+            and exposure["control"] != "adversary")
+
+
+def is_non_gating(severity):
+    """True when `severity` sits in NON_GATING_SEVERITIES, the set gates_signature reads."""
+    return str(severity).strip().lower() in NON_GATING_SEVERITIES
+
+
+def practicality_fault(finding):
+    """The line refusing a discounted finding rated above med, or None."""
+    if not is_discounted(finding.get("exposure")) or is_non_gating(finding.get("severity")):
+        return None
+    return (f"severity {finding.get('severity')!r} breaks the practicality rule: a contrived "
+            "finding no worse than today and not adversary-controlled is at most med "
+            "(DEC-31 non-gating)")
 
 
 def _enum_fault(finding, key, allowed):
@@ -101,6 +153,11 @@ def shape_faults(finding, task_ids=None):
                          ("disposition", DISPOSITIONS)):
         if key not in missing:
             faults.extend(_enum_fault(finding, key, allowed))
+    if "exposure" in finding:
+        faults.extend(exposure_faults(finding["exposure"]))
+        fault = practicality_fault(finding)
+        if fault:
+            faults.append(fault)
     return faults + _scope_fault(finding) + _resolved_by_fault(finding, task_ids)
 
 
@@ -113,7 +170,7 @@ def gates_signature(finding, accepted_ids):
         return False
     if str(finding.get("id", "")).strip() in accepted_ids:
         return False
-    return str(finding.get("severity", "")).strip().lower() not in NON_GATING_SEVERITIES
+    return not is_non_gating(finding.get("severity", ""))
 
 
 def _cli_id(reader, summary):

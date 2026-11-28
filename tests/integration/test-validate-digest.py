@@ -3184,13 +3184,13 @@ case("FEAT-59 a bare-string finding has no kind and is rejected",
 # The index in the message is the SECOND entry when the first is fine.
 case("FEAT-59 the error names the offending entry's index, not the first",
      "harness-ui-reviewer", _ui_review(
-         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "a", why: "the reader states its reason" }\n'
+         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "a", why: "the reader states its reason", exposure: { trigger: plausible, vs_today: regression, control: chance } }\n'
          '    - { severity: low, reader: ui-reviewer, summary: "b" }'),
      False, ["findings[1]", "!findings[0]"])
 # Each member of the enum is ACCEPTED — inline and block-mapping styles both.
 case("FEAT-59 kind: substance is accepted (inline entry)",
      "harness-ui-reviewer", _ui_review(
-         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "fail-open branch", why: "the reader states its reason" }'),
+         '    - { kind: substance, scope: none, severity: high, reader: ui-reviewer, summary: "fail-open branch", why: "the reader states its reason", exposure: { trigger: plausible, vs_today: regression, control: chance } }'),
      True)
 case("FEAT-59 kind: form is accepted (block-mapping entry)",
      "harness-ui-reviewer", _ui_review(
@@ -3199,17 +3199,20 @@ case("FEAT-59 kind: form is accepted (block-mapping entry)",
          '      severity: high\n'
          '      reader: ui-reviewer\n'
          '      summary: "DESIGN.md table header drifted"\n'
-         '      why: "the table no longer matches DESIGN.md"'),
+         '      why: "the table no longer matches DESIGN.md"\n'
+         '      exposure: { trigger: plausible, vs_today: regression, control: chance }'),
      True)
 case("FEAT-59 kind: proportionality with scope: mission is accepted",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: proportionality, scope: mission, severity: high, reader: ui-reviewer, '
-         'summary: "a plan for a five-line fix", why: "no design surface changes" }'),
+         'summary: "a plan for a five-line fix", why: "no design surface changes", '
+         'exposure: { trigger: plausible, vs_today: regression, control: chance } }'),
      True)
 case("DEC-228 kind: proportionality with scope: task is accepted",
      "harness-ui-reviewer", _ui_review(
          '    - { kind: proportionality, scope: task, severity: med, reader: ui-reviewer, '
-         'summary: "T-03 ships one-shot scaffolding as a durable flag", why: "the flag outlives T-03" }'),
+         'summary: "T-03 ships one-shot scaffolding as a durable flag", why: "the flag outlives T-03", '
+         'exposure: { trigger: plausible, vs_today: regression, control: chance } }'),
      True)
 # The BUG-285 defect: four task-scope findings summed into a mission downgrade.
 # Without scope the route is undecidable, so a scope-less proportionality finding is refused.
@@ -3258,7 +3261,7 @@ case("FEAT-59 lead findings passthrough: kinded entries are accepted alongside r
          "\n  sc_status: []",
          "\n  sc_status: []\n"
          "  readers: [{ reader: scope, status: ran, persona: harness-pm, reason: none }, { reader: should-not-exist, status: skipped, persona: fable-advisor, reason: host refusal }]\n"
-         "  findings: [{ kind: substance, scope: none, severity: high, reader: scope, summary: \"SC-03 has no task\", why: \"the reader states its reason\" }]"),
+         "  findings: [{ kind: substance, scope: none, severity: high, reader: scope, summary: \"SC-03 has no task\", why: \"the reader states its reason\", exposure: { trigger: plausible, vs_today: regression, control: chance } }]"),
      True)
 case("FEAT-59 lead findings passthrough: an entry without kind is rejected",
      "harness-validator-lead", LEAD_BLOCK.replace(

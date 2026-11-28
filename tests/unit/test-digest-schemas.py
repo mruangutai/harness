@@ -32,7 +32,8 @@ UNIVERSAL = {"headline": "did the thing",
 DEV = {"tests_added": 2, "suite": "pass", "blocked_on": "none", "task": "T-01",
        "task_verify": "pass"}
 FINDING = {"kind": "form", "scope": "none", "severity": "low", "reader": "code-reviewer",
-           "summary": "typo", "why": "README.md:3"}
+           "summary": "typo", "why": "README.md:3",
+           "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"}}
 REVIEW = {"severity_max": "low", "must_fix": [], "findings": [FINDING]}
 LEAD = {"team": "build", "steps_run": 1, "cycles_used": 1, "must_fix": [], "branch": "none",
         "escalations": [], "adequacy_notes": [],
