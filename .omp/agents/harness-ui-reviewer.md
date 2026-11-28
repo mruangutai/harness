@@ -179,7 +179,34 @@ output:
             - reader
             - summary
             - why
+            - exposure
             properties:
+              exposure:
+                anyOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                  - trigger
+                  - vs_today
+                  - control
+                  properties:
+                    trigger:
+                      enum:
+                      - routine
+                      - plausible
+                      - contrived
+                    vs_today:
+                      enum:
+                      - regression
+                      - no_worse
+                    control:
+                      enum:
+                      - harness
+                      - chance
+                      - user
+                      - adversary
+                - enum:
+                  - unrated
               kind:
                 enum:
                 - substance
@@ -329,7 +356,7 @@ yield({data: {
     "mode": "B",
     "in_scope": true,
     "severity_max": "med",
-    "findings": [{"kind": "substance", "scope": "none", "severity": "med", "reader": "ui-reviewer", "summary": "error state missing from ExportDialog", "why": "DESIGN.md §States requires it"}],
+    "findings": [{"kind": "substance", "scope": "none", "severity": "med", "reader": "ui-reviewer", "summary": "error state missing from ExportDialog", "why": "DESIGN.md §States requires it", "exposure": {"trigger": "routine", "vs_today": "regression", "control": "user"}}],
     "must_fix": ["add ExportDialog error state (ExportDialog.tsx:30)"],
     "states_unspecified": [],
     "contract_violations": [{"path": "src/ExportDialog.tsx", "actual": "no error state", "specified": "inline error with retry"}],
@@ -350,7 +377,9 @@ yield({data: {
   document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
   planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
   apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
-  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form. Every finding
+  also carries `exposure` `{trigger, vs_today, control}` under `harness-code-review`'s practicality
+  rule; `unrated` is never a reviewer's value.
 - `states_unspecified` (mode A) and `contract_violations` (mode B, `{path, actual, specified}`):
   both always present; `[]` in the other mode.
 - `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed

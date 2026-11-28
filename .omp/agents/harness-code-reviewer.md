@@ -183,7 +183,34 @@ output:
             - reader
             - summary
             - why
+            - exposure
             properties:
+              exposure:
+                anyOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                  - trigger
+                  - vs_today
+                  - control
+                  properties:
+                    trigger:
+                      enum:
+                      - routine
+                      - plausible
+                      - contrived
+                    vs_today:
+                      enum:
+                      - regression
+                      - no_worse
+                    control:
+                      enum:
+                      - harness
+                      - chance
+                      - user
+                      - adversary
+                - enum:
+                  - unrated
               kind:
                 enum:
                 - substance
@@ -275,7 +302,7 @@ yield({data: {
   "DIGEST": {
     "headline": "retry loop in fetch_page never terminates on a 429; one must-fix",
     "severity_max": "high",
-    "findings": [{"kind": "substance", "scope": "none", "severity": "high", "reader": "code-reviewer", "summary": "fetch_page retries 429 forever", "why": "no max_attempts bound (client.py:88)"}],
+    "findings": [{"kind": "substance", "scope": "none", "severity": "high", "reader": "code-reviewer", "summary": "fetch_page retries 429 forever", "why": "no max_attempts bound (client.py:88)", "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "chance"}}],
     "must_fix": ["bound fetch_page retries (client.py:88)"],
     "spec_violations": [{"kind": "omission", "path": "client.py", "ref": "SC-03"}],
     "code_grade": "fail",
@@ -298,7 +325,9 @@ yield({data: {
   document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
   planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
   apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
-  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form. Every finding
+  also carries `exposure` `{trigger, vs_today, control}` under `harness-code-review`'s practicality
+  rule; `unrated` is never a reviewer's value.
 - `spec_violations`: `{kind: scope_creep|omission|mismatch, path, ref: SC-NN|D-NN}`.
 - `code_grade`: `pass|fail|grade_2|n_a` — REQUIRED audit claim; validate-digest.py independently
   recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209).

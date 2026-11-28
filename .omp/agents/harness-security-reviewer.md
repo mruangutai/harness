@@ -177,7 +177,34 @@ output:
             - reader
             - summary
             - why
+            - exposure
             properties:
+              exposure:
+                anyOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                  - trigger
+                  - vs_today
+                  - control
+                  properties:
+                    trigger:
+                      enum:
+                      - routine
+                      - plausible
+                      - contrived
+                    vs_today:
+                      enum:
+                      - regression
+                      - no_worse
+                    control:
+                      enum:
+                      - harness
+                      - chance
+                      - user
+                      - adversary
+                - enum:
+                  - unrated
               kind:
                 enum:
                 - substance
@@ -292,6 +319,18 @@ positives train people to ignore you.
 
 `must_fix` non-empty or `severity_max >= high` → `FAIL`. Diff `base..review_sha`, never `..HEAD`.
 
+**The practicality rule.** Before rating a finding, answer three questions and record them as its
+`exposure`: **trigger** (who or what causes it, and how often in real use: `routine`, `plausible`
+or `contrived`), **consequence compared with today** (`vs_today`: a `regression`, or `no_worse`
+than before the change) and **trigger control** (`harness`, `chance`, `user` or `adversary`). A
+contrived trigger whose outcome is no worse than today is at most `med`: never `must_fix`, never
+an escalation, never the reason for a new test or another fix round, and `validate-digest.py`
+refuses it otherwise. **Adversary exception:** an adversary-controlled trigger at a real trust
+boundary (external input, credentials, a gate meant to refuse) is not discounted by likelihood,
+because the attacker chooses the timing; write `control: adversary` only at such a boundary.
+`severity_max` and `VERDICT` follow the rule: a discounted finding contributes at most `med` to
+`severity_max` and never fails the review on its own (`validate-digest.py` refuses both).
+
 ## Output
 
 Return an object through YieldTool — never fenced YAML text. The field list is the schema,
@@ -305,7 +344,7 @@ yield({data: {
     "in_scope": true,
     "scope_reason": "diff adds an authenticated HTTP endpoint that reads tenant data",
     "severity_max": "low",
-    "findings": [{"kind": "substance", "scope": "none", "severity": "low", "reader": "security-reviewer", "summary": "export filename echoes the tenant slug in logs", "why": "info disclosure in shared log sink (export.py:51)"}],
+    "findings": [{"kind": "substance", "scope": "none", "severity": "low", "reader": "security-reviewer", "summary": "export filename echoes the tenant slug in logs", "why": "info disclosure in shared log sink (export.py:51)", "exposure": {"trigger": "plausible", "vs_today": "regression", "control": "adversary"}}],
     "must_fix": [],
     "threat_model": [{"boundary": "client -> /export", "stride": "I", "mitigated": true}],
     "open_questions": [],
@@ -325,7 +364,9 @@ yield({data: {
   document/digest/record shape only, fixed in-run and never re-gates; `proportionality` = more is
   planned than the change needs, and REQUIRES `scope: task` (one task over-builds — trimmed at
   apply, never a downgrade) or `mission` (the plan lane exceeds the work — the only finding that
-  downgrades, DEC-228). `scope` is always present: `none` for substance and form.
+  downgrades, DEC-228). `scope` is always present: `none` for substance and form. Every finding
+  also carries `exposure` `{trigger, vs_today, control}` under the practicality rule above;
+  `unrated` is never a reviewer's value.
 - `threat_model`: `{boundary, stride: T|I|E|..., mitigated: <bool>}`; `[]` when none.
 - `open_questions`: `{id, question, blocking}`; `[]` if none. `files_touched`: `[]` if you changed
   none. `expertise_update`: `[]` except under a distillation dispatch (harness-expertise).
