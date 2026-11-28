@@ -29,6 +29,7 @@ this module's schema check through schema_checked_transform, which writes nothin
 python3 stdlib only, matching harness_merge.py's own constraint.
 """
 import json
+import os
 import re
 import sys
 
@@ -185,19 +186,28 @@ def _exit_refused(lines):
     sys.exit(REFUSAL_CODE)
 
 
+def _missing_lines(path):
+    return [f"REFUSED: {path} does not exist.",
+            "  this tool records onto an existing feature.json only; seed it from",
+            "  .agents/skills/harness/templates/feature.json first."]
+
+
 def _apply(path, mutate):
     """Load `path`'s document, apply `mutate(doc) -> doc`, and write the result under the
     lock. A `path` whose document does not exist is refused: this CLI records onto an
-    existing feature.json only — it is never the tool that instantiates one."""
+    existing feature.json only — it is never the tool that instantiates one. The refusal
+    comes before the lock (#2687): taking it would create a stray `.lock` beside the absent
+    file, or crash on a feature directory that does not exist. The same check inside the
+    lock covers a file removed between the two."""
+    if not os.path.isfile(path):
+        for line in _missing_lines(path):
+            print(line, file=sys.stderr)
+        sys.exit(read.SCHEMA_REFUSAL_CODE)
 
     def transform(base):
         doc = read.parse_doc(base, path)
         if doc is None:
-            raise harness_merge.MergeRefusal(
-                read.SCHEMA_REFUSAL_CODE,
-                [f"REFUSED: {path} does not exist.",
-                 "  this tool records onto an existing feature.json only."],
-            )
+            raise harness_merge.MergeRefusal(read.SCHEMA_REFUSAL_CODE, _missing_lines(path))
         return json.dumps(mutate(doc), indent=2) + "\n"
 
     try:
