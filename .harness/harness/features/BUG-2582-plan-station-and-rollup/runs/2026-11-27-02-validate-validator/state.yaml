@@ -1,0 +1,97 @@
+schema_version: 2
+run_id: 2026-11-27-02-validate-validator
+run_uid: 3687473b0e754d7891cb15f77fc52c1d
+feature: BUG-2582-plan-station-and-rollup
+squad: validator
+host: harness-validator-lead
+team: validate
+status: complete
+verdict: ESCALATE
+severity_max: high
+review_sha: c117186726688f33154c2bccda0faf5e69f5d9d6
+digest: runs/2026-11-27-02-validate-validator/digest.md
+cycles_used: 0
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-qa-c1.md
+    note: suite fail, 4 files red at pin green at base; matrix_ok true; fail-first reproduced
+    evidence:
+      red_files: 4
+      matrix_ok: true
+  - id: code
+    persona: harness-code-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-code-reviewer-c1.md
+    note: absent reader slot accepted (executed); test main grade 1; SC-04 and SC-08 met
+  - id: security
+    persona: harness-security-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-security-reviewer-c1.md
+    note: roster spoof and non-plan dispatch relief, inspection-only
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/review-harness-ui-reviewer-c1.md
+    note: self-scoped out on measured 31-path census
+  - id: goalcheck
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/research-BUG-2582-plan-station-and-rollup-goalcheck-validate-c1.md
+    mutates_repo: false
+    on_fail: none
+    status: complete
+    verdict: PASS
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/BUG-2582-plan-station-and-rollup/notes/research-BUG-2582-plan-station-and-rollup-goalcheck-validate-c1.md
+    note: all perspectives pass; lead regrades SC-05 not_met, SC-06 partial on code-reviewer execution
