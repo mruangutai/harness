@@ -1,0 +1,83 @@
+schema_version: 2
+run_id: 2026-11-28-02-validate-validator
+feature: FEAT-2622-practicality-rule
+squad: validator
+host: harness-validator-lead
+status: failed
+steps:
+  - id: qa
+    persona: harness-qa
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-qa-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-qa-c1.md
+    note: unit 74/74, integration 94/94 at pin; fail_first 8/8; SC-02 ceiling leg unwitnessed
+  - id: code
+    persona: harness-code-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-code-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-code-reviewer-c1.md
+    note: high stale-row carve-out fail-open (T-01), confirmed at source
+  - id: security
+    persona: harness-security-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-security-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-security-reviewer-c1.md
+    note: duplicate of code high finding; static only
+  - id: ui
+    persona: harness-ui-reviewer
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-ui-reviewer-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: PASS
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2622-practicality-rule/notes/review-harness-ui-reviewer-c1.md
+    note: scoped out; census 45 paths, none UI
+  - id: goalcheck
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    outputs:
+      - .harness/harness/features/FEAT-2622-practicality-rule/notes/research-FEAT-2622-practicality-rule-goalcheck-validate-c1.md
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: FAIL
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2622-practicality-rule/notes/research-FEAT-2622-practicality-rule-goalcheck-validate-c1.md
+    note: SC-09 partial; rest met; DEC-206 and DEC-123 dispositions met
+run_uid: 8a795cfb2462468ca4935f531cd74efe

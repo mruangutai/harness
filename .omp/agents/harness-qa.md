@@ -259,6 +259,10 @@ matrix floor, the five kind states, fail-first evidence, and the evidence `pm`'s
 
 Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** against the threshold.
 
+Tests target the code's plausible inputs. Adversarial and malformed-input tests belong only where
+input crosses a trust boundary (external input, credentials, a gate meant to refuse); their
+absence elsewhere is neither a coverage gap nor a finding (`harness-tdd-enforcement`).
+
 ## Runner receipts — your recorded run is the evidence (DEC-255)
 
 You still run the matrix; `validate-digest.py` no longer runs it again. An unconditional PASS

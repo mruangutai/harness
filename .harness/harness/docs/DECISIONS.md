@@ -2496,10 +2496,14 @@ alone), and carrying exactly one member entry per reader step (a skipped one cou
 persona `teams/plan.yaml` declares for that step, a reader member (`scope`, `should-not-exist` or
 `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team digest attributes to it
 matches exactly one row of that feature's `plan.yaml` `panel.findings` by recomputed PF id,
-carrying the same reader string and `disposition: resolved`, and every other on-disk row
-attributed to it is `resolved`. An open, absent, mismatched, unattributable or ambiguous finding, a
-malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan dispatch, an
-unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep worst-wins.
+carrying the same reader string; every on-disk row attributed to it is `disposition: resolved`
+or, under the practicality rule (DEC-260), open with both the row and the team digest's current
+finding with its id discounted at a non-gating severity; and the team's `must_fix` is empty. An
+open row that is not so discounted, a discounted row whose current finding is omitted or not
+discounted, a non-empty team `must_fix`, an absent, mismatched, unattributable or ambiguous
+finding, a malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan
+dispatch, an unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep
+worst-wins.
 Reporting **worse** stays legal: a lead may know something its members could not see.
 Every member that ran therefore needs its own `verdict:`. Only the optional external
 `fable-advisor` may instead record `status: skipped`, its persona, and the host reason; a skip
@@ -6798,7 +6802,9 @@ will not rate, and the lead TRANSCRIBES an absence rather than inventing a value
 
 **Shape versus content is the line the lead may not cross.** The lead owns SHAPE — schema
 conformance, finding identity, de-duplication, ranking, and roll-up. The lead never owns CONTENT —
-whether a defect exists at all, and how severe the reader judged it. A lead that supplies a severity
+whether a defect exists at all — and never raises the severity the reader judged; it may lower a
+finding to at most `med`, or drop it, only when the practicality rule (DEC-260) discounts it, with
+a one-line reason beside the finding. A lead that supplies a severity
 the reader did not emit has manufactured evidence and put its own judgement behind the reader's name,
 which is the one failure an unvalidated return makes easy and invisible.
 
@@ -8837,3 +8843,72 @@ The rule has three homes:
 **Record:** FEAT-2557 (#2557), plan decision D-01, signed by Mike Ruangutai on 2026-11-27.
 Executed main-session-direct under the operator's INV-32 ruling. Refs: DEC-149, DEC-158, DEC-202,
 DEC-205, DEC-235.
+
+## DEC-260 — The practicality rule: every reader finding states its exposure, and a contrived finding no worse than today never gates
+
+**Chose:** every reader finding carries `exposure`, recorded before it is rated. The digest
+finding schema (`schemas/digest/common.json` `$defs.finding`) requires it, and `plan.yaml` panel
+rows carry it.
+
+- **The record (D-01).** `exposure` is a mapping of `trigger` (`routine`, `plausible` or
+  `contrived`: how often its cause occurs in real use), `vs_today` (`regression` or `no_worse`:
+  the consequence compared with the status quo) and `control` (`harness`, `chance`, `user` or
+  `adversary`: who controls the trigger). The string `unrated` is legal only in a product-lead or
+  validator-lead digest, where it transcribes a non-harness reader that gave none, and it is never
+  discounted. The code, security and UI reviewers and the eng lead state their own.
+- **The discount (D-02).** A finding is discounted when it is `contrived`, `no_worse` and not
+  `adversary`-controlled. A discounted finding is at most `med`, DEC-31's non-gating band, so it
+  never gates. `validate-digest.py` refuses one rated above `med`, and refuses a `must_fix` entry
+  that names it by normalized summary or by a PF id prefix of at least eight hex characters. The
+  predicate and the non-gating set live once, in `bin/panel_findings.py`.
+- **The adversary exception.** An adversary-controlled trigger at a real trust boundary (external
+  input, credentials, a gate meant to refuse) is not discounted by likelihood, because the
+  attacker chooses the timing.
+- **Lead triage (D-03; amends DEC-206).** The validator lead and the product lead apply the rule
+  at collation, before routing. Each may lower a discounted finding to at most `med` or drop it,
+  with a one-line reason naming the reader's severity, and never raise one. A remedy that touches
+  signed text reaches the operator only if its finding survives the triage. In the plan team the
+  lead lowers rather than drops, so the panel row exists.
+- **Forward only (D-04).** What is validated enforces it: live yields and the run being closed. No
+  era marker exists, and INV-15 never re-validates a historical digest against the live schema.
+- **The panel row (D-05).** `exposure` is an optional key of a `plan.yaml` panel row, so legacy
+  rows stay legal. `plan-merge.py record-panel` requires it on every row it newly writes and
+  refuses a discounted finding above `med`.
+- **The verdict (D-06; amends DEC-123).** A discounted finding never decides a verdict.
+  `validate-digest.py` refuses a `severity_max` of high or critical that only discounted findings
+  support. It also refuses a code, security or UI review FAIL whose every finding is discounted,
+  with `must_fix` empty, a non-gating `severity_max` and no failed code grade. In DEC-123's
+  plan-team carve-out, an open row discounted at a non-gating severity does not deny relief,
+  provided the team digest carries a current finding with that id, discounted at a non-gating
+  severity too, and the team's `must_fix` is empty; a stale discounted row never stands in for a
+  re-rated or omitted finding.
+- **Tests.** Tests target the code's plausible inputs. Adversarial and malformed-input tests
+  belong only where input crosses a trust boundary (`harness-tdd-enforcement` and the QA
+  guidance).
+
+**Over:**
+- reading a missing exposure as unrated-and-gating for every persona, which lets a reviewer skip
+  the three questions at no cost;
+- free-text trigger prose, which nothing mechanical can read;
+- a structured `must_fix` of finding references, which changes every persona's `must_fix` and the
+  validator lead's non-finding entries;
+- a `low` ceiling, which makes an honest unlikely-but-real `med` unreportable at its true size;
+- leaving the product lead unamended, which gives `record-panel`'s refusal of a discounted gating
+  fable-advisor finding no lawful remedy;
+- an era key or a digest `schema_version` bump, which defends a re-grade no reader performs;
+- `exposure` required in the panel row shape, which reddens every live plan with a panel;
+- letting a lead outrank a member verdict after its own triage, which DEC-123 refuses.
+
+**Because:** #2622 measured the cost of rating by mechanism alone. BUG-2565's fix rounds 2–4 took
+about 60 of 113 rework minutes chasing exotic YAML fed to a generator that only ever reads the
+agent files Harness writes itself. BUG-2566 E-01 was rated high by one reader and med by another,
+though its outcome was the pre-feature behaviour, never a bypass, and the operator judged it not
+worth documenting.
+
+**Tradeoff accepted:** a reader can misstate exposure, and only the lead's triage and the
+operator's reading catch it. Eval is excluded, so the outcome (fewer contrived findings reaching
+the operator) is unmeasured.
+
+**Record:** FEAT-2622-practicality-rule (#2622), plan decisions D-01 to D-06, signed by the
+operator on 2026-11-28. Executed main-session-direct (DEC-174). Amends DEC-206 and DEC-123. Refs:
+DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.

@@ -1,0 +1,17 @@
+# Security review · FEAT-2622 · cycle 3
+
+**FAIL — MF-2 is closed, but both ratings used to relieve an open finding come from the same lead.** Reviewed `3e979ae3cd303fdf65746bf13c8c8e041dac4964..0ce1c841f4534e3720e95927d61f43a162aa6a13`.
+
+## SEC-03 · high · substance · T-01/T-02
+
+`exposure: {trigger: plausible, vs_today: regression, control: adversary}`
+
+A compromised product lead exercising ordinary plan fan-in authority can mask a genuine reader `FAIL` on a first-seen gating finding by changing that finding's rating in both lead-authored records. Both the team's and the reader's `must_fix` may genuinely be empty: a gating severity alone can fail a review (`bin/gate_policy.py:36–48`). The lead owns `panel-c<cycle>.md` and supplies the same findings in its final yield (`teams/plan.yaml:19–28,223–230`). PM's ordinary `record-panel` step copies the declared exposure to an open row without comparing it to the reader's return (`bin/plan_merge/panel.py:433–449,452–495,550–575`). The validator verifies matching identity and the two ratings, not their independent provenance (`bin/validate-digest.py:2152–2159,2285–2319`). It can therefore rank that still-reported reader `FAIL` as `PASS` without a remedy or an independently verified discount. The lead needs neither direct plan write access nor a forged PF id. Base required the row to be resolved; the same open state did not relieve `FAIL`. This is not VAL-OQ-03: no `must_fix` is dropped.
+
+**Must fix / operator ruling (VAL-OQ-04):** Bind open-row relief to a rating from an independently attributable reader result, or retain worst-wins when such evidence is unavailable. Preserve the existing resolved-row route. The roll-up difference was executed at an isolated in-memory seam; the lead-to-PM transcription and absence of original-reader corroboration were traced statically. No live bypass was executed.
+
+## Probe results and scope
+
+- **Executed:** Pinned `_carveout_inputs`, `_plan_reader_carveout` and `_lead_rollup_errors` refuse team `PASS` with a non-empty `must_fix` over both open and resolved rows. A truthy non-list also denied direct relief; the live digest schema rejects truthy and falsey non-lists. Unrelated PF ids and a stored PF id inconsistent with its row content deny relief; a genuine eight-hex reference is recognized. Discounted `high` is refused by digest semantics, the writer (code 5), and the open-row carve-out. A matching discounted `med` open row relieved at the pin but not at base. The probe supplied a plan-load seam; no host hook, signature, or write path ran. No capability guard refused the probe. Code grader: 45 passing functions.
+- **SC-06:** `bin/panel_findings.py:97–116` is the common policy; see `bin/validate-digest.py:1612–1614,2304–2306` and `bin/plan_merge/panel.py:482–494`. The changed runtime, schemas, agent returns and team fan-in instructions cross the enforcement boundary. Reference/template/decision text, feature-local records and tests add no independent runtime boundary. No changed auth credential, network, dependency or export surface; new diagnostics remain refusal output, not authority to accept. No separate secrets, disclosure or injection finding.
+- **Open question:** Under the final-round ruling, does the operator require independent reader evidence or explicitly accept the same-source rating risk? This report requests a ruling, not a third automatic rework round.

@@ -169,7 +169,10 @@ MUST read `<HARNESS_CONTROL_PLANE_ROOT>/.omp/agents/harness-qa.md` § Output bef
 it points to the canonical schema, including `matrix_ok`'s allowed values and verdict pairings
 (DEC-237). `validate-digest.py` refuses a digest that breaks the contract and names the field,
 the rejected pairing and the repair — read its message, never guess a value.
-Every Phase 1 expectation with no test belongs in `coverage_gaps`. `task` and `task_verify` bind
+Every Phase 1 expectation with no test belongs in `coverage_gaps`. Tests target the code's
+plausible inputs, so an adversarial or malformed-input
+expectation for code where no input crosses a trust boundary is neither a coverage gap nor a
+finding (`harness-tdd-enforcement` § Plausible inputs). `task` and `task_verify` bind
 the five dev specialists only; the validator refuses them on a qa return (SC-05).
 
 ## Red flags

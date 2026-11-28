@@ -318,7 +318,34 @@ output:
             - reader
             - summary
             - why
+            - exposure
             properties:
+              exposure:
+                anyOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                  - trigger
+                  - vs_today
+                  - control
+                  properties:
+                    trigger:
+                      enum:
+                      - routine
+                      - plausible
+                      - contrived
+                    vs_today:
+                      enum:
+                      - regression
+                      - no_worse
+                    control:
+                      enum:
+                      - harness
+                      - chance
+                      - user
+                      - adversary
+                - enum:
+                  - unrated
               kind:
                 enum:
                 - substance
@@ -450,8 +477,14 @@ them into **one actionable set**:
 3. **Judge adequacy, not just pass/fail.** *"qa's suite is green but only covers the happy path"* is
    your finding to make; no individual reviewer is positioned to make it. So is *"this eval passes
    against a dataset that does not contain the failure mode it claims to test."*
-4. **Rank.** An unranked list of twenty gates nothing.
-5. **Order the fixes** where one finding's remedy would change another's.
+4. **Triage by the practicality rule, before routing.** Apply the three questions to every
+   finding: trigger, consequence compared with today (`vs_today`) and trigger control. A finding
+   that is `contrived`, `no_worse` and not adversary-controlled is lowered to at most `med` or
+   dropped, with a one-line reason beside it in your artifact naming the reader's severity and
+   exposure. Never raise a severity. A remedy that would touch signed text reaches the operator
+   (`open_questions` or `ESCALATE`) only when its finding survives this triage.
+5. **Rank.** An unranked list of twenty gates nothing.
+6. **Order the fixes** where one finding's remedy would change another's.
 
 ## The gate
 
@@ -470,7 +503,10 @@ digest or record shape, fixed in the same run and never re-read; `proportionalit
 planned than the change needs and carries `scope: task` (trimmed at apply) or `scope: mission`
 (the only finding that downgrades, DEC-228). `validate-digest.py` refuses a finding without
 one. SHAPE is yours; never CONTENT and never IDENTITY: transcribe `unrated` unchanged (gating-
-equivalent to high), never revise a reader's severity or `kind`. A finding a reader could not
+equivalent to high), never revise a reader's `kind`, and revise its severity only downward under
+the practicality rule, with a one-line reason. Each finding carries the reader's `exposure`
+(`trigger`, `vs_today`, `control`) unchanged unless your triage records why; `exposure: unrated`
+only for a reader that gave none. A finding a reader could not
 classify is one `open_questions` entry carrying the reader's recommendation — never the heavier
 `kind` by default (SC-22). An unparseable return gets one re-prompt through `on_fail` with
 `feed: [self]`, then escalation, never halt. A finding you dismiss remains assessed-and-dismissed

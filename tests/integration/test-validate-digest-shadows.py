@@ -301,10 +301,11 @@ def case_findings_order():
     with tempfile.TemporaryDirectory() as td:
         repo, fd, head, _ = _checkout(td)
         cfg = _config(td)
+        exposure = {"trigger": "plausible", "vs_today": "regression", "control": "chance"}
         low = {"kind": "form", "scope": "none", "severity": "low", "reader": "code",
-               "summary": "a", "why": "a drifted"}
+               "summary": "a", "why": "a drifted", "exposure": exposure}
         high = {"kind": "substance", "scope": "none", "severity": "high", "reader": "code",
-                "summary": "b", "why": "b fails open"}
+                "summary": "b", "why": "b fails open", "exposure": exposure}
         errs = _errors("harness-code-reviewer", _review(head, findings=[low, high]), fd, cfg)
         check("ranking: low before high is refused", any("not ranked" in e for e in errs), str(errs))
         errs = _errors("harness-code-reviewer", _review(head, findings=[high, low]), fd, cfg)

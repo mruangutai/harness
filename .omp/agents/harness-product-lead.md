@@ -314,7 +314,34 @@ output:
             - reader
             - summary
             - why
+            - exposure
             properties:
+              exposure:
+                anyOf:
+                - type: object
+                  additionalProperties: false
+                  required:
+                  - trigger
+                  - vs_today
+                  - control
+                  properties:
+                    trigger:
+                      enum:
+                      - routine
+                      - plausible
+                      - contrived
+                    vs_today:
+                      enum:
+                      - regression
+                      - no_worse
+                    control:
+                      enum:
+                      - harness
+                      - chance
+                      - user
+                      - adversary
+                - enum:
+                  - unrated
               kind:
                 enum:
                 - substance
@@ -409,11 +436,21 @@ You never spawn a lead.
 
 **Between the reader wave and `apply`, write your reader fan-in to `<run_dir>/panel-c<N>.md`** —
 one fenced yaml block whose `DIGEST:` carries `readers:` (every reader `ran` or `skipped` with
-persona and reason) and `findings:` (reader, summary, severity, `kind`) — because pm's `apply`
-step runs `plan-merge.py record-panel --digest` on that path and only you know whether
+persona and reason) and `findings:` (reader, summary, severity, `kind`, `exposure`) — because pm's
+`apply` step runs `plan-merge.py record-panel --digest` on that path and only you know whether
 `fable-advisor` ran. SHAPE is yours; never CONTENT and never IDENTITY: transcribe `unrated`
-unchanged (gating-equivalent to high), never assign a PF- id, never revise a reader's severity or
-`kind`. If `fable-advisor` does not resolve or preflight refuses it, SKIP it and RECORD a readers
+unchanged (gating-equivalent to high), never assign a PF- id, never revise a reader's `kind`, and
+revise its severity only downward under the practicality rule, applied before you write
+`panel-c<N>.md`, with a one-line reason recorded beside the finding naming the reader's original
+severity and exposure. Each finding carries the
+reader's `exposure` (`trigger`, `vs_today`, `control`); a `fable-advisor` finding with none is
+transcribed as `exposure: unrated`, never invented. In this team a `contrived`, `no_worse`,
+non-adversary finding is lowered to at most `med`, never dropped, so its panel row exists and, left
+open, does not deny its reader the carve-out (DEC-123 as amended). `plan-merge.py record-panel`
+refuses a finding without `exposure` and a contrived, no_worse, non-adversary finding above `med`.
+Never raise a severity. A remedy that would touch signed text reaches the operator
+(`open_questions` or `ESCALATE`) only when its finding survives this triage.
+If `fable-advisor` does not resolve or preflight refuses it, SKIP it and RECORD a readers
 entry with the literal words `status skipped`, its persona, and the host's reason — never report
 that it ran and found nothing. Your close-out digest carries the same `readers:` (now including
 `goalcheck`) and `findings:`.

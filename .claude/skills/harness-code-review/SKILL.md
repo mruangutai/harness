@@ -129,13 +129,39 @@ finding that downgrades the mission; never another panel cycle). The `findings:`
 When you genuinely cannot classify one, return one `open_questions` entry with your recommendation
 rather than defaulting to `substance` — the heavier route is not the safe one (DEC-230).
 
+## Exposure — the practicality rule
+
+A finding's severity rests on its exposure, not only its mechanism. Before rating one, answer
+three questions and record them as its `exposure`:
+
+- **`trigger`**: who or what causes it, and how often in real use. `routine` happens in ordinary
+  use; `plausible` is a real case that is not the common path; `contrived` needs inputs or timing
+  nobody produces in practice.
+- **`vs_today`**: the consequence compared with today. `regression` is worse than before the
+  change; `no_worse` is a gap that already existed or leaves today's behaviour.
+- **`control`**: who controls the trigger. `harness` is Harness itself; `chance` is an accident of
+  timing or environment; `user` is someone using the system in error; `adversary` is someone
+  trying to break it.
+
+A finding that is `contrived`, `no_worse` and not adversary-controlled is at most `med`: never
+`must_fix`, never an escalation, never the reason for a new test or another fix round. A
+plausible trigger or a regression gets normal severity. **Adversary exception:** an
+adversary-controlled trigger at a real trust boundary (external input, credentials, a gate
+meant to refuse) is not discounted by likelihood, because the attacker chooses the timing.
+
+`validate-digest.py` refuses a discounted finding above `med` or named in `must_fix`.
+`severity_max` and `VERDICT` follow the rule: a discounted finding contributes at most `med` to
+`severity_max` and never fails the review on its own. Unsure of a finding's exposure? Return one
+`open_questions` entry with your recommendation (DEC-230) rather than writing `unrated`, which is
+a lead's transcription of a reader that gave none.
+
 ## What gates, and what does not
 
 | Severity | Meaning |
 |---|---|
 | `critical` | data loss, security hole, or certain breakage |
 | `high` | wrong behaviour in a realistic case |
-| `med` | wrong behaviour in an unlikely case, or real maintainability cost |
+| `med` | wrong behaviour in an unlikely case, or real maintainability cost, or a contrived trigger no worse than today |
 | `low` / `info` | worth knowing, not worth blocking |
 
 - `must_fix` non-empty **or** `severity_max >= high` → **`FAIL`**

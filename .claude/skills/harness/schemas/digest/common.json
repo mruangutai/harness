@@ -116,6 +116,45 @@
       "type": "string",
       "pattern": "^(T-[0-9]+|none)$"
     },
+    "exposure": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trigger",
+            "vs_today",
+            "control"
+          ],
+          "properties": {
+            "trigger": {
+              "enum": [
+                "routine",
+                "plausible",
+                "contrived"
+              ]
+            },
+            "vs_today": {
+              "enum": [
+                "regression",
+                "no_worse"
+              ]
+            },
+            "control": {
+              "enum": [
+                "harness",
+                "chance",
+                "user",
+                "adversary"
+              ]
+            }
+          }
+        },
+        {
+          "const": "unrated"
+        }
+      ]
+    },
     "finding": {
       "type": "object",
       "additionalProperties": false,
@@ -125,9 +164,13 @@
         "severity",
         "reader",
         "summary",
-        "why"
+        "why",
+        "exposure"
       ],
       "properties": {
+        "exposure": {
+          "$ref": "common.json#/$defs/exposure"
+        },
         "kind": {
           "enum": [
             "substance",

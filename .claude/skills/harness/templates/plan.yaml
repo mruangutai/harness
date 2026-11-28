@@ -46,6 +46,7 @@ panel:
       reader: fable-advisor          # the REPORTING PERSONA, as its contract writes it — not a
                                      # slot; half the finding's id, so keep it stable per reporter
       kind: substance                # substance | form | proportionality
+      exposure: {trigger: plausible, vs_today: regression, control: chance}  # or unrated; required on new rows, the practicality rule caps a contrived no_worse non-adversary finding at med
       # scope: task|mission          # proportionality findings only (DEC-228)
       summary: <one line>
       disposition: open              # open | resolved; risk acceptance is --overrule, never this

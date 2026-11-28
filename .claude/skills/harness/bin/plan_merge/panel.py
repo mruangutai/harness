@@ -468,13 +468,30 @@ def _digest_finding(finding, where):
             5, [f"plan-merge: {where} is missing {', '.join(absent)} — reader and summary are "
                 "the finding's identity, severity is what gates."])
     _validate_finding_kind(finding, where)
+    _validate_finding_exposure(finding, where)
     reader, summary = str(finding["reader"]), str(finding["summary"])
     entry = {"id": panel_findings.finding_id(reader, summary), "severity": str(finding["severity"]),
              "reader": reader, "kind": finding["kind"], "summary": summary,
              "disposition": "open"}
     if finding["kind"] == "proportionality":
         entry["scope"] = finding["scope"]
+    entry["exposure"] = finding["exposure"]
     return entry
+
+
+def _validate_finding_exposure(finding, where):
+    """The practicality rule at the writer (FEAT-2622 D-05): every new row carries exposure, and
+    a discounted finding above med is refused."""
+    if "exposure" not in finding:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {where} is missing exposure — every finding carries exposure, and a "
+                "reader that gave none is transcribed as exposure unrated by its lead (DEC-206)."])
+    faults = panel_findings.exposure_faults(finding["exposure"])
+    if faults:
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {where} {fault}" for fault in faults])
+    fault = panel_findings.practicality_fault(finding)
+    if fault:
+        raise harness_merge.MergeRefusal(5, [f"plan-merge: {where} {fault}"])
 
 
 def _digest_findings(digest, what):
