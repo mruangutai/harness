@@ -33,7 +33,6 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
-# Same sys.path anchor idiom as tests/integration/test-gh-sync.py:11-16.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
 _BIN = os.path.join(_ROOT, ".claude", "skills", "harness", "bin")
@@ -46,8 +45,7 @@ GH = "gh"
 
 
 def _verdict(line):
-    print(f"probe-issue-types: {line}")
-    sys.stdout.flush()
+    print(f"probe-issue-types: {line}", flush=True)
 
 
 def _skip(reason):
@@ -65,38 +63,23 @@ def _load_config():
 
 
 def _classify(repo):
-    # NEVER append --repo here: `gh api graphql` rejects it ("unknown flag") on the
-    # gh CLI version this probe was verified against - owner/name already travel as
-    # GraphQL variables inside capability_query_args(repo), which is the whole of
-    # what a graphql call needs. gh-sync.py's detect_issue_types no longer appends
-    # --repo either (operator ruling F-02 / D-22): gh api has no --repo flag at all,
-    # so gh-sync.py now calls capability_query_args(repo) bare, same as here.
+    # Never append --repo: gh api graphql has no such flag; owner/name travel as
+    # GraphQL variables inside capability_query_args(repo).
     r = subprocess.run(
         [GH] + gh_issue_types.capability_query_args(repo),
         capture_output=True, text=True)
     return gh_issue_types.classify_capability(r.returncode, r.stdout)
 
 
-def _report_or_skip(repo, on_available):
-    """Classify `repo` and dispatch the shared absent/query_failed outcomes.
-
-    `on_available(declared)` handles the one outcome that differs between the
-    default invocation (print CAPABILITY PRESENT) and the opt-in (attempt a live
-    create); everything else - the wording and exit behaviour of ABSENT and
-    query_failed - is identical on both paths (T-10 intent sections 3-4 and 6)."""
+def _declared_or_exit(repo):
+    """Classify `repo`; exit on absent or query_failed, else return the declared types."""
     state, declared, message = _classify(repo)
     if state == "absent":
         _verdict(f"CAPABILITY ABSENT {repo} declares no native issue types")
         sys.exit(0)
     if state == "query_failed":
         _skip(f"capability query failed on {repo} ({message})")
-    on_available(declared)
-
-
-def _print_capability_present(repo, declared):
-    names = ", ".join(sorted(declared))
-    _verdict(f"CAPABILITY PRESENT {repo} declares native issue types {names}")
-    sys.exit(0)
+    return declared
 
 
 def _read_back_issue_type(target, number):
@@ -159,7 +142,7 @@ def _live_pass(target, cfg, declared):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--create-in", metavar="TARGET", default=None,
+    parser.add_argument("--create-in", metavar="TARGET",
                          help="opt into creating one throwaway issue in TARGET (owner/name)")
     args = parser.parse_args()
     target = args.create_in
@@ -179,10 +162,11 @@ def main():
         # Configured-repository availability gate: exempt when the opt-in was given.
         if not github_cfg["sync"]:
             _skip(f"github.sync is disabled{tag}")
-        _report_or_skip(repo, lambda declared: _print_capability_present(repo, declared))
-        return
+        names = ", ".join(sorted(_declared_or_exit(repo)))
+        _verdict(f"CAPABILITY PRESENT {repo} declares native issue types {names}")
+        sys.exit(0)
 
-    _report_or_skip(target, lambda declared: _live_pass(target, cfg, declared))
+    _live_pass(target, cfg, _declared_or_exit(target))
 
 
 if __name__ == "__main__":

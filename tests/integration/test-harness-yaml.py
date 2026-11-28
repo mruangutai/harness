@@ -1,35 +1,23 @@
 #!/usr/bin/env python3
-"""Tests for harness_yaml.py (T-03, not yet written when this lands).
+"""Tests for harness_yaml.py: the YAML loader, manifest_domains(), load_plan() and the
+PyYAML bootstrap/require paths."""
+from integration_support import ROOT as _ROOT, BIN as _BIN
 
-RED by design (T-02): every test below imports `harness_yaml` from this same
-`bin/` directory. Until T-03 creates that module, every test fails on import
-and the suite is red. Plain `assert`, python3, stdlib only, shaped after
-test-check-state.py's main()-returns-0/1 convention.
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+from unittest import mock  # noqa: E402
 
-Nine tests, named to match PLAN.md T-02 exactly, in that order.
-"""
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import os
-import subprocess
-import sys
-import tempfile
+import artifact_accessors  # noqa: E402
+from check_support import Checks, raises  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-if BIN_DIR not in sys.path:
-    sys.path.insert(0, BIN_DIR)
-import artifact_accessors
+ROOT = str(_ROOT)
+BIN_DIR = str(_BIN)
 
-# Repo root: four levels above .agents/skills/harness/bin. HARNESS_PROJECT_DIR
-# overrides when the caller has already resolved it (run-unit-tests.py does).
-REPO_ROOT = os.environ.get("HARNESS_PROJECT_DIR") or os.path.abspath(
-    os.path.join(BIN_DIR, "..", "..", "..", "..")
-)
+# HARNESS_PROJECT_DIR overrides when the caller has already resolved it (run-unit-tests.py
+# does, and the BUG-442 mutant children below repoint it at a scratch manifest).
+REPO_ROOT = os.environ.get("HARNESS_PROJECT_DIR") or ROOT
 MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
 
 # D-03 equivalence fixture: the PRE-change collect() output from
@@ -145,12 +133,8 @@ def test_duplicate_key_raises():
     own duplicate-key error, and a normal mapping is unaffected."""
     import harness_yaml as hy
 
-    raised = False
-    try:
-        hy.load_str("id: first\nid: second\n", "t")
-    except hy.DuplicateKeyError:
-        raised = True
-    assert raised, "expected hy.DuplicateKeyError on a repeated top-level key"
+    assert raises(lambda: hy.load_str("id: first\nid: second\n", "t"), hy.DuplicateKeyError) is not None, (
+        "expected hy.DuplicateKeyError on a repeated top-level key")
 
     result = hy.load_str("a: 1\nb: two\n", "t")
     assert result == {"a": 1, "b": "two"}, f"normal mapping came back wrong: {result!r}"
@@ -161,12 +145,8 @@ def test_nested_duplicate_key_raises():
     also raise on a repeat nested inside a mapping."""
     import harness_yaml as hy
 
-    raised = False
-    try:
-        hy.load_str("outer:\n  id: first\n  id: second\n", "t")
-    except hy.DuplicateKeyError:
-        raised = True
-    assert raised, "expected hy.DuplicateKeyError on a nested repeated key"
+    assert raises(lambda: hy.load_str("outer:\n  id: first\n  id: second\n", "t"),
+                  hy.DuplicateKeyError) is not None, "expected hy.DuplicateKeyError on a nested repeated key"
 
 
 def test_bare_date_scalar_stays_str():
@@ -191,7 +171,6 @@ def test_int_and_bool_resolvers_are_not_stripped():
 def test_manifest_domains_matches_the_regex_walk_on_the_real_manifest():
     """D-03 equivalence proof: manifest_domains() must equal the pre-change
     collect() logic for every agent in this repo's real manifest."""
-    import harness_yaml as hy
 
     for agent, (expected_mine, expected_shared) in COLLECT_FIXTURE.items():
         mine, shared = artifact_accessors.manifest_domains(MANIFEST_PATH, agent)
@@ -375,7 +354,7 @@ def test_docs_domain_witness_reddens_on_addition_removal_and_census_drift():
             f"{label}: witness did not report FAIL for the exhaustiveness test\n"
             f"stdout:\n{child.stdout}"
         )
-        assert 'ok   test_bare_date_scalar_stays_str' in child.stdout, (
+        assert 'PASS test_bare_date_scalar_stays_str' in child.stdout, (
             f"{label}: anti-false-red control missing — main() wraps each test in its own "
             f"try/except (see main() at the foot of this file), so an unrelated test printing ok "
             f"alongside the witness's FAIL rules out an import-time or whole-file parse "
@@ -387,7 +366,6 @@ def test_manifest_domains_excludes_non_canonical_read_true():
     """D-13: read: yes / read: True resolve truthy under safe_load and must be
     excluded from `mine`, same as the canonical read: true. read: no entries
     at otherwise-identical paths must still land in `mine`."""
-    import harness_yaml as hy
 
     manifest = """
 teams:
@@ -426,9 +404,7 @@ def test_bootstrap_marker_lifecycle():
         os.makedirs(harness_dir, exist_ok=True)
         marker = os.path.join(harness_dir, ".pyyaml-bootstrap")
 
-        orig_yaml = hy.yaml
-        hy.yaml = None
-        try:
+        with mock.patch.object(hy, "yaml", None):
             # case 1: absent -> writes marker, allows
             allowed_1 = hy.require_or_bootstrap(tmp, payload={"session_id": "sess-A"})
             assert allowed_1 is True, "expected allow on first (absent-marker) call"
@@ -450,8 +426,6 @@ def test_bootstrap_marker_lifecycle():
                 assert allowed_4 is False, "expected block when the marker write fails"
             finally:
                 os.chmod(harness_dir, 0o700)
-        finally:
-            hy.yaml = orig_yaml
 
 
 def test_marker_self_unlinks_when_yaml_imports():
@@ -475,16 +449,9 @@ def test_marker_self_unlinks_when_yaml_imports():
         with open(marker, "w", encoding="utf-8") as f:
             f.write("sess-A")
 
-        orig_project_dir = os.environ.get("HARNESS_PROJECT_DIR")
-        os.environ.pop("CLAUDE_PROJECT_DIR", None)
-        os.environ["HARNESS_PROJECT_DIR"] = tmp
-        try:
+        with mock.patch.dict(os.environ, {"HARNESS_PROJECT_DIR": tmp}):
+            os.environ.pop("CLAUDE_PROJECT_DIR", None)
             hy.require_or_die()  # yaml is importable in this environment (T-01)
-        finally:
-            if orig_project_dir is None:
-                os.environ.pop("HARNESS_PROJECT_DIR", None)
-            else:
-                os.environ["HARNESS_PROJECT_DIR"] = orig_project_dir
         assert not os.path.exists(marker), "require_or_die() must unlink the marker"
 
         # Recreate the marker; a bare import (no require_or_die/require_or_bootstrap
@@ -516,18 +483,9 @@ def test_require_or_die_ignores_the_retired_project_dir_variable():
         with open(marker, "w", encoding="utf-8") as f:
             f.write("sess-A")
 
-        orig_claude = os.environ.get("CLAUDE_PROJECT_DIR")
-        orig_harness = os.environ.get("HARNESS_PROJECT_DIR")
-        os.environ.pop("HARNESS_PROJECT_DIR", None)
-        os.environ["CLAUDE_PROJECT_DIR"] = tmp
-        try:
+        with mock.patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": tmp}):
+            os.environ.pop("HARNESS_PROJECT_DIR", None)
             hy.require_or_die()
-        finally:
-            os.environ.pop("CLAUDE_PROJECT_DIR", None)
-            if orig_claude is not None:
-                os.environ["CLAUDE_PROJECT_DIR"] = orig_claude
-            if orig_harness is not None:
-                os.environ["HARNESS_PROJECT_DIR"] = orig_harness
         assert os.path.exists(marker), (
             "CLAUDE_PROJECT_DIR redirected require_or_die()'s root — it must be inert"
         )
@@ -673,23 +631,18 @@ def test_missing_pyyaml_is_reportable_not_a_second_crash():
     callers, so nothing intercepted it upstream either.
     """
     import harness_yaml as hy
-    saved = hy.yaml
-    try:
-        hy.yaml = None
+    with mock.patch.object(hy, "yaml", None):
         try:
             hy.load_str("a: 1", "probe")
-            return False, "no exception raised at all"
         except hy.MissingDependency as e:
-            if "pip install" not in str(e):
-                return False, f"message lacks the install command: {e}"
-        except Exception as e:
-            return False, f"raised {type(e).__name__}, not MissingDependency: {e}"
-    finally:
-        hy.yaml = saved
+            assert "pip install" in str(e), f"message lacks the install command: {e}"
+        except Exception as e:  # noqa: BLE001 - any other class is the second crash
+            raise AssertionError(f"raised {type(e).__name__}, not MissingDependency: {e}")
+        else:
+            raise AssertionError("no exception raised at all")
     # And it must be catchable by a caller that only knows about YamlParseError.
-    if not issubclass(hy.MissingDependency, hy.YamlParseError):
-        return False, "MissingDependency does not subclass YamlParseError"
-    return True, ""
+    assert issubclass(hy.MissingDependency, hy.YamlParseError), (
+        "MissingDependency does not subclass YamlParseError")
 
 
 def test_duplicate_key_is_catchable_as_a_parse_error():
@@ -706,27 +659,21 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     while a comment claimed it was preserved.
     """
     import harness_yaml as hy
-    if not issubclass(hy.DuplicateKeyError, hy.YamlParseError):
-        return False, "DuplicateKeyError does not subclass YamlParseError"
+    assert issubclass(hy.DuplicateKeyError, hy.YamlParseError), (
+        "DuplicateKeyError does not subclass YamlParseError")
     # The position must be the DUPLICATE's own line, not merely "a" position. A first
     # version of the mark fix passed the loop's last key_node, so the number was right
     # only when the duplicate happened to be last — which it was, in the fixture I
     # tested with. Asserting a SPECIFIC line is what makes this discriminating.
-    try:
-        hy.load_str("a: 1\nb: 2\nc: 3\na: 4\n", "probe")
-        return False, "a duplicate key on line 4 did not raise"
-    except hy.DuplicateKeyError as e:
-        if "line 4" not in str(e):
-            return False, f"reported the wrong line for a line-4 duplicate: {e}"
-    try:
-        hy.load_str("cost: 1\ncost: 2\n", "probe")
-        return False, "a duplicate key did not raise"
-    except hy.YamlParseError as e:          # the caller's generic handler
-        if "DEC-156" not in str(e):
-            return False, f"message lacks DEC-156 guidance: {e}"
-        if not isinstance(e, hy.DuplicateKeyError):
-            return False, "caught as YamlParseError but is not a DuplicateKeyError"
-    return True, ""
+    e = raises(lambda: hy.load_str("a: 1\nb: 2\nc: 3\na: 4\n", "probe"), hy.DuplicateKeyError)
+    assert e is not None, "a duplicate key on line 4 did not raise"
+    assert "line 4" in str(e), f"reported the wrong line for a line-4 duplicate: {e}"
+    # the caller's generic handler
+    e = raises(lambda: hy.load_str("cost: 1\ncost: 2\n", "probe"), hy.YamlParseError)
+    assert e is not None, "a duplicate key did not raise"
+    assert "DEC-156" in str(e), f"message lacks DEC-156 guidance: {e}"
+    assert isinstance(e, hy.DuplicateKeyError), (
+        "caught as YamlParseError but is not a DuplicateKeyError")
 
 
 def test_merge_key_override_is_not_a_duplicate():
@@ -749,19 +696,14 @@ def test_merge_key_override_is_not_a_duplicate():
     try:
         got = hy.load_str(DOC, "probe")["child"]
     except hy.DuplicateKeyError:
-        return False, "a legal merge-key override raised DuplicateKeyError"
+        raise AssertionError("a legal merge-key override raised DuplicateKeyError")
     want = _y.safe_load(DOC)["child"]
-    if got != want:
-        return False, f"merge semantics differ from stdlib: {got} != {want}"
+    assert got == want, f"merge semantics differ from stdlib: {got} != {want}"
     # ...and real duplicates must STILL raise, at both depths.
     for label, doc in (("top-level", "cost: 1\ncost: 2\n"),
                        ("nested", "steps:\n  - id: s\n    cost: 1\n    cost: 2\n")):
-        try:
-            hy.load_str(doc, "probe")
-            return False, f"a {label} duplicate stopped raising"
-        except hy.DuplicateKeyError:
-            pass
-    return True, ""
+        assert raises(lambda: hy.load_str(doc, "probe"), hy.DuplicateKeyError) is not None, (
+            f"a {label} duplicate stopped raising")
 
 
 def test_c_loader_is_used_when_libyaml_is_available():
@@ -816,22 +758,30 @@ tasks:
 """
 
 
-def _plan(tmp, text):
-    p = os.path.join(tmp, "plan.yaml")
-    with open(p, "w", encoding="utf-8") as f:
-        f.write(text)
-    return p
+def _load_plan_text(text):
+    """Write text to plan.yaml in a fresh temp dir and return load_plan()'s result."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "plan.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return artifact_accessors.load_plan(path)
+
+
+def _must_reject(text, exc, label):
+    """load_plan(text) must raise exc; return the instance for message checks."""
+    error = raises(lambda: _load_plan_text(text), exc)
+    if error is None:
+        raise AssertionError(label)
+    return error
 
 
 def test_load_plan_accepts_a_well_formed_plan():
     """The discriminator. Every rejection case below passes against a load_plan that
     rejects everything, so one acceptance case is what makes them mean anything."""
-    import harness_yaml as hy
 
-    with tempfile.TemporaryDirectory() as tmp:
-        doc = artifact_accessors.load_plan(_plan(tmp, GOOD_PLAN))
-        assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
-        assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
+    doc = _load_plan_text(GOOD_PLAN)
+    assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
+    assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
 
 
 def test_every_required_task_field_is_actually_required():
@@ -864,16 +814,11 @@ def test_every_required_task_field_is_actually_required():
     for field in hy.REQUIRED_TASK_FIELDS:
         doc = yaml.safe_load(GOOD_PLAN)
         del doc["tasks"][0][field]
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                artifact_accessors.load_plan(_plan(tmp, yaml.safe_dump(doc)))
-            except hy.PlanSchemaError as e:
-                assert field in str(e), (
-                    f"omitting {field!r} raised, but the message does not name it: {e}")
-            else:
-                raise AssertionError(
-                    f"a plan with no {field!r} loaded CLEAN — it is in "
-                    f"REQUIRED_TASK_FIELDS but nothing enforces it")
+        e = _must_reject(yaml.safe_dump(doc), hy.PlanSchemaError,
+                         f"a plan with no {field!r} loaded CLEAN — it is in "
+                         f"REQUIRED_TASK_FIELDS but nothing enforces it")
+        assert field in str(e), (
+            f"omitting {field!r} raised, but the message does not name it: {e}")
 
 
 def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
@@ -898,11 +843,10 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
 
     station_only = ("schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"
                     "station_only: true\ntasks: []\n")
-    with tempfile.TemporaryDirectory() as tmp:
-        doc = artifact_accessors.load_plan(_plan(tmp, station_only))
-        assert doc["tasks"] == [], doc["tasks"]
-        assert doc["status"] == "review", doc["status"]
-        assert doc["station_only"] is True, doc["station_only"]
+    doc = _load_plan_text(station_only)
+    assert doc["tasks"] == [], doc["tasks"]
+    assert doc["status"] == "review", doc["status"]
+    assert doc["station_only"] is True, doc["station_only"]
 
     # THE NEGATIVE HALF, and it is the one that keeps the original reason intact: an empty task
     # list with NO station is still the fail-open the message warned about.
@@ -938,13 +882,7 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
          "    execution_mode: main-session-direct\n    status: done\n    files: [a.py]\n"
          "    verify: run it\n    intent: do it\n"),
     ):
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                artifact_accessors.load_plan(_plan(tmp, text))
-            except hy.PlanSchemaError:
-                pass
-            else:
-                raise AssertionError(f"ACCEPTED what it must reject: {label}")
+        _must_reject(text, hy.PlanSchemaError, f"ACCEPTED what it must reject: {label}")
 
 
 def _pending_plan(verify_line, approval_status="pending"):
@@ -988,9 +926,8 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         ("TBD", "approved"),
     )
     for verify_line, status in accepted:
-        with tempfile.TemporaryDirectory() as tmp:
-            doc = artifact_accessors.load_plan(_plan(tmp, _pending_plan(verify_line, status)))
-            assert doc["tasks"][0]["id"] == "T-01", doc
+        doc = _load_plan_text(_pending_plan(verify_line, status))
+        assert doc["tasks"][0]["id"] == "T-01", doc
 
     rejected = (
         ("MANUAL - build the missing widget", "hyphen, not the em dash"),
@@ -999,13 +936,9 @@ def test_load_plan_verify_shape_gated_on_pending_approval():
         ("pnpmify the config", "a word that only starts with a runner name"),
     )
     for verify_line, label in rejected:
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                artifact_accessors.load_plan(_plan(tmp, _pending_plan(verify_line)))
-            except hy.PlanSchemaError as e:
-                assert "T-01" in str(e), f"{label}: message does not name the task: {e}"
-            else:
-                raise AssertionError(f"ACCEPTED what it must reject ({label}): {verify_line!r}")
+        e = _must_reject(_pending_plan(verify_line), hy.PlanSchemaError,
+                         f"ACCEPTED what it must reject ({label}): {verify_line!r}")
+        assert "T-01" in str(e), f"{label}: message does not name the task: {e}"
 
 
 def test_load_plan_refuses_a_folded_verify_while_pending():
@@ -1021,22 +954,16 @@ def test_load_plan_refuses_a_folded_verify_while_pending():
             "verify: |", f"verify: {indicator}")
 
     for indicator in (">", ">-", ">+"):
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                artifact_accessors.load_plan(_plan(tmp, plan(indicator)))
-            except hy.PlanSchemaError as e:
-                msg = str(e)
-                assert "T-01" in msg, f"{indicator}: message does not name the task: {msg}"
-                assert "folded" in msg and "'|'" in msg, f"{indicator}: no fix named: {msg}"
-            else:
-                raise AssertionError(f"ACCEPTED a folded verify: {indicator!r} on a pending plan")
+        msg = str(_must_reject(plan(indicator), hy.PlanSchemaError,
+                               f"ACCEPTED a folded verify: {indicator!r} on a pending plan"))
+        assert "T-01" in msg, f"{indicator}: message does not name the task: {msg}"
+        assert "folded" in msg and "'|'" in msg, f"{indicator}: no fix named: {msg}"
 
     # Controls: the same text as a literal block loads while pending, and a folded block on an
     # approved plan still loads (signed text is carried verbatim, never re-checked).
     for indicator, status in (("|", "pending"), ("|-", "pending"), (">", "approved")):
-        with tempfile.TemporaryDirectory() as tmp:
-            doc = artifact_accessors.load_plan(_plan(tmp, plan(indicator, status)))
-            assert doc["tasks"][0]["verify"].startswith("python3 "), doc
+        doc = _load_plan_text(plan(indicator, status))
+        assert doc["tasks"][0]["verify"].startswith("python3 "), doc
 
 
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
@@ -1074,12 +1001,7 @@ def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
             GOOD_PLAN.replace("    verify: |\n      python3 -m pytest\n", ""),
     }
     for label, text in cases.items():
-        with tempfile.TemporaryDirectory() as tmp:
-            try:
-                artifact_accessors.load_plan(_plan(tmp, text))
-            except hy.YamlParseError:
-                continue
-            raise AssertionError(f"ACCEPTED what it must reject: {label}")
+        _must_reject(text, hy.YamlParseError, f"ACCEPTED what it must reject: {label}")
 
 
 def test_load_plan_backticked_path_is_not_silently_cleaned():
@@ -1092,13 +1014,10 @@ def test_load_plan_backticked_path_is_not_silently_cleaned():
     the literal string, so a resolver gets exactly what the author wrote and can say
     it resolves to nothing — rather than guessing which characters were commentary.
     """
-    import harness_yaml as hy
 
     text = GOOD_PLAN.replace("      - src/a.py", "      - src/a.py (delete)")
-    with tempfile.TemporaryDirectory() as tmp:
-        doc = artifact_accessors.load_plan(_plan(tmp, text))
-        got = doc["tasks"][0]["files"][0]
-        assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
+    got = _load_plan_text(text)["tasks"][0]["files"][0]
+    assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
 
 
 def test_load_plan_reports_line_and_column_on_malformed_yaml():
@@ -1107,13 +1026,9 @@ def test_load_plan_reports_line_and_column_on_malformed_yaml():
     pins that it survives to the caller."""
     import harness_yaml as hy
 
-    with tempfile.TemporaryDirectory() as tmp:
-        try:
-            artifact_accessors.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
-        except hy.YamlParseError as e:
-            assert "line" in str(e.original).lower(), f"no position in: {e.original}"
-            return
-        raise AssertionError("malformed YAML was accepted")
+    e = _must_reject("tasks:\n  - id: T-01\n   bad: indent\n", hy.YamlParseError,
+                     "malformed YAML was accepted")
+    assert "line" in str(e.original).lower(), f"no position in: {e.original}"
 
 
 def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
@@ -1130,7 +1045,6 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
     nothing ever tried to parse it.
     """
     import re
-    import harness_yaml as hy
 
     tmpl = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "plan.yaml")
     artifact_accessors.load_plan(tmpl)  # raises on any drift
@@ -1139,11 +1053,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
                 encoding="utf-8").read()
     m = re.search(r"```yaml\n(# plan\.yaml.*?)\n```", spec, re.S)
     assert m, "SPEC.md no longer carries a normative plan.yaml example"
-    with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "plan.yaml")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(m.group(1))
-        artifact_accessors.load_plan(path)
+    _load_plan_text(m.group(1))
 
 
 def test_feat64_load_str_boundary_is_typed():
@@ -1160,24 +1070,20 @@ def test_feat64_load_str_boundary_is_typed():
         assert not isinstance(e, hy.DuplicateKeyError), e
     else:
         raise AssertionError("malformed YAML must raise YamlParseError")
-    real = _y.load
-    _y.load = lambda *a, **k: (_ for _ in ()).throw(TypeError("shape"))
-    try:
+    with mock.patch.object(_y, "load", side_effect=TypeError("shape")):
         try:
             hy.load_str("a: 1", "x")
         except hy.YamlParseError:
             pass
         else:
             raise AssertionError("a TypeError from the parser must become YamlParseError")
-        _y.load = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    with mock.patch.object(_y, "load", side_effect=RuntimeError("unrelated")):
         try:
             hy.load_str("a: 1", "x")
         except RuntimeError:
             pass
         except hy.YamlParseError:
             raise AssertionError("an unrelated RuntimeError must escape load_str, not become YamlParseError")
-    finally:
-        _y.load = real
 
 
 def test_feat64_require_or_die_cleanup_boundary_is_typed():
@@ -1186,19 +1092,15 @@ def test_feat64_require_or_die_cleanup_boundary_is_typed():
     RuntimeError from the resolver escapes."""
     import harness_yaml as hy
     import harness_boundary as hb
-    real = hb.resolve_root
-    hb.resolve_root = lambda *a, **k: (_ for _ in ()).throw(ValueError("no marker"))
-    try:
+    with mock.patch.object(hb, "resolve_root", side_effect=ValueError("no marker")):
         hy.require_or_die()
-        hb.resolve_root = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
+    with mock.patch.object(hb, "resolve_root", side_effect=RuntimeError("unrelated")):
         try:
             hy.require_or_die()
         except RuntimeError:
             pass
         else:
             raise AssertionError("an unrelated RuntimeError must escape require_or_die's cleanup")
-    finally:
-        hb.resolve_root = real
 
 
 TESTS = [
@@ -1239,18 +1141,15 @@ TESTS = [
 
 
 def main():
-    failures = 0
+    C = Checks()
     for t in TESTS:
         try:
             t()
         except Exception as e:  # noqa: BLE001 - a test failing for any reason is a FAIL
-            failures += 1
-            print(f"FAIL {t.__name__}: {e}")
+            C.check(t.__name__, False, f"{type(e).__name__}: {e}")
         else:
-            print(f"ok   {t.__name__}")
-    if failures:
-        sys.exit(1)
-    sys.exit(0)
+            C.check(t.__name__, True)
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

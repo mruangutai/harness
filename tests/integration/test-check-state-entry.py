@@ -7,54 +7,52 @@ cost-log silence, the two enforcement scripts' agreement on every duplicated num
 the crash shapes a malformed tree must report instead of dying on. No test invokes a real
 `gh` binary. INV-9 was retired under DEC-233; INV-28 and INV-30 under DEC-252.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+from integration_support import BIN
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+
 import harness_yaml
-from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, SCRIPT, check_state_source,
-    make_fixture, run, _run_with_gh, _run_with_gh_streams)
+from check_support import Checks
+from check_state_support import (HARNESS_JSON_SYNC_OFF, HARNESS_JSON_SYNC_ON, check_state_source,
+    make_fixture, run)
 from harness_config_support import build_config, write_config
 
+HERE = str(BIN)
+C = Checks()
+check = C.check
 
-def case_a():
-    """sync: true, issues recorded, no numeric parent -> INV-21 note appears, and
-    warn-level means it does not by itself change the exit code (checked against
-    case_b, whose only difference is a recorded parent)."""
+# Exactly the config the hand-built fixtures wrote: sync off and nothing else, so
+# make_fixture's write_config call is the same one these cases made themselves.
+SYNC_OFF_ONLY = json.dumps({"github": {"sync": False}})
+
+
+def inv21(label, harness_json, parent_line, expect_note):
+    """One INV-21 fixture: `expect_note` says whether the note must appear. Returns the exit code.
+
+    (a) sync: true, issues recorded, no numeric parent -> the note appears, and warn-level means
+        it does not by itself change the exit code (checked against (b), whose only difference
+        is a recorded parent).
+    (b) sync: true, issues recorded, parent: 40 -> no note.
+    (c) sync: false, issues recorded, no parent -> no note (vacuous when sync is off).
+    """
     with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, HARNESS_JSON_SYNC_ON, "  parent: none")
+        make_fixture(tmp, harness_json, parent_line)
         code, out = run(tmp)
-        ok = "INV-21" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (a): INV-21 note appears when parent is unrecorded")
-        return ok, code
+    check(label, ("INV-21" in out) == expect_note)
+    return code
 
 
-def case_b():
-    """sync: true, issues recorded, parent: 40 -> no INV-21 note."""
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, HARNESS_JSON_SYNC_ON, "  parent: 40")
-        code, out = run(tmp)
-        ok = "INV-21" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (b): no INV-21 note when parent is recorded")
-        return ok, code
-
-
-def case_c():
-    """sync: false, issues recorded, no parent -> no INV-21 note (vacuous when sync is off)."""
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
-        code, out = run(tmp)
-        ok = "INV-21" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (c): no INV-21 note when github.sync is false")
-        return ok, code
+def _feature_fixture(tmp, feature_text):
+    """make_fixture's sync-off tree with feature.json replaced by `feature_text`; returns .harness."""
+    h = make_fixture(tmp, SYNC_OFF_ONLY, "  parent: none")
+    with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
+        f.write(feature_text)
+    return h
 
 
 
@@ -90,18 +88,11 @@ def case_e():
     assertion would be the weaker test.
     """
     with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write(RUNS_WITH_VALIDATOR_ENTRY)
-        code, out = run(tmp)
-        ok = "review_sha is not pinned" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (e): issue #11 — a commented squad:/id: "
-              f"line still yields the run, so INV-6 fires")
-        if not ok:
-            print("        INV-6 was silent: the run was dropped and the gate failed OPEN")
-        return ok
+        _feature_fixture(tmp, RUNS_WITH_VALIDATOR_ENTRY)
+        _code, out = run(tmp)
+    check("case (e): issue #11 — a commented squad:/id: line still yields the run, so INV-6 fires",
+          "review_sha is not pinned" in out,
+          "INV-6 was silent: the run was dropped and the gate failed OPEN")
 
 
 def case_f():
@@ -112,16 +103,10 @@ def case_f():
     same fail-open with a different cause.
     """
     with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write("runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
+        _feature_fixture(tmp, "runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
         code, out = run(tmp)
-        ok = "does not parse" in out and code == 1
-        print(f"{'ok' if ok else 'FAIL'} - case (f): an unparseable feature.json is "
-              f"reported and exits 1 (got exit {code})")
-        return ok
+    check(f"case (f): an unparseable feature.json is reported and exits 1 (got exit {code})",
+          "does not parse" in out and code == 1)
 
 
 def case_k():
@@ -141,16 +126,12 @@ def case_k():
         green before and after — and it is what stops a later tidy-up removing the
         entry as dead.
     """
-    results = []
     for label, cost_block in (("no cost: block", ""), ("with a cost: block", "cost:\n  usd: 12.83\n")):
         with tempfile.TemporaryDirectory() as tmp:
-            h = os.path.join(tmp, ".harness")
+            h = _feature_fixture(tmp, json.dumps(
+                {"feature_id": "FEAT-TEST", "review_sha": "none", "runs": []}))
             rundir = os.path.join(h, "harness", "features", "FEAT-TEST", "runs", "2026-08-05-01-product")
             os.makedirs(rundir, exist_ok=True)
-            write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-            with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-                json.dump(
-                    {"feature_id": "FEAT-TEST", "review_sha": "none", "runs": []}, f)
             with open(os.path.join(rundir, "state.yaml"), "w") as f:
                 f.write("schema_version: 1\n"
                         "run_id: 2026-08-05-01-product\n"
@@ -161,15 +142,11 @@ def case_k():
                         "steps: []\n" + cost_block)
             with open(os.path.join(rundir, "digest.md"), "w") as f:
                 f.write("# digest\n")
-            code, out = run(tmp)
-            # Assert on the SPECIFIC message, not the exit code: this fixture is
-            # minimal and unrelated invariants may legitimately warn.
-            hit = "has no cost: block" in out or "unknown top-level key" in out
-            results.append(not hit)
-            print(f"{'ok' if not hit else 'FAIL'} - case (k) {label}: no cost violation")
-            if hit:
-                print(f"        output was: {out.strip()[:200]}")
-    return all(results)
+            _code, out = run(tmp)
+        # Assert on the SPECIFIC message, not the exit code: this fixture is
+        # minimal and unrelated invariants may legitimately warn.
+        hit = "has no cost: block" in out or "unknown top-level key" in out
+        check(f"case (k) {label}: no cost violation", not hit, f"output was: {out.strip()[:200]}")
 
 
 
@@ -191,12 +168,9 @@ def case_t():
         with open(os.path.join(fdir, "runs"), "w") as f:   # a FILE, not a directory
             f.write("not a directory\n")
         _code, out = run(tmp)
-        ok = out.strip() != "" and "Traceback" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (t): a plain file named `runs` does not "
-              f"crash INV-18 (empty stdout means the checker crashed)")
-        if not ok:
-            print(f"       | stdout: {out.strip()[:200]!r}")
-        return ok
+    check("case (t): a plain file named `runs` does not crash INV-18 (empty stdout means the "
+          "checker crashed)", out.strip() != "" and "Traceback" not in out,
+          f"stdout: {out.strip()[:200]!r}")
 
 
 FLEET_YAML = """schema: factory-fleet/1
@@ -260,10 +234,9 @@ def _inv24_case_passes(lines, subject, expect_hit, needles, require_control):
 
 def case_s():
     """INV-24 factory claims, including strict-reader rejection at its input boundary."""
-    results = []
     control_block = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
 
-    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True,
+    def scenario(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True,
               strict_rejection=False):
         feats = dict(features)
         require_control = not expect_hit and control and fleet is not None
@@ -275,55 +248,51 @@ def case_s():
         lines, subject = _inv24_output_lines(out, strict_rejection)
         ok = _inv24_case_passes(
             lines, subject, expect_hit, needles, require_control)
-        print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
-        if not ok:
-            print(f"       | INV-24 lines: {lines!r}")
-        results.append(ok)
+        check(f"case (s) INV-24: {label}", ok, f"INV-24 lines: {lines!r}")
 
     listed = "factory:\n  repo: acme/widget\n  parent: 10\n  issues:\n    T-01: 11\n"
-    check("a listed repository passes", {"FEAT-A": listed}, False)
-    check("an UNLISTED repository is a violation naming the repo",
+    scenario("a listed repository passes", {"FEAT-A": listed}, False)
+    scenario("an UNLISTED repository is a violation naming the repo",
           {"FEAT-A": "factory:\n  repo: acme/nope\n  issues:\n    T-01: 11\n"},
           True, needles=("acme/nope",))
-    check("two features recording one repo+issue names BOTH",
+    scenario("two features recording one repo+issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: 11\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-    check("one feature's PARENT equal to another's issue names BOTH",
+    scenario("one feature's PARENT equal to another's issue names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-09: 12\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-    check("two features sharing one PARENT names BOTH",
+    scenario("two features sharing one PARENT names BOTH",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 10\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 10\n"},
           True, needles=("FEAT-A", "FEAT-B"))
-    check("a block with NO parent key is silent",
+    scenario("a block with NO parent key is silent",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n"}, False)
-    check("factory state with NO fleet file names the FLEET as the problem",
+    scenario("factory state with NO fleet file names the FLEET as the problem",
           {"FEAT-A": listed}, True, needles=("FEAT-A", "fleet.yaml", "is absent"), fleet=None)
-    check("a null factory.repo is a violation, not a silent pass (C1)",
+    scenario("a null factory.repo is a violation, not a silent pass (C1)",
           {"FEAT-A": "factory:\n  repo: null\n  issues:\n    T-01: 11\n"},
           True, needles=("not a repository name",))
-    check("a null issue number is named, not treated as a collision (C1)",
+    scenario("a null issue number is named, not treated as a collision (C1)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: null\n",
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: null\n"},
           True, needles=("not a recorded issue number",), strict_rejection=True)
-    check("a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)",
+    scenario("a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-01: 11\n"},
           True, needles=("twice within its own factory", "task T-01", "the parent"))
-    check("a quoted issue number is a number here, as it is for INV-21 (D-03)",
+    scenario("a quoted issue number is a number here, as it is for INV-21 (D-03)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  parent: "40"\n  issues:\n    T-01: "41"\n'},
           False)
-    check("a quoted number still collides across features (D-03 does not weaken the check)",
+    scenario("a quoted number still collides across features (D-03 does not weaken the check)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  issues:\n    T-01: "41"\n',
            "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-02: 41\n"},
           True, needles=("both record acme/widget issue 41",))
-    check("an issues block that is neither a mapping nor a list is reported, not skipped",
+    scenario("an issues block that is neither a mapping nor a list is reported, not skipped",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues: 42\n"},
           True, needles=("not a JSON object",), strict_rejection=True)
-    check("a tree with no factory blocks at all is silent",
+    scenario("a tree with no factory blocks at all is silent",
           {"FEAT-A": None, "FEAT-B": None}, False, control=False)
-    return all(results)
 
 
 def case_o():
@@ -338,23 +307,20 @@ def case_o():
     Issue #132 tripled the exposure: before it, only the handoff cap of 60 appeared in
     both files. This case is the drift detector that duplication now owes.
     """
-    import re as _re
-    here = _anchor_bin
     # CHECK_DOMAIN_BIN, not a hard-coded name — the same override this case's own
     # comment demands one line below, and it was hard-coded here anyway. Review pointed
     # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
     # having opened the real file instead.
     dom = open(os.environ.get("CHECK_DOMAIN_BIN")
-               or os.path.join(here, "check-domain.py"), encoding="utf-8").read()
+               or os.path.join(HERE, "check-domain.py"), encoding="utf-8").read()
     # SCRIPT, not a hard-coded "check-state.py". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
     # it never opened, which is the failure mode the override exists to expose.
     sta = check_state_source()                # FEAT-69: the entry plus every package file
 
-    def budget(text, label, pat):
-        m = _re.findall(pat, text)
-        return sorted({int(x) for x in m}), label
+    def budget(text, pat):
+        return sorted({int(x) for x in re.findall(pat, text)})
 
     checks, ok_all = [], True
     for what, dpat, spat in (
@@ -375,8 +341,7 @@ def case_o():
         ("CLAUDE.md lines",     r"CLAUDE\.md is \{len\(lines\)\} lines — budget is (\d+)",
                                 r"CLAUDE\.md is \{len\(_cml\)\} lines — budget is (\d+)"),
     ):
-        a, _ = budget(dom, what, dpat)
-        b, _ = budget(sta, what, spat)
+        a, b = budget(dom, dpat), budget(sta, spat)
         good = bool(a) and a == b
         ok_all &= good
         checks.append(f"{what}: check-domain {a or 'NOT FOUND'} vs check-state {b or 'NOT FOUND'}")
@@ -386,10 +351,10 @@ def case_o():
     # gates read it BY NAME, and every fallback literal they carry for an unimportable helper
     # equals it. The third is the one a reader would miss — a fallback saying 250 would
     # silently enforce a different budget on exactly the path nobody tests.
-    schema_src = open(os.path.join(here, "feature_record", "schema.py"), encoding="utf-8").read()
-    declared = _re.search(r"^FEATURE_JSON_LINE_BUDGET = (\d+)$", schema_src, _re.M)
+    schema_src = open(os.path.join(HERE, "feature_record", "schema.py"), encoding="utf-8").read()
+    declared = re.search(r"^FEATURE_JSON_LINE_BUDGET = (\d+)$", schema_src, re.M)
     fallbacks = sorted({int(x) for x in
-                        _re.findall(r"_(?:inv23_)?budget = (\d+)", dom + sta)})
+                        re.findall(r"_(?:inv23_)?budget = (\d+)", dom + sta)})
     reads_constant = ("FEATURE_JSON_LINE_BUDGET" in dom
                       and "FEATURE_JSON_LINE_BUDGET" in sta)
     fgood = (declared is not None and reads_constant
@@ -409,10 +374,10 @@ def case_o():
     checks.append(f"feature.json counting rule shared: {counts_journal}")
 
     # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
-    va = set(_re.findall(r'"([a-z_]+)"',
-                         _re.search(r"ALLOWED = \{(.*?)\}", dom, _re.S).group(1)))
-    vb = set(_re.findall(r'"([a-z_]+)"',
-                         _re.search(r"CHECKPOINT_KEYS = \{(.*?)\n\}", sta, _re.S).group(1)))
+    va = set(re.findall(r'"([a-z_]+)"',
+                         re.search(r"ALLOWED = \{(.*?)\}", dom, re.S).group(1)))
+    vb = set(re.findall(r'"([a-z_]+)"',
+                         re.search(r"CHECKPOINT_KEYS = \{(.*?)\n\}", sta, re.S).group(1)))
     vgood = bool(va) and va == vb
     ok_all &= vgood
     checks.append(f"checkpoint keys: {len(va)} vs {len(vb)}, "
@@ -423,27 +388,23 @@ def case_o():
     # rename a heading there and every future handoff is written to a shape check-domain
     # rejects, with the rejection pointing at templates/HANDOFF.md as the authority.
     # Compared case-insensitively, because check-state lowercases and check-domain does not.
-    tpl = open(os.path.join(here, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
-    ha = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
-          _re.search(r'required = \[(.*?)\]', dom, _re.S).group(1))}
-    hb_ordered = [h.lower() for h in _re.findall(r'"(## [^"]+)"',
-                  _re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, _re.S).group(1))]
+    tpl = open(os.path.join(HERE, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
+    ha = {h.lower() for h in re.findall(r'"(## [^"]+)"',
+          re.search(r'required = \[(.*?)\]', dom, re.S).group(1))}
+    hb_ordered = [h.lower() for h in re.findall(r'"(## [^"]+)"',
+                  re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, re.S).group(1))]
     hb = set(hb_ordered)
-    narrative_is_prefix = bool(_re.search(
+    narrative_is_prefix = bool(re.search(
         r"HANDOFF_NARRATIVE_HEADINGS\s*=\s*HANDOFF_SECTIONS\[:4\]", sta))
-    hc = {h.strip().lower() for h in _re.findall(r"^(## .+)$", tpl, _re.M)}
+    hc = {h.strip().lower() for h in re.findall(r"^(## .+)$", tpl, re.M)}
     hgood = (bool(ha) and ha == hb and ha <= hc and narrative_is_prefix
              and hb_ordered[-1:] == ["## done when"])
     ok_all &= hgood
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
                   f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
-    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.py, check-state.py and "
-          f"HANDOFF.md agree on every duplicated budget, key and heading")
-    if not ok_all:
-        for c in checks:
-            print(f"       | {c}")
-    return ok_all
+    check("case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated "
+          "budget, key and heading", ok_all, "\n".join(f"| {c}" for c in checks))
 
 
 def case_no_root_replays_resolver_stderr():
@@ -455,7 +416,7 @@ def case_no_root_replays_resolver_stderr():
     """
     with tempfile.TemporaryDirectory() as tmp:
         isolated = os.path.join(tmp, "bin")
-        shutil.copytree(_anchor_bin, isolated)
+        shutil.copytree(HERE, isolated)
         script = os.path.join(isolated, "check-state.py")
         env = os.environ.copy()
         env.pop("HARNESS_PROJECT_DIR", None)
@@ -472,8 +433,7 @@ def case_no_root_replays_resolver_stderr():
             and "ValueError: no harness root found:" in result.stderr
             and "check-state.py: no harness root found:" not in result.stderr
         )
-        print(f"{'ok' if ok else 'FAIL'} - no-root refusal replays the resolver traceback")
-        return ok
+    check("no-root refusal replays the resolver traceback", ok)
 
 
 def case_canonical_reader_rejects_duplicate_harness_json():
@@ -490,34 +450,29 @@ def case_canonical_reader_rejects_duplicate_harness_json():
             and "harness.json is invalid" in out
             and "duplicate key" in out
         )
-        if not ok:
-            print("FAIL - canonical harness.json reader accepted duplicate keys")
-        return ok
+    # Silent on a pass, as it always was: only a failure is recorded, so the printed check
+    # names stay what they were.
+    if not ok:
+        check("canonical harness.json reader accepted duplicate keys", False)
 
 
 def main():
-    results = []
-    ok, code_a = case_a()
-    results.append(ok)
-    ok, code_b = case_b()
-    results.append(ok)
-    ok, _code_c = case_c()
-    results.append(ok)
-    results.append(case_e())
-    results.append(case_f())
-    results.append(case_k())
-    results.append(case_o())
-    results.append(case_s())
-    results.append(case_t())
-    results.append(case_no_root_replays_resolver_stderr())
-    results.append(case_canonical_reader_rejects_duplicate_harness_json())
-    ok_exit_unchanged = code_a == code_b
-    print(
-        f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
-        f"(a: {code_a}, b: {code_b})"
-    )
-    results.append(ok_exit_unchanged)
-    return 0 if all(results) else 1
+    code_a = inv21("case (a): INV-21 note appears when parent is unrecorded",
+                   HARNESS_JSON_SYNC_ON, "  parent: none", True)
+    code_b = inv21("case (b): no INV-21 note when parent is recorded",
+                   HARNESS_JSON_SYNC_ON, "  parent: 40", False)
+    inv21("case (c): no INV-21 note when github.sync is false",
+          HARNESS_JSON_SYNC_OFF, "  parent: none", False)
+    case_e()
+    case_f()
+    case_k()
+    case_o()
+    case_s()
+    case_t()
+    case_no_root_replays_resolver_stderr()
+    case_canonical_reader_rejects_duplicate_harness_json()
+    check(f"exit code unchanged by INV-21 (a: {code_a}, b: {code_b})", code_a == code_b)
+    return C.report()
 
 
 if __name__ == "__main__":

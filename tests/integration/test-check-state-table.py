@@ -12,9 +12,7 @@ Fixtures are the two-feature tree below so that ORDER is observable: the baselin
 features in filesystem order, which on this machine is not sorted; the runner iterates
 sorted, and a case asserts that rather than leaving it to the platform.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_os.path.abspath(__file__)))
-
+import integration_support  # noqa: F401  sys.path seam: bin/ and tests/
 import json
 import hashlib
 import os
@@ -23,25 +21,33 @@ import subprocess
 import sys
 import tempfile
 
-from check_state_support import SCRIPT, _root_env
-from harness_config_support import write_config
+from check_state_support import SCRIPT, _HOOKS_REL_T, _root_env  # noqa: E402
+from check_support import Checks  # noqa: E402
+from git_support import checked_git, commit_all, git, init_repo  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
 
-FAILS = []
-
-
-def check(name, ok, detail=""):
-    print(f"{'ok' if ok else 'FAIL'} - {name}" + ("" if ok else f"\n      {detail}"))
-    if not ok:
-        FAILS.append(name)
+C = Checks()
+check = C.check
 
 
-def run(tmp, *args, env_extra=None):
-    env = _root_env(tmp)
-    if env_extra:
-        env.update(env_extra)
+def run(tmp, *args):
     r = subprocess.run([sys.executable, SCRIPT, *args], cwd=tmp, capture_output=True,
-                       text=True, env=env)
+                       text=True, env=_root_env(tmp))
     return r.returncode, r.stdout, r.stderr
+
+
+def feature_dir(tmp, feat):
+    return os.path.join(tmp, ".harness", "harness", "features", feat)
+
+
+def patch_feature(tmp, feat, **fields):
+    """Read-modify-write one feature's feature.json, setting each of `fields`."""
+    path = os.path.join(feature_dir(tmp, feat), "feature.json")
+    with open(path, encoding="utf-8") as source:
+        doc = json.load(source)
+    doc.update(fields)
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target)
 
 
 PLAN_PENDING = """schema: plan/1
@@ -66,7 +72,7 @@ def two_feature_tree(tmp):
     a task the plan does not carry (INV-5 violation)."""
     h = os.path.join(tmp, ".harness")
     for feat in ("FEAT-B-second", "FEAT-A-first"):
-        d = os.path.join(h, "harness", "features", feat)
+        d = feature_dir(tmp, feat)
         os.makedirs(d)
         with open(os.path.join(d, "plan.yaml"), "w") as f:
             f.write(PLAN_PENDING.format(feat=feat))
@@ -84,7 +90,6 @@ def two_feature_tree(tmp):
     with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
         f.write("schema: factory-fleet/1\nrepos:\n  - name: org/x\n    default_branch: main\nworkspace_root: /nonexistent\n")
     write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-    return h
 
 
 # --- --list ------------------------------------------------------------------------------------
@@ -160,25 +165,17 @@ with tempfile.TemporaryDirectory() as tmp:
           "references T-09" not in out and "approval is pending" not in out, f"code={code} {out}")
 
 # --- --changed ----------------------------------------------------------------------------------
-def git(tmp, *args):
-    return subprocess.run(["git", "-C", tmp, *args], capture_output=True, text=True)
-
-
 def quiet_repo(tmp):
     """A git repo whose git-backed rows (INV-25/29/31) are silent, so what --changed
     selects by PATH is the only thing that prints."""
-    git(tmp, "init", "-q", "-b", "main")
-    git(tmp, "config", "user.email", "t@example.com")
-    git(tmp, "config", "user.name", "t")
-    hooks = os.path.join(tmp, ".claude", "skills", "harness", "hooks")
+    hooks = os.path.join(tmp, _HOOKS_REL_T)
     os.makedirs(hooks)
     pm = os.path.join(hooks, "post-merge")
     with open(pm, "w") as f:
         f.write("#!/bin/sh\n")
     os.chmod(pm, 0o755)
-    git(tmp, "config", "core.hooksPath", os.path.join(".claude", "skills", "harness", "hooks"))
-    git(tmp, "add", "-A")
-    git(tmp, "commit", "-qm", "fixture")
+    init_repo(tmp, "main", config=(("core.hooksPath", _HOOKS_REL_T),), git=checked_git)
+    commit_all(tmp, "fixture", git=checked_git)
 
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -190,15 +187,14 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out, err = run(tmp, "--changed")
     check("--changed on a clean tree runs nothing path-mapped and is SILENT (exit 0, no output)",
           code == 0 and out == "" and err == "", f"code={code} out={out!r} err={err!r}")
-    with open(os.path.join(tmp, ".harness", "harness", "features", "FEAT-B-second", "STATE.md"), "a") as f:
+    with open(os.path.join(feature_dir(tmp, "FEAT-B-second"), "STATE.md"), "a") as f:
         f.write("\nmore\n")
     code, out, err = run(tmp, "--changed")
     check("--changed maps a dirty STATE.md to the rows that read it, scoped to that feature",
           code == 1 and out.count("references T-09") == 1 and "FEAT-B-second" in out
           and "FEAT-A-first" not in out and "approval is pending" not in out, out)
-    git(tmp, "add", "-A")
-    git(tmp, "commit", "-qm", "state")
-    new = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first", "notes")
+    commit_all(tmp, "state", git=checked_git)
+    new = os.path.join(feature_dir(tmp, "FEAT-A-first"), "notes")
     os.makedirs(new)
     with open(os.path.join(new, "handoff-plan.md"), "w") as f:
         f.write("# Handoff — seq-1\n## Next\nx\n## Trust\nx\n## Dead ends\nx\n## Working set\nx\n## Done when\nx\n")
@@ -206,10 +202,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check("--changed sees an UNTRACKED file and selects the rows that read handoff notes, for that feature only",
           "FEAT-A-first" in out and "FEAT-B-second" not in out and "handoff-plan.md" in out
           and "references T-09" not in out, f"code={code} {out}")
-    git(tmp, "add", "-A")
-    git(tmp, "commit", "-qm", "note")
-    git(tmp, "mv", os.path.join(".harness", "harness", "features", "FEAT-A-first", "STATE.md"),
-        os.path.join(".harness", "harness", "features", "FEAT-A-first", "STATE.old.md"))
+    commit_all(tmp, "note", git=checked_git)
+    rel = os.path.relpath(feature_dir(tmp, "FEAT-A-first"), tmp)
+    git(tmp, "mv", os.path.join(rel, "STATE.md"), os.path.join(rel, "STATE.old.md"))
     code, out, err = run(tmp, "--changed", "--only", "INV-2")
     check("--changed handles a RENAME pair: both sides count as dirty, INV-2 runs for that feature and is clean",
           code == 0 and out == "" and err == "", f"code={code} out={out!r} err={err!r}")
@@ -219,19 +214,14 @@ with tempfile.TemporaryDirectory() as tmp:
 
 with tempfile.TemporaryDirectory() as tmp:
     two_feature_tree(tmp)
-    feature = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first")
-    evidence = os.path.join(feature, "cycle-evidence.data")
+    evidence = os.path.join(feature_dir(tmp, "FEAT-A-first"), "cycle-evidence.data")
     raw = b"```yaml\nVERDICT: FAIL\nDIGEST: {cycles_used: 0}\nartifact: cycle-evidence.data\n```\n"
     with open(evidence, "wb") as target:
         target.write(raw)
-    path = os.path.join(feature, "feature.json")
-    with open(path, encoding="utf-8") as source:
-        doc = json.load(source)
-    doc["runs"] = [{"id": "R", "squad": "product", "verdict": "FAIL", "cycles_used": 0,
-                    "cycle_evidence": {"source": "lead-digest", "path": "cycle-evidence.data",
-                                       "sha256": hashlib.sha256(raw).hexdigest()}}]
-    with open(path, "w", encoding="utf-8") as target:
-        json.dump(doc, target)
+    patch_feature(tmp, "FEAT-A-first",
+                  runs=[{"id": "R", "squad": "product", "verdict": "FAIL", "cycles_used": 0,
+                         "cycle_evidence": {"source": "lead-digest", "path": "cycle-evidence.data",
+                                            "sha256": hashlib.sha256(raw).hexdigest()}}])
     quiet_repo(tmp)
     with open(evidence, "ab") as target:
         target.write(b"changed bytes\n")
@@ -242,12 +232,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 with tempfile.TemporaryDirectory() as tmp:
     two_feature_tree(tmp)
-    path = os.path.join(tmp, ".harness", "harness", "features", "FEAT-A-first", "feature.json")
-    with open(path) as source:
-        doc = json.load(source)
-    doc["factory"] = {"repo": "org/missing", "issues": {}}
-    with open(path, "w") as target:
-        json.dump(doc, target)
+    patch_feature(tmp, "FEAT-A-first", factory={"repo": "org/missing", "issues": {}})
     quiet_repo(tmp)
     with open(os.path.join(tmp, ".harness", "factory", "fleet.yaml"), "a") as target:
         target.write("\n")
@@ -260,10 +245,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     two_feature_tree(tmp)
     for feat in ("FEAT-A-first", "FEAT-B-second"):
-        fj = os.path.join(tmp, ".harness", "harness", "features", feat, "feature.json")
-        doc = json.load(open(fj))
-        doc["factory"] = {"repo": "org/undeclared", "issues": {"T-01": 7}}
-        json.dump(doc, open(fj, "w"), indent=2)
+        patch_feature(tmp, feat, factory={"repo": "org/undeclared", "issues": {"T-01": 7}})
     code, out, err = run(tmp, "--only", "INV-24")
     check("a repo-scoped row that loops features sees ALL of them without --feature (INV-24 undeclared-repo finding x2)",
           out.count("INV-24") == 2 and "FEAT-A-first" in out and "FEAT-B-second" in out, out)
@@ -271,5 +253,4 @@ with tempfile.TemporaryDirectory() as tmp:
     check("...and is narrowed by --feature because it loops ctx.features",
           out.count("INV-24") == 1 and "FEAT-A-first" in out, out)
 
-print(f"\n{'ALL PASSED' if not FAILS else f'{len(FAILS)} FAILING: ' + ', '.join(FAILS)}")
-sys.exit(1 if FAILS else 0)
+sys.exit(C.report())

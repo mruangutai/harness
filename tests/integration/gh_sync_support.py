@@ -82,6 +82,25 @@ def label_create_fails(script, response="HTTP 403: Resource not accessible by in
                           "  \"label create\") echo '%s' >&2; exit 1 ;;" % response, 1)
 
 
+def _swap(script, old, new):
+    """`script` with its one occurrence of OLD replaced by NEW. A missing or repeated anchor
+    raises, so a reworded base fake cannot silently leave a variant identical to its base."""
+    if script.count(old) != 1:
+        raise ValueError("fake gh anchor must occur exactly once: %r" % old[:60])
+    return script.replace(old, new)
+
+
+def _fail_branch(script, pattern):
+    """`script` with the body of its `*"PATTERN"*)` case branch, up to the branch's
+    `exit 0 ;;`, replaced by a simulated network failure on stderr and exit 1."""
+    head = '  *"%s"*)\n' % pattern
+    if script.count(head) != 1:
+        raise ValueError("fake gh has no single %r branch" % pattern)
+    start = script.index(head) + len(head)
+    end = script.index("    exit 0 ;;", start) + len("    exit 0 ;;")
+    return script[:start] + '    echo "simulated network failure" >&2\n    exit 1 ;;' + script[end:]
+
+
 def write_validate_handoff(feat_dir):
     """The validate seam note `gh-sync ship` demands before its first terminal write (BUG-1129).
     Every fixture that models a VALIDATED feature calls this; the one ship case that models
@@ -151,11 +170,7 @@ def add_plan_station(feat_dir, feat_name, station="building"):
     plan.yaml WINS over PLAN.md in cmd_open's discovery, so every open-lifecycle case silently
     switched to a one-task plan and asserted against three issues that were never created.
     Only the cases that exercise a STATION WRITE need a plan, and they ask for one."""
-    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-        f.write(f"schema: plan/1\nfeature: {feat_name}\nstatus: {station}\n"
-                f"tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
-                f"    execution_mode: team\n    files:\n      - a.py\n"
-                f"    verify: |\n      true\n    intent: |\n      x\n    status: done\n")
+    write_plan_yaml(feat_dir, feat_name, [("T-01", "done")], plan_station=station)
     return feat_dir
 
 
@@ -206,19 +221,24 @@ def read_plan_station(feat_dir):
     """plan.yaml's top-level station (FEAT-41 T-07) — what `read_feature_json(...)["status"]`
     used to answer before the field moved. Returns None when the plan or the key is absent, so
     a case can assert "no station recorded" as well as a value."""
-    try:
-        with open(os.path.join(feat_dir, "plan.yaml"), encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("status:"):
-                    return line.split(":", 1)[1].strip()
-    except OSError:
+    path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(path):
         return None
-    return None
+    with open(path, encoding="utf-8") as f:
+        return next((line.split(":", 1)[1].strip() for line in f if line.startswith("status:")), None)
 
 
 def read_feature_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def _update_feature_json(path, **fields):
+    """Rewrite feature.json at PATH with FIELDS set at its top level."""
+    doc = read_feature_json(path)
+    doc.update(fields)
+    with open(path, "w", encoding="utf-8") as target:
+        json.dump(doc, target, indent=2)
 
 
 def _fleet_factory(args):
@@ -265,32 +285,7 @@ def calls(tmp, log="calls.log", strip=False):
     return [line.rstrip("\x01") for line in lines] if strip else lines
 
 
-FAKE_GH_ATTACH_FAILS = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"sub_issues -F sub_issue_id="*)
-    echo "simulated network failure" >&2
-    exit 1 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close") exit 0 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
-"""
+FAKE_GH_ATTACH_FAILS = _fail_branch(FAKE_GH, "sub_issues -F sub_issue_id=")
 
 
 FAKE_GH_STATIONS = """#!/bin/bash
@@ -364,153 +359,20 @@ exit 0
 # Same as FAKE_GH_STATIONS, except the guard's board read (`items(first: 100, after:`) fails —
 # proves a gh/network failure DURING THE GUARD ITSELF must not gate: the guard read is caught,
 # printed, and start-task falls through to its ORIGINAL behaviour (still writes the station).
-FAKE_GH_STATIONS_GUARD_READ_FAILS = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"sub_issues -F sub_issue_id="*)
-    echo '{}'
-    exit 0 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-  *"ProjectV2SingleSelectField"*)
-    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
-    exit 0 ;;
-  *"projectItems(first: 20)"*)
-    echo "simulated network failure" >&2
-    exit 1 ;;
-  *"items(first: 100, after:"*)
-    echo "simulated network failure" >&2
-    exit 1 ;;
-  *"projectItems(first: 100)"*)
-    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
-    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
-    exit 0 ;;
-  *"project item-edit"*)
-    exit 0 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "issue view")
-    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
-    exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close") exit 0 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
-"""
+FAKE_GH_STATIONS_GUARD_READ_FAILS = _fail_branch(
+    _fail_branch(FAKE_GH_STATIONS, "projectItems(first: 20)"), "items(first: 100, after:")
 
 
 # Custom station spellings (T-07's de-hardcoding requirement): the field's "Building" OPTION
 # is renamed to "Doing"/OPT_DOING, so a re-hardcoding of the literal string "Building" at the
 # call site would select an option this board does not offer and the write would fail (or, if
 # selected by an unguarded literal string comparison, silently write the wrong option).
-FAKE_GH_STATIONS_CUSTOM = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"sub_issues -F sub_issue_id="*)
-    echo '{}'
-    exit 0 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-  *"ProjectV2SingleSelectField"*)
-    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_TODO","name":"Todo"},{"id":"OPT_PLANNED","name":"Planned"},{"id":"OPT_QUEUED","name":"Queued"},{"id":"OPT_DOING","name":"Doing"},{"id":"OPT_CHECKING","name":"Checking"},{"id":"OPT_SHIPPED","name":"Shipped"}]}}}}}\\n'
-    exit 0 ;;
-  *"projectItems(first: 20)"*)
-    if [ -z "$GUARD_STATION_NAME" ]; then
-      fv=null
-    else
-      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
-    fi
-    num="${GUARD_ISSUE:-326}"
-    printf '{"data":{"repository":{"i%s":{"number":%s,"projectItems":{"pageInfo":{"hasNextPage":false},"nodes":[{"project":{"number":3},"fieldValueByName":%s}]}}}}}\\n' "$num" "$num" "$fv"
-    exit 0 ;;
-  *"items(first: 100, after:"*)
-    if [ -z "$GUARD_STATION_NAME" ]; then
-      fv=null
-    else
-      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
-    fi
-    num="${GUARD_ISSUE:-326}"
-    printf '{"data":{"user":{"projectV2":{"items":{"totalCount":1,"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[{"content":{"number":%s,"repository":{"nameWithOwner":"implentio/fake"}},"fieldValueByName":%s}]}}}}}\\n' "$num" "$fv"
-    exit 0 ;;
-  *"projectItems(first: 100)"*)
-    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
-    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
-    exit 0 ;;
-  *"project item-edit"*)
-    exit 0 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "issue view")
-    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
-    exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close") exit 0 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
-"""
-
-
-# Same board reads/writes, but `project item-edit` — the actual station write — fails while
-# every other gh call (including a subsequent `issue close`) still succeeds. This is what pins
-# D-02's loud-but-non-terminal rule: one stderr ERROR line, and everything after it still runs.
-FAKE_GH_STATIONS_ITEM_EDIT_FAILS = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"sub_issues -F sub_issue_id="*)
-    echo '{}'
-    exit 0 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-  *"ProjectV2SingleSelectField"*)
-    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
-    exit 0 ;;
-  *"projectItems(first: 100)"*)
-    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
-    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
-    exit 0 ;;
-  *"project item-edit"*)
-    echo "simulated item-edit failure" >&2
-    exit 1 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close") exit 0 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
-"""
+FAKE_GH_STATIONS_CUSTOM = _swap(
+    FAKE_GH_STATIONS,
+    '[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},'
+    '{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]',
+    '[{"id":"OPT_TODO","name":"Todo"},{"id":"OPT_PLANNED","name":"Planned"},{"id":"OPT_QUEUED","name":"Queued"},'
+    '{"id":"OPT_DOING","name":"Doing"},{"id":"OPT_CHECKING","name":"Checking"},{"id":"OPT_SHIPPED","name":"Shipped"}]')
 
 
 # THE ORDERED LOWERCASE DECLARATION (FEAT-41 T-01). This was a six-key MAPPING of station name
@@ -658,7 +520,7 @@ def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, 
 
 
 def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None,
-                     plan_station=None):
+                     plan_station=None, depends_on=None):
     """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
     `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
     avoids a second parser dependency in the test file itself.
@@ -674,6 +536,8 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, appr
     `plan_station` writes plan.yaml's own top-level `status:` — the feature's station, which
     FEAT-41 T-07 makes the single record of it. Omitted by default so every existing caller is
     unchanged.
+
+    `depends_on` maps a task id to the ids written as that task's `depends_on: [..]` line.
     """
     # BLOCK YAML, NOT JSON (FEAT-41 T-16). This wrote `json.dump(doc, f)` on the reasoning that
     # JSON is valid YAML and it avoided a second parser dependency in this file. Both halves were
@@ -700,21 +564,19 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, appr
         lines.append("station_only: true")
     lines.append("tasks:" + (" []" if not task_statuses else ""))
     for tid, status in task_statuses:
-        lines += [
-            f"  - id: {tid}",
-            f"    title: {tid}",
-            "    change_type: logic",
-            "    execution_mode: team",
-            "    files:",
-            "      - dummy.py",
-            "    verify: |",
-            "      true",
-            "    intent: |",
-            "      fixture",
-            f"    status: {status}",
-        ]
+        lines += _plan_task_lines(tid, status, (depends_on or {}).get(tid))
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
+
+
+def _plan_task_lines(tid, status, depends_on=None):
+    """One complete plan.yaml task block, plus a `depends_on: [..]` line when DEPENDS_ON is given."""
+    lines = [f"  - id: {tid}", f"    title: {tid}", "    change_type: logic",
+             "    execution_mode: team", "    files:", "      - dummy.py", "    verify: |",
+             "      true", "    intent: |", "      fixture", f"    status: {status}"]
+    if depends_on is not None:
+        lines.append("    depends_on: [" + ", ".join(str(d) for d in depends_on) + "]")
+    return lines
 
 
 def stage_station(tmp, feat_name, task_statuses, board=True, sync=True, repo="implentio/fake",
@@ -783,12 +645,9 @@ def stage_fleet(tmp, feat_name="FEAT-9000-fleet", script=FAKE_GH_STATIONS):
                                        "issue_types": {"Task": "Product work"}}})
     install_gh(tmp, script.replace('"number":3', '"number":9').replace("implentio/fake", "product/app"),
                product_configs={"product/app@release": product})
-    path = os.path.join(feat, "feature.json")
-    doc = read_feature_json(path)
-    doc.update(branch="none", pr=None, review_sha="none", cycles_used=0, max_total_cycles=10,
-               runs=[], factory={"repo": "product/app", "issues": {"T-01": 501}}, github={})
-    with open(path, "w", encoding="utf-8") as target:
-        json.dump(doc, target, indent=2)
+    _update_feature_json(os.path.join(feat, "feature.json"), branch="none", pr=None,
+                         review_sha="none", cycles_used=0, max_total_cycles=10, runs=[],
+                         factory={"repo": "product/app", "issues": {"T-01": 501}}, github={})
     return feat
 
 
@@ -802,32 +661,8 @@ def write_dangling_plan_yaml(feat_dir, feat_name, t2_depends_on, approval=None,
     style (T-05 intent), never json.dump — the same reason `write_plan_yaml` moved off it
     (FEAT-41 T-16): plan-merge's verbs address a task by its own `- id: T-NN` line.
     """
-    lines = ["schema: plan/1", f"feature: {feat_name}"]
-    if plan_station is not None:
-        lines.append(f"status: {plan_station}")
-    if approval is not None:
-        lines.append("approval:")
-        for key, value in approval.items():
-            lines.append(f"  {key}: {value}")
-    lines.append("tasks:")
-    for tid in ("T-01", "T-02"):
-        lines += [
-            f"  - id: {tid}",
-            f"    title: {tid}",
-            "    change_type: logic",
-            "    execution_mode: team",
-            "    files:",
-            "      - dummy.py",
-            "    verify: |",
-            "      true",
-            "    intent: |",
-            "      fixture",
-            "    status: ready",
-        ]
-        if tid == "T-02":
-            lines.append(f"    depends_on: [{t2_depends_on}]")
-    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
+    write_plan_yaml(feat_dir, feat_name, [("T-01", "ready"), ("T-02", "ready")], approval=approval,
+                    plan_station=plan_station, depends_on={"T-02": [t2_depends_on]})
 
 
 def stage_depends_on(tmp, feat_name, t2_depends_on, repo="implentio/fake", board=True,
@@ -912,9 +747,8 @@ def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=
         # own top-level field is what `open` copies from. `stage_station` writes only the
         # plan, so the mirror is written here.
         fj = os.path.join(feat, "feature.json")
-        doc = json.load(open(fj))
-        doc["github"]["source_issues"] = list(source_issues)
-        json.dump(doc, open(fj, "w"), indent=2)
+        github = read_feature_json(fj)["github"]
+        _update_feature_json(fj, github={**github, "source_issues": list(source_issues)})
     docs = os.path.join(tmp, ".harness", "harness", "docs")
     os.makedirs(docs, exist_ok=True)
     open(os.path.join(docs, "SPEC.md"), "w").write("# fixture probe\n")

@@ -6,30 +6,23 @@ The checker runs as a subprocess against each checkout (HARNESS_PROJECT_DIR), th
 pre-commit gate and /harness entry run it. One wrapper runs it under a Python audit hook that
 records every file it opens, so "reads only its own feature" is observed, not inferred from code.
 """
-import json
+from integration_support import BIN  # isort: split
+
 import os
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[1]
-BIN = ROOT / ".claude/skills/harness/bin"
+import f58_sparse_fixture as F
+import git_support as G
+from isolated_bin import isolated_bin
+
 CHECK = BIN / "check-state.py"
 REPAIR = BIN / "worktree-state.py"
-sys.path.insert(0, str(HERE))
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(HERE.parent))
-import f58_sparse_fixture as F  # noqa: E402
-import git_support as G  # noqa: E402
-from isolated_bin import isolated_bin  # noqa: E402
-
 ACTIVE = "FEAT-1-alpha"
-NO_INVARIANT_RAN = "no invariant ran"
 
 
 def check(checkout, *args, script=CHECK, opens=None):
@@ -48,9 +41,7 @@ def violations(out):
 
 class Case(unittest.TestCase):
     def setUp(self):
-        ctx = F.sparse_fixture()
-        self.fx = ctx.__enter__()
-        self.addCleanup(ctx.__exit__, None, None, None)
+        self.fx = self.enterContext(F.sparse_fixture())
 
     def sparse(self, name=ACTIVE):
         wt = self.fx.add_worktree(name)
@@ -163,13 +154,13 @@ class Refusals(Case):
         F.write_files(wt, {f".harness/harness/features/{ACTIVE}/BRIEF.md": "# edited\n"})
         _code, out = check(wt)
         self.assertIn("LAYOUT dirty (8)", out)
-        self.assertNotIn(NO_INVARIANT_RAN, out)
+        self.assertNotIn("no invariant ran", out)
         self.assertRegex(out, r"INV-\d+|all state invariants hold|BRIEF.md is NOT approved")
 
     def test_dirty_with_a_structural_break_still_refuses_structurally(self):
         wt = self.sparse()
-        F.write_files(wt, {f".harness/harness/features/{ACTIVE}/BRIEF.md": "# edited\n"})
-        F.write_files(wt, {".harness/harness/features/FEAT-2-beta/BRIEF.md": "# BRIEF FEAT-2-beta\n"})
+        F.write_files(wt, {f".harness/harness/features/{ACTIVE}/BRIEF.md": "# edited\n",
+                           ".harness/harness/features/FEAT-2-beta/BRIEF.md": "# BRIEF FEAT-2-beta\n"})
         code, out = check(wt)
         self.assertEqual(code, 1)
         self.assertIn("LAYOUT materialisation (7)", out)
@@ -178,9 +169,7 @@ class Refusals(Case):
 
     def test_an_unusable_verify_report_refuses(self):
         wt = self.sparse()
-        scratch = tempfile.mkdtemp(prefix="check-state-corpus-bin-")
-        self.addCleanup(shutil.rmtree, scratch, True)
-        bin_copy = isolated_bin(scratch)
+        bin_copy = isolated_bin(os.path.join(self.fx.base, "bin-copy"))
         Path(bin_copy, "worktree-state.py").write_text("print('not a report')\n")
         code, out = check(wt, script=Path(bin_copy, "check-state.py"))
         self.assertEqual(code, 1)

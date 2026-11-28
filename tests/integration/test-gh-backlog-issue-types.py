@@ -4,12 +4,7 @@ exactly as the open route does (FEAT-55, REQ-01/REQ-04/REQ-05/REQ-06/REQ-07/REQ-
 against a fake `gh` answering the same `issueTypes` capability query, `--jq .node_id` and
 `updateIssue` shape tests/integration/test-gh-issue-types.py's fake uses for the open route.
 
-RED BY DESIGN until T-06 lands: cmd_backlog is unchanged, so it never calls the detection
-query, never applies a type, never writes a per-item receipt and never refuses. Every case
-below asserts the TYPED behaviour, so every case fails against today's gh-sync.py, and this
-file's own exit code is non-zero until then.
-
-    ./test-gh-backlog-issue-types.py    -> exit 0 all pass, 1 otherwise (must be 1 today)
+    ./test-gh-backlog-issue-types.py    -> exit 0 all pass, 1 otherwise
 
 Command under test:
     gh-sync.py backlog <featdir> "bug:a defect" "chore:a chore" "enhancement:a wish"
@@ -33,6 +28,10 @@ Cases (each is CASE <letter> in a `check()` message, grepped by this task's veri
        a pre-seeded "created-but-not-yet-typed" remnant so the backfill set is not empty.
   H    the discriminating case: nobug types — both items this run would CREATE have a
        declared type, so only the pre-seeded remnant's backfill need for Bug can refuse.
+  I    #1542: a create URL with no positive /issues/<n> tail is a mirror SKIP.
+
+A/B shares its run with D's first run, and C shares its run with F's first run: each pair
+is the identical command on an identical fresh fixture.
 """
 import json
 import os
@@ -41,14 +40,14 @@ import subprocess
 import sys
 import tempfile
 
-from gh_sync_support import install_gh
+import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path before the imports below)
+from check_support import Checks
+from gh_sync_support import SYNC, install_gh
 from harness_config_support import write_config
 from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-SYNC = os.path.join(BIN_DIR, "gh-sync.py")
+C = Checks()
+check = C.check
 
 ITEMS = ["bug:a defect", "chore:a chore", "enhancement:a wish"]
 
@@ -95,29 +94,22 @@ exit 0
 """
 
 
-def build_harness_json(tmp, repo, issue_types):
-    g = {"sync": True, "board": None, "repo": repo}
-    if issue_types:
-        g["issue_types"] = issue_types
-    write_config(os.path.join(tmp, ".harness", "harness.json"), {"github": g})
-
-
-def stage(tmp, feat_name="FEAT-88-backlog", repo="owner/name", issue_types=None):
+def stage(tmp):
     """A bare feature directory plus a github.sync-enabled harness.json — cmd_backlog reads
     neither BRIEF.md, plan.yaml nor feature.json, so the fixture is only what load_config's
     root walk-up needs: the feature dir three levels under harness.json's parent."""
-    feat_dir = os.path.join(tmp, ".harness", "features", feat_name)
+    feat_dir = os.path.join(tmp, ".harness", "features", "FEAT-88-backlog")
     os.makedirs(feat_dir)
-    build_harness_json(tmp, repo, issue_types)
+    write_config(os.path.join(tmp, ".harness", "harness.json"),
+                 {"github": {"sync": True, "board": None, "repo": "owner/name"}})
     return feat_dir
 
 
-def run(feat_dir, tmp, env_extra=None, log="calls.log", items=None):
+def run(feat_dir, tmp, env_extra=None, log="calls.log"):
     env, sentinel_log = offline_gh_env(os.path.join(tmp, "gh"), tmp)
     env["FAKE_LOG"] = os.path.join(tmp, log)
     env.update(env_extra or {})
-    args = ["backlog", feat_dir] + list(items if items is not None else ITEMS)
-    result = subprocess.run([SYNC] + args, capture_output=True, text=True, env=env)
+    result = subprocess.run([SYNC, "backlog", feat_dir, *ITEMS], capture_output=True, text=True, env=env)
     assert_sentinel_unused(sentinel_log)
     return result
 
@@ -153,18 +145,6 @@ def labels_of(argv_line):
     return re.findall(r"--label (\S+)", argv_line)
 
 
-fails = 0
-
-
-def check(name, cond, detail=""):
-    global fails
-    if cond:
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
-
-
 def case_i():
     """CASE I (#1542): a create URL with no positive /issues/<n> tail is an ordinary mirror SKIP:
     no traceback, no backlog receipt entry, no second create."""
@@ -184,222 +164,197 @@ def case_i():
               len(creates) == 1, f"{creates}")
 
 
-def case_a_b():
-    """CASE A / CASE B, one run, FAKE_TYPES=available."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
-        run(feat_dir, tmp, {"FAKE_TYPES": "available"})
-        log = calls(tmp)
-        updates = [l for l in log if "updateIssue" in l]
-        expectations = [
-            ("bug:a defect -> Bug", "I_node41", "IT_bug"),
-            ("chore:a chore -> Task", "I_node42", "IT_task"),
-            ("enhancement:a wish -> Feature", "I_node43", "IT_feature"),
-        ]
-        for label, node, type_id in expectations:
-            check(f"CASE A: {label} is typed {type_id}",
-                  any(node in l and type_id in l for l in updates), f"updates={updates}")
-
-        creates = [l for l in log if "issue create" in l]
-        check("CASE A: three issue create argv reached the fake",
-              len(creates) == 3, f"{creates}")
-        check("CASE B: no create argv carries --label bug",
-              not any("--label bug" in l for l in creates), f"{creates}")
-        check("CASE B: no create argv carries --label chore",
-              not any("--label chore" in l for l in creates), f"{creates}")
-        check("CASE B: every create argv carries --label harness",
-              bool(creates) and all("--label harness" in l for l in creates), f"{creates}")
+def check_a(log):
+    """CASE A: per-issue type ids on the available run."""
+    updates = [l for l in log if "updateIssue" in l]
+    expectations = [
+        ("bug:a defect -> Bug", "I_node41", "IT_bug"),
+        ("chore:a chore -> Task", "I_node42", "IT_task"),
+        ("enhancement:a wish -> Feature", "I_node43", "IT_feature"),
+    ]
+    for label, node, type_id in expectations:
+        check(f"CASE A: {label} is typed {type_id}",
+              any(node in l and type_id in l for l in updates), f"updates={updates}")
+    creates = [l for l in log if "issue create" in l]
+    check("CASE A: three issue create argv reached the fake",
+          len(creates) == 3, f"{creates}")
+    return creates
 
 
-def case_c():
-    """CASE C: FAKE_TYPES=absent, fresh fixture — today's labels, no updateIssue, one
-    diagnostic line, and no backlog-issues.json at all."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
-        r = run(feat_dir, tmp, {"FAKE_TYPES": "absent"})
-        log = calls(tmp)
-        creates = [l for l in log if "issue create" in l]
-        check("CASE C: three issues created", len(creates) == 3, f"{creates}")
-        check("CASE C: bug item labels are exactly harness, bug",
-              labels_of(creates[0]) == ["harness", "bug"] if creates else False, creates)
-        check("CASE C: chore item labels are exactly harness, chore",
-              labels_of(creates[1]) == ["harness", "chore"] if len(creates) > 1 else False,
-              creates)
-        check("CASE C: enhancement item labels are exactly harness",
-              labels_of(creates[2]) == ["harness"] if len(creates) > 2 else False, creates)
-        check("CASE C: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log), f"{log}")
-        lines = re.findall(r"^gh-sync: issue types ", r.stdout, re.M)
-        check("CASE C: exactly one 'gh-sync: issue types ' line for a three-issue run",
-              len(lines) == 1, repr(r.stdout))
-        check("CASE C: no backlog-issues.json is written in compatibility mode",
-              not os.path.exists(receipt_path(feat_dir)), feat_dir)
+def check_b(creates):
+    """CASE B: label suppression on the same run's create argv."""
+    for lab in ("bug", "chore"):
+        check(f"CASE B: no create argv carries --label {lab}",
+              not any(f"--label {lab}" in l for l in creates), f"{creates}")
+    check("CASE B: every create argv carries --label harness",
+          bool(creates) and all("--label harness" in l for l in creates), f"{creates}")
 
 
-def case_d():
-    """CASE D: receipt after a successful available run, then a rerun that creates
-    nothing but still queries capability exactly once and prints no diagnostic."""
+def check_d_receipt(feat_dir):
+    """CASE D: a successful run's receipt records number + typed true per item."""
+    rec = read_receipt(feat_dir)
+    check("CASE D: backlog-issues.json exists after a successful run",
+          rec is not None, feat_dir)
+    rec = rec or {}
+    for item, number in zip(ITEMS, (41, 42, 43)):
+        entry = rec.get(item, {})
+        check(f"CASE D: {item!r} recorded with number {number} and typed true",
+              entry.get("number") == number and entry.get("typed") is True,
+              f"{item!r} -> {entry}")
+
+
+def check_d_rerun(r2, log2):
+    """CASE D: the rerun creates nothing but still queries capability exactly once (the
+    lazily-called-detector trap) and prints no diagnostic."""
+    check("CASE D: zero issue create argv on the rerun (everything already recorded)",
+          not any("issue create" in l for l in log2), f"{log2}")
+    query_lines = [l for l in log2 if "issueTypes" in l]
+    check("CASE D: exactly one argv containing issueTypes on the zero-create rerun",
+          len(query_lines) == 1, f"{log2}")
+    diag_lines = re.findall(r"^gh-sync: issue types ", r2.stdout, re.M)
+    check("CASE D: zero 'gh-sync: issue types ' lines on the zero-create rerun",
+          len(diag_lines) == 0, repr(r2.stdout))
+
+
+def case_a_b_d():
+    """CASE A / CASE B on one FAKE_TYPES=available run; CASE D reads that same run's receipt,
+    then reruns the identical command."""
     with tempfile.TemporaryDirectory() as tmp:
         install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls1.log")
-        rec = read_receipt(feat_dir)
-        check("CASE D: backlog-issues.json exists after a successful run",
-              rec is not None, feat_dir)
-        rec = rec or {}
-        expected_numbers = {"bug:a defect": 41, "chore:a chore": 42,
-                             "enhancement:a wish": 43}
-        for item, number in expected_numbers.items():
-            entry = rec.get(item, {})
-            check(f"CASE D: {item!r} recorded with number {number} and typed true",
-                  entry.get("number") == number and entry.get("typed") is True,
-                  f"{item!r} -> {entry}")
-
+        check_b(check_a(calls(tmp, "calls1.log")))
+        check_d_receipt(feat_dir)
         r2 = run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
-        check("CASE D: zero issue create argv on the rerun (everything already recorded)",
-              not any("issue create" in l for l in log2), f"{log2}")
-        query_lines = [l for l in log2 if "issueTypes" in l]
-        check("CASE D: exactly one argv containing issueTypes on the zero-create rerun",
-              len(query_lines) == 1, f"{log2}")
-        diag_lines = re.findall(r"^gh-sync: issue types ", r2.stdout, re.M)
-        check("CASE D: zero 'gh-sync: issue types ' lines on the zero-create rerun",
-              len(diag_lines) == 0, repr(r2.stdout))
+        check_d_rerun(r2, calls(tmp, "calls2.log"))
+
+
+def check_c(r, log, feat_dir):
+    """CASE C: FAKE_TYPES=absent, fresh fixture - today's labels, no updateIssue, one
+    diagnostic line, and no backlog-issues.json at all."""
+    creates = [l for l in log if "issue create" in l]
+    check("CASE C: three issues created", len(creates) == 3, f"{creates}")
+    wants = (["harness", "bug"], ["harness", "chore"], ["harness"])
+    for i, (item, want) in enumerate(zip(ITEMS, wants)):
+        check(f"CASE C: {item.split(':')[0]} item labels are exactly {', '.join(want)}",
+              i < len(creates) and labels_of(creates[i]) == want, creates)
+    check("CASE C: zero updateIssue argv reached the fake",
+          not any("updateIssue" in l for l in log), f"{log}")
+    lines = re.findall(r"^gh-sync: issue types ", r.stdout, re.M)
+    check("CASE C: exactly one 'gh-sync: issue types ' line for a three-issue run",
+          len(lines) == 1, repr(r.stdout))
+    check("CASE C: no backlog-issues.json is written in compatibility mode",
+          not os.path.exists(receipt_path(feat_dir)), feat_dir)
+
+
+def check_f(r2, log2, feat_dir):
+    """CASE F: compatibility mode is byte-identical to today - the identical command run a
+    second time creates three MORE issues and never writes backlog-issues.json."""
+    creates2 = [l for l in log2 if "issue create" in l]
+    check("CASE F: the second run makes three MORE issue create argv",
+          len(creates2) == 3, f"{creates2}")
+    check("CASE F: no backlog-issues.json exists after either run",
+          not os.path.exists(receipt_path(feat_dir)), feat_dir)
+    check("CASE F: no stdout line names a skipped recorded item",
+          "skip" not in r2.stdout.lower(), repr(r2.stdout))
+    diag_lines = re.findall(r"^gh-sync: issue types ", r2.stdout, re.M)
+    check("CASE F: the second invocation still prints exactly one diagnostic line",
+          len(diag_lines) == 1, repr(r2.stdout))
+
+
+def case_c_f():
+    """CASE C's absent run is CASE F's first run; F reruns the identical command."""
+    with tempfile.TemporaryDirectory() as tmp:
+        install_gh(tmp, FAKE_GH_TYPES)
+        feat_dir = stage(tmp)
+        r = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls1.log")
+        check_c(r, calls(tmp, "calls1.log"), feat_dir)
+        r2 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls2.log")
+        check_f(r2, calls(tmp, "calls2.log"), feat_dir)
+
+
+def check_e_failed_apply(rec1):
+    """CASE E: a failed apply records typed exactly false per item (never absent)."""
+    for item in ITEMS:
+        entry = rec1.get(item)
+        check(f"CASE E: {item!r} has a receipt entry after a failed type-apply",
+              entry is not None, f"{rec1}")
+        check(f"CASE E: {item!r}'s typed value is exactly false (not absent)",
+              entry is not None and entry.get("typed") is False, f"{item!r} -> {entry}")
+
+
+def check_e_backfill(rec1, log2, rec2):
+    """CASE E: the successful rerun backfills every recorded number, no create/close/delete."""
+    for verb in ("create", "close", "delete"):
+        check(f"CASE E: the rerun makes no issue {verb} argv",
+              not any(f"issue {verb}" in l for l in log2), f"{log2}")
+    for item in ITEMS:
+        number = rec1.get(item, {}).get("number")
+        check(f"CASE E: the rerun updateIssue's the recorded node id for number {number}",
+              any("updateIssue" in l and f"I_node{number}" in l for l in log2), f"{log2}")
+    for item in ITEMS:
+        check(f"CASE E: {item!r}'s typed value is promoted to True after the backfill",
+              rec2.get(item, {}).get("typed") is True, f"{rec2}")
 
 
 def case_e():
-    """CASE E: FAKE_TYPE_APPLY=fail records typed exactly false per item (not absent, not
-    missing); a later successful rerun backfills every recorded number, with no
-    create/close/delete."""
+    """CASE E: crash between create and type (FAKE_TYPE_APPLY=fail), then a successful rerun."""
     with tempfile.TemporaryDirectory() as tmp:
         install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
         run(feat_dir, tmp, {"FAKE_TYPES": "available", "FAKE_TYPE_APPLY": "fail"},
             log="calls1.log")
         rec1 = read_receipt(feat_dir) or {}
-        for item in ITEMS:
-            entry = rec1.get(item)
-            check(f"CASE E: {item!r} has a receipt entry after a failed type-apply",
-                  entry is not None, f"{rec1}")
-            check(f"CASE E: {item!r}'s typed value is exactly false (not absent)",
-                  entry is not None and entry.get("typed") is False, f"{item!r} -> {entry}")
-
+        check_e_failed_apply(rec1)
         run(feat_dir, tmp, {"FAKE_TYPES": "available"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
-        check("CASE E: the rerun makes no issue create argv",
-              not any("issue create" in l for l in log2), f"{log2}")
-        check("CASE E: the rerun makes no issue close argv",
-              not any("issue close" in l for l in log2), f"{log2}")
-        check("CASE E: the rerun makes no issue delete argv",
-              not any("issue delete" in l for l in log2), f"{log2}")
-        numbers = {rec1.get(item, {}).get("number") for item in ITEMS}
-        for number in numbers:
-            node = f"I_node{number}" if number is not None else "I_node__missing__"
-            check(f"CASE E: the rerun updateIssue's the recorded node id for number {number}",
-                  any("updateIssue" in l and node in l for l in log2), f"{log2}")
-        rec2 = read_receipt(feat_dir) or {}
-        for item in ITEMS:
-            check(f"CASE E: {item!r}'s typed value is promoted to True after the backfill",
-                  rec2.get(item, {}).get("typed") is True, f"{rec2}")
+        check_e_backfill(rec1, calls(tmp, "calls2.log"), read_receipt(feat_dir) or {})
 
 
-def case_f():
-    """CASE F: compatibility mode is byte-identical to today — the identical command run
-    twice creates three MORE issues each time and never writes backlog-issues.json."""
+def check_refusal_untouched(case, log, remnant, rec):
+    """CASE G / CASE H: nothing created or applied, and the seeded remnant left as it was."""
+    check(f"CASE {case}: zero issue create argv reached the fake",
+          not any("issue create" in l for l in log), f"{log}")
+    check(f"CASE {case}: zero updateIssue argv reached the fake",
+          not any("updateIssue" in l for l in log), f"{log}")
+    check(f"CASE {case}: zero updateIssue argv carries a node id derived from remnant {remnant}",
+          not any("updateIssue" in l and f"I_node{remnant}" in l for l in log), f"{log}")
+    check(f"CASE {case}: the seeded remnant is unchanged - number still {remnant}",
+          rec.get("bug:a defect", {}).get("number") == remnant, f"{rec}")
+    check(f"CASE {case}: the seeded remnant is unchanged - typed still exactly false",
+          rec.get("bug:a defect", {}).get("typed") is False, f"{rec}")
+    check(f"CASE {case}: no entry was recorded for the chore item",
+          "chore:a chore" not in rec, f"{rec}")
+    check(f"CASE {case}: no entry was recorded for the enhancement item",
+          "enhancement:a wish" not in rec, f"{rec}")
+
+
+def refusal_case(case, fake_types, remnant, missing, refuse_note=""):
+    """CASE G / CASE H: a pre-seeded created-but-not-yet-typed remnant (bug:a defect,
+    #<remnant>, typed false) and FAKE_TYPES=<fake_types> leaving <missing> undeclared; the run
+    must refuse before ANY create or apply, leaving the remnant untouched."""
     with tempfile.TemporaryDirectory() as tmp:
         install_gh(tmp, FAKE_GH_TYPES)
         feat_dir = stage(tmp)
-        run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls1.log")
-        r2 = run(feat_dir, tmp, {"FAKE_TYPES": "absent"}, log="calls2.log")
-        log2 = calls(tmp, "calls2.log")
-        creates2 = [l for l in log2 if "issue create" in l]
-        check("CASE F: the second run makes three MORE issue create argv",
-              len(creates2) == 3, f"{creates2}")
-        check("CASE F: no backlog-issues.json exists after either run",
-              not os.path.exists(receipt_path(feat_dir)), feat_dir)
-        check("CASE F: no stdout line names a skipped recorded item",
-              "skip" not in r2.stdout.lower(), repr(r2.stdout))
-        diag_lines = re.findall(r"^gh-sync: issue types ", r2.stdout, re.M)
-        check("CASE F: the second invocation still prints exactly one diagnostic line",
-              len(diag_lines) == 1, repr(r2.stdout))
-
-
-def case_g():
-    """CASE G: partial types (Task undeclared) with a pre-seeded created-but-not-yet-typed
-    remnant (bug:a defect, #601, typed false) so the backfill set is not empty. The chore
-    item still resolves to Task, which is not declared, so the run must refuse before ANY
-    create or apply, leaving the remnant untouched."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
-        seed_receipt(feat_dir, {"bug:a defect": {"number": 601, "typed": False}})
-        r = run(feat_dir, tmp, {"FAKE_TYPES": "partial"})
-        log = calls(tmp)
+        seed_receipt(feat_dir, {"bug:a defect": {"number": remnant, "typed": False}})
+        r = run(feat_dir, tmp, {"FAKE_TYPES": fake_types})
         both = r.stdout + r.stderr
-        check("CASE G: the run refuses (non-zero exit)", r.returncode != 0,
+        check(f"CASE {case}: the run refuses (non-zero exit){refuse_note}", r.returncode != 0,
               f"exit={r.returncode} out={both}")
-        check("CASE G: zero issue create argv reached the fake",
-              not any("issue create" in l for l in log), f"{log}")
-        check("CASE G: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log), f"{log}")
-        check("CASE G: zero updateIssue argv carries a node id derived from remnant 601",
-              not any("updateIssue" in l and "I_node601" in l for l in log), f"{log}")
-        check("CASE G: the refusal names both Task and github.issue_types",
-              "Task" in both and "github.issue_types" in both, both)
-        rec = read_receipt(feat_dir) or {}
-        check("CASE G: the seeded remnant is unchanged - number still 601",
-              rec.get("bug:a defect", {}).get("number") == 601, f"{rec}")
-        check("CASE G: the seeded remnant is unchanged - typed still exactly false",
-              rec.get("bug:a defect", {}).get("typed") is False, f"{rec}")
-        check("CASE G: no entry was recorded for the chore item",
-              "chore:a chore" not in rec, f"{rec}")
-        check("CASE G: no entry was recorded for the enhancement item",
-              "enhancement:a wish" not in rec, f"{rec}")
+        check(f"CASE {case}: the refusal names both {missing} and github.issue_types",
+              missing in both and "github.issue_types" in both, both)
+        check_refusal_untouched(case, calls(tmp), remnant, read_receipt(feat_dir) or {})
 
 
-def case_h():
-    """CASE H: FAKE_TYPES=nobug. Both items this run would CREATE resolve to declared
-    types (chore->Task, enhancement->Feature), so the creation-side check alone refuses
-    nothing; only the pre-seeded remnant's backfill need for the undeclared Bug can
-    refuse."""
-    with tempfile.TemporaryDirectory() as tmp:
-        install_gh(tmp, FAKE_GH_TYPES)
-        feat_dir = stage(tmp)
-        seed_receipt(feat_dir, {"bug:a defect": {"number": 602, "typed": False}})
-        r = run(feat_dir, tmp, {"FAKE_TYPES": "nobug"})
-        log = calls(tmp)
-        both = r.stdout + r.stderr
-        check("CASE H: the run refuses (non-zero exit) though nothing to be CREATED needs Bug",
-              r.returncode != 0, f"exit={r.returncode} out={both}")
-        check("CASE H: the refusal names both Bug and github.issue_types",
-              "Bug" in both and "github.issue_types" in both, both)
-        check("CASE H: zero issue create argv reached the fake",
-              not any("issue create" in l for l in log), f"{log}")
-        check("CASE H: zero updateIssue argv reached the fake",
-              not any("updateIssue" in l for l in log), f"{log}")
-        check("CASE H: zero updateIssue argv carries a node id derived from remnant 602",
-              not any("updateIssue" in l and "I_node602" in l for l in log), f"{log}")
-        rec = read_receipt(feat_dir) or {}
-        check("CASE H: the seeded remnant is unchanged - number still 602",
-              rec.get("bug:a defect", {}).get("number") == 602, f"{rec}")
-        check("CASE H: the seeded remnant is unchanged - typed still exactly false",
-              rec.get("bug:a defect", {}).get("typed") is False, f"{rec}")
-        check("CASE H: no entry was recorded for the chore item",
-              "chore:a chore" not in rec, f"{rec}")
-        check("CASE H: no entry was recorded for the enhancement item",
-              "enhancement:a wish" not in rec, f"{rec}")
-
-
-case_a_b()
-case_c()
-case_d()
+case_a_b_d()
+case_c_f()
 case_e()
-case_f()
-case_g()
-case_h()
+# CASE G: partial types (Task undeclared). The chore item still resolves to Task, so the
+# creation-side check refuses; the remnant makes the backfill set non-empty.
+refusal_case("G", "partial", 601, "Task")
+# CASE H: nobug types. Both items this run would CREATE resolve to declared types
+# (chore->Task, enhancement->Feature), so only the remnant's backfill need for the
+# undeclared Bug can refuse.
+refusal_case("H", "nobug", 602, "Bug", " though nothing to be CREATED needs Bug")
 case_i()
 
-print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

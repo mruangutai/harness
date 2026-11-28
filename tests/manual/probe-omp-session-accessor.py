@@ -96,6 +96,9 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tests"))
+from check_support import Checks  # noqa: E402
+
 # The extension lives beside this check so the check and a hand reproduction run the same code.
 PROBE = ROOT / "tests/manual/probe-session-accessors.ts"
 
@@ -108,12 +111,8 @@ NESTED_SESSION_FILE = re.compile(r"/\d{4}-\d{2}-\d{2}T[\d-]+Z_[0-9a-f-]+/[^/]+\.
 SESSION_FILE_SUFFIX = ".jsonl"
 USAGE_FIELDS = ("tokens", "contextWindow", "percent")
 
-RESULTS: list[tuple[str, bool, object]] = []
-
-
-def check(name: str, ok: bool, detail: object = "") -> None:
-    RESULTS.append((name, bool(ok), detail))
-    print(f"{'PASS' if ok else 'FAIL'} - {name}" + ("" if ok else f" ({detail!r})"))
+C = Checks()
+check = C.check
 
 
 def session_file(row: dict) -> str:
@@ -159,29 +158,20 @@ def _distinct(children: list[dict], mains: list[dict]) -> bool:
     return bool(children and mains) and named and child_ids.isdisjoint(main_ids)
 
 
-def _by_path(rows: list[dict], identity) -> list[dict]:
-    """The rows whose session-file path satisfies identity (is_nested or is_flat_main)."""
-    return [r for r in rows if identity(session_file(r))]
-
-
-def _field(rows: list[dict], key: str) -> list[object]:
-    return [r.get(key) for r in rows]
-
-
 def observation_checks(rows: list[dict]) -> list[tuple[str, bool, object]]:
     """case3..case6 over the probe's rows. Pure, so the offline tests drive it directly."""
     paths = [session_file(r) for r in rows]
-    children = _by_path(rows, is_nested)
-    mains = _by_path(rows, is_flat_main)
+    children = [r for r, p in zip(rows, paths) if is_nested(p)]
+    mains = [r for r, p in zip(rows, paths) if is_flat_main(p)]
     measured = [r for r in children if usage_numbers(r) is not None]
     return [
         ("case3: a nested task child session was observed, identified by its session path",
          bool(children), paths),
         ("case4: that child's getContextUsage returned finite tokens, contextWindow and percent",
-         bool(measured), _field(children, "usage")),
+         bool(measured), [r.get("usage") for r in children]),
         ("case5: a flat main session was observed", bool(mains), paths),
         ("case6: the measured child and the main are distinct sessions",
-         _distinct(measured, mains), _field(rows, "session")),
+         _distinct(measured, mains), [r.get("session") for r in rows]),
     ]
 
 
@@ -208,24 +198,17 @@ def _observe(omp: str) -> tuple[list[dict], subprocess.CompletedProcess]:
 
 def main() -> int:
     omp = shutil.which("omp")
-    check("case1: the omp binary is on PATH", omp is not None, omp)
-    check("case1: the committed probe extension exists", PROBE.is_file(), str(PROBE))
-    if not omp or not PROBE.is_file():
-        return finish()
+    have_omp = check("case1: the omp binary is on PATH", omp is not None, omp)
+    have_probe = check("case1: the committed probe extension exists", PROBE.is_file(), str(PROBE))
+    if not (have_omp and have_probe):
+        return C.report()
 
     rows, proc = _observe(omp)
-    check("case2: the probe produced at least one observation",
-          bool(rows), (proc.returncode, proc.stderr[-400:]))
-    if rows:
+    if check("case2: the probe produced at least one observation",
+             bool(rows), (proc.returncode, proc.stderr[-400:])):
         for name, ok, detail in observation_checks(rows):
             check(name, ok, detail)
-    return finish()
-
-
-def finish() -> int:
-    failed = [name for name, ok, _ in RESULTS if not ok]
-    print(f"{'FAIL' if failed else 'PASS'} - {len(RESULTS) - len(failed)}/{len(RESULTS)} checks passed")
-    return 1 if failed else 0
+    return C.report()
 
 
 if __name__ == "__main__":

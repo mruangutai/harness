@@ -7,23 +7,26 @@ rather than absent (INV-33), a run id clobbered in place (INV-36) and digest ver
 reconciliation (INV-46 — its own row since the 2026-09-21 ruling; it printed under INV-37's
 number until then) plus BUG-1309's Build-entry mirror receipt (INV-37).
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import json
-import os
-import re
-import subprocess
-import sys
-import shutil
-import tempfile
-from check_state_support import (SCRIPT, check_state_mutant, check_state_owner, isolated_bin,
-                                 make_fixture, run, _HOOKS_REL_T,
-    _root_env)
-from harness_config_support import write_config
+from integration_support import ROOT, BIN
+import json  # noqa: E402
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import shutil  # noqa: E402
+import tempfile  # noqa: E402
+from check_state_support import (SCRIPT, check_state_mutant, check_state_owner,  # noqa: E402
+                                 isolated_bin, make_fixture, run, _HOOKS_REL_T, _root_env)
+from check_support import Checks  # noqa: E402
+from git_support import git  # noqa: E402
+from harness_config_support import write_config  # noqa: E402
+
+ROOT, BIN = str(ROOT), str(BIN)
+C = Checks()
+check = C.check
+
+
+def _lines_with(out, *needles):
+    return [line for line in out.splitlines() if all(n in line for n in needles)]
 
 
 def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None,
@@ -58,16 +61,31 @@ def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None,
 # default None is the schema default: there is no pre-panel era, so every approved plan is graded
 # and the pre-existing INV-32 cases keep asserting exactly what they always asserted. A missing or
 # malformed boundary is now a config read failure, proven once by the central readers test.
-def _inv32_run(doc, script=SCRIPT, era=None):
+# A real-checker run is a pure function of (doc, era, record), so the cases that grade the same
+# fixture share one spawn; a mutant script is never memoised (its temp path can be reused).
+_INV32_RUNS = {}
+
+
+def _inv32_run(doc, script=SCRIPT, era=None, record=None):
+    """(rc, stdout, stderr) of `script` over plan.yaml `doc`; `record` adds a feature.json."""
+    key = json.dumps([doc, era, record], sort_keys=True)
+    if script == SCRIPT and key in _INV32_RUNS:
+        return _INV32_RUNS[key]
     with tempfile.TemporaryDirectory() as tmp:
         root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
         os.makedirs(root, exist_ok=True)
         with open(os.path.join(root, "plan.yaml"), "w") as f:
             json.dump(doc, f)
+        if record is not None:
+            with open(os.path.join(root, "feature.json"), "w") as f:
+                json.dump(record, f)
         write_config(os.path.join(tmp, ".harness", "harness.json"), {"panel_era_start": era})
-        env = _root_env(tmp)
-        proc = subprocess.run([script], cwd=tmp, capture_output=True, text=True, env=env)
-        return proc.returncode, proc.stdout, proc.stderr
+        proc = subprocess.run([script], cwd=tmp, capture_output=True, text=True,
+                              env=_root_env(tmp))
+    result = proc.returncode, proc.stdout, proc.stderr
+    if script == SCRIPT:
+        _INV32_RUNS[key] = result
+    return result
 
 
 def case_2095_off_template_finding_is_a_violation():
@@ -82,8 +100,7 @@ def case_2095_off_template_finding_is_a_violation():
     marker = {**good, "id": "PF-graded", "disposition": "resolved", "resolved_by": "T-01"}
 
     def shape_violations(out):
-        return [line for line in out.splitlines()
-                if "VIOLATION" in line and "PF-shape" in line]
+        return _lines_with(out, "VIOLATION", "PF-shape")
 
     _, signed, _ = _inv32_run(_inv32_plan(finding=[off]))
     pending_doc = _inv32_plan(finding=[off])
@@ -99,10 +116,8 @@ def case_2095_off_template_finding_is_a_violation():
         not shape_violations(clean),
         not shape_violations(done) and "PF-graded" in done,
     ]
-    ok = all(checks)
-    print(f"{'ok' if ok else 'FAIL'} - #2095 off-template panel findings are INV-32 violations "
-          f"on non-terminal plans only" + ("" if ok else f" {checks}\n      {signed}\n      {done}"))
-    return ok
+    check("#2095 off-template panel findings are INV-32 violations on non-terminal plans only",
+          all(checks), f"{checks}\n{signed}\n{done}")
 
 
 def case_inv32_unrated_severity_fails_closed():
@@ -113,19 +128,15 @@ def case_inv32_unrated_severity_fails_closed():
         {"id": "PF-null", "severity": None, "disposition": "open"},
     ]
     code, out, _ = _inv32_run(_inv32_plan(finding=findings))
-    ok = code == 1 and all(finding["id"] in out for finding in findings)
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 unrated severities fail closed"
-          + ("" if ok else f"\n      {out}"))
-    return ok
+    check("INV-32 unrated severities fail closed",
+          code == 1 and all(finding["id"] in out for finding in findings), out)
 
 
 def _inv32_basic_checks(open_finding, resolved, fid):
     code, no_panel, _ = _inv32_run(_inv32_plan(panel_marker=False))
     _, high_open, _ = _inv32_run(_inv32_plan(finding=open_finding))
     _, high_resolved, _ = _inv32_run(_inv32_plan(finding=resolved))
-    resolved_lines = [
-        line for line in high_resolved.splitlines() if "FEAT-INV32" in line
-    ]
+    resolved_lines = _lines_with(high_resolved, "FEAT-INV32")
     return [
         code == 1 and "INV-32" in no_panel and "FEAT-INV32" in no_panel,
         "INV-32" in high_open and fid in high_open,
@@ -141,9 +152,7 @@ def _inv32_ruling_checks(open_finding, resolved, fid):
     ruling = [{"finding": fid, "who": "operator",
                "date": "2026-08-31", "reason": "accepted"}]
     _, accepted, _ = _inv32_run(_inv32_plan(finding=open_finding, rulings=ruling))
-    accepted_lines = [
-        line for line in accepted.splitlines() if "FEAT-INV32" in line
-    ]
+    accepted_lines = _lines_with(accepted, "FEAT-INV32")
     bad_ruling = [{**ruling[0], "who": ""}]
     _, unattributed, _ = _inv32_run(
         _inv32_plan(finding=open_finding, rulings=bad_ruling)
@@ -160,7 +169,7 @@ def _inv32_ruling_checks(open_finding, resolved, fid):
     for severity in ("high", "critical", "unrated"):
         finding = [{**open_finding[0], "severity": severity}]
         _, output, _ = _inv32_run(_inv32_plan(finding=finding, rulings=ruling))
-        lines = [line for line in output.splitlines() if "FEAT-INV32" in line]
+        lines = _lines_with(output, "FEAT-INV32")
         every_gating_severity_accepted &= (
             any(fid in line and "accepted risk" in line.lower() for line in lines)
             and not any("VIOLATION" in line for line in lines)
@@ -184,12 +193,8 @@ def _inv32_skipped_reader_check(missing):
     skipped = missing + [{"reader": "should-not-exist", "status": "skipped",
                           "persona": "fable-advisor", "reason": "not installed"}]
     _, out, _ = _inv32_run(_inv32_plan(readers=skipped))
-    violations = [
-        line for line in out.splitlines()
-        if "INV-32" in line and "FEAT-INV32" in line and "VIOLATION" in line
-    ]
     return (all(text in out for text in ("should-not-exist", "fable-advisor"))
-            and not violations)
+            and not _inv32_violations(out))
 
 
 def _inv32_reader_checks(valid_readers):
@@ -209,28 +214,30 @@ def _inv32_mutant_fixture_passes(doc, mutant):
             and "INV-32" not in text_mut)
 
 
+def _excised_mutant(iso_root, begin, end):
+    """A check-state entry under an isolated bin in `iso_root` whose owning source has the
+    begin..end region cut out, or None when the markers are absent (callers count that a FAIL)."""
+    owner = check_state_owner(begin)          # FEAT-69: the text lives in a check_state/ module
+    source = open(owner, encoding="utf-8").read() if owner else ""
+    if begin not in source or end not in source:
+        return None
+    left, rest = source.split(begin, 1)
+    _region, right = rest.split(end, 1)
+    return check_state_mutant(isolated_bin(iso_root), owner, left + right)
+
+
 def _inv32_mutant_is_discriminating(missing):
-    begin = "# INV-32 BEGIN (FEAT-45 T-07)"
-    end = "# INV-32 END (FEAT-45 T-07)"
-    owner = check_state_owner(begin)          # FEAT-69: the table row lives in check_state/table.py
-    source = open(owner, encoding="utf-8").read()
-    iso_root = tempfile.mkdtemp()
-    iso = isolated_bin(iso_root)
-    try:
-        assert begin in source and end in source
-        left, rest = source.split(begin, 1)
-        _region, right = rest.split(end, 1)
-        changed = left + right
-        assert changed != source
-        mutant = check_state_mutant(iso, owner, changed)
+    with tempfile.TemporaryDirectory() as iso_root:
+        mutant = _excised_mutant(iso_root, "# INV-32 BEGIN (FEAT-45 T-07)",
+                                 "# INV-32 END (FEAT-45 T-07)")
+        if mutant is None:
+            return False
         sc04_refusal = _inv32_plan(
             finding=[{"id": "PF-sc04", "severity": "high", "disposition": "open"}]
         )
         docs = (_inv32_plan(panel_marker=False), _inv32_plan(readers=missing),
                 sc04_refusal)
         return all(_inv32_mutant_fixture_passes(doc, mutant) for doc in docs)
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 def case_inv32():
@@ -248,10 +255,7 @@ def case_inv32():
         + reader_checks
         + [_inv32_mutant_is_discriminating(missing)]
     )
-    ok = all(checks)
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 plan panel fixtures, including inv32-red"
-          + ("" if ok else f" {checks}"))
-    return ok
+    check("INV-32 plan panel fixtures, including inv32-red", all(checks), checks)
 
 
 # ==========================================================================================
@@ -282,29 +286,24 @@ def _inv33_repo(tmp):
     directory would exit non-zero while printing no invariant line at all — and these cases
     would then be unfalsifiable.
     """
-    for cmd in (["git", "init", "-q"],
-                ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
-        subprocess.run(cmd, cwd=tmp, capture_output=True)
+    git(tmp, "init", "-q", check=False)    # ENV carries the commit identity
     make_fixture(tmp, _INV32_HJ, "  parent: 1\n")
     return os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
 
 
 def _inv33_commit(tmp, message="c"):
-    subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", message], cwd=tmp, capture_output=True)
-    return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tmp,
-                          capture_output=True, text=True).stdout.strip()
+    git(tmp, "add", "-A", check=False)
+    git(tmp, "commit", "-qm", message, check=False)
+    return git(tmp, "rev-parse", "--short", "HEAD", check=False).stdout.strip()
 
 
-def _inv33_set_sha(feat_dir, sha, validator_run=True):
-    """Set the pin and optional validator run in the strict JSON fixture."""
+def _inv33_set_sha(feat_dir, sha):
+    """Set the pin and a validator run in the strict JSON fixture."""
     fj = os.path.join(feat_dir, "feature.json")
     with open(fj, encoding="utf-8") as source:
         document = json.load(source)
     document["review_sha"] = sha
-    if validator_run:
-        document["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS"}]
+    document["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS"}]
     with open(fj, "w", encoding="utf-8") as target:
         json.dump(document, target)
         target.write("\n")
@@ -337,12 +336,11 @@ def _inv33_plan(feat_dir, body, station=None, task_status="building", approval=N
 
 
 def _inv33_lines(out):
-    return [l for l in out.splitlines() if "INV-33" in l]
+    return _lines_with(out, "INV-33")
 
 
 def case_inv33a_stale_is_reported():
     """(inv33.a) THE REPORT. Commit X, commit Y, leave Y on disk, pin the FIRST commit."""
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
         _inv33_plan(feat, "logic")                 # content X
@@ -357,10 +355,9 @@ def case_inv33a_stale_is_reported():
             and any(first in l for l in ls) and any(second in l for l in ls)
         if ok:
             print("ok - case (inv33.a) a stale review_sha is reported")
-        results.append(("(inv33.a) a stale review_sha is reported, naming the feature, the "
-                        "pinned sha and the last sha to touch the plan", ok,
-                        "\n".join(ls) or f"(no INV-33 line) code={code}"))
-    return results
+    return [("(inv33.a) a stale review_sha is reported, naming the feature, the "
+             "pinned sha and the last sha to touch the plan", ok,
+             "\n".join(ls) or f"(no INV-33 line) code={code}")]
 
 
 def case_inv33b_current_is_silent():
@@ -370,7 +367,6 @@ def case_inv33b_current_is_silent():
     equals the working copy's, so INV-33 must be silent even though a LATER commit touched the
     file — which is exactly what a `git log -1` implementation would report.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
         _inv33_plan(feat, "logic")                 # X
@@ -386,10 +382,9 @@ def case_inv33b_current_is_silent():
         ok = not ls
         if ok:
             print("ok - case (inv33.b) a current review_sha is silent")
-        results.append(("(inv33.b) a current review_sha is silent even though a later commit "
-                        "touched the plan — a content comparison, not a commit comparison", ok,
-                        "\n".join(ls) or "(unexpected line)"))
-    return results
+    return [("(inv33.b) a current review_sha is silent even though a later commit "
+             "touched the plan — a content comparison, not a commit comparison", ok,
+             "\n".join(ls) or "(unexpected line)")]
 
 
 def case_inv33c_terminal_is_silent():
@@ -403,7 +398,6 @@ def case_inv33c_terminal_is_silent():
     DISCRIMINATING run is against an implementation that already reports (inv33.a) but carries no
     terminal scope, where it must be RED. That run belongs in the receipt.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
         _inv33_plan(feat, "logic", station="done")
@@ -417,10 +411,8 @@ def case_inv33c_terminal_is_silent():
         ok = not ls
         if ok:
             print("ok - case (inv33.c) a terminal station is silent")
-        results.append(("(inv33.c) a terminal station is silent — a shipped plan is a record, "
-                        "not a contract (operator Q6)", ok,
-                        "\n".join(ls) or "(unexpected line)"))
-    return results
+    return [("(inv33.c) a terminal station is silent — a shipped plan is a record, "
+             "not a contract (operator Q6)", ok, "\n".join(ls) or "(unexpected line)")]
 
 
 def case_inv33d_absent_path_is_silent():
@@ -440,7 +432,6 @@ def case_inv33d_absent_path_is_silent():
     which is precisely why the clause needs a fixture of its own. A case built with a terminal
     station would be measuring the wrong clause and would pass whatever this one does.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         feat = _inv33_repo(tmp)
         # A commit made BEFORE the plan file existed at that path.
@@ -456,10 +447,8 @@ def case_inv33d_absent_path_is_silent():
         ok = not ls
         if ok:
             print("ok - case (inv33.d) a pin with no plan file at that path is silent")
-        results.append(("(inv33.d) a pin that resolves but holds no plan at that path is "
-                        "silent, at a NON-TERMINAL station", ok,
-                        "\n".join(ls) or "(unexpected line)"))
-    return results
+    return [("(inv33.d) a pin that resolves but holds no plan at that path is "
+             "silent, at a NON-TERMINAL station", ok, "\n".join(ls) or "(unexpected line)")]
 
 
 def _inv33_pinned_then(pinned=None, **after):
@@ -502,7 +491,7 @@ def case_inv33g_other_status_fields_stay_stale():
     approval's — is reviewed content, so changing it still reports STALE."""
     ls = _inv33_pinned_then(approval="pending")
     return [("(inv33.g) a non-station status change after the pin still reports STALE",
-             any("FEAT-TEST" in l and "STALE" in l for l in ls), "\n".join(ls) or "(no INV-33 line)")]
+             _inv33_stale(ls), "\n".join(ls) or "(no INV-33 line)")]
 
 
 def case_inv33h_task_nested_status_stays_stale():
@@ -521,12 +510,13 @@ def _inv33_changed_since(pin, git=True, drop_plan=False):
         if not git:
             make_fixture(tmp, _INV32_HJ, "  parent: 1\n")
         _inv33_plan(feat, "logic", station="building")
-        first = _inv33_commit(tmp, "plan X") or "abc1234"
+        first = (_inv33_commit(tmp, "plan X") if git else "") or "abc1234"
         _inv33_plan(feat, "docs", station="building")
         _inv33_set_sha(feat, pin(first))
         if drop_plan:
             os.remove(os.path.join(feat, "plan.yaml"))
-        _inv33_commit(tmp, "plan Y")
+        if git:
+            _inv33_commit(tmp, "plan Y")
         _code, out = run(tmp)
         return _inv33_lines(out)
 
@@ -587,23 +577,19 @@ def case_inv33j_unloadable_and_legacy_plans_compare_as_bytes():
 # `code == 1` and reads the text. An exit-code assertion here would pass or fail on those
 # unrelated invariants instead of on the era guard, so it would not bind what it names.
 def _inv32_violations(out):
-    return [line for line in out.splitlines()
-            if "FEAT-INV32" in line and "INV-32" in line and "VIOLATION" in line]
+    return _lines_with(out, "FEAT-INV32", "INV-32", "VIOLATION")
 
 
 def _inv32_notes(out):
-    return [line for line in out.splitlines()
-            if "FEAT-INV32" in line and "INV-32" in line and "note" in line]
+    return _lines_with(out, "FEAT-INV32", "INV-32", "note")
 
 
 def case_inv32_pre_era_is_exempt():
     """A plan signed BEFORE the panel shipped is not graded, and says so out loud."""
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
                                era="2026-08-31")
-    ok = not _inv32_violations(out) and bool(_inv32_notes(out))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 pre-era plan is exempt with a note"
-          + ("" if ok else f"\n      {out}"))
-    return ok
+    check("INV-32 pre-era plan is exempt with a note",
+          not _inv32_violations(out) and bool(_inv32_notes(out)), out)
 
 
 def case_inv32_era_boundary_is_exact():
@@ -612,31 +598,18 @@ def case_inv32_era_boundary_is_exact():
                                   era="2026-08-31")
     _rc_a, after, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-31"),
                                  era="2026-08-31")
-    ok = not _inv32_violations(before) and bool(_inv32_violations(after))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 era boundary is exact "
-          f"(08-30 exempt, 08-31 graded)"
-          + ("" if ok else f"\n      before: {_inv32_violations(before)}"
-                           f"\n      after:  {_inv32_violations(after)}"))
-    return ok
+    check("INV-32 era boundary is exact (08-30 exempt, 08-31 graded)",
+          not _inv32_violations(before) and bool(_inv32_violations(after)),
+          f"before: {_inv32_violations(before)}\nafter:  {_inv32_violations(after)}")
 
 
 def _inv32_run_with_mission(doc, mission):
-    """Like _inv32_run, with a sibling feature.json carrying `mission` (None = no key)."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
-        os.makedirs(root, exist_ok=True)
-        with open(os.path.join(root, "plan.yaml"), "w") as f:
-            json.dump(doc, f)
-        record = {"feature_id": "FEAT-INV32", "branch": "none", "pr": None,
-                  "review_sha": "none", "cycles_used": 0, "max_total_cycles": 10, "runs": []}
-        if mission is not None:
-            record["mission"] = mission
-        with open(os.path.join(root, "feature.json"), "w") as f:
-            json.dump(record, f)
-        write_config(os.path.join(tmp, ".harness", "harness.json"))
-        proc = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True,
-                              env=_root_env(tmp))
-        return proc.returncode, proc.stdout, proc.stderr
+    """_inv32_run with a sibling feature.json carrying `mission` (None = no key)."""
+    record = {"feature_id": "FEAT-INV32", "branch": "none", "pr": None,
+              "review_sha": "none", "cycles_used": 0, "max_total_cycles": 10, "runs": []}
+    if mission is not None:
+        record["mission"] = mission
+    return _inv32_run(doc, record=record)
 
 
 def case_inv32_patch_mission_has_no_panel():
@@ -646,15 +619,11 @@ def case_inv32_patch_mission_has_no_panel():
     _rc, patch_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "patch")
     _rc, plan_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "plan")
     _rc, none_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), None)
-    ok = (not _inv32_violations(patch_out) and bool(_inv32_notes(patch_out))
-          and bool(_inv32_violations(plan_out)) and bool(_inv32_violations(none_out)))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 patch mission is exempt with a note; "
-          f"plan and no-mission are graded"
-          + ("" if ok else f"\n      patch: {_inv32_violations(patch_out)} "
-                           f"notes={_inv32_notes(patch_out)}"
-                           f"\n      plan:  {_inv32_violations(plan_out)}"
-                           f"\n      none:  {_inv32_violations(none_out)}"))
-    return ok
+    check("INV-32 patch mission is exempt with a note; plan and no-mission are graded",
+          not _inv32_violations(patch_out) and bool(_inv32_notes(patch_out))
+          and bool(_inv32_violations(plan_out)) and bool(_inv32_violations(none_out)),
+          f"patch: {_inv32_violations(patch_out)} notes={_inv32_notes(patch_out)}"
+          f"\nplan:  {_inv32_violations(plan_out)}\nnone:  {_inv32_violations(none_out)}")
 
 
 def case_inv32_patch_mission_exempts_only_one_task():
@@ -667,12 +636,11 @@ def case_inv32_patch_mission_exempts_only_one_task():
     _rc, three_out, _ = _inv32_run_with_mission(three, "patch")
     _rc, one_out, _ = _inv32_run_with_mission(_inv32_plan(panel_marker=False), "patch")
     v = _inv32_violations(three_out)
-    ok = (len(v) == 1 and "3 tasks" in v[0] and "SC-02" in v[0]
-          and not _inv32_violations(one_out))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 patch exemption holds for exactly one task; "
-          f"three tasks is a VIOLATION naming the count and SC-02"
-          + ("" if ok else f"\n      three: {v}\n      one:   {_inv32_violations(one_out)}"))
-    return ok
+    check("INV-32 patch exemption holds for exactly one task; "
+          "three tasks is a VIOLATION naming the count and SC-02",
+          len(v) == 1 and "3 tasks" in v[0] and "SC-02" in v[0]
+          and not _inv32_violations(one_out),
+          f"three: {v}\none:   {_inv32_violations(one_out)}")
 
 
 def case_inv32_undated_approval_fails():
@@ -684,42 +652,27 @@ def case_inv32_undated_approval_fails():
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date=None),
                                era="2026-08-31")
     violations = _inv32_violations(out)
-    ok = (bool(violations)
-          and any("approval.date" in line for line in violations))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 undated approval is a violation naming approval.date"
-          + ("" if ok else f"\n      {out}"))
-    return ok
+    check("INV-32 undated approval is a violation naming approval.date",
+          bool(violations) and any("approval.date" in line for line in violations), out)
 
 
 def case_inv32_era_guard_is_load_bearing():
     """Excise ONLY the era guard and the pre-era case must go red. Without this, an era
     guard that never runs is indistinguishable from one that does — the silent-zero shape
     this repository keeps finding."""
-    begin = "# INV-32 ERA BEGIN (BUG-1071)"
-    end = "# INV-32 ERA END (BUG-1071)"
-    owner = check_state_owner(begin)          # FEAT-69: the era guard lives in check_state/plan.py
-    source = open(owner, encoding="utf-8").read() if owner else ""
-    iso_root = tempfile.mkdtemp()
-    iso = isolated_bin(iso_root)
-    try:
-        if begin not in source or end not in source:
-            print("FAIL - INV-32 era guard markers absent; cannot mutate")
-            return False
-        left, rest = source.split(begin, 1)
-        _region, right = rest.split(end, 1)
-        mutant = check_state_mutant(iso, owner, left + right)
+    name = "INV-32 era guard is load-bearing"
+    with tempfile.TemporaryDirectory() as iso_root:
+        mutant = _excised_mutant(iso_root, "# INV-32 ERA BEGIN (BUG-1071)",
+                                 "# INV-32 ERA END (BUG-1071)")
+        if mutant is None:
+            check(name, False, "INV-32 era guard markers absent; cannot mutate")
+            return
         pre_era = _inv32_plan(panel_marker=False, date="2026-08-30")
         _rc_real, real_out, _ = _inv32_run(pre_era, era="2026-08-31")
         _rc_mut, mut_out, mut_err = _inv32_run(pre_era, mutant, era="2026-08-31")
-        ok = (not _inv32_violations(real_out)
-              and bool(_inv32_violations(mut_out))
-              and "Traceback" not in mut_err)
-        print(f"{'ok' if ok else 'FAIL'} - INV-32 era guard is load-bearing "
-              f"(real={len(_inv32_violations(real_out))} "
-              f"mutant={len(_inv32_violations(mut_out))} violations)")
-        return ok
-    finally:
-        shutil.rmtree(iso_root, ignore_errors=True)
+    real_n, mut_n = len(_inv32_violations(real_out)), len(_inv32_violations(mut_out))
+    check(f"{name} (real={real_n} mutant={mut_n} violations)",
+          not real_n and bool(mut_n) and "Traceback" not in mut_err, mut_err)
 
 
 # BUG-1071 F2 — the boundary is the PROJECT'S, read from that repository's own harness.json —
@@ -734,12 +687,9 @@ def case_inv32_era_comes_from_project_config():
     plan = _inv32_plan(panel_marker=False, date="2026-08-25")
     _rc1, late, _ = _inv32_run(plan, era="2026-08-31")
     _rc2, early, _ = _inv32_run(plan, era="2026-08-20")
-    ok = not _inv32_violations(late) and bool(_inv32_violations(early))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 era boundary comes from harness.json, "
-          f"not a literal"
-          + ("" if ok else f"\n      era=08-31: {_inv32_violations(late)}"
-                           f"\n      era=08-20: {_inv32_violations(early)}"))
-    return ok
+    check("INV-32 era boundary comes from harness.json, not a literal",
+          not _inv32_violations(late) and bool(_inv32_violations(early)),
+          f"era=08-31: {_inv32_violations(late)}\nera=08-20: {_inv32_violations(early)}")
 
 
 def case_inv32_null_era_grades_everything():
@@ -748,14 +698,11 @@ def case_inv32_null_era_grades_everything():
     have reviewed, so nothing is exempt however old the signature looks."""
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2020-01-01"),
                                era=None)
-    ok = bool(_inv32_violations(out))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 null panel_era_start exempts nothing"
-          + ("" if ok else f"\n      {out}"))
-    return ok
+    check("INV-32 null panel_era_start exempts nothing", bool(_inv32_violations(out)), out)
 
 
 def _bug1305_invariant_scaffold(tmp):
-    subprocess.run(["git", "init", "-q"], cwd=tmp, check=True, capture_output=True)
+    git(tmp, "init", "-q")
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
     write_config(os.path.join(h, "harness.json"),
@@ -767,15 +714,15 @@ def _bug1305_invariant_scaffold(tmp):
                  "  - name: example/harness\n    default_branch: main\n"
                  f"workspace_root: {tmp}/fleet\n")
     shutil.copy2(
-        os.path.join(_anchor_root, ".harness", "team-config.yaml"),
+        os.path.join(ROOT, ".harness", "team-config.yaml"),
         os.path.join(h, "team-config.yaml"))
     fixture_agents = os.path.join(tmp, ".agents", "skills", "harness")
     os.makedirs(fixture_agents, exist_ok=True)
-    os.symlink(_anchor_bin, os.path.join(fixture_agents, "bin"))
+    os.symlink(BIN, os.path.join(fixture_agents, "bin"))
     docs_dir = os.path.join(h, "harness", "docs")
     os.makedirs(docs_dir, exist_ok=True)
     shutil.copy2(
-        os.path.join(_anchor_root, ".harness", "harness", "docs", "SPEC.md"),
+        os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md"),
         os.path.join(docs_dir, "SPEC.md"))
     return h
 
@@ -804,68 +751,71 @@ def _bug1305_invariant_feature(tmp, h, names):
     with open(post_merge, "w") as fh:
         fh.write("#!/usr/bin/env bash\nexit 0\n")
     os.chmod(post_merge, 0o755)
-    subprocess.run(
-        ["git", "config", "core.hooksPath", _HOOKS_REL_T],
-        cwd=tmp, check=True, capture_output=True)
+    git(tmp, "config", "core.hooksPath", _HOOKS_REL_T)
     return fdir
+
+
+def _bug1305_build(tmp, names):
+    return _bug1305_invariant_feature(tmp, _bug1305_invariant_scaffold(tmp), names)
+
+
+def _bug1305_state(rid, extra=""):
+    return f"run_id: {rid}\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n{extra}"
+
+
+def _bug1305_write_run(fdir, name, state, marker=None):
+    rdir = os.path.join(fdir, "runs", name)
+    os.makedirs(rdir, exist_ok=True)
+    with open(os.path.join(rdir, "state.yaml"), "w") as fh:
+        fh.write(state)
+    if marker is not None:
+        with open(os.path.join(rdir, ".run-identity.json"), "w") as fh:
+            if isinstance(marker, str):
+                fh.write(marker)
+            else:
+                json.dump(marker, fh)
+
+
+_BUG1305_BASE = {"feature": "FEAT-TEST", "squad": "product", "host": "omp",
+                 "identity": "session", "created_at": "2026-09-05T00:00:00+00:00"}
+# The owned (Y) and legacy (Z, L) runs both trees carry, byte for byte.
+_BUG1305_SILENT_RUNS = {
+    "Y": (_bug1305_state("Y", "run_uid: SAME\n"),
+          {**_BUG1305_BASE, "run_id": "Y", "run_uid": "SAME"}),
+    "Z": (_bug1305_state("Z"), None),
+    "L": (_bug1305_state("L"), {**_BUG1305_BASE, "run_id": "L", "run_uid": "OLD"}),
+}
 
 
 def case_bug1305_run_identity_invariant():
     """BUG-1305 SC-02/03/09: report clobbers and remain silent for owned/legacy runs."""
-    def build(tmp, names):
-        h = _bug1305_invariant_scaffold(tmp)
-        return _bug1305_invariant_feature(tmp, h, names)
-
-    def write_run(fdir, name, state, marker=None):
-        rdir = os.path.join(fdir, "runs", name)
-        os.makedirs(rdir, exist_ok=True)
-        with open(os.path.join(rdir, "state.yaml"), "w") as fh:
-            fh.write(state)
-        if marker is not None:
-            with open(os.path.join(rdir, ".run-identity.json"), "w") as fh:
-                if isinstance(marker, str):
-                    fh.write(marker)
-                else:
-                    json.dump(marker, fh)
-
-    base = {"feature": "FEAT-TEST", "squad": "product", "host": "omp",
-            "identity": "session", "created_at": "2026-09-05T00:00:00+00:00"}
+    base = _BUG1305_BASE
     with tempfile.TemporaryDirectory() as tmp:
-        names = ["X", "V", "Y", "Z", "L", "W"]
-        fdir = build(tmp, names)
-        write_run(fdir, "X", "run_id: B\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "A", "run_uid": None})
-        write_run(fdir, "V", "run_id: V\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: U2\n",
-                  {**base, "run_id": "V", "run_uid": "U1"})
-        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
-                  {**base, "run_id": "Y", "run_uid": "SAME"})
-        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
-        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "L", "run_uid": "OLD"})
-        write_run(fdir, "W", "run_id: W\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n", "{")
+        fdir = _bug1305_build(tmp, ["X", "V", "Y", "Z", "L", "W"])
+        _bug1305_write_run(fdir, "X", _bug1305_state("B"), {**base, "run_id": "A", "run_uid": None})
+        _bug1305_write_run(fdir, "V", _bug1305_state("V", "run_uid: U2\n"),
+                           {**base, "run_id": "V", "run_uid": "U1"})
+        for name, (state, marker) in _BUG1305_SILENT_RUNS.items():
+            _bug1305_write_run(fdir, name, state, marker)
+        _bug1305_write_run(fdir, "W", _bug1305_state("W"), "{")
         code, out = run(tmp)
-        lines = [line for line in out.splitlines() if "INV-36" in line]
+        lines = _lines_with(out, "INV-36")
         joined = "\n".join(lines)
         bad_tree_ok = (code == 1 and len(lines) == 3 and all(x in joined for x in
                        ("runs/X", "'A'", "'B'", "runs/V", "'U1'", "'U2'", "runs/W",
                         "cannot be read")) and "non-checkpoint top-level key" not in joined)
 
     with tempfile.TemporaryDirectory() as tmp:
-        names = ["Y", "Z", "L"]
-        fdir = build(tmp, names)
-        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
-                  {**base, "run_id": "Y", "run_uid": "SAME"})
-        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
-        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
-                  {**base, "run_id": "L", "run_uid": "OLD"})
+        fdir = _bug1305_build(tmp, ["Y", "Z", "L"])
+        for name, (state, marker) in _BUG1305_SILENT_RUNS.items():
+            _bug1305_write_run(fdir, name, state, marker)
         clean_code, clean_out = run(tmp)
         clean_ok = clean_code == 0 and "INV-36" not in clean_out
 
-    ok = bad_tree_ok and clean_ok
-    print(f"{'ok' if ok else 'FAIL'} - BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs")
-    if not ok:
-        print(f"        bad_ok={bad_tree_ok}; clean exit={clean_code}; clean violations={[line for line in clean_out.splitlines() if 'VIOLATION' in line]}")
-    return ok
+    check("BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs",
+          bad_tree_ok and clean_ok,
+          f"bad_ok={bad_tree_ok}; clean exit={clean_code}; "
+          f"clean violations={_lines_with(clean_out, 'VIOLATION')}")
 
 
 # --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant. Each independent
@@ -894,11 +844,6 @@ def _t06_fixture(tmp, feature, station="review", build_entry=None, sync=True,
     return feat_dir
 
 
-def _t06_check(name, condition):
-    print(f"{'ok' if condition else 'FAIL'} - {name}")
-    return condition
-
-
 def _t06_inv37_line(feature, **fields):
     """The first INV-37 line check-state prints for one fixture feature, or ''."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -918,16 +863,14 @@ _T06_RECEIPT_ROWS = (
 def case_t06_inv37_receipt():
     """INV-37 fires on a missing receipt for EVERY feature id — no id buys silence — and
     accepts each provenanced receipt shape."""
-    outcomes = []
     for feature in ("FEAT-9001-fixture", "BUG-9-x"):
         line = _t06_inv37_line(feature)
-        outcomes.append(_t06_check(f"T-06 INV-37 fires for {feature} with no build_entry",
-                                   feature in line and "recover-terminal" in line))
+        check(f"T-06 INV-37 fires for {feature} with no build_entry",
+              feature in line and "recover-terminal" in line)
     for name, entry, sync, factory, expected_violation in _T06_RECEIPT_ROWS:
         line = _t06_inv37_line("FEAT-9001-fixture", build_entry=entry, sync=sync,
                                factory_issues=factory)
-        outcomes.append(_t06_check(name, bool(line) == expected_violation))
-    return all(outcomes)
+        check(name, bool(line) == expected_violation)
 
 
 def _t06_recovery(station, task_status=None):
@@ -941,14 +884,11 @@ def _t06_recovery(station, task_status=None):
 def case_t06_recovery_command():
     """recovery_command_for: `open` before any started work, `recover-terminal` for each
     terminal trigger alone."""
-    opened = _t06_check(
-        "T-06 recovery_command_for returns open for a building plan with no started work",
-        _t06_recovery("building") == "open")
+    check("T-06 recovery_command_for returns open for a building plan with no started work",
+          _t06_recovery("building") == "open")
     triggers = [_t06_recovery("review"), _t06_recovery("building", "done")]
-    terminal = _t06_check(
-        "T-06 recovery_command_for returns recover-terminal for each trigger alone",
-        triggers == ["recover-terminal", "recover-terminal"])
-    return opened and terminal
+    check("T-06 recovery_command_for returns recover-terminal for each trigger alone",
+          triggers == ["recover-terminal", "recover-terminal"], triggers)
 
 
 def _bug440_digest(verdict):
@@ -979,8 +919,7 @@ historical_only_key: accepted without live-schema validation
 
 
 def _bug440_build(tmp, entries, runs):
-    h = _bug1305_invariant_scaffold(tmp)
-    fdir = _bug1305_invariant_feature(tmp, h, entries)
+    fdir = _bug1305_build(tmp, entries)
     for name, host, status, text in runs:
         rdir = os.path.join(fdir, "runs", name)
         os.makedirs(rdir, exist_ok=True)
@@ -1001,7 +940,7 @@ def _bug440_validate_fixture(tmp, entries, runs):
     before = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
     code, out = run(tmp)
     after = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
-    return fdir, code, out, before == after
+    return code, out, before == after
 
 
 def _bug440_mixed_case():
@@ -1016,9 +955,9 @@ def _bug440_mixed_case():
         ("O", "harness-eng-lead", "complete", digest("FAIL")),
     ]
     with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, unchanged = _bug440_validate_fixture(
+        code, out, unchanged = _bug440_validate_fixture(
             tmp, ("M", "E", "N", "I", "G", "X"), runs)
-    lines = re.findall(r"^.*INV-46.*$", out, re.M)
+    lines = _lines_with(out, "INV-46")
     line = lines[0] if len(lines) == 1 else ""
     expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
     silent = ("runs/E", "runs/N", "runs/I", "runs/G", "runs/X", "runs/O")
@@ -1033,7 +972,7 @@ def _bug440_mixed_case():
 
 def _bug440_blocking_case():
     with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, _ = _bug440_validate_fixture(
+        code, out, _ = _bug440_validate_fixture(
             tmp, ("M",), [("M", "harness-eng-lead", "complete",
                            _bug440_digest("FAIL"))])
     return code == 1 and "INV-46" in out
@@ -1041,7 +980,7 @@ def _bug440_blocking_case():
 
 def _bug440_clean_case():
     with tempfile.TemporaryDirectory() as tmp:
-        _, code, out, _ = _bug440_validate_fixture(
+        code, out, _ = _bug440_validate_fixture(
             tmp, ("E",), [("E", "harness-product-lead", "complete",
                            _bug440_digest("PASS"))])
     return code == 0 and "INV-46" not in out
@@ -1049,45 +988,26 @@ def _bug440_clean_case():
 
 def case_bug440_digest_verdict_reconciliation():
     """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
-    ok = all((
-        _bug440_mixed_case(),
-        _bug440_blocking_case(),
-        _bug440_clean_case(),
-    ))
-    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-46 reconciles digest verdicts without mutation")
-    return ok
+    outcomes = (_bug440_mixed_case(), _bug440_blocking_case(), _bug440_clean_case())
+    check("BUG-440 INV-46 reconciles digest verdicts without mutation", all(outcomes), outcomes)
 
 
 def case_historical_refusal_completion():
-    from feature_record import evidence as record_evidence
     outcomes = []
     with tempfile.TemporaryDirectory() as tmp:
         original = "# assessment completed; the return was refused\n"
         fdir = _bug440_build(tmp, ("R", "P"), [
             ("R", "harness-eng-lead", "complete", original),
             ("P", "harness-product-lead", "complete", _bug440_digest("PASS"))])
-        path = os.path.join(fdir, "feature.json")
-        with open(path, encoding="utf-8") as source:
-            doc = json.load(source)
-        doc.update(branch="none", pr=None, max_total_cycles=10)
-        doc["runs"][0].update(
-            verdict="BLOCKED", agent="harness-eng-lead", cycles_used=0,
-            ended_at="2026-10-01T10:00:00+00:00")
-        with open(path, "w", encoding="utf-8") as target:
-            json.dump(doc, target, indent=2)
+        # The scaffold's runs, R then P (squad product, verdict PASS), with R ended BLOCKED.
+        path = _set_runs(fdir, 0, [
+            {"id": "R", "squad": "product", "verdict": "BLOCKED", "agent": "harness-eng-lead",
+             "cycles_used": 0, "ended_at": "2026-10-01T10:00:00+00:00"},
+            {"id": "P", "squad": "product", "verdict": "PASS"}])
         _, before = run(tmp)
         outcomes.append("runs/R/digest.md: does not satisfy" in before)
         digest = os.path.join(fdir, "runs", "R", "digest.md")
-        ref = record_evidence.resolve_evidence_ref(fdir, digest)
-        note = os.path.join(fdir, "authorization.json")
-        with open(note, "w", encoding="utf-8") as target:
-            json.dump({"feature_id": "FEAT-TEST", "effects": [
-                {"effect": "record-refusal", "run_id": "R", "digest": ref}]}, target)
-        proc = subprocess.run([
-            sys.executable, os.path.join(_anchor_bin, "feature-record.py"), "record-refusal",
-            "--file", path, "--id", "R", "--digest", digest, "--evidence", note,
-            "--by", "operator", "--reason", "authentic historical contract rejection", "--yes"
-        ], capture_output=True, text=True, env=_root_env(tmp))
+        proc = _record_refusal(tmp, path, digest)
         outcomes.append(proc.returncode == 0)
         _, after = run(tmp)
         outcomes.append("runs/R/digest.md: does not satisfy" not in after
@@ -1098,16 +1018,13 @@ def case_historical_refusal_completion():
             target.write("changed evidence\n")
         _, changed = run(tmp)
         outcomes.append("refusal evidence" in changed and "hash" in changed)
-    passed = all(outcomes)
-    print(f"{'ok' if passed else 'FAIL'} - historical refused completion remains BLOCKED, "
-          "hash-bound, and distinct from a later accepted return")
-    if not passed:
-        print(proc.stdout, proc.stderr, after, changed)
-    return passed
+    check("historical refused completion remains BLOCKED, hash-bound, and distinct from a "
+          "later accepted return", all(outcomes),
+          (outcomes, proc.stdout, proc.stderr, after, changed))
 
 
 def _feature_record(*args, tmp):
-    return subprocess.run([sys.executable, os.path.join(_anchor_bin, "feature-record.py"), *args],
+    return subprocess.run([sys.executable, os.path.join(BIN, "feature-record.py"), *args],
                           capture_output=True, text=True, env=_root_env(tmp))
 
 
@@ -1121,17 +1038,12 @@ def _set_runs(fdir, total, runs):
     return path
 
 
-def _lines_with(out, *needles):
-    return [line for line in out.splitlines() if all(n in line for n in needles)]
-
-
-def _print_outcomes(prefix, outcomes, detail):
+def _check_outcomes(prefix, outcomes, detail):
+    """One check per (label, passed); `detail` prints once, after the first failure."""
     for label, passed in outcomes:
-        print(f"{'ok' if passed else 'FAIL'} - {prefix}: {label}")
-    passed = all(ok for _, ok in outcomes)
-    if not passed:
+        check(f"{prefix}: {label}", passed)
+    if not all(ok for _, ok in outcomes):
         print(detail)
-    return passed
 
 
 def _note_only(out, run_id, note):
@@ -1166,7 +1078,7 @@ def case_inv7_counts_evidence_not_fail_verdicts():
         _, out = run(tmp)
     violations = [line for line in _lines_with(out, "VIOLATION", "FEAT-TEST")
                   if "cycle" in line or "FAIL" in line]
-    return _print_outcomes("INV-7 (SC-04)", [
+    _check_outcomes("INV-7 (SC-04)", [
         ("run-end records F's evidenced zero", ended.returncode == 0),
         ("no cycle or FAIL-count violation for three FAILs against a total of 1", not violations),
         ("L's unevidenced count is reported as a note",
@@ -1229,11 +1141,11 @@ def case_refusal_provenance_never_satisfies_live_validation():
         path, digest = _refused_fixture(tmp, "# assessment completed; the return was refused\n")
         recorded = _record_refusal(tmp, path, digest)
         live = subprocess.run(
-            [sys.executable, os.path.join(_anchor_bin, "validate-digest.py"), "harness-eng-lead",
+            [sys.executable, os.path.join(BIN, "validate-digest.py"), "harness-eng-lead",
              digest], capture_output=True, text=True, env=_root_env(tmp))
         closed, unchanged = _close_unchanged(tmp, path)
         _, out = run(tmp)
-    return _print_outcomes("live validation (SC-06)", [
+    _check_outcomes("live validation (SC-06)", [
         ("record-refusal records R's provenance", recorded.returncode == 0),
         ("the live validator still rejects R's refused prose", live.returncode != 0),
         ("close-run refuses the same prose for a new run, leaving the record unchanged",
@@ -1241,17 +1153,6 @@ def case_refusal_provenance_never_satisfies_live_validation():
         ("complete run Q with no digest is still a violation",
          bool(_lines_with(out, "runs/Q", "digest.md is missing")))],
         (recorded.stderr, live.stdout, closed.stdout, closed.stderr, out[-3000:]))
-
-
-def _report(results):
-    """The original main()'s printer for the cases that return a results LIST."""
-    ok = True
-    for name, passed, detail in results:
-        print(f"{'ok' if passed else 'FAIL'} - case {name}")
-        if not passed:
-            ok = False
-            print(f"        {str(detail).strip()[:300]}")
-    return ok
 
 
 _CASES = (
@@ -1272,9 +1173,12 @@ _INV33_CASES = (case_inv33a_stale_is_reported, case_inv33b_current_is_silent,
 
 
 def main():
-    results = [case() for case in _CASES]
-    results.append(_report([row for case in _INV33_CASES for row in case()]))
-    return 0 if all(results) else 1
+    for case in _CASES:
+        case()
+    for case in _INV33_CASES:
+        for name, passed, detail in case():
+            check(f"case {name}", passed, str(detail).strip()[:300])
+    return C.report()
 
 
 if __name__ == "__main__":

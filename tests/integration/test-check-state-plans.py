@@ -10,21 +10,35 @@ unquoted ` #NN` truncates silently (INV-35).
 CARRIES THE INV-6 FIXTURE STRINGS `review_sha: none` and `review_sha: 1ce886a` that
 tests/unit/test-team-catalog.py asserts on by path.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
+from integration_support import ROOT
 import json
 import os
 import re
 import sys
 import tempfile
+from functools import cache
+
 import harness_yaml
-from check_state_support import (HARNESS_JSON_SYNC_OFF, SCRIPT, feature_json, make_fixture,
-    run)
+from check_support import Checks
+from check_state_support import HARNESS_JSON_SYNC_OFF, feature_json, make_fixture, run
 from harness_config_support import write_config
+
+C = Checks()
+check = C.check
+
+
+def _feature_out(source, label, config=None):
+    """Write `source` (YAML) as FEAT-TEST's feature.json in a fresh tree; return run()'s
+    (code, out). `config` is the harness.json written; the default turns sync off."""
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        fd = os.path.join(h, "harness", "features", "FEAT-TEST")
+        os.makedirs(fd, exist_ok=True)
+        write_config(os.path.join(h, "harness.json"),
+                     {"github": {"sync": False}} if config is None else config)
+        with open(os.path.join(fd, "feature.json"), "w") as f:
+            json.dump(harness_yaml.load_str(source, label), f)
+        return run(tmp)
 
 
 def case_h():
@@ -39,28 +53,18 @@ def case_h():
     while recording validator-squad runs, so this was live on a shipped feature, not
     hypothetical.
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        document = harness_yaml.load_str(
-            "feature_id: FEAT-TEST\n"
-            "review_sha: none\n"
-            "runs:\n"
-            "  - id: 2026-08-04-01-validator\n"
-            "    squad: validator\n"
-            "    verdict: PASS\n",
-            "case_h feature fixture")
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            json.dump(document, f)
-        code, out = run(tmp)
-        ok = "review_sha is not pinned" in out
-        print(f"{'ok' if ok else 'FAIL'} - case (h): issue #16 — `review_sha: none` is a "
-              f"placeholder, not a pin, so INV-6 fires")
-        if not ok:
-            print("        INV-6 was silent: the string 'none' read as truthy and the "
-                  "gate failed OPEN on an unpinned feature")
-        return ok
+    _code, out = _feature_out(
+        "feature_id: FEAT-TEST\n"
+        "review_sha: none\n"
+        "runs:\n"
+        "  - id: 2026-08-04-01-validator\n"
+        "    squad: validator\n"
+        "    verdict: PASS\n",
+        "case_h feature fixture")
+    check("case (h): issue #16 — `review_sha: none` is a placeholder, not a pin, so INV-6 fires",
+          "review_sha is not pinned" in out,
+          "INV-6 was silent: the string 'none' read as truthy and the gate failed OPEN on an "
+          "unpinned feature")
 
 
 def case_i():
@@ -70,27 +74,18 @@ def case_i():
     would turn every correctly pinned feature into a violation. `1ce886a` is a real
     short SHA shape, not a placeholder.
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        document = harness_yaml.load_str(
-            "feature_id: FEAT-TEST\n"
-            "review_sha: 1ce886a\n"
-            "runs:\n"
-            "  - id: 2026-08-04-01-validator\n"
-            "    squad: validator\n"
-            "    verdict: PASS\n",
-            "case_i feature fixture")
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            json.dump(document, f)
-        code, out = run(tmp)
-        ok = "review_sha is not pinned" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (i): a pinned SHA does not trip INV-6")
-        if not ok:
-            print("        INV-6 fired on a correctly pinned feature — the fix is "
-                  "over-scoped and every pinned feature is now a violation")
-        return ok
+    _code, out = _feature_out(
+        "feature_id: FEAT-TEST\n"
+        "review_sha: 1ce886a\n"
+        "runs:\n"
+        "  - id: 2026-08-04-01-validator\n"
+        "    squad: validator\n"
+        "    verdict: PASS\n",
+        "case_i feature fixture")
+    check("case (i): a pinned SHA does not trip INV-6",
+          "review_sha is not pinned" not in out,
+          "INV-6 fired on a correctly pinned feature — the fix is over-scoped and every pinned "
+          "feature is now a violation")
 
 
 def case_j():
@@ -102,28 +97,17 @@ def case_j():
     is live, not theoretical: FEAT-06's own feature.json is exactly this shape
     (placeholder review_sha, product/eng runs only) and must not self-report.
     """
-    with tempfile.TemporaryDirectory() as tmp:
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
-        document = harness_yaml.load_str(
-            "feature_id: FEAT-TEST\n"
-            "review_sha: none\n"
-            "runs:\n"
-            "  - id: 2026-08-04-01-product\n"
-            "    squad: product\n"
-            "    verdict: PASS\n",
-            "case_j feature fixture")
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            json.dump(document, f)
-        code, out = run(tmp)
-        ok = "review_sha is not pinned" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (j): no validator run, so INV-6 stays "
-              f"silent even on a placeholder")
-        if not ok:
-            print("        INV-6 fired with no validator run — the "
-                  "any(squad == 'validator') conjunct was dropped")
-        return ok
+    _code, out = _feature_out(
+        "feature_id: FEAT-TEST\n"
+        "review_sha: none\n"
+        "runs:\n"
+        "  - id: 2026-08-04-01-product\n"
+        "    squad: product\n"
+        "    verdict: PASS\n",
+        "case_j feature fixture")
+    check("case (j): no validator run, so INV-6 stays silent even on a placeholder",
+          "review_sha is not pinned" not in out,
+          "INV-6 fired with no validator run — the any(squad == 'validator') conjunct was dropped")
 
 
 def case_l():
@@ -137,38 +121,25 @@ def case_l():
       (3) a feature declaring max_total_runs: 30 silences it,
       (4) and the exit code is UNCHANGED, because this must never gate.
     """
-    def build(tmp, n, declared="", budgets={"max_total_runs": 20}):
-        h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-        write_config(os.path.join(h, "harness.json"),
-                     {"github": {"sync": False}, **({} if budgets is None else {"budgets": budgets})})
+    def build(n, declared="", budgets={"max_total_runs": 20}):
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
         source = (f"feature_id: FEAT-TEST\ncycles_used: 2\n"
                   f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
-        document = harness_yaml.load_str(source, "case_l feature fixture")
-        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-            json.dump(document, f)
-        return run(tmp)
+        config = {"github": {"sync": False}, **({} if budgets is None else {"budgets": budgets})}
+        return _feature_out(source, "case_l feature fixture", config)
 
-    results = []
-    with tempfile.TemporaryDirectory() as tmp:
-        code_over, out_over = build(tmp, 21)
-    with tempfile.TemporaryDirectory() as tmp:
-        code_at, out_at = build(tmp, 20)
-    with tempfile.TemporaryDirectory() as tmp:
-        _code_raised, out_raised = build(tmp, 21, "max_total_runs: 30\n")
+    code_over, out_over = build(21)
+    code_at, out_at = build(20)
+    _code_raised, out_raised = build(21, "max_total_runs: 30\n")
     # (l5-l7) THE CONFIGURED VALUE MUST ACTUALLY BE READ. The first version of case (l) did
     # not prove it: a mutant hardcoding `_budget = 20` and never opening harness.json passed
     # all four assertions, exit 0 (PR #142 review, HIGH 2). (l5) uses a DIFFERENT budget so a
     # hardcoded 20 gives the wrong number in the message; (l6)-(l7) are the shapes that once
     # disabled the check, which the schema now fills with the default 20 (FEAT-2297).
-    with tempfile.TemporaryDirectory() as tmp:
-        _c, out_b5 = build(tmp, 7, budgets={"max_total_runs": 5})
-    with tempfile.TemporaryDirectory() as tmp:
-        _c, out_nokey = build(tmp, 21, budgets={})
-    with tempfile.TemporaryDirectory() as tmp:
-        _c, out_noblock = build(tmp, 21, budgets=None)
+    _c, out_b5 = build(7, budgets={"max_total_runs": 5})
+    _c, out_nokey = build(21, budgets={})
+    _c, out_noblock = build(21, budgets=None)
 
     for name, ok, detail in (
         ("(l1) 21 runs against a 20 budget is NOTED",
@@ -186,11 +157,13 @@ def case_l():
         ("(l7) no budgets block at all counts against the default 20",
          "21 runs recorded against a 20-run budget" in out_noblock, out_noblock),
     ):
-        print(f"{'ok' if ok else 'FAIL'} - case {name}")
-        if not ok:
-            print(f"        {detail.strip()[:200]}")
-        results.append(ok)
-    return all(results)
+        check(f"case {name}", ok, detail.strip()[:200])
+
+
+def _fired(feature, state):
+    """The bracketed list case (n) prints: which of the two files INV-23 named."""
+    return " ".join(n for n, on in (("feature.json", feature), ("STATE.md", state)) if on) \
+        or "nothing"
 
 
 def case_n():
@@ -207,7 +180,6 @@ def case_n():
     two scripts DECLARE the same number, and this proves the declared number is the one
     actually enforced.
     """
-    results = []
     for label, fl, sl, want_f, want_s in (
         # 310/290, not 201/200: T-06 raised the feature budget from 200 to 300. Each
         # fixture still crosses exactly ONE budget by exactly ONE line, which is what
@@ -227,18 +199,11 @@ def case_n():
             with open(os.path.join(fd, "STATE.md"), "w") as f:
                 f.write("## Current\n" + "\n".join(f"line {i}" for i in range(sl - 1)) + "\n")
             _code, out = run(tmp)
-            got_f = "INV-23 " in out and "FEAT-TEST" in out and "feature.json is" in out
-            got_s = "INV-23 " in out and "FEAT-TEST" in out and "STATE.md is" in out
-            ok = (got_f == want_f) and (got_s == want_s)
-            results.append(ok)
-            print(f"{'ok' if ok else 'FAIL'} - case (n/{label}): at {fl} feature.json / "
-                  f"{sl} STATE.md lines, INV-23 fires on "
-                  f"[{'feature.json' if got_f else ''}{' ' if got_f and got_s else ''}"
-                  f"{'STATE.md' if got_s else ''}{'nothing' if not (got_f or got_s) else ''}]"
-                  f" — wanted [{'feature.json' if want_f else ''}"
-                  f"{' ' if want_f and want_s else ''}{'STATE.md' if want_s else ''}"
-                  f"{'nothing' if not (want_f or want_s) else ''}]")
-    return all(results)
+        got_f = "INV-23 " in out and "FEAT-TEST" in out and "feature.json is" in out
+        got_s = "INV-23 " in out and "FEAT-TEST" in out and "STATE.md is" in out
+        check(f"case (n/{label}): at {fl} feature.json / {sl} STATE.md lines, INV-23 fires on "
+              f"[{_fired(got_f, got_s)}] — wanted [{_fired(want_f, want_s)}]",
+              got_f == want_f and got_s == want_s)
 
 
 def case_p():
@@ -256,21 +221,18 @@ def case_p():
     for the four state files: an over-budget CLAUDE.md predating the gate must not halt
     /harness entry, which is the same reasoning that kept FEAT-05/STATE.md from doing so.
     """
-    results, codes, outs = [], {}, {}
+    outs = {}
     for label, n, want in (("over", 81, True), ("at the budget", 80, False)):
         with tempfile.TemporaryDirectory() as tmp:
             make_fixture(tmp, '{}', "  parent: 40")
             with open(os.path.join(tmp, "CLAUDE.md"), "w") as f:
                 f.write("\n".join(f"line {i}" for i in range(n)) + "\n")
-            code, out = run(tmp)
-            codes[label] = code
-            outs[label] = out
-            got = "INV-23 CLAUDE.md is" in out
-            ok = got == want
-            results.append(ok)
-            print(f"{'ok' if ok else 'FAIL'} - case (p/{label}): CLAUDE.md at {n} lines -> "
-                  f"INV-23 {'fires' if got else 'silent'} (want "
-                  f"{'fires' if want else 'silent'})")
+            _code, out = run(tmp)
+        outs[label] = out
+        got = "INV-23 CLAUDE.md is" in out
+        check(f"case (p/{label}): CLAUDE.md at {n} lines -> INV-23 "
+              f"{'fires' if got else 'silent'} (want {'fires' if want else 'silent'})",
+              got == want)
     # WARN LEVEL, ASSERTED ON THE LINE PREFIX — not on the exit code, which SATURATES.
     #
     # Two earlier drafts of this assertion were both wrong, and the second looked right.
@@ -287,16 +249,13 @@ def case_p():
     # saturate. One line, no second fixture — and notably NOT the "build a clean fixture"
     # fix, which would duplicate case (d)'s settings blob that case (d)'s own docstring
     # records as having gone stale once already.
-    over_out = outs["over"]
-    warn_shaped = any(l.strip().startswith("note") and "INV-23 CLAUDE.md" in l
-                      for l in over_out.splitlines())
-    halting = any("VIOLATION" in l and "INV-23 CLAUDE.md" in l for l in over_out.splitlines())
-    ok_warn = warn_shaped and not halting
-    results.append(ok_warn)
-    print(f"{'ok' if ok_warn else 'FAIL'} - case (p/warn): the CLAUDE.md finding is a `note`, "
-          f"not a `VIOLATION` — warn level, so it cannot halt /harness entry"
-          + ("" if ok_warn else f" | got: {[l for l in over_out.splitlines() if 'INV-23 CLAUDE' in l]}"))
-    return all(results)
+    over_lines = outs["over"].splitlines()
+    warn_shaped = any(l.strip().startswith("note") and "INV-23 CLAUDE.md" in l for l in over_lines)
+    halting = any("VIOLATION" in l and "INV-23 CLAUDE.md" in l for l in over_lines)
+    check("case (p/warn): the CLAUDE.md finding is a `note`, not a `VIOLATION` — warn level, "
+          "so it cannot halt /harness entry",
+          warn_shaped and not halting,
+          f"got: {[l for l in over_lines if 'INV-23 CLAUDE' in l]}")
 
 
 PLAN_YAML_OK = """schema: plan/1
@@ -319,6 +278,21 @@ tasks:
 """
 
 
+def _q_out(plan_yaml, feature=None, state_md=None):
+    """Run check-state on a parent-40 fixture carrying `plan_yaml` and, when given, a
+    replacement feature.json document and a STATE.md; return the output."""
+    with tempfile.TemporaryDirectory() as tmp:
+        fd = os.path.join(make_fixture(tmp, '{}', "  parent: 40"), "harness", "features",
+                          "FEAT-TEST")
+        files = {"feature.json": None if feature is None else json.dumps(feature),
+                 "plan.yaml": plan_yaml, "STATE.md": state_md}
+        for name, text in files.items():
+            if text is not None:
+                with open(os.path.join(fd, name), "w") as f:
+                    f.write(text)
+        return run(tmp)[1]
+
+
 def case_q():
     """(q) DEC-182: INV-3/4/5 read plan.yaml through the loader, not a regex over prose.
 
@@ -327,51 +301,22 @@ def case_q():
     run. What remains is what the loader does not police: the approval block, and STATE.md
     pointing at a task the plan does not contain.
     """
-    results = []
-
     # approval: approved -> silent; pending -> a note, never a halt
     for status, want_note in (("approved", False), ("pending", True)):
-        with tempfile.TemporaryDirectory() as tmp:
-            h = make_fixture(tmp, '{}', "  parent: 40")
-            fd = os.path.join(h, "harness", "features", "FEAT-TEST")
-            os.remove(os.path.join(fd, "feature.json"))
-            with open(os.path.join(fd, "feature.json"), "w") as f:
-                json.dump({"feature_id": "FEAT-TEST"}, f)
-            with open(os.path.join(fd, "plan.yaml"), "w") as f:
-                f.write(PLAN_YAML_OK.replace("status: approved", f"status: {status}"))
-            _code, out = run(tmp)
-            got = "plan.yaml approval is pending" in out
-            ok = got == want_note
-            results.append(ok)
-            print(f"{'ok' if ok else 'FAIL'} - case (q/{status}): INV-3 "
-                  f"{'notes' if want_note else 'is silent'} on plan.yaml")
+        out = _q_out(PLAN_YAML_OK.replace("status: approved", f"status: {status}"),
+                     feature={"feature_id": "FEAT-TEST"})
+        check(f"case (q/{status}): INV-3 {'notes' if want_note else 'is silent'} on plan.yaml",
+              ("plan.yaml approval is pending" in out) == want_note, out[:400])
 
     # A plan.yaml that does not LOAD is a violation naming the file — never a silent skip.
-    with tempfile.TemporaryDirectory() as tmp:
-        h = make_fixture(tmp, '{}', "  parent: 40")
-        fd = os.path.join(h, "harness", "features", "FEAT-TEST")
-        with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write("tasks:\n  - id: T-01\n   bad: indent\n")
-        _code, out = run(tmp)
-        ok = "plan.yaml does not load" in out
-        results.append(ok)
-        print(f"{'ok' if ok else 'FAIL'} - case (q/malformed): a plan.yaml that does not "
-              f"load is reported, not skipped")
+    out = _q_out("tasks:\n  - id: T-01\n   bad: indent\n")
+    check("case (q/malformed): a plan.yaml that does not load is reported, not skipped",
+          "plan.yaml does not load" in out, out[:400])
 
     # INV-5 across the yaml path: STATE.md naming a task the plan lacks.
-    with tempfile.TemporaryDirectory() as tmp:
-        h = make_fixture(tmp, '{}', "  parent: 40")
-        fd = os.path.join(h, "harness", "features", "FEAT-TEST")
-        with open(os.path.join(fd, "plan.yaml"), "w") as f:
-            f.write(PLAN_YAML_OK)
-        with open(os.path.join(fd, "STATE.md"), "w") as f:
-            f.write("## Current\nworking T-99\n")
-        _code, out = run(tmp)
-        ok = "references T-99" in out and "plan.yaml" in out
-        results.append(ok)
-        print(f"{'ok' if ok else 'FAIL'} - case (q/inv5): STATE.md naming a task the "
-              f"plan.yaml lacks is a violation")
-    return all(results)
+    out = _q_out(PLAN_YAML_OK, state_md="## Current\nworking T-99\n")
+    check("case (q/inv5): STATE.md naming a task the plan.yaml lacks is a violation",
+          "references T-99" in out and "plan.yaml" in out, out[:400])
 
 
 # --- BUG-1080: INV-6 must not forbid the plan-phase run DEC-207 legalises ------------
@@ -390,17 +335,12 @@ def case_q():
 _PIN_MSG = "review_sha is not pinned"
 
 
+@cache
 def _inv6_feature(runs_yaml, review_sha="none", approval=""):
-    """Build a one-feature tree and return check-state's output."""
-    tmp = tempfile.mkdtemp()
-    h = os.path.join(tmp, ".harness")
-    os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
-    write_config(os.path.join(h, "harness.json"), {"github": {"sync": False}})
+    """Build a one-feature tree and return check-state's output. Cached: two cases read the
+    same `_CODE_RUN` scenario, and check-state's output for one input never changes."""
     source = f"feature_id: FEAT-TEST\nreview_sha: {review_sha}\n{approval}runs:\n{runs_yaml}"
-    document = harness_yaml.load_str(source, "INV-6 feature fixture")
-    with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
-        json.dump(document, f)
-    _code, out = run(tmp)
+    _code, out = _feature_out(source, "INV-6 feature fixture")
     return out
 
 
@@ -421,11 +361,8 @@ def case_inv6_plan_run_is_exempt():
     This is the case that reddened the gate on FEAT-46 and had no honest resolution.
     """
     out = _inv6_feature(_PLAN_RUN)
-    ok = _PIN_MSG not in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 exempts a plan-phase run (code_grade: n_a)")
-    if not ok:
-        print("        INV-6 fired on a run that graded no code — #1080 is not fixed")
-    return ok
+    check("INV-6 exempts a plan-phase run (code_grade: n_a)", _PIN_MSG not in out,
+          "INV-6 fired on a run that graded no code — #1080 is not fixed")
 
 
 def case_inv6_code_run_still_fires():
@@ -433,24 +370,18 @@ def case_inv6_code_run_still_fires():
     CODE, so an unpinned review_sha is still the GAP-7 failure. Absence is fail-CLOSED,
     the same default every run entry's `agent` key now has."""
     out = _inv6_feature(_CODE_RUN)
-    ok = _PIN_MSG in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 still fires on a code run with no pin")
-    if not ok:
-        print("        the exemption is over-scoped: absence of code_grade now exempts, "
-              "so INV-6 no longer guards anything")
-    return ok
+    check("INV-6 still fires on a code run with no pin", _PIN_MSG in out,
+          "the exemption is over-scoped: absence of code_grade now exempts, so INV-6 no "
+          "longer guards anything")
 
 
 def case_inv6_unknown_grade_fails_closed():
     """A value other than n_a is not an exemption. Guards the substring-match shortcut
     and any rewrite that treats the KEY's presence as the exemption."""
     out = _inv6_feature(_PLAN_RUN.replace("code_grade: n_a", "code_grade: graded"))
-    ok = _PIN_MSG in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 fails closed on an unknown code_grade")
-    if not ok:
-        print("        any code_grade value exempted the run — presence of the key was "
-              "read as the exemption instead of its value")
-    return ok
+    check("INV-6 fails closed on an unknown code_grade", _PIN_MSG in out,
+          "any code_grade value exempted the run — presence of the key was read as the "
+          "exemption instead of its value")
 
 
 def case_inv6_mixed_runs_still_fire():
@@ -458,13 +389,9 @@ def case_inv6_mixed_runs_still_fire():
     non-exempt sibling. A feature whose plan was panel-reviewed AND whose code was
     reviewed still needs a pin for the second run."""
     out = _inv6_feature(_PLAN_RUN + _CODE_RUN)
-    ok = _PIN_MSG in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 fires when a code run sits beside an "
-          f"exempt plan run")
-    if not ok:
-        print("        `any(non-exempt)` collapsed into `all(exempt)` — one plan run "
-              "now silences every code run on the feature")
-    return ok
+    check("INV-6 fires when a code run sits beside an exempt plan run", _PIN_MSG in out,
+          "`any(non-exempt)` collapsed into `all(exempt)` — one plan run now silences every "
+          "code run on the feature")
 
 
 def case_inv6_exempt_survives_signature():
@@ -476,37 +403,26 @@ def case_inv6_exempt_survives_signature():
     """
     approval = "approval:\n  status: approved\n  date: 2026-08-31\n"
     out = _inv6_feature(_PLAN_RUN, approval=approval)
-    ok = _PIN_MSG not in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 exemption survives signature (not keyed "
-          f"on approval.status)")
-    if not ok:
-        print("        the exemption is keyed on a pending approval, so signing reds "
-              "the gate for the entire build phase")
-    return ok
+    check("INV-6 exemption survives signature (not keyed on approval.status)", _PIN_MSG not in out,
+          "the exemption is keyed on a pending approval, so signing reds the gate for the "
+          "entire build phase")
 
 
 def case_inv6_pinned_plan_run_silent():
     """A pinned feature carrying a plan-phase run must not newly fire. Guards against a
     rewrite that inverts the value test while adding the run test."""
     out = _inv6_feature(_PLAN_RUN + _CODE_RUN, review_sha="1ce886a")
-    ok = _PIN_MSG not in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 silent on a pinned feature with both run "
-          f"kinds")
-    if not ok:
-        print("        INV-6 fired on a correctly pinned feature")
-    return ok
+    check("INV-6 silent on a pinned feature with both run kinds", _PIN_MSG not in out,
+          "INV-6 fired on a correctly pinned feature")
 
 
 def case_inv6_case_variant_is_not_exempt():
     """Panel Q2: the gate's value test is EXACT, matching the schema's closed enum, so a
     document can never be schema-invalid and gate-exempt at once. `N_A` fails both."""
     out = _inv6_feature(_PLAN_RUN.replace("code_grade: n_a", "code_grade: N_A"))
-    ok = _PIN_MSG in out
-    print(f"{'ok' if ok else 'FAIL'} - INV-6 does not exempt a case-variant code_grade")
-    if not ok:
-        print("        the gate case-folds where the schema does not, so `N_A` is "
-              "gate-exempt and schema-invalid at the same time")
-    return ok
+    check("INV-6 does not exempt a case-variant code_grade", _PIN_MSG in out,
+          "the gate case-folds where the schema does not, so `N_A` is gate-exempt and "
+          "schema-invalid at the same time")
 
 
 def case_inv6_message_names_the_remedy():
@@ -514,11 +430,8 @@ def case_inv6_message_names_the_remedy():
     that fixes it, at the point of failure, or the operator has to find this file."""
     out = _inv6_feature(_CODE_RUN)
     line = [l for l in out.splitlines() if _PIN_MSG in l]
-    ok = bool(line) and "code_grade: n_a" in line[0]
-    print(f"{'ok' if ok else 'FAIL'} - INV-6's violation names code_grade: n_a")
-    if not ok:
-        print("        the message states the defect without the remedy")
-    return ok
+    check("INV-6's violation names code_grade: n_a", bool(line) and "code_grade: n_a" in line[0],
+          "the message states the defect without the remedy")
 
 
 def case_inv6_producer_is_documented():
@@ -536,36 +449,38 @@ def case_inv6_producer_is_documented():
     """
     # Anchored on __file__, never SCRIPT: CHECK_STATE_BIN may point SCRIPT at a mutant
     # copy in a temp dir, and this assertion is about the shipped skill, not the fixture.
-    skill = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".claude", "skills", "harness", "SKILL.md")
+    skill = os.path.join(str(ROOT), ".claude", "skills", "harness", "SKILL.md")
     try:
         with open(skill, encoding="utf-8") as fh:
             text = fh.read()
     except OSError as exc:
-        print(f"FAIL - INV-6's producer is documented: SKILL.md unreadable ({exc})")
-        return False
+        check(f"INV-6's producer is documented: SKILL.md unreadable ({exc})", False)
+        return
     # Step 6 runs from its own numbered heading to the next top-level numbered step.
     step6 = re.search(r"^6\. \*\*Adjust and record\b[^\n]*(.*?)^7\. ", text, re.S | re.M)
-    ok = bool(step6) and "code_grade: n_a" in step6.group(1)
-    print(f"{'ok' if ok else 'FAIL'} - INV-6's exemption has a documented producer "
-          f"(SKILL.md step 6 names code_grade: n_a)")
-    if not ok:
-        if not step6:
-            print("        step 6 'Adjust and record' was not found: the runs-writing "
-                  "instruction moved, so this test can no longer bind it")
-        else:
-            print("        the runs-writing step does not name the key, so every recorded "
-                  "plan panel omits it and INV-6 deadlocks again")
-    return ok
+    check("INV-6's exemption has a documented producer (SKILL.md step 6 names code_grade: n_a)",
+          bool(step6) and "code_grade: n_a" in step6.group(1),
+          "step 6 'Adjust and record' was not found: the runs-writing instruction moved, so this "
+          "test can no longer bind it" if not step6 else
+          "the runs-writing step does not name the key, so every recorded plan panel omits it "
+          "and INV-6 deadlocks again")
 
 
-def _i34_fixture(tmp, with_plan):
-    """A feature directory with a feature.json, and a plan.yaml only when asked for."""
+_STATION_ONLY = "station_only: true\ntasks: []\n"
+
+
+def _i34_station_only(tmp, tasks_block=None, state_md=None):
+    """A feature directory with a feature.json and, unless `tasks_block` is None, a plan.yaml
+    whose tail after the three header lines is `tasks_block` verbatim; plus an optional
+    STATE.md. The header is exactly three lines, so the first tail line is line 4."""
     h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
     feat = os.path.join(h, "harness", "features", "FEAT-TEST")
-    if with_plan:
+    if tasks_block is not None:
         with open(os.path.join(feat, "plan.yaml"), "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
-                    "station_only: true\ntasks: []\n")
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n" + tasks_block)
+    if state_md is not None:
+        with open(os.path.join(feat, "STATE.md"), "w") as f:
+            f.write(state_md)
     return feat
 
 
@@ -584,41 +499,24 @@ def case_inv34_plan_required():
     The invariant is what stops that recurring: the migration is a one-time repair, and without
     a check the next plan-less feature reintroduces the same hole silently.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
-        _i34_fixture(tmp, with_plan=False)
-        code, out = run(tmp)
-        ls = _i34_lines(out)
-        ok = bool(ls) and any("FEAT-TEST" in l for l in ls) and any("plan.yaml" in l for l in ls)
-        results.append(("(inv34.a) a feature with no plan.yaml is reported, naming the file",
-                        ok, out[:400]))
-    return results
+        _i34_station_only(tmp)
+        _code, out = run(tmp)
+    ls = _i34_lines(out)
+    check("case (inv34.a) a feature with no plan.yaml is reported, naming the file",
+          bool(ls) and any("FEAT-TEST" in l for l in ls) and any("plan.yaml" in l for l in ls),
+          out[:400])
 
 
 def case_inv34_present_is_silent():
     """NEGATIVE CONTROL. A station-only plan.yaml satisfies it, so the invariant is about the
     RECORD existing and not about tasks -- the twelve directories this feature backfilled carry
     exactly this shape, and if they tripped it the migration would be self-defeating."""
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
-        _i34_fixture(tmp, with_plan=True)
-        code, out = run(tmp)
-        ls = _i34_lines(out)
-        results.append(("(inv34.b) a station-only plan.yaml is enough — no INV-34 line",
-                        not ls, out[:400]))
-    return results
-
-
-def _i34_station_only(tmp, tasks_block, state_md=None):
-    """A feature whose plan is station-only, or carries tasks, plus an optional STATE.md."""
-    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
-    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
-    with open(os.path.join(feat, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n" + tasks_block)
-    if state_md is not None:
-        with open(os.path.join(feat, "STATE.md"), "w") as f:
-            f.write(state_md)
-    return feat
+        _i34_station_only(tmp, _STATION_ONLY)
+        _code, out = run(tmp)
+    check("case (inv34.b) a station-only plan.yaml is enough — no INV-34 line",
+          not _i34_lines(out), out[:400])
 
 
 _I34_TASK = (
@@ -643,29 +541,24 @@ def case_inv34_station_only_is_out_of_scope():
     long as they had no plan at all. The alternative was to give each one an `approval:` block,
     which would have FABRICATED twelve signatures nobody gave.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
-        _i34_station_only(tmp, "station_only: true\ntasks: []\n",
-                          state_md="## Current\nsee T-01 and T-99\n")
-        code, out = run(tmp)
-        quiet = ("no `approval:` block" not in out) and ("which is absent from its" not in out)
-        results.append(("(inv34.c) a station-only plan is exempt from the approval and "
-                        "STATE.md-task checks", quiet, out[:400]))
-    return results
+        _i34_station_only(tmp, _STATION_ONLY, state_md="## Current\nsee T-01 and T-99\n")
+        _code, out = run(tmp)
+    quiet = ("no `approval:` block" not in out) and ("which is absent from its" not in out)
+    check("case (inv34.c) a station-only plan is exempt from the approval and "
+          "STATE.md-task checks", quiet, out[:400])
 
 
 def case_inv34_a_real_plan_is_still_checked():
     """NEGATIVE CONTROL, and the one that stops the exemption widening. A plan WITH tasks is
     still held to both checks -- if this ever goes quiet, the exemption has swallowed the rule
     for every plan in the tree, which is the failure mode this whole feature keeps finding."""
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
-        code, out = run(tmp)
-        loud = ("no `approval:` block" in out) and ("T-99" in out)
-        results.append(("(inv34.d) a plan WITH tasks is still checked for approval and for "
-                        "STATE.md task ids", loud, out[:400]))
-    return results
+        _code, out = run(tmp)
+    loud = ("no `approval:` block" in out) and ("T-99" in out)
+    check("case (inv34.d) a plan WITH tasks is still checked for approval and for "
+          "STATE.md task ids", loud, out[:400])
 
 
 def case_inv34_an_emptied_plan_is_not_station_only():
@@ -682,21 +575,16 @@ def case_inv34_an_emptied_plan_is_not_station_only():
     violation. The point is general -- AN ABSENCE CANNOT BE A CREDENTIAL. A checker must be told a
     fact, never infer one from a missing field.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
-        feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
-        plan = os.path.join(feat, "plan.yaml")
-        with open(plan, "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
-                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
-                    "tasks: []\n")
-        code, out = run(tmp)
-        # It must NOT go quiet. Either the load refusal or the dangling-task line is acceptable
-        # evidence; what is unacceptable is silence, which is what the old keying produced.
-        loud = ("does not load" in out) or ("T-99" in out)
-        results.append(("(inv34.e) a SIGNED plan emptied to `tasks: []` does NOT inherit the "
-                        "station-only exemption", loud, out[:500]))
-    return results
+        _i34_station_only(tmp, "approval:\n  status: approved\n  approved_by: X\n"
+                          "  date: 2026-01-01\ntasks: []\n",
+                          state_md="## Current\nsee T-99\n")
+        _code, out = run(tmp)
+    # It must NOT go quiet. Either the load refusal or the dangling-task line is acceptable
+    # evidence; what is unacceptable is silence, which is what the old keying produced.
+    loud = ("does not load" in out) or ("T-99" in out)
+    check("case (inv34.e) a SIGNED plan emptied to `tasks: []` does NOT inherit the "
+          "station-only exemption", loud, out[:500])
 
 
 def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
@@ -711,53 +599,119 @@ def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
     carries NO marker, so the cited test never tested it. A false citation in a comment is worse
     than a missing test, because it stops the next reader looking.
     """
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
         feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
         plan = os.path.join(feat, "plan.yaml")
-        body = open(plan).read()
+        with open(plan) as f:
+            body = f.read()
         # Mint the credential onto the signed, task-bearing plan, exactly as a Bash write would.
         with open(plan, "w") as f:
             f.write("station_only: true\n" + body)
-        code, out = run(tmp)
+        _code, out = run(tmp)
         # It must not go quiet. The load refusal is the expected outcome and is LOUDER than the
         # checks the marker was being used to escape.
         loud = ("does not load" in out) or ("T-99" in out) or ("station_only" in out)
-        results.append(("(inv34.f) the station_only marker CANNOT be minted onto a task-bearing "
-                        "plan to exempt it", loud, out[:500]))
-    return results
-
-
-def _i35_fixture(tmp, notes_block):
-    """A station-only plan.yaml, valid enough that no OTHER invariant fires, carrying
-    `notes_block` verbatim as the tail of the file so INV-35's raw-source scan sees exactly
-    the line under test."""
-    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
-    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
-    with open(os.path.join(feat, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: review\n"
-                 "station_only: true\ntasks: []\n" + notes_block)
-    return feat
+        check("case (inv34.f) the station_only marker CANNOT be minted onto a task-bearing "
+              "plan to exempt it", loud, out[:500])
 
 
 def _i35_lines(out):
     return [l for l in out.splitlines() if "INV-35" in l]
 
 
-def case_inv35_unquoted_hash_digit_is_reported():
-    """issue #251 (inv35.a). THE REPORT. An unquoted scalar mentioning an issue number the
-    way a human writes one -- ` #217` -- is exactly the shape YAML's plain-scalar comment
-    rule truncates, and this is the case that must not go quiet."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: close out the fix for #217\n")
-        code, out = run(tmp)
+# INV-35 (issue #251): (label, the plan.yaml tail after the station-only block, needles).
+# needles None: the INV-35 report must be SILENT. A tuple: an INV-35 line must appear and
+# every needle must be in one of the INV-35 lines.
+_I35_ROWS = (
+    # issue #251 (inv35.a). THE REPORT. An unquoted scalar mentioning an issue number the
+    # way a human writes one -- ` #217` -- is exactly the shape YAML's plain-scalar comment
+    # rule truncates, and this is the case that must not go quiet.
+    ("(inv35.a) an unquoted ` #217` is reported, naming the line and the number",
+     "notes: close out the fix for #217\n", ("#217", ":6")),
+    # (inv35.c) NEGATIVE CONTROL. Quoting the value is the fix the finding tells the operator
+    # to make, and it must actually satisfy the invariant.
+    ("(inv35.c) a quoted ` #217` is silent",
+     'notes: "close out the fix for #217"\n', None),
+    # (inv35.l) A `#<digit>` on a continuation line remains data inside a double-quoted
+    # scalar, so INV-35 must preserve quote state across physical lines.
+    ("(inv35.l) a multiline double-quoted `#217` is silent",
+     'notes: "close out the fix\n  tracked by #217"\n', None),
+    # (inv35.m) Single-quoted scalars have the same continuation behavior and must remain
+    # exempt until their closing delimiter.
+    ("(inv35.m) a multiline single-quoted `#217` is silent",
+     "notes: 'close out the fix\n  tracked by #217'\n", None),
+    # (inv35.n) The multiline exemption must not weaken the exact unquoted positive control.
+    ("(inv35.n) unquoted `notes: close out #217` is reported",
+     "notes: close out #217\n", ("#217",)),
+    # (inv35.d) A line that is ENTIRELY a comment carries no data to lose -- flagging it
+    # would tell an operator to quote a comment, which YAML has no syntax for.
+    ("(inv35.d) a whole-line comment is silent",
+     "# tracked by #217\n", None),
+    # (inv35.e) A `|` block's content is literal by the YAML spec itself -- a `#` inside it
+    # is data, never a comment start, so it cannot lose anything and must not be flagged.
+    ("(inv35.e) a `#` inside a block scalar is silent",
+     "notes: |\n  close out the fix for #217\n  and nothing else\n", None),
+    # (inv35.f) NEGATIVE CONTROL on the narrow trigger. A real trailing comment with a space
+    # after the `#` -- the ordinary human way to write one -- is not this defect's shape and
+    # must not be flagged.
+    ("(inv35.f) `# text` with no digit is silent",
+     "notes: close out the fix  # see the tracker\n", None),
+    # (inv35.g) REGRESSION. The first unquoted `#` is where YAML's comment actually starts --
+    # everything after it, including a coincidental `#217` deeper in ordinary commentary, is
+    # already comment text and loses nothing. An earlier draft of the scanner kept looking past
+    # the first hash and flagged the second one; this pins the fix.
+    ("(inv35.g) a digit inside an already-started comment is silent",
+     "notes: fix the thing # see issue #217 for details\n", None),
+    # (inv35.h) REGRESSION -- validator panel finding (harness-code-reviewer, PR #1145).
+    # A plain scalar's own apostrophes have NO YAML significance once the value has already
+    # opened unquoted -- only the value's FIRST character can open a quoted scalar. An earlier
+    # draft toggled `in_quote` on every `'`/`"` anywhere on the line, so an odd count of
+    # apostrophes before the real truncation point flipped the scanner into treating the actual
+    # ` #<digit>` as quoted and reporting nothing. Reproduced live against FEAT-34's plan
+    # decision D-03 at review time -- this fixture is that exact shape.
+    ("(inv35.h) an apostrophe before the truncation point does not suppress the report",
+     "notes: the operator's design note for #806 - status Done\n", ("#806",)),
+    # (inv35.i) REGRESSION -- validator panel finding (harness-security-reviewer, PR #1145).
+    # An earlier draft matched the block-scalar-open pattern with `.search()` over the RAW
+    # LINE, so a coincidental `key:>value` substring anywhere in ordinary prose (unrelated to
+    # the line's own `key:` position) was misread as opening a block scalar, and the real
+    # unquoted truncation earlier on the same line was skipped entirely. The check must be
+    # anchored to the isolated value, never a substring search over the whole line.
+    ("(inv35.i) a coincidental block-indicator substring does not suppress a real truncation earlier on the line",
+     "notes: fix #217 for the ratio:>5\n", ("#217",)),
+    # (inv35.j) REGRESSION -- validator panel finding, cycle 2 (harness-code-reviewer, PR
+    # #1145). `_KEY_PREFIX` originally recognised only a bare-identifier key, so a QUOTED key
+    # (`"my-key": value #217`) fell through the optional key group untouched, and
+    # `_unquoted_hash_digit` then read the key's own opening quote as the value's first
+    # character, tracked to the key's own closing quote, and returned None -- silently
+    # swallowing the real truncation that followed. `_KEY_PREFIX` now recognises a
+    # double-quoted, single-quoted, or hyphenated-identifier key as well as a bare one.
+    ("(inv35.j) a quoted key does not suppress a real truncation in its value",
+     '"my-key": value for the record #217\n', ("#217",)),
+    # (inv35.k) SIBLING of (inv35.j), same root cause. An unquoted key containing a hyphen
+    # (`my-key: |`) was not recognised by `_KEY_PREFIX` either, which left the whole line
+    # un-stripped and made the block-scalar-open check miss it -- a false POSITIVE risk on the
+    # block's own content lines rather than a silence, but the identical seam.
+    ("(inv35.k) a hyphenated key's block scalar is recognised and exempt",
+     "my-key: |\n  close out the fix for #217\n  and nothing else\n", None),
+)
+
+
+def case_inv35_rows():
+    """Each row writes a station-only plan.yaml, valid enough that no OTHER invariant fires,
+    carrying its tail verbatim at the end of the file so INV-35's raw-source scan sees exactly
+    the line under test. The header plus station-only block is five lines, so (inv35.a)'s
+    notes line is line 6."""
+    for label, notes, needles in _I35_ROWS:
+        with tempfile.TemporaryDirectory() as tmp:
+            _i34_station_only(tmp, _STATION_ONLY + notes)
+            _code, out = run(tmp)
         ls = _i35_lines(out)
-        ok = bool(ls) and any("#217" in l for l in ls) and any(":6" in l for l in ls)
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.a) an unquoted ` #217` is reported, "
-              f"naming the line and the number")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
+        if needles is None:
+            ok = not ls
+        else:
+            ok = bool(ls) and all(any(n in l for l in ls) for n in needles)
+        check(f"case {label}", ok, out[:400])
 
 
 def case_inv35_matches_real_truncation():
@@ -766,263 +720,26 @@ def case_inv35_matches_real_truncation():
     silently drops everything from the `#` onward. If this case ever goes green while
     (inv35.a) still fires, the invariant has drifted from the defect it exists to catch."""
     with tempfile.TemporaryDirectory() as tmp:
-        feat = _i35_fixture(tmp, "notes: close out the fix for #217\n")
-        sys.path.insert(0, os.path.dirname(SCRIPT))
-        import importlib
-        harness_yaml_mod = importlib.import_module("harness_yaml")
-        doc = harness_yaml_mod.load_file(os.path.join(feat, "plan.yaml"))
-        truncated = doc.get("notes") == "close out the fix for"
-        print(f"{'ok' if truncated else 'FAIL'} - case (inv35.b) the flagged fixture actually "
-              f"loses `#217` when parsed (real={doc.get('notes')!r})")
-        return truncated
-
-
-def case_inv35_quoted_is_silent():
-    """(inv35.c) NEGATIVE CONTROL. Quoting the value is the fix the finding tells the operator
-    to make, and it must actually satisfy the invariant."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, 'notes: "close out the fix for #217"\n')
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.c) a quoted ` #217` is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_multiline_double_quoted_is_silent():
-    """(inv35.l) A `#<digit>` on a continuation line remains data inside a double-quoted
-    scalar, so INV-35 must preserve quote state across physical lines."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, 'notes: "close out the fix\n  tracked by #217"\n')
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.l) a multiline double-quoted "
-              f"`#217` is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_multiline_single_quoted_is_silent():
-    """(inv35.m) Single-quoted scalars have the same continuation behavior and must remain
-    exempt until their closing delimiter."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: 'close out the fix\n  tracked by #217'\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.m) a multiline single-quoted "
-              f"`#217` is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_exact_unquoted_positive_control_is_reported():
-    """(inv35.n) The multiline exemption must not weaken the exact unquoted positive control."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: close out #217\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = bool(ls) and any("#217" in line for line in ls)
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.n) unquoted `notes: close out #217` "
-              f"is reported")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_full_line_comment_is_silent():
-    """(inv35.d) A line that is ENTIRELY a comment carries no data to lose -- flagging it
-    would tell an operator to quote a comment, which YAML has no syntax for."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "# tracked by #217\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.d) a whole-line comment is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_block_scalar_is_exempt():
-    """(inv35.e) A `|` block's content is literal by the YAML spec itself -- a `#` inside it
-    is data, never a comment start, so it cannot lose anything and must not be flagged."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: |\n  close out the fix for #217\n  and nothing else\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.e) a `#` inside a block scalar is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_hash_without_digit_is_silent():
-    """(inv35.f) NEGATIVE CONTROL on the narrow trigger. A real trailing comment with a space
-    after the `#` -- the ordinary human way to write one -- is not this defect's shape and
-    must not be flagged."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: close out the fix  # see the tracker\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.f) `# text` with no digit is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_digit_inside_an_already_started_comment_is_silent():
-    """(inv35.g) REGRESSION. The first unquoted `#` is where YAML's comment actually starts --
-    everything after it, including a coincidental `#217` deeper in ordinary commentary, is
-    already comment text and loses nothing. An earlier draft of the scanner kept looking past
-    the first hash and flagged the second one; this pins the fix."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: fix the thing # see issue #217 for details\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.g) a digit inside an already-started "
-              f"comment is silent")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_apostrophe_before_truncation_still_fires():
-    """(inv35.h) REGRESSION -- validator panel finding (harness-code-reviewer, PR #1145).
-    A plain scalar's own apostrophes have NO YAML significance once the value has already
-    opened unquoted -- only the value's FIRST character can open a quoted scalar. An earlier
-    draft toggled `in_quote` on every `'`/`"` anywhere on the line, so an odd count of
-    apostrophes before the real truncation point flipped the scanner into treating the actual
-    ` #<digit>` as quoted and reporting nothing. Reproduced live against FEAT-34's plan
-    decision D-03 at review time -- this fixture is that exact shape."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: the operator's design note for #806 - status Done\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = bool(ls) and any("#806" in l for l in ls)
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.h) an apostrophe before the "
-              f"truncation point does not suppress the report")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_coincidental_block_indicator_substring_still_fires():
-    """(inv35.i) REGRESSION -- validator panel finding (harness-security-reviewer, PR #1145).
-    An earlier draft matched the block-scalar-open pattern with `.search()` over the RAW
-    LINE, so a coincidental `key:>value` substring anywhere in ordinary prose (unrelated to
-    the line's own `key:` position) was misread as opening a block scalar, and the real
-    unquoted truncation earlier on the same line was skipped entirely. The check must be
-    anchored to the isolated value, never a substring search over the whole line."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "notes: fix #217 for the ratio:>5\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = bool(ls) and any("#217" in l for l in ls)
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.i) a coincidental block-indicator "
-              f"substring does not suppress a real truncation earlier on the line")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_quoted_key_still_fires():
-    """(inv35.j) REGRESSION -- validator panel finding, cycle 2 (harness-code-reviewer, PR
-    #1145). `_KEY_PREFIX` originally recognised only a bare-identifier key, so a QUOTED key
-    (`"my-key": value #217`) fell through the optional key group untouched, and
-    `_unquoted_hash_digit` then read the key's own opening quote as the value's first
-    character, tracked to the key's own closing quote, and returned None -- silently
-    swallowing the real truncation that followed. `_KEY_PREFIX` now recognises a
-    double-quoted, single-quoted, or hyphenated-identifier key as well as a bare one."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, '"my-key": value for the record #217\n')
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = bool(ls) and any("#217" in l for l in ls)
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.j) a quoted key does not suppress a "
-              f"real truncation in its value")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def case_inv35_hyphenated_key_block_scalar_is_exempt():
-    """(inv35.k) SIBLING of (inv35.j), same root cause. An unquoted key containing a hyphen
-    (`my-key: |`) was not recognised by `_KEY_PREFIX` either, which left the whole line
-    un-stripped and made the block-scalar-open check miss it -- a false POSITIVE risk on the
-    block's own content lines rather than a silence, but the identical seam."""
-    with tempfile.TemporaryDirectory() as tmp:
-        _i35_fixture(tmp, "my-key: |\n  close out the fix for #217\n  and nothing else\n")
-        code, out = run(tmp)
-        ls = _i35_lines(out)
-        ok = not ls
-        print(f"{'ok' if ok else 'FAIL'} - case (inv35.k) a hyphenated key's block scalar is "
-              f"recognised and exempt")
-        if not ok:
-            print(f"        {out[:400]}")
-        return ok
-
-
-def _report(results):
-    """The original main()'s printer for the cases that return a results LIST."""
-    ok = True
-    for name, passed, detail in results:
-        print(f"{'ok' if passed else 'FAIL'} - case {name}")
-        if not passed:
-            ok = False
-            print(f"        {str(detail).strip()[:300]}")
-    return ok
+        feat = _i34_station_only(tmp, _STATION_ONLY + "notes: close out the fix for #217\n")
+        doc = harness_yaml.load_file(os.path.join(feat, "plan.yaml"))
+    check(f"case (inv35.b) the flagged fixture actually loses `#217` when parsed "
+          f"(real={doc.get('notes')!r})", doc.get("notes") == "close out the fix for")
 
 
 def main():
-    results = []
-    results.append(case_h())
-    results.append(case_i())
-    results.append(case_j())
-    results.append(case_l())
-    results.append(case_n())
-    results.append(case_inv35_unquoted_hash_digit_is_reported())
-    results.append(case_inv35_matches_real_truncation())
-    results.append(case_inv35_quoted_is_silent())
-    results.append(case_inv35_multiline_double_quoted_is_silent())
-    results.append(case_inv35_multiline_single_quoted_is_silent())
-    results.append(case_inv35_exact_unquoted_positive_control_is_reported())
-    results.append(case_inv35_full_line_comment_is_silent())
-    results.append(case_inv35_block_scalar_is_exempt())
-    results.append(case_inv35_hash_without_digit_is_silent())
-    results.append(case_inv35_digit_inside_an_already_started_comment_is_silent())
-    results.append(case_inv35_apostrophe_before_truncation_still_fires())
-    results.append(case_inv35_coincidental_block_indicator_substring_still_fires())
-    results.append(case_inv35_quoted_key_still_fires())
-    results.append(case_inv35_hyphenated_key_block_scalar_is_exempt())
-    results.append(case_p())
-    results.append(case_q())
-    results.append(case_inv6_plan_run_is_exempt())
-    results.append(case_inv6_code_run_still_fires())
-    results.append(case_inv6_unknown_grade_fails_closed())
-    results.append(case_inv6_mixed_runs_still_fire())
-    results.append(case_inv6_exempt_survives_signature())
-    results.append(case_inv6_pinned_plan_run_silent())
-    results.append(case_inv6_case_variant_is_not_exempt())
-    results.append(case_inv6_message_names_the_remedy())
-    results.append(case_inv6_producer_is_documented())
-    results.append(_report(
-        case_inv34_plan_required()
-            + case_inv34_present_is_silent()
-            + case_inv34_station_only_is_out_of_scope()
-            + case_inv34_a_real_plan_is_still_checked()
-            + case_inv34_an_emptied_plan_is_not_station_only()
-            + case_inv34_marker_cannot_be_minted_onto_a_real_plan()
-    ))
-    return 0 if all(results) else 1
+    for case in (case_h, case_i, case_j, case_l, case_n, case_inv35_rows,
+                 case_inv35_matches_real_truncation, case_p, case_q,
+                 case_inv6_plan_run_is_exempt, case_inv6_code_run_still_fires,
+                 case_inv6_unknown_grade_fails_closed, case_inv6_mixed_runs_still_fire,
+                 case_inv6_exempt_survives_signature, case_inv6_pinned_plan_run_silent,
+                 case_inv6_case_variant_is_not_exempt, case_inv6_message_names_the_remedy,
+                 case_inv6_producer_is_documented, case_inv34_plan_required,
+                 case_inv34_present_is_silent, case_inv34_station_only_is_out_of_scope,
+                 case_inv34_a_real_plan_is_still_checked,
+                 case_inv34_an_emptied_plan_is_not_station_only,
+                 case_inv34_marker_cannot_be_minted_onto_a_real_plan):
+        case()
+    return C.report()
 
 
 if __name__ == "__main__":

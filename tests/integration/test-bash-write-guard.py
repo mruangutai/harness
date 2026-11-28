@@ -11,24 +11,29 @@ Two halves, and both must stay green:
   MUST PASS  — legitimate commands the guard had been blocking
   MUST BLOCK — the DEC-151 bypass shapes it exists to stop
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-import json, os, shutil, subprocess, sys, tempfile
+from integration_support import ROOT, BIN, TESTS
+import functools, json, os, shutil, subprocess, sys, tempfile, time
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
+import inflight_registry
+from check_support import Checks
+from git_support import init_repo
 from isolated_bin import isolated_bin
 # _env sets BOTH root names to one value (FEAT-42 T-11): the guard resolves its root via
 # harness_boundary.resolve_root, the same contract check_domain_support documents.
 from check_domain_support import _env, fixture, make_linked_worktree
+HERE = str(BIN)
+ROOT = str(ROOT)
+PRIOR_GUARD_FIXTURE = str(TESTS / "integration" / "fixtures" / "prior-bash-write-guard.fixture")
 GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.py")
+
+C = Checks()
+check = C.check
+
+
+def _record(results, prefix=""):
+    """Record each (name, ok, detail) a block collected, in order."""
+    for name, ok, detail in results:
+        check(prefix + name, ok, detail)
 
 
 CASES = []
@@ -170,9 +175,6 @@ case("mv onto an out-of-domain path", 'mv a.py src/main.py', 2)
 # The cases above run against the REAL repo manifest. These use a fixture so a
 # malformed rulebook can be exercised without touching the one governing this session.
 
-import shutil
-import tempfile
-
 FIXTURE_MANIFEST = """schema_version: 1
 teams:
   - name: build
@@ -184,13 +186,30 @@ teams:
           - { path: ".", read: true }
 """
 
-T14 = []
+def fire(root, cmd, agent="harness-backend-dev", guard=GUARD, cwd=None,
+         agent_id=None, parent_agent_id=None, feature=None):
+    """Run the guard on one Bash payload. A falsy agent or id leaves its key out entirely
+    (agent None is the main session, which sends no agent_type)."""
+    payload = {"tool_name": "Bash", "tool_input": {"command": cmd}}
+    for key, value in (("agent_type", agent), ("harness_agent_id", agent_id),
+                       ("harness_parent_agent_id", parent_agent_id),
+                       ("harness_feature", feature)):
+        if value:
+            payload[key] = value
+    return subprocess.run([guard], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root), cwd=cwd)
 
 
-def fire(root, cmd, agent="harness-backend-dev"):
-    payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
-    return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+def _partial_bin(*extra):
+    """An isolated bin holding ONLY the guard plus the named sibling modules — the module
+    set is the point: each site leaves something out on purpose. Returns (iso, guard)."""
+    iso = tempfile.mkdtemp()
+    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
+    os.makedirs(isobin)
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
+    for fn in extra:
+        shutil.copy(os.path.join(HERE, fn), os.path.join(isobin, fn))
+    return iso, os.path.join(isobin, "bash-write-guard.py")
 
 
 def run_t14():
@@ -207,9 +226,9 @@ def run_t14():
     # passes", which is the allow-only blindness this case exists to catch.
     ok = fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
     no = fire(root, f"echo hi > {os.path.join(root, 'forbidden', 'x.txt')}")
-    T14.append(("SC-06 pair: permitted bash write allowed AND forbidden blocked",
+    check("SC-06 pair: permitted bash write allowed AND forbidden blocked",
                 ok.returncode == 0 and no.returncode == 2,
-                f"permitted got {ok.returncode} (want 0), forbidden got {no.returncode} (want 2)"))
+                f"permitted got {ok.returncode} (want 0), forbidden got {no.returncode} (want 2)")
 
     # Both write surfaces must fail closed the SAME way on a broken rulebook. Before
     # T-14 this file carried its own copy of the skimmer, so the two hooks could
@@ -224,15 +243,15 @@ def run_t14():
     # not the same as blocking.
     bad = fixture('teams: [ {name: x ## eaten\nnext_key: 1\n')
     r = fire(bad, f"echo hi > {os.path.join(bad, 'allowed', 'x.txt')}")
-    T14.append(("a MALFORMED manifest blocks the bash write (fail closed)",
+    check("a MALFORMED manifest blocks the bash write (fail closed)",
                 r.returncode == 2 and "does not parse" in r.stderr,
-                f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+                f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
     dup = fixture(FIXTURE_MANIFEST + "\nschema_version: 2\n")
     r = fire(dup, f"echo hi > {os.path.join(dup, 'allowed', 'x.txt')}")
-    T14.append(("a DUPLICATE key in the manifest blocks the bash write",
+    check("a DUPLICATE key in the manifest blocks the bash write",
                 r.returncode == 2 and "duplicate key" in r.stderr,
-                f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+                f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
     strict_payload = (
         '{"agent_type":"","agent_type":"harness-backend-dev",'
@@ -242,24 +261,17 @@ def run_t14():
     strict = subprocess.run(
         [GUARD], input=strict_payload, capture_output=True, text=True, env=_env(root))
     if strict.returncode != 0:
-        T14.append(("duplicate hook-payload keys are rejected before policy evaluation",
-                    False, f"exit {strict.returncode}: {strict.stderr.strip()[:160]}"))
+        check("duplicate hook-payload keys are rejected before policy evaluation",
+                    False, f"exit {strict.returncode}: {strict.stderr.strip()[:160]}")
 
     # DEC-151's carve-out is unchanged: an absent manifest still fails OPEN. Needs an
     # isolated copy, not merely an empty CLAUDE_PROJECT_DIR — root falls back to
     # _derived, so a guard running from the real bin/ finds the real manifest whatever
     # the env var says. (The same trap made this case vacuous in test-check-domain.py.)
-    iso = tempfile.mkdtemp()
-    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
-    os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
-    payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
-               "tool_input": {"command": f"echo hi > {os.path.join(iso, 'x.txt')}"}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
-                       input=json.dumps(payload), capture_output=True, text=True,
-                       env=_env(iso))
-    T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
-                r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+    iso, iso_guard = _partial_bin()
+    r = fire(iso, f"echo hi > {os.path.join(iso, 'x.txt')}", guard=iso_guard)
+    check("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
+                r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
     # Both hooks compute domains from ONE function, so the same agent and path must get
     # the same verdict from either write surface.
@@ -290,26 +302,9 @@ def run_t14():
             {"agent_type": "harness-backend-dev", "tool_name": "Write",
              "tool_input": {"file_path": tgt, "content": "x"}}),
             capture_output=True, text=True, env=_env(root))
-        T14.append((f"both write surfaces agree on {rel} (D-03, one shared rule)",
+        check(f"both write surfaces agree on {rel} (D-03, one shared rule)",
                     b.returncode == want and w.returncode == want,
-                    f"bash got {b.returncode}, write got {w.returncode}, want {want}"))
-
-    fails = 0
-    for name, ok_, detail in T14:
-        if ok_:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(T14) - fails}/{len(T14)} T-14 cases passed.")
-    return fails
-
-
-WTB = []
-
-
-def wtb(name, ok, detail=""):
-    WTB.append((name, ok, detail))
+                    f"bash got {b.returncode}, write got {w.returncode}, want {want}")
 
 
 def _linked_worktree(path, owner_root, wt_id, manifest_text):
@@ -355,31 +350,24 @@ def run_worktree():
     """
     tmp, root, sib, legit = _worktree_fixture()
 
-    def _fire(session_root, cmd, agent="harness-backend-dev"):
-        payload = {"agent_type": agent, "tool_name": "Bash",
-                   "tool_input": {"command": cmd}}
-        return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
-                              text=True,
-                              env=_env(session_root))
-
     # TARGET-SIDE: a shell write INTO the sibling, from a session rooted in the
     # checkout. The sibling is outside root, so this half discriminates whatever the
     # manifest grants — before this task the `..` continue made it invisible here.
-    r = _fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
-    wtb("a shell write INTO an out-of-place worktree is REFUSED",
+    r = fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
+    check("a shell write INTO an out-of-place worktree is REFUSED",
         r.returncode == 2 and ".claude/worktrees" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # The PAIRED ALLOW, same fixture and same session. Without it the case above is
     # satisfied by a guard that refuses everything.
-    r = _fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
-    wtb("the same session's in-domain shell write still PASSES",
+    r = fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
+    check("the same session's in-domain shell write still PASSES",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # ROOT-SIDE. The target is control-plane and in-domain FOR THAT ROOT, so it exits 0
     # with the root-side rule deleted — which is what makes the case discriminating.
-    r = _fire(sib, f"echo hi > {os.path.join(sib, '.harness', 'allowed', 'x.txt')}")
-    wtb("a session ROOTED in an out-of-place worktree is refused its own in-domain "
+    r = fire(sib, f"echo hi > {os.path.join(sib, '.harness', 'allowed', 'x.txt')}")
+    check("a session ROOTED in an out-of-place worktree is refused its own in-domain "
         "shell write",
         r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
@@ -390,7 +378,7 @@ def run_worktree():
     # instruction to delete its own cwd. Presence alone passes if the destructive
     # sentence is re-added beside the location line; absence alone passes for a verdict
     # that says nothing. Scoped to THIS stderr — the target-side verdict keeps it.
-    wtb("the ROOT-SIDE bash verdict names .claude/worktrees and does NOT say "
+    check("the ROOT-SIDE bash verdict names .claude/worktrees and does NOT say "
         "`git worktree remove`",
         ".claude/worktrees" in r.stderr and "git worktree remove" not in r.stderr,
         f"stderr: {r.stderr.strip()[:300]}")
@@ -398,14 +386,14 @@ def run_worktree():
     # A COMMAND THAT EXTRACTS NO WRITE TARGET AT ALL. This is what proves the root-side
     # check does not sit behind `if not findings: sys.exit(0)`, and after the re-scope it
     # is the ONLY case pinning this route's placement.
-    r = _fire(sib, "git status --porcelain")
-    wtb("a read-only command from an out-of-place root is ALSO refused (the check is "
+    r = fire(sib, "git status --porcelain")
+    check("a read-only command from an out-of-place root is ALSO refused (the check is "
         "not behind the no-findings exit)",
         r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # The PAIRED ALLOW for the root-side rule: same shape, legitimate location.
-    r = _fire(legit, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
-    wtb("a session rooted in a LEGITIMATE worktree is unaffected",
+    r = fire(legit, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
+    check("a session rooted in a LEGITIMATE worktree is unaffected",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # SC-07 on this route, and WHAT IT PROVES IS NARROWER THAN ITS TWIN — measured, after
@@ -420,8 +408,8 @@ def run_worktree():
     # So this case pins the OUTCOME the criterion asks for and discriminates NEITHER
     # mechanism on its own. Recorded that way rather than named for one of them, because
     # a case labelled with a rule it does not test is worse than an unlabelled one.
-    r = _fire(root, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
-    wtb("SC-07: the legitimate worktree is writable FROM OUTSIDE it on the Bash route "
+    r = fire(root, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
+    check("SC-07: the legitimate worktree is writable FROM OUTSIDE it on the Bash route "
         "(granted independently by BOTH the carve-out and the stripping)",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
@@ -438,34 +426,23 @@ def run_worktree():
     ):
         with open(_ptr, "wb") as _f:
             _f.write(_payload)
-        r = _fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
-        wtb(f"F-A: a .git pointer that is {_label} REFUSES the shell write",
+        r = fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
+        check(f"F-A: a .git pointer that is {_label} REFUSES the shell write",
             r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
     with open(_ptr, "wb") as _f:
         _f.write(_good)
-    r = _fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
-    wtb("F-A: with the pointer restored, the in-domain shell write still PASSES",
+    r = fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
+    check("F-A: with the pointer restored, the in-domain shell write still PASSES",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06).
-    iso = tempfile.mkdtemp()
-    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
-    os.makedirs(isobin)
-    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.py"))
-    shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
-    shutil.copy(
-        os.path.join(HERE, "artifact_accessors.py"),
-        os.path.join(isobin, "artifact_accessors.py"))
+    iso, iso_guard = _partial_bin("harness_yaml.py", "artifact_accessors.py")
     os.makedirs(os.path.join(iso, ".harness"))
     with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
         f.write(FIXTURE_MANIFEST)
-    payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
-               "tool_input": {"command": "echo hi > %s"
-                              % os.path.join(iso, ".harness", "allowed", "x.txt")}}
-    r = subprocess.run([os.path.join(isobin, "bash-write-guard.py")],
-                       input=json.dumps(payload), capture_output=True, text=True,
-                       env=_env(iso))
-    wtb("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
+    r = fire(iso, "echo hi > %s" % os.path.join(iso, ".harness", "allowed", "x.txt"),
+             guard=iso_guard)
+    check("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
         r.returncode == 2 and "harness_boundary" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
@@ -521,14 +498,14 @@ def run_worktree():
         return b.returncode, w.returncode
 
     before = _both_routes()
-    wtb("one-implementation baseline: both routes ALLOW the legitimate worktree write",
+    check("one-implementation baseline: both routes ALLOW the legitimate worktree write",
         before == (0, 0), f"bash={before[0]}, write={before[1]}, want (0, 0)")
 
     mod = os.path.join(m_bin, "harness_boundary.py")
     src = open(mod).read()
     mutated = src.replace('WORKTREES_SEGMENT = ".claude/worktrees"',
                           'WORKTREES_SEGMENT = ".claude/wt-mutant"', 1)
-    wtb("the mutation targeted the constant BY NAME (not the bare literal)",
+    check("the mutation targeted the constant BY NAME (not the bare literal)",
         mutated != src, "WORKTREES_SEGMENT assignment not found in the copied module")
     open(mod, "w").write(mutated)
     # DROP THE BYTECODE CACHE, AND THIS IS NOT HOUSEKEEPING. The baseline run above left
@@ -541,7 +518,7 @@ def run_worktree():
     after = _both_routes()
     # A FLIP ON ONE ROUTE ONLY MEANS A SECOND COPY OF THE RULE SURVIVES SOMEWHERE, and
     # this case must say so rather than passing on a partial result.
-    wtb("ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes 0 -> 2",
+    check("ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes 0 -> 2",
         after == (2, 2),
         f"bash={after[0]}, write={after[1]}, want (2, 2) — a flip on one route only "
         f"means a second copy of the boundary rule survives on the other")
@@ -593,7 +570,7 @@ def run_worktree():
         ("ordinary git: commit", "git commit -m x", 0),
     ):
         r = fire(wt_root, cmd)
-        wtb(f"worktree creation — {label}",
+        check(f"worktree creation — {label}",
             r.returncode == want,
             f"exit {r.returncode}, want {want}: {r.stderr.strip()[:200]}")
 
@@ -602,7 +579,7 @@ def run_worktree():
     # resolves against the guard process's cwd, which is not under the fixture's
     # worktrees dir — so the exit code alone passes under the deleted check.
     r = fire(wt_root, "git worktree add sib HEAD")
-    wtb("worktree creation — the relative refusal NAMES relativity as the reason",
+    check("worktree creation — the relative refusal NAMES relativity as the reason",
         "RELATIVE" in r.stderr, f"stderr: {r.stderr.strip()[:250]}")
 
     # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Same defect and same proof as
@@ -616,7 +593,7 @@ def run_worktree():
                   "def resolve_root(bin_dir, strict=True): return '/definitely/not/here'\n"
                   "def root_from_script(bin_dir): return '/definitely/not/here'\n"
                   "def root_above(start): return None\n")
-    _real_root = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+    _real_root = ROOT
     _p556 = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
              "tool_input": {"command": "echo x > "
                             + os.path.join(_real_root, ".harness", "harness", "docs",
@@ -624,33 +601,16 @@ def run_worktree():
     _clean = subprocess.run([GUARD], input=json.dumps(_p556), capture_output=True,
                             text=True, env=_env(_real_root),
                             cwd=tempfile.gettempdir())
-    wtb("#556 control: from a clean cwd the out-of-domain shell write is REFUSED",
+    check("#556 control: from a clean cwd the out-of-domain shell write is REFUSED",
         _clean.returncode == 2,
         f"exit {_clean.returncode}: {_clean.stderr.strip()[:200]}")
     _hijack = subprocess.run([GUARD], input=json.dumps(_p556), capture_output=True,
                              text=True, env=_env(_real_root), cwd=_hostile)
-    wtb("#556: a harness_boundary.py in the CWD does not become the guard's resolver",
+    check("#556: a harness_boundary.py in the CWD does not become the guard's resolver",
         _hijack.returncode == 2 and _hijack.returncode == _clean.returncode
         and "enforcement OFF" not in _hijack.stderr,
         f"clean={_clean.returncode} hijacked={_hijack.returncode}: "
         f"{_hijack.stderr.strip()[:200]}")
-
-    fails = 0
-    for name, ok_, detail in WTB:
-        if ok_:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(WTB) - fails}/{len(WTB)} worktree-boundary cases passed.\n")
-    return fails
-
-
-WDEEP = []
-
-
-def wdeep(name, ok, detail=""):
-    WDEEP.append((name, ok, detail))
 
 
 def run_worktree_deep():
@@ -673,7 +633,6 @@ def run_worktree_deep():
     The refusal half is asserted where it is actually reachable — an out-of-place linked
     worktree, refused before the DEC-153 continue is ever reached.
     """
-    fails = 0
     tmp = tempfile.mkdtemp()
     root = os.path.join(tmp, "root")
     os.makedirs(os.path.join(root, ".harness"))
@@ -686,14 +645,14 @@ def run_worktree_deep():
 
     # GRANTED at depth: allowed.
     r_ok = fire(root, "echo x > %s" % os.path.join(deep, ".harness", "allowed", "x.txt"))
-    wdeep("a granted path inside <segment>/<repo>/<id> is ALLOWED on the Bash route",
+    check("a granted path inside <segment>/<repo>/<id> is ALLOWED on the Bash route",
           r_ok.returncode == 0,
           f"exit {r_ok.returncode}: {r_ok.stderr.strip()[:200]}")
 
     # UNGRANTED at depth: also allowed, and that is DEC-153, not a hole. Pinned so a
     # future narrowing of :545 cannot land silently.
     r_un = fire(root, "echo x > %s" % os.path.join(deep, "src", "main.py"))
-    wdeep("DEC-153 pinned: an UNGRANTED path at the same depth is ALSO allowed — the "
+    check("DEC-153 pinned: an UNGRANTED path at the same depth is ALSO allowed — the "
           "carve-out is blanket and depth-agnostic",
           r_un.returncode == 0,
           f"exit {r_un.returncode}: {r_un.stderr.strip()[:200]} — if this now refuses, "
@@ -704,27 +663,12 @@ def run_worktree_deep():
     sib = os.path.join(tmp, "sib")
     _linked_worktree(sib, root, "sib", FIXTURE_MANIFEST)
     r_sib = fire(root, "echo x > %s" % os.path.join(sib, ".harness", "allowed", "x.txt"))
-    wdeep("an out-of-place linked worktree is REFUSED on the Bash route, and the message "
+    check("an out-of-place linked worktree is REFUSED on the Bash route, and the message "
           "names where worktrees belong",
           r_sib.returncode == 2 and ".claude/worktrees" in r_sib.stderr,
           f"exit {r_sib.returncode}: {r_sib.stderr.strip()[:240]}")
 
-    for name, ok, detail in WDEEP:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(WDEEP) - fails}/{len(WDEEP)} deep-layout Bash-route cases passed.\n")
     shutil.rmtree(tmp, ignore_errors=True)
-    return fails
-
-
-HEADC = []
-
-
-def headc(name, ok, detail=""):
-    HEADC.append((name, ok, detail))
 
 
 def run_head_move():
@@ -737,7 +681,6 @@ def run_head_move():
     The ALLOW half is what makes the set discriminating: a guard that refuses every git
     command passes case 1 and fails cases 4a-4d. Both halves come from one fixture.
     """
-    fails = 0
     tmp = tempfile.mkdtemp()
     root = os.path.join(tmp, "root")
     os.makedirs(os.path.join(root, ".harness"))
@@ -753,13 +696,13 @@ def run_head_move():
 
     def refuse(name, cmd, agent="harness-backend-dev", needle=ALT):
         r = fire(root, cmd, agent=agent)
-        headc(name, r.returncode == 2 and needle in r.stderr,
+        check(name, r.returncode == 2 and needle in r.stderr,
               f"exit {r.returncode} (want 2), stderr wants {needle!r}: "
               f"{r.stderr.strip()[:200]}")
 
     def allow(name, cmd, agent="harness-backend-dev"):
         r = fire(root, cmd, agent=agent)
-        headc(name, r.returncode == 0,
+        check(name, r.returncode == 0,
               f"exit {r.returncode} (want 0): {r.stderr.strip()[:200]}")
 
     # 1-3 — REFUSE, one shape each.
@@ -788,10 +731,8 @@ def run_head_move():
           "git show eeabc59:README.md", agent="harness-dev-ops")
 
     # 5 — the main session is not governed. No agent_type key at all.
-    r5 = subprocess.run([GUARD], input=json.dumps(
-        {"tool_name": "Bash", "tool_input": {"command": "git checkout main"}}),
-        capture_output=True, text=True, env=_env(root))
-    headc("5. the main session is NOT governed: the same checkout with no agent_type "
+    r5 = fire(root, "git checkout main", agent=None)
+    check("5. the main session is NOT governed: the same checkout with no agent_type "
           "exits 0", r5.returncode == 0,
           f"exit {r5.returncode}: {r5.stderr.strip()[:200]}")
 
@@ -815,13 +756,13 @@ def run_head_move():
     # 9 — admitting two subcommands into the same parser is the edit most likely to
     # disturb the existing destination refusals, so both are re-asserted here.
     r9a = fire(root, "git worktree add %s" % os.path.join(tmp, "outside"))
-    headc("9a. the existing destination refusal is unchanged: an add OUTSIDE the segment "
+    check("9a. the existing destination refusal is unchanged: an add OUTSIDE the segment "
           "still exits 2",
           r9a.returncode == 2 and ".claude/worktrees" in r9a.stderr,
           f"exit {r9a.returncode}: {r9a.stderr.strip()[:200]}")
     r9b = fire(root, "git worktree add %s"
                % os.path.join(root, ".claude", "worktrees", "harness", "FEAT-91"))
-    headc("9b. ...and an add INSIDE the segment still exits 0",
+    check("9b. ...and an add INSIDE the segment still exits 0",
           r9b.returncode == 0, f"exit {r9b.returncode}: {r9b.stderr.strip()[:200]}")
 
     # 10 + 11 — THE PAIR THAT MAKES THE REORDERING DISCRIMINATING. Case 2 does not cover
@@ -832,21 +773,13 @@ def run_head_move():
            "git checkout main", agent="harness-dev-ops")
     r11 = fire(root, "echo x > %s" % os.path.join(root, "src", "main.py"),
                agent="harness-dev-ops")
-    headc("11. ...and the WRITE exemption is INTACT: dev-ops still writes a path it is "
+    check("11. ...and the WRITE exemption is INTACT: dev-ops still writes a path it is "
           "not granted, exit 0. Without this half, case 10 is satisfied by deleting the "
           "exemption and removing DEC-151's recovery path.",
           r11.returncode == 0,
           f"exit {r11.returncode}: {r11.stderr.strip()[:200]}")
 
-    for name, ok, detail in HEADC:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n        {detail}")
-    print(f"\n{len(HEADC) - fails}/{len(HEADC)} HEAD-move and forced-removal cases passed.\n")
     shutil.rmtree(tmp, ignore_errors=True)
-    return fails
 
 FEAT50_MANIFEST = """schema_version: 1
 teams:
@@ -934,18 +867,6 @@ def _feat50_bash_red_case(root, target, main):
             f"real={main.returncode}, mutant={muted.returncode}: {muted.stderr}")
 
 
-def _report_feat50_bash_results(results):
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    {name}")
-            continue
-        failures += 1
-        print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - failures}/{len(results)} FEAT-50 Bash binding cases passed.")
-    return failures
-
-
 def run_feat50_checkout_binding():
     """Issue #1057: every allowed/shared Bash route binds a feature write to its worktree."""
     main_case, root, target, main = _feat50_bash_main_case(
@@ -963,7 +884,7 @@ def run_feat50_checkout_binding():
         shared_case,
         _feat50_bash_red_case(root, target, main),
     ]
-    return _report_feat50_bash_results(results)
+    _record(results)
 
 
 # FEAT-61 T-03: feature_checkout_guard is an ADAPTER over
@@ -991,10 +912,7 @@ def _feat61_root(*worktree_ids):
 
 
 def _feat61_fire(root, target, guard=GUARD):
-    payload = {"agent_type": "harness-documentor", "tool_name": "Bash",
-               "tool_input": {"command": f"echo hi > {target}"}}
-    return subprocess.run([guard], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return fire(root, f"echo hi > {target}", "harness-documentor", guard=guard)
 
 
 def _feat61_case(name, result, want_code, want_stderr=None):
@@ -1125,15 +1043,7 @@ def run_feat65_guard_cases():
          deliberate_exit.returncode == 7 and "failed internally" not in deliberate_exit.stderr,
          f"{deliberate_exit.returncode}: {deliberate_exit.stderr!r}"),
     ]
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [feat65] {name}")
-        else:
-            failures += 1
-            print(f"FAIL  [feat65] {name}\n      | {detail}")
-    print(f"\n{len(results) - failures}/{len(results)} FEAT-65 guard cases passed.")
-    return failures
+    _record(results, "[feat65] ")
 
 
 def _unavailable_gates(result):
@@ -1149,35 +1059,22 @@ def _unavailable_gates(result):
     return gates
 
 
-def run_feat2274_unavailable_cases():
+def run_feat2274_unavailable_cases(root):
     """FEAT-2274 C1: bash-write-guard's own crash (run_feat65_guard_cases), a payload it
     cannot read, and a tree whose harness_boundary.py cannot be imported are each ONE stdout
     unavailable line at exit 0. Normal passes, the not-applicable pass-throughs (main session,
     non-harness agent, dev-ops exemption) and deliberate denials emit none."""
-    root = _cases_root()
-
-    def run(stdin, guard=GUARD, cwd=root, env_root=root):
-        return subprocess.run([guard], input=stdin, capture_output=True, text=True,
-                              env=_env(env_root), cwd=cwd)
-
     def bash(agent, command):
-        payload = {"tool_name": "Bash", "tool_input": {"command": command}}
-        if agent:
-            payload["agent_type"] = agent
-        return run(json.dumps(payload))
+        return fire(root, command, agent, cwd=root)
 
-    bare = tempfile.mkdtemp()
-    bare_bin = os.path.join(bare, ".claude", "skills", "harness", "bin")
-    os.makedirs(bare_bin)
-    shutil.copy(GUARD, os.path.join(bare_bin, "bash-write-guard.py"))
-    no_boundary = run(json.dumps({"agent_type": "harness-backend-dev", "tool_name": "Bash",
-                                  "tool_input": {"command": "echo hi > %s"
-                                                 % os.path.join(bare, "x.txt")}}),
-                      guard=os.path.join(bare_bin, "bash-write-guard.py"), cwd=bare,
-                      env_root=bare)
+    bare, bare_guard = _partial_bin()
+    no_boundary = fire(bare, "echo hi > %s" % os.path.join(bare, "x.txt"),
+                       guard=bare_guard, cwd=bare)
+    unreadable = subprocess.run([GUARD], input="{not json", capture_output=True, text=True,
+                                env=_env(root), cwd=root)
     in_domain = "rm -f .harness/harness/features/F/runs/r-eng/a.md"
     unavailable = [
-        ("an unreadable payload", run("{not json")),
+        ("an unreadable payload", unreadable),
         ("a tree without harness_boundary.py", no_boundary),
     ]
     quiet = [
@@ -1196,15 +1093,7 @@ def run_feat2274_unavailable_cases():
                  r.returncode == want and _unavailable_gates(r) == [],
                  f"{r.returncode}: stdout={r.stdout!r} stderr={r.stderr[-200:]!r}")
                 for label, r, want in quiet]
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [f2274] {name}")
-        else:
-            failures += 1
-            print(f"FAIL  [f2274] {name}\n      | {detail}")
-    print(f"\n{len(results) - failures}/{len(results)} FEAT-2274 unavailable cases passed.")
-    return failures
+    _record(results, "[f2274] ")
 
 
 def run_feat61_feature_checkout_adapter():
@@ -1217,54 +1106,40 @@ def run_feat61_feature_checkout_adapter():
         _feat61_ambiguous_worktree(),
         _feat61_injected_core_failure(),
     ]
-    failures = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    [feat61] {name}")
-            continue
-        failures += 1
-        print(f"FAIL  [feat61] {name}\n      | {detail}")
-    print(f"\n{len(results) - failures}/{len(results)} FEAT-61 T-03 adapter cases passed.")
-    return failures
+    _record(results, "[feat61] ")
 
 
 
-def bug1304_pre_change_guard(dest):
-    copied_bin = isolated_bin(dest)
-    guard = os.path.join(copied_bin, "bash-write-guard.py")
-    fixture_path = os.path.join(
-        TESTS_DIR, "fixtures", "prior-bash-write-guard.fixture")
-    shutil.copyfile(fixture_path, guard)
+@functools.lru_cache(maxsize=None)
+def bug1304_pre_change_guard():
+    """The frozen pre-change guard in a copied bin; a fixed file, so built once and reused."""
+    guard = os.path.join(isolated_bin(tempfile.mkdtemp()), "bash-write-guard.py")
+    shutil.copyfile(PRIOR_GUARD_FIXTURE, guard)
     os.chmod(guard, 0o755)
     return guard
 
 
-def _bug1304_bash_fire(root, command, agent, guard=GUARD,
-                       agent_id=None, parent_agent_id=None, feature=None):
-    payload = {
-        "agent_type": agent,
-        "tool_name": "Bash",
-        "tool_input": {"command": command},
-    }
-    if agent_id:
-        payload["harness_agent_id"] = agent_id
-    if parent_agent_id:
-        payload["harness_parent_agent_id"] = parent_agent_id
-    if feature:
-        payload["harness_feature"] = feature
-    return subprocess.run(
-        [guard], input=json.dumps(payload), capture_output=True,
-        text=True, env=_env(root),
-    )
+def _control(worktree):
+    """The run digest.md a pre-change control write targets (refused by the run guard)."""
+    return os.path.join(
+        worktree, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+
+
+def _edit_claims(worktree, mutate):
+    """Load the worktree's claim registry, apply mutate(data) in place, write it back."""
+    path = os.path.join(worktree, inflight_registry.REGISTRY_REL)
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    mutate(data)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
 
 
 def bug1304_assert_pre_change_allows(results, name, root, command, agent, control_path):
-    isolated = tempfile.mkdtemp()
-    prior = bug1304_pre_change_guard(isolated)
-    allowed = _bug1304_bash_fire(root, command, agent, guard=prior)
+    prior = bug1304_pre_change_guard()
+    allowed = fire(root, command, agent, guard=prior)
     stderr = allowed.stderr or ""
-    control = _bug1304_bash_fire(
-        root, f"echo controlled > {control_path}", agent, guard=prior)
+    control = fire(root, f"echo controlled > {control_path}", agent, guard=prior)
     results.append((
         name + " is allowed by the frozen pre-change guard",
         allowed.returncode == 0
@@ -1273,7 +1148,6 @@ def bug1304_assert_pre_change_allows(results, name, root, command, agent, contro
         and control.returncode == 2,
         f"allow={allowed.returncode} control={control.returncode} stderr={stderr[:160]!r}",
     ))
-    shutil.rmtree(isolated, ignore_errors=True)
 
 
 def _bug1304_bash_fixture():
@@ -1291,20 +1165,15 @@ def _bug1304_bash_fixture():
 
 
 def _bug1304_bash_expect(results, root, agent, name, command, want, contains=None):
-    response = _bug1304_bash_fire(root, command, agent)
-    text = response.stdout + response.stderr
-    ok = response.returncode == want and (contains is None or contains in text)
-    results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
-    return response
+    return _repository_bash_record(results, name, fire(root, command, agent), want, contains)
 
 
-def _bug1304_bash_context(agent, inflight_registry):
+def _bug1304_bash_context(agent):
     root, first, second = _bug1304_bash_fixture()
     inflight_registry.claim(
         first, agent, "harness-eng-lead", first,
         feature="FEAT-1304-A-claim-guard")
-    control_path = os.path.join(
-        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control_path = _control(first)
     return {
         "root": root, "first": first, "second": second,
         "control": control_path, "agent": agent,
@@ -1341,17 +1210,15 @@ def _bug1304_bash_main_routes(results, context):
 def _bug1304_bash_unbound_routes(results, context):
     agent = context["agent"]
     unbound = fixture(FIXTURE_MANIFEST)
-    response = _bug1304_bash_fire(
-        unbound, "echo x > .harness/allowed/main.md", agent)
-    results.append(("unbound main redirect remains allowed",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(results, unbound, agent, "unbound main redirect remains allowed",
+                         "echo x > .harness/allowed/main.md", 0)
     scratch = os.path.join(tempfile.mkdtemp(), "scratch.md")
     _bug1304_bash_expect(
         results, context["root"], agent, "scratch redirect remains allowed",
         f"echo x > {scratch}", 0)
 
 
-def _bug1304_bash_owner_claim(results, context, inflight_registry):
+def _bug1304_bash_owner_claim(results, context):
     agent = context["agent"]
     unmatched = fixture(FIXTURE_MANIFEST)
     matching = os.path.join(unmatched, ".claude", "worktrees", "FEAT-1304-C")
@@ -1360,22 +1227,20 @@ def _bug1304_bash_owner_claim(results, context, inflight_registry):
         unmatched, agent, "harness-eng-lead", unmatched,
         feature="FEAT-404-no-worktree")
     command = "echo x > .harness/allowed/unmatched.md"
-    response = _bug1304_bash_fire(unmatched, command, agent)
-    results.append(("unresolved owner-root claim remains unbound",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(results, unmatched, agent,
+                         "unresolved owner-root claim remains unbound", command, 0)
     inflight_registry.claim(
         unmatched, agent, "harness-eng-lead", unmatched,
         feature="FEAT-1304-C-linked")
     _bug1304_bash_expect(
         results, unmatched, agent, "owner-root matching claim refuses main redirect",
         command, 2, matching)
-    control = os.path.join(
-        matching, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control = _control(matching)
     bug1304_assert_pre_change_allows(
         results, "owner-root matching claim", unmatched, command, agent, control)
 
 
-def _bug1304_bash_multi_and_malformed(results, context, inflight_registry):
+def _bug1304_bash_multi_and_malformed(results, context):
     root = context["root"]
     agent = context["agent"]
     second = context["second"]
@@ -1399,16 +1264,12 @@ def _bug1304_bash_multi_and_malformed(results, context, inflight_registry):
         results, "malformed checkout", root, command, agent, context["control"])
 
 
-def _runtime_lineage_bash_routes(results, context, inflight_registry):
+def _runtime_lineage_bash_routes(results, context):
     agent = context["agent"]
-    first_registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
-    first_data = json.load(open(first_registry, encoding="utf-8"))
-    first_data["claims"][0].update({
+    _edit_claims(context["first"], lambda data: data["claims"][0].update({
         "agent_id": "BackendOne",
         "parent_agent_id": "LeadOne",
-    })
-    with open(first_registry, "w", encoding="utf-8") as handle:
-        json.dump(first_data, handle)
+    }))
 
     receipt = inflight_registry.claim_with_receipt(
         context["second"],
@@ -1429,21 +1290,21 @@ def _runtime_lineage_bash_routes(results, context, inflight_registry):
         f"echo x > {os.path.join(context['first'], '.harness', 'allowed', 'runtime-one.md')}")
     second_command = (
         f"echo x > {os.path.join(context['second'], '.harness', 'allowed', 'runtime-two.md')}")
-    own = _bug1304_bash_fire(
+    own = fire(
         context["root"],
         first_command,
         agent,
         agent_id="BackendOne",
         parent_agent_id="LeadOne",
     )
-    sibling = _bug1304_bash_fire(
+    sibling = fire(
         context["root"],
         second_command,
         agent,
         agent_id="BackendOne",
         parent_agent_id="LeadOne",
     )
-    second = _bug1304_bash_fire(
+    second = fire(
         context["root"],
         second_command,
         agent,
@@ -1467,7 +1328,7 @@ def _runtime_lineage_bash_routes(results, context, inflight_registry):
     ))
 
 
-def _bug1304_bash_ambiguous(results, context, inflight_registry):
+def _bug1304_bash_ambiguous(results, context):
     agent = context["agent"]
     ambiguous = fixture(FIXTURE_MANIFEST)
     first = os.path.join(ambiguous, ".claude", "worktrees", "FEAT")
@@ -1481,13 +1342,12 @@ def _bug1304_bash_ambiguous(results, context, inflight_registry):
     _bug1304_bash_expect(
         results, ambiguous, agent,
         "ambiguous claim refuses and names candidates", command, 2, "FEAT, FEAT-X")
-    control = os.path.join(
-        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control = _control(first)
     bug1304_assert_pre_change_allows(
         results, "ambiguous claim", ambiguous, command, agent, control)
 
 
-def _bug1304_bash_short_claim(results, context, inflight_registry):
+def _bug1304_bash_short_claim(results, context):
     agent = context["agent"]
     root = fixture(FIXTURE_MANIFEST)
     short = os.path.join(root, ".claude", "worktrees", "BUG-91")
@@ -1498,8 +1358,7 @@ def _bug1304_bash_short_claim(results, context, inflight_registry):
     command = "echo x > .harness/allowed/main.md"
     _bug1304_bash_expect(
         results, root, agent, "short-form claim refuses main redirect", command, 2)
-    control = os.path.join(
-        short, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control = _control(short)
     bug1304_assert_pre_change_allows(
         results, "short-form", root, command, agent, control)
 
@@ -1544,23 +1403,19 @@ def _bug1304_bash_existing_guards(results, context):
         results, root, agent, "run state guard remains ahead of claim rule",
         f"echo x > {state_path}", 2)
     missing = tempfile.mkdtemp()
-    response = _bug1304_bash_fire(
-        missing, f"echo x > {os.path.join(missing, 'inside.md')}", agent)
-    results.append(("missing manifest fail-open remains unchanged",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(results, missing, agent, "missing manifest fail-open remains unchanged",
+                         f"echo x > {os.path.join(missing, 'inside.md')}", 0)
     _bug1304_bash_expect(
         results, root, agent, "temporary path remains not-a-domain-question",
         f"echo x > {os.path.join(tempfile.mkdtemp(), 'outside.md')}", 0)
 
 
-def _bug1304_bash_aged_claim(results, context, inflight_registry, time):
+def _bug1304_bash_aged_claim(results, context):
     """DEC-204/DEC-233: a claim binds for exactly as long as its OMP supervisor lives. Age
     alone never releases it; a dead supervisor always does."""
-    registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
-    data = json.load(open(registry, encoding="utf-8"))
-    data["claims"][0]["started_at"] = time.time() - 10 * 86400
-    with open(registry, "w", encoding="utf-8") as handle:
-        json.dump(data, handle)
+    def age(data):
+        data["claims"][0]["started_at"] = time.time() - 10 * 86400
+    _edit_claims(context["first"], age)
     command = "echo x > .harness/allowed/main.md"
     _bug1304_bash_expect(
         results, context["root"], context["agent"],
@@ -1570,19 +1425,19 @@ def _bug1304_bash_aged_claim(results, context, inflight_registry, time):
         context["agent"], context["control"])
     dead = subprocess.run([sys.executable, "-c", "import os; print(os.getpid())"],
                           capture_output=True, text=True, check=True)
-    data["claims"][0]["supervisor_pid"] = int(dead.stdout)
-    data["claims"][0].pop("supervisor_started_at", None)
-    data["claims"][0]["started_at"] = time.time()
-    with open(registry, "w", encoding="utf-8") as handle:
-        json.dump(data, handle)
-    response = _bug1304_bash_fire(context["root"], command, context["agent"])
+    def kill_supervisor(data):
+        data["claims"][0]["supervisor_pid"] = int(dead.stdout)
+        data["claims"][0].pop("supervisor_started_at", None)
+        data["claims"][0]["started_at"] = time.time()
+    _edit_claims(context["first"], kill_supervisor)
+    response = fire(context["root"], command, context["agent"])
     results.append((
         "fresh claim whose supervisor has exited no longer binds",
         context["first"] not in response.stdout + response.stderr,
         f"exit={response.returncode} output={(response.stdout + response.stderr)[:180]!r}"))
 
 
-def _bug1304_bash_unreadable(results, context, inflight_registry):
+def _bug1304_bash_unreadable(results, context):
     root, worktree, _ = _bug1304_bash_fixture()
     agent = context["agent"]
     inflight_registry.claim(
@@ -1595,18 +1450,16 @@ def _bug1304_bash_unreadable(results, context, inflight_registry):
     _bug1304_bash_expect(
         results, root, agent, "unreadable registry refuses and names file",
         command, 2, registry)
-    control = os.path.join(
-        worktree, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control = _control(worktree)
     bug1304_assert_pre_change_allows(
         results, "unreadable registry", root, command, agent, control)
     with open(registry, "w", encoding="utf-8") as handle:
         json.dump({"schema_version": 2, "claims": []}, handle)
-    response = _bug1304_bash_fire(root, command, agent)
-    results.append(("readable empty registry remains allowed",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(results, root, agent, "readable empty registry remains allowed",
+                         command, 0)
 
 
-def _bug1304_bash_partial_registry(results, context, inflight_registry):
+def _bug1304_bash_partial_registry(results, context):
     root, own, corrupt = _bug1304_bash_fixture()
     agent = context["agent"]
     inflight_registry.claim(
@@ -1616,15 +1469,14 @@ def _bug1304_bash_partial_registry(results, context, inflight_registry):
     with open(corrupt_registry, "w", encoding="utf-8") as handle:
         handle.write("{")
     own_command = f"echo x > {os.path.join(own, '.harness', 'allowed', 'inside.md')}"
-    response = _bug1304_bash_fire(root, own_command, agent)
-    results.append(("readable member allows despite unrelated unreadable registry",
-                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(results, root, agent,
+                         "readable member allows despite unrelated unreadable registry",
+                         own_command, 0)
     command = "echo x > .harness/allowed/main.md"
     _bug1304_bash_expect(
         results, root, agent, "outside partial set refuses unreadable registry",
         command, 2, corrupt_registry)
-    control = os.path.join(
-        own, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    control = _control(own)
     bug1304_assert_pre_change_allows(
         results, "partial unreadable", root, command, agent, control)
 
@@ -1655,8 +1507,7 @@ def _repository_bash_fixture():
     return root, products
 
 
-def _repository_bash_claim(
-    inflight_registry, root, repository, feature, agent_id, parent_agent_id,
+def _repository_bash_claim(root, repository, feature, agent_id, parent_agent_id,
 ):
     agent = "harness-backend-dev"
     receipt = inflight_registry.claim_with_receipt(
@@ -1672,7 +1523,7 @@ def _repository_bash_claim(
 
 
 def _repository_bash_fire(root, target, feature, agent_id, parent_agent_id):
-    return _bug1304_bash_fire(
+    return fire(
         root, f"echo x > {target}", "harness-backend-dev",
         agent_id=agent_id, parent_agent_id=parent_agent_id, feature=feature,
     )
@@ -1682,12 +1533,12 @@ def _repository_bash_record(results, name, response, want, contains=None):
     output = response.stdout + response.stderr
     ok = response.returncode == want and (contains is None or contains in output)
     results.append((name, ok, f"exit={response.returncode} output={output[:240]!r}"))
+    return response
 
 
-def _repository_bash_happy_routes(results, inflight_registry, feature):
+def _repository_bash_happy_routes(results, feature):
     root, products = _repository_bash_fixture()
-    first = _repository_bash_claim(
-        inflight_registry, root, "product-a", feature, "BackendOne", "EngLeadOne")
+    first = _repository_bash_claim(root, "product-a", feature, "BackendOne", "EngLeadOne")
     cases = (
         ("repository-bound child can repeat Bash in its own product",
          _repository_bash_fire(
@@ -1706,8 +1557,7 @@ def _repository_bash_happy_routes(results, inflight_registry, feature):
         _repository_bash_record(results, name, response, want, contains)
     _repository_bash_alias_routes(results, root, products, feature)
     _repository_bash_segment_routes(results, root, feature)
-    _repository_bash_claim(
-        inflight_registry, root, "product-a", feature, "BackendTwo", "EngLeadOne")
+    _repository_bash_claim(root, "product-a", feature, "BackendTwo", "EngLeadOne")
     sibling = _repository_bash_fire(
         root, products["product-a"], feature, "BackendTwo", "EngLeadOne")
     _repository_bash_record(
@@ -1747,7 +1597,7 @@ def _repository_bash_segment_routes(results, root, feature):
                           ("{product-b,none}", 2), ("@(product-b)", 2), ("(product-b)", 2)):
         _repository_bash_record(
             results, f"removing control-plane segment {operand} exits {want}",
-            _bug1304_bash_fire(root, f"rm -rf node_modules/cp/{operand}", "harness-backend-dev",
+            fire(root, f"rm -rf node_modules/cp/{operand}", "harness-backend-dev",
                                agent_id="BackendOne", parent_agent_id="EngLeadOne",
                                feature=feature),
             want, None if want == 0 else "mismatched")
@@ -1761,13 +1611,13 @@ def _repository_bash_segment_routes(results, root, feature):
                                 ("docs", "product-b", 0)):
         _repository_bash_record(
             results, f"writing {head}/{segment} through a carve-out exits {want}",
-            _bug1304_bash_fire(root, f"rm -rf node_modules/top/{head}/{segment}",
+            fire(root, f"rm -rf node_modules/top/{head}/{segment}",
                                "harness-backend-dev", agent_id="BackendOne",
                                parent_agent_id="EngLeadOne", feature=feature),
             want, None if want == 0 else "mismatched")
 
 
-def _repository_bash_missing_and_released(results, inflight_registry, feature):
+def _repository_bash_missing_and_released(results, feature):
     missing_root, missing_products = _repository_bash_fixture()
     missing = _repository_bash_fire(
         missing_root, missing_products["product-a"], feature, "MissingChild", "EngLeadOne")
@@ -1775,8 +1625,7 @@ def _repository_bash_missing_and_released(results, inflight_registry, feature):
         results, "Bash product write without claim fails closed", missing, 2, "missing")
 
     released_root, released_products = _repository_bash_fixture()
-    receipt = _repository_bash_claim(
-        inflight_registry, released_root, "product-a", feature,
+    receipt = _repository_bash_claim(released_root, "product-a", feature,
         "ReleasedChild", "EngLeadOne")
     inflight_registry.release(released_root, claim_id=receipt["claim_id"], feature=feature)
     released = _repository_bash_fire(
@@ -1786,32 +1635,26 @@ def _repository_bash_missing_and_released(results, inflight_registry, feature):
         results, "released Bash repository claim fails closed", released, 2, "released")
 
 
-def _repository_bash_stale_and_ambiguous(results, inflight_registry, feature):
+def _repository_bash_stale_and_ambiguous(results, feature):
     stale_root, stale_products = _repository_bash_fixture()
-    _repository_bash_claim(
-        inflight_registry, stale_root, "product-a", feature, "StaleChild", "EngLeadOne")
-    stale_path = os.path.join(stale_root, inflight_registry.REGISTRY_REL)
-    stale_data = json.load(open(stale_path, encoding="utf-8"))
-    stale_data["claims"][0]["supervisor_pid"] = 99999999
-    stale_data["claims"][0].pop("supervisor_started_at", None)
-    with open(stale_path, "w", encoding="utf-8") as handle:
-        json.dump(stale_data, handle)
+    _repository_bash_claim(stale_root, "product-a", feature, "StaleChild", "EngLeadOne")
+    def stale_supervisor(data):
+        data["claims"][0]["supervisor_pid"] = 99999999
+        data["claims"][0].pop("supervisor_started_at", None)
+    _edit_claims(stale_root, stale_supervisor)
     stale = _repository_bash_fire(
         stale_root, stale_products["product-a"], feature, "StaleChild", "EngLeadOne")
     _repository_bash_record(
         results, "stale Bash repository claim fails closed", stale, 2, "stale")
 
     ambiguous_root, ambiguous_products = _repository_bash_fixture()
-    _repository_bash_claim(
-        inflight_registry, ambiguous_root, "product-a", feature,
+    _repository_bash_claim(ambiguous_root, "product-a", feature,
         "AmbiguousChild", "EngLeadOne")
-    ambiguous_path = os.path.join(ambiguous_root, inflight_registry.REGISTRY_REL)
-    ambiguous_data = json.load(open(ambiguous_path, encoding="utf-8"))
-    duplicate = dict(ambiguous_data["claims"][0])
-    duplicate["claim_id"] += "-duplicate"
-    ambiguous_data["claims"].append(duplicate)
-    with open(ambiguous_path, "w", encoding="utf-8") as handle:
-        json.dump(ambiguous_data, handle)
+    def duplicate_claim(data):
+        duplicate = dict(data["claims"][0])
+        duplicate["claim_id"] += "-duplicate"
+        data["claims"].append(duplicate)
+    _edit_claims(ambiguous_root, duplicate_claim)
     ambiguous = _repository_bash_fire(
         ambiguous_root, ambiguous_products["product-a"], feature,
         "AmbiguousChild", "EngLeadOne")
@@ -1820,20 +1663,17 @@ def _repository_bash_stale_and_ambiguous(results, inflight_registry, feature):
 
 
 def _repository_bash_collision_and_unreadable(
-    results, inflight_registry, feature, first_claim_id,
+    results, feature, first_claim_id,
 ):
     collision_root, collision_products = _repository_bash_fixture()
-    _repository_bash_claim(
-        inflight_registry, collision_root, "product-a", feature,
+    _repository_bash_claim(collision_root, "product-a", feature,
         "CollidingChild", "EngLeadOne")
-    collision_path = os.path.join(collision_root, inflight_registry.REGISTRY_REL)
-    collision_data = json.load(open(collision_path, encoding="utf-8"))
-    foreign = dict(collision_data["claims"][0])
-    foreign["claim_id"] += "-foreign"
-    foreign["feature"] = "FEAT-496-other-dispatch"
-    collision_data["claims"].append(foreign)
-    with open(collision_path, "w", encoding="utf-8") as handle:
-        json.dump(collision_data, handle)
+    def foreign_claim(data):
+        foreign = dict(data["claims"][0])
+        foreign["claim_id"] += "-foreign"
+        foreign["feature"] = "FEAT-496-other-dispatch"
+        data["claims"].append(foreign)
+    _edit_claims(collision_root, foreign_claim)
     collision = _repository_bash_fire(
         collision_root, collision_products["product-a"], feature,
         "CollidingChild", "EngLeadOne")
@@ -1860,44 +1700,35 @@ def _repository_bash_collision_and_unreadable(
     ))
 
 
-def _repository_binding_bash_routes(results, inflight_registry):
+def _repository_binding_bash_routes(results):
     """FEAT-495: product Bash writes require exact runtime repository lineage."""
     feature = "FEAT-93-product-bash"
-    first = _repository_bash_happy_routes(results, inflight_registry, feature)
-    _repository_bash_missing_and_released(results, inflight_registry, feature)
-    _repository_bash_stale_and_ambiguous(results, inflight_registry, feature)
+    first = _repository_bash_happy_routes(results, feature)
+    _repository_bash_missing_and_released(results, feature)
+    _repository_bash_stale_and_ambiguous(results, feature)
     _repository_bash_collision_and_unreadable(
-        results, inflight_registry, feature, first["claim_id"])
+        results, feature, first["claim_id"])
 
 
 def run_bug1304_claim_set():
     """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
-    import inflight_registry
-    import time
-
     results = []
-    context = _bug1304_bash_context("harness-backend-dev", inflight_registry)
+    context = _bug1304_bash_context("harness-backend-dev")
     _bug1304_bash_main_routes(results, context)
     _bug1304_bash_unbound_routes(results, context)
-    _bug1304_bash_owner_claim(results, context, inflight_registry)
-    _bug1304_bash_multi_and_malformed(results, context, inflight_registry)
-    _runtime_lineage_bash_routes(results, context, inflight_registry)
-    _bug1304_bash_ambiguous(results, context, inflight_registry)
-    _bug1304_bash_short_claim(results, context, inflight_registry)
+    _bug1304_bash_owner_claim(results, context)
+    _bug1304_bash_multi_and_malformed(results, context)
+    _runtime_lineage_bash_routes(results, context)
+    _bug1304_bash_ambiguous(results, context)
+    _bug1304_bash_short_claim(results, context)
     _bug1304_bash_expertise(results, context)
     _bug1304_bash_existing_guards(results, context)
-    _bug1304_bash_aged_claim(results, context, inflight_registry, time)
-    _bug1304_bash_unreadable(results, context, inflight_registry)
-    _bug1304_bash_partial_registry(results, context, inflight_registry)
+    _bug1304_bash_aged_claim(results, context)
+    _bug1304_bash_unreadable(results, context)
+    _bug1304_bash_partial_registry(results, context)
 
-    failures = 0
-    _repository_binding_bash_routes(results, inflight_registry)
-    for name, ok, detail in results:
-        print(("PASS " if ok else "FAIL "), "[bug1304]", name)
-        if not ok:
-            failures += 1
-            print("      " + detail)
-    return failures
+    _repository_binding_bash_routes(results)
+    _record(results, "[bug1304] ")
 
 
 def _cases_root():
@@ -1912,39 +1743,30 @@ def _cases_root():
     os.makedirs(os.path.join(root, ".harness"))
     shutil.copy(os.path.join(ROOT, ".harness", "team-config.yaml"),
                 os.path.join(root, ".harness", "team-config.yaml"))
-    subprocess.run(["git", "init", "-q", root], check=True)
-    return root
+    return init_repo(root, None)
 
 
 def main():
-    fails = 0
     cases_root = _cases_root()
     for name, cmd, want, agent in CASES:
-        payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
-        r = subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
-                           text=True, env=_env(cases_root), cwd=cases_root)
-        if r.returncode != want:
-            fails += 1
-            verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
-            print(f"FAIL  {name}\n        {verb}, got {r.returncode}")
-            for l in (r.stdout + r.stderr).strip().splitlines()[:2]:
-                print(f"      | {l}")
-        else:
-            print(f"ok    {name}")
-    print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
-    fails += run_t14()
-    fails += run_worktree()
-    fails += run_worktree_deep()
-    fails += run_head_move()
-    fails += run_feat50_checkout_binding()
-    fails += run_feat61_feature_checkout_adapter()
-    fails += run_feat65_guard_cases()
-    fails += run_feat2274_unavailable_cases()
-    fails += run_bug895_wrong_checkout()
-    fails += run_bug1106_bash_route()
-    fails += run_bug1304_claim_set()
-    fails += run_feat2225_expertise_cli()
-    return fails
+        r = fire(cases_root, cmd, agent, cwd=cases_root)
+        verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
+        head = (r.stdout + r.stderr).strip().splitlines()[:2]
+        check(name, r.returncode == want,
+              "\n".join([f"{verb}, got {r.returncode}"] + [f"| {l}" for l in head]))
+    run_t14()
+    run_worktree()
+    run_worktree_deep()
+    run_head_move()
+    run_feat50_checkout_binding()
+    run_feat61_feature_checkout_adapter()
+    run_feat65_guard_cases()
+    run_feat2274_unavailable_cases(cases_root)
+    run_bug895_wrong_checkout()
+    run_bug1106_bash_route()
+    run_bug1304_claim_set()
+    run_feat2225_expertise_cli()
+    return C.report()
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
@@ -1975,15 +1797,7 @@ def run_bug895_wrong_checkout():
         ("bug895 Bash route NEGATIVE CONTROL: same session, own checkout, still allowed",
          ok_own, f"{r_own.returncode}: {r_own.stderr}"),
     ]
-    fails = 0
-    for name, ok_case, detail in results:
-        if ok_case:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} bug895 Bash-route cases passed.")
-    return fails
+    _record(results)
 
 
 
@@ -2082,17 +1896,7 @@ def run_bug1106_bash_route():
         "bug1106 Bash route NEGATIVE CONTROL: an unrelated file inside the same "
         "worktree run directory is still ALLOWED",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
-
-
-    fails = 0
-    for name, ok, detail in results:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - fails}/{len(results)} bug1106 Bash-route cases passed.")
-    return fails
+    _record(results)
 
 
 # ======== FEAT-2225 T-04: governed Bash may not run the Expertise mutators ========
@@ -2133,16 +1937,8 @@ F2225_READS = (
 )
 
 
-def _f2225_fire(root, cmd, agent):
-    payload = {"tool_name": "Bash", "tool_input": {"command": cmd}}
-    if agent:
-        payload["agent_type"] = agent
-    return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
-
-
 def _f2225_expect(results, root, agent, name, cmd, want):
-    r = _f2225_fire(root, cmd, agent)
+    r = fire(root, cmd, agent)
     advised = want == 0 or "expertise_apply" in r.stderr
     results.append((f"feat2225 {agent or 'main session'}: {name}",
                     r.returncode == want and advised,
@@ -2159,7 +1955,7 @@ def _f2225_cli_matrix(results, root):
         _f2225_expect(results, root, None, f"allowed {name}", cmd, 0)
 
 
-def _f2225_repository_tier(results, inflight_registry):
+def _f2225_repository_tier(results):
     """A claimed agent's repository-tier Expertise write gets the expertise_apply advice."""
     manifest = FIXTURE_MANIFEST.replace(
         '          - { path: ".", read: true }',
@@ -2172,7 +1968,7 @@ def _f2225_repository_tier(results, inflight_registry):
     agent = "harness-backend-dev"
     inflight_registry.claim(first, agent, "harness-eng-lead", first, feature="FEAT-2225-A-x")
     target = os.path.join(root, ".harness", "harness", "expertise", f"{agent}.md")
-    r = _f2225_fire(root, f"echo x > {target}", agent)
+    r = fire(root, f"echo x > {target}", agent)
     advice = ("expertise_apply", "tier: repository", "repository: harness")
     results.append(("feat2225 repository-tier Expertise redirect names expertise_apply "
                     "with the repository tier",
@@ -2183,16 +1979,11 @@ def _f2225_repository_tier(results, inflight_registry):
 
 def run_feat2225_expertise_cli():
     """FEAT-2225 T-04: the Bash route refuses governed Expertise mutation."""
-    import inflight_registry
     results = []
     _f2225_cli_matrix(results, fixture(FIXTURE_MANIFEST))
-    _f2225_repository_tier(results, inflight_registry)
-    fails = [r for r in results if not r[1]]
-    for name, ok, detail in results:
-        print(f"ok    {name}" if ok else f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(results) - len(fails)}/{len(results)} FEAT-2225 expertise CLI cases passed.")
-    return len(fails)
+    _f2225_repository_tier(results)
+    _record(results)
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())

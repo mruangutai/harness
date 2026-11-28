@@ -7,7 +7,7 @@ path so harness_merge.require_destination accepts it. Resolves the binary the sa
 test-plan-merge.py and test-expertise-merge.py resolve their own, so a mutated copy of the
 source under test can be swapped in without editing this file:
 
-    CLI = os.environ.get("OBSERVATIONS_MERGE_BIN") or os.path.join(HERE, "observations-merge.py")
+    CLI = os.environ.get("OBSERVATIONS_MERGE_BIN") or str(BIN / "observations-merge.py")
 
 Case 1 is deliberately never routed through the CLI: it reproduces #606's naive whole-file
 write directly, so it stays red proof of the loss regardless of what this tool does.
@@ -16,27 +16,19 @@ D-05: an observations log has no entry ids to key on. There is no conflict exit 
 no cap (no exit 8) for this file class — case 5 exists precisely to catch a copy of
 expertise-merge.py's conflict logic being pasted in here.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import os
-import subprocess
-import sys
-import tempfile
+from integration_support import BIN
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-CLI = os.environ.get("OBSERVATIONS_MERGE_BIN") or os.path.join(HERE, "observations-merge.py")
+from check_support import Checks  # noqa: E402
 
-RESULTS = []
+CLI = os.environ.get("OBSERVATIONS_MERGE_BIN") or str(BIN / "observations-merge.py")
+TRIALS = 20
 
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 # ---------------------------------------------------------------------------
@@ -66,12 +58,32 @@ def write(path, text):
     return text
 
 
+def read(path):
+    """The log's text, or '' when the file does not exist."""
+    if not os.path.exists(path):
+        return ""
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def apply_argv(file_path, entries_path):
+    return [sys.executable, CLI, "apply", "--file", file_path, "--entries", entries_path]
+
+
 def run_apply(file_path, entries_path):
-    return subprocess.run(
-        [sys.executable, CLI, "apply", "--file", file_path, "--entries", entries_path],
-        capture_output=True,
-        text=True,
-    )
+    return subprocess.run(apply_argv(file_path, entries_path), capture_output=True, text=True)
+
+
+def apply_case(base, entries, exit_name, prefix="observations-merge-test-"):
+    """Write `base` as the fixture log and `entries` beside it, run apply, check it exits 0
+    under `exit_name`, and return the log's text afterwards."""
+    root, path = fixture_root(prefix=prefix)
+    write(path, base)
+    entries_path = os.path.join(root, "entries.md")
+    write(entries_path, entries)
+    r = run_apply(path, entries_path)
+    check(exit_name, r.returncode == 0, r.stdout + r.stderr)
+    return read(path)
 
 
 # ---------------------------------------------------------------------------
@@ -86,23 +98,14 @@ def case_naive_last_writer_wins():
     _root, path = fixture_root()
     write(path, TITLE + "\n" + BULLET_A + BULLET_B)
     write(path, TITLE + "\n" + BULLET_A + BULLET_C)
-    content = open(path, encoding="utf-8").read()
+    content = read(path)
     check("case1: naive whole-file write loses bullet B", BULLET_B not in content, content)
 
 
 def case_green_union():
     """Case 2 — GREEN: the same two appends through the tool leave A, B and C all present, one
     assertion per bullet, with A first and base order of A and B unchanged."""
-    _root, path = fixture_root()
-    write(path, TITLE + "\n" + BULLET_A + BULLET_B)
-
-    entries = os.path.join(_root, "entries.md")
-    write(entries, BULLET_A + BULLET_C)
-
-    r = run_apply(path, entries)
-    check("case2: apply exits 0", r.returncode == 0, r.stdout + r.stderr)
-
-    content = open(path, encoding="utf-8").read()
+    content = apply_case(TITLE + "\n" + BULLET_A + BULLET_B, BULLET_A + BULLET_C, "case2: apply exits 0")
     check("case2: bullet A present", BULLET_A in content, content)
     check("case2: bullet B present", BULLET_B in content, content)
     check("case2: bullet C present", BULLET_C in content, content)
@@ -118,18 +121,8 @@ def case_green_union():
 def case_dedup():
     """Case 3 — DEDUP: applying an entries file whose only record is byte identical to a base
     record leaves the file with exactly one copy of it."""
-    _root, path = fixture_root()
-    write(path, TITLE + "\n" + BULLET_A + BULLET_B)
-
-    entries = os.path.join(_root, "entries.md")
-    write(entries, BULLET_A)
-
-    r = run_apply(path, entries)
-    check("case3: apply exits 0", r.returncode == 0, r.stdout + r.stderr)
-
-    content = open(path, encoding="utf-8").read()
-    first_line = BULLET_A.splitlines()[0]
-    occurrences = content.count(first_line)
+    content = apply_case(TITLE + "\n" + BULLET_A + BULLET_B, BULLET_A, "case3: apply exits 0")
+    occurrences = content.count(BULLET_A.rstrip("\n"))
     check("case3: exactly one copy of the byte-identical record", occurrences == 1, content)
 
 
@@ -138,17 +131,9 @@ def case_dedup_normalised():
     wrapping and trailing spaces is treated as the same record and not duplicated. Also proves
     the real-file blank-line case (D-05): a record differing only in the number of trailing
     blank lines it carries dedups the same way."""
-    _root, path = fixture_root()
     base_record = "- 2026-08-18: bullet with a   wrap and trailing spaces here.   \n  second line.\n"
-    write(path, TITLE + "\n" + base_record)
-
     wrapped_record = "- 2026-08-18: bullet with a\nwrap and trailing spaces here.\n  second line.\n"
-    entries = os.path.join(_root, "entries.md")
-    write(entries, wrapped_record)
-
-    r = run_apply(path, entries)
-    check("case4: apply exits 0", r.returncode == 0, r.stdout + r.stderr)
-    content = open(path, encoding="utf-8").read()
+    content = apply_case(TITLE + "\n" + base_record, wrapped_record, "case4: apply exits 0")
     first_line = "- 2026-08-18: bullet with a"
     check(
         "case4: normalised-identical record (wrapping/trailing-space) not duplicated",
@@ -157,16 +142,12 @@ def case_dedup_normalised():
     )
 
     # The real-file shape: same record text, differing only in trailing blank line count.
-    _root2, path2 = fixture_root(prefix="observations-merge-test-c4b-")
     record_no_blank = "- 2026-08-18: a record with no trailing blank line.\n"
-    write(path2, TITLE + "\n" + record_no_blank)
     record_with_blanks = "- 2026-08-18: a record with no trailing blank line.\n\n\n"
-    entries2 = os.path.join(_root2, "entries.md")
-    write(entries2, record_with_blanks)
-
-    r2 = run_apply(path2, entries2)
-    check("case4b: apply exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
-    content2 = open(path2, encoding="utf-8").read()
+    content2 = apply_case(
+        TITLE + "\n" + record_no_blank, record_with_blanks, "case4b: apply exits 0",
+        prefix="observations-merge-test-c4b-",
+    )
     check(
         "case4b: record differing only in trailing blank-line count dedups as one copy",
         content2.count("a record with no trailing blank line.") == 1,
@@ -178,15 +159,10 @@ def case_two_different_kept():
     """Case 5 — TWO DIFFERENT RECORDS ARE BOTH KEPT, no conflict, exit 0. This is the case that
     would break if expertise-merge.py's exit 7 conflict logic were copied here: D-05 defines
     no conflict exit for this file class."""
-    _root, path = fixture_root()
-    write(path, TITLE + "\n" + BULLET_A)
-
-    entries = os.path.join(_root, "entries.md")
-    write(entries, BULLET_B)
-
-    r = run_apply(path, entries)
-    check("case5: two different records both kept, exit 0 (no conflict exit exists)", r.returncode == 0, r.stdout + r.stderr)
-    content = open(path, encoding="utf-8").read()
+    content = apply_case(
+        TITLE + "\n" + BULLET_A, BULLET_B,
+        "case5: two different records both kept, exit 0 (no conflict exit exists)",
+    )
     check("case5: bullet A present", BULLET_A in content, content)
     check("case5: bullet B present", BULLET_B in content, content)
 
@@ -194,24 +170,16 @@ def case_two_different_kept():
 def case_multiline_records():
     """Case 6 — MULTI-LINE RECORDS: a base record with two indented continuation lines survives
     with those lines attached to it and in order, asserted on the exact text."""
-    _root, path = fixture_root()
     multiline = (
         "- 2026-08-18: a record whose first line is short.\n"
         "  continuation line one, indented two spaces.\n"
         "  continuation line two, indented two spaces.\n"
     )
-    write(path, TITLE + "\n" + multiline)
-
-    entries = os.path.join(_root, "entries.md")
-    write(entries, BULLET_B)
-
-    r = run_apply(path, entries)
-    check("case6: apply exits 0", r.returncode == 0, r.stdout + r.stderr)
-    content = open(path, encoding="utf-8").read()
+    content = apply_case(TITLE + "\n" + multiline, BULLET_B, "case6: apply exits 0")
     check("case6: the exact multi-line record text survives", multiline in content, content)
 
 
-def case_concurrency_real(trials=20):
+def case_concurrency_real(trials=TRIALS):
     """Case 7 — CONCURRENCY FOR REAL, 20 trials, two subprocesses appending distinct records.
     Exactly two outcomes are admitted; a third is reported by trial, never absorbed into the
     assertion."""
@@ -229,18 +197,16 @@ def case_concurrency_real(trials=20):
         write(entries_y, record_y)
 
         px = subprocess.Popen(
-            [sys.executable, CLI, "apply", "--file", path, "--entries", entries_x],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            apply_argv(path, entries_x), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         py = subprocess.Popen(
-            [sys.executable, CLI, "apply", "--file", path, "--entries", entries_y],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            apply_argv(path, entries_y), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         out_x, err_x = px.communicate(timeout=30)
         out_y, err_y = py.communicate(timeout=30)
         rc_x, rc_y = px.returncode, py.returncode
 
-        content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+        content = read(path)
         ok = False
         outcome = "other"
 
@@ -295,11 +261,11 @@ def case_create_from_entries():
     r = run_apply(path, entries)
     check("case8: create exits 0", r.returncode == 0, r.stdout + r.stderr)
     check("case8: the file now exists", os.path.exists(path), path)
-    content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    content = read(path)
     check("case8: bullet A present", BULLET_A in content, content)
     check(
         "case8: a generated title line beginning with a hash is present",
-        content.splitlines()[0].startswith("#") if content.splitlines() else False,
+        content.startswith("#"),
         content,
     )
 
@@ -316,7 +282,7 @@ def case_create_without_observations_dir():
 
     r = run_apply(path, entries)
     check("case8b: first apply on a fresh feature exits 0", r.returncode == 0, r.stdout + r.stderr)
-    content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    content = read(path)
     check("case8b: the log is created with the entry", BULLET_A in content, content)
 
 
@@ -342,7 +308,7 @@ def case_destination_refusal():
     check("case9: a source path is REFUSED with exit 9", r.returncode == 9, r.stdout + r.stderr)
     check(
         "case9: ...and the refused file is untouched",
-        open(src, encoding="utf-8").read() == "real code\n",
+        read(src) == "real code\n",
         "the tool wrote to a path it said it refused",
     )
 
@@ -380,7 +346,7 @@ def case_destination_refusal():
     )
     check(
         "case9: ...and the file behind the symlink is untouched",
-        open(outside_log, encoding="utf-8").read() == outside_original,
+        read(outside_log) == outside_original,
         "the tool wrote through the symlink it said it refused",
     )
 
@@ -397,7 +363,7 @@ def case_destination_refusal():
     )
     check(
         "case9: ...and the Expertise file is untouched",
-        open(expertise_path, encoding="utf-8").read() == expertise_original,
+        read(expertise_path) == expertise_original,
         "the tool wrote to an Expertise file it said it refused",
     )
 
@@ -423,18 +389,7 @@ def main():
     case_create_without_observations_dir()
     case_destination_refusal()
 
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-
-    summary = "FAIL test-observations-merge.py" if fails else "PASS test-observations-merge.py"
-    print(summary)
-    return fails
-
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    main()
+    sys.exit(C.report())

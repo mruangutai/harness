@@ -1,41 +1,50 @@
-#!/usr/bin/env python3
 """test-worktree-terminal.py — unit coverage for worktree_terminal.py's classify() and
 classify_all() (FEAT-34 T-02).
-
-TDD PROVENANCE NOTE (Iron Law): T-01 shipped a minimal RED/GREEN baseline at this exact path
-(cases (a),(b),(d),(e),(f),(h)/dirty, plus a real-implementation-only version of (c)) because the
-Iron Law required a failing test before its implementation, and the plan splits impl (T-01) and
-tests (T-02) in the opposite order. T-02 c1 extended that baseline into the FULL classify() case
-list from the plan: explicit red-proof demonstrations for (c) and (e)/(f) against deliberately
-wrong stub implementations, and case (g), the real second-repository fixture. c1's receipt closed
-believing REQ-04's cross-repository enumeration would be proven by a caller iterating repos; D-10
-overturned that (`plan.yaml` D-10) and gave `classify_all(root)` its own entry point in
-worktree_terminal.py. T-02 c2 (this revision) adds the CLASSIFY_ALL cases (i)-(l) that grade D-10's
-three-way failure posture and corrects this docstring, which is the only change c2 makes to
-anything already here — c1's cases (a)-(h) and their red proofs are unmodified.
 
 Directory trees are not enough — every classification depends on reading a LANDED blob, so every
 case below builds a REAL git repository with real commits and a real `git worktree add`, the way
 test-check-state.py's case_u already does for INV-25.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_tests)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import BIN
 import json
 import os
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
-from git_support import add_worktree, commit_feature, commit_files, init_repo, plan_text
+from check_support import Checks  # noqa: E402
+from git_support import (add_worktree, commit_feature, commit_files, init_repo,  # noqa: E402
+                         plan_text, quiet_git)
 
 SCRIPT = os.path.abspath(__file__)
-BIN_DIR = _anchor_bin
-sys.path.insert(0, BIN_DIR)
+BIN_DIR = str(BIN)
+
+
+def _rec(recs, dest):
+    """The record for worktree `dest`, or None. REALPATH FALLBACK: on macOS the tempdir is
+    /var/... while git reports /private/var/..., so a bare lookup misses for a reason unrelated
+    to the test."""
+    by_path = {r["path"]: r for r in recs}
+    return by_path.get(os.path.realpath(dest)) or by_path.get(dest)
+
+
+def _run_w(probe_root, body, cwd=None):
+    """Run `body` in a fresh interpreter that has imported worktree_terminal as `w`, with
+    HARNESS_PROJECT_DIR=probe_root (fleet resolution reads it at import time). Returns
+    (parsed stdout JSON or None, detail); None on a nonzero exit or unparseable output."""
+    script = f"import json, sys\nsys.path.insert(0, {BIN_DIR!r})\nimport worktree_terminal as w\n" + body
+    env = dict(os.environ)
+    env["HARNESS_PROJECT_DIR"] = probe_root
+    proc = subprocess.run([sys.executable, "-c", script], cwd=cwd or probe_root,
+                          capture_output=True, text=True, env=env, timeout=30)
+    detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
+    if proc.returncode != 0:
+        return None, detail
+    try:
+        return json.loads(proc.stdout), detail
+    except ValueError as exc:
+        return None, detail + f" json-error={exc!r}"
 
 
 def _repo(path, branch="main"):
@@ -115,7 +124,7 @@ def case_classify():
         by_path = {r["path"]: r for r in recs}
 
         def get(dest):
-            return by_path.get(os.path.realpath(dest)) or by_path.get(dest)
+            return _rec(recs, dest)
 
         r = get(done_dest)
         results.append(("(a) landed Done, exact name -> terminal",
@@ -163,9 +172,7 @@ def case_classify():
         # (h) dirty: make the Done worktree dirty and reclassify.
         with open(os.path.join(done_dest, "scratch.txt"), "w") as f:
             f.write("dirty\n")
-        recs2 = w.classify(repo)
-        r2 = {rec["path"]: rec for rec in recs2}.get(os.path.realpath(done_dest)) \
-            or {rec["path"]: rec for rec in recs2}.get(done_dest)
+        r2 = _rec(w.classify(repo), done_dest)
         results.append(("(h) uncommitted change in a Done worktree -> terminal with dirty True",
                          bool(r2) and r2["dirty"] is True and r2["klass"] == "terminal",
                          f"record: {r2}"))
@@ -192,45 +199,43 @@ def case_classify():
     return results
 
 
+def _build_deadlock_pair(tmp):
+    """The (c) deadlock pair: FEAT-07 landed Review whose WORKING TREE plan.yaml says done, and
+    FEAT-08 landed Done whose working tree says review — both overwritten without committing
+    (FEAT-41 T-07: the station moved, so the file this case must lie in moved with it).
+    Returns (repo, dest_a, dest_b). Nothing writes to it after this; both producers only read."""
+    repo = _repo(os.path.join(tmp, "R"))
+    dests = []
+    for fid, landed, lie in (("FEAT-07-deadlock-a", "review", "done"),
+                             ("FEAT-08-deadlock-b", "done", "review")):
+        _commit_feature(repo, fid, {}, plan_station=landed)
+        dest = _add_wt(repo, fid)
+        with open(os.path.join(dest, ".harness", "harness", "features", fid, "plan.yaml"),
+                  "w") as f:
+            f.write(f"feature: {fid}\nstatus: {lie}\ntasks: []\n")
+        dests.append(dest)
+    return repo, dests[0], dests[1]
+
+
 def case_deadlock():
     """(c) DEADLOCK, against the REAL implementation: the working tree's own copy of
     feature.json must never be consulted. A worktree whose OWN working copy says Done but
     whose LANDED copy says Review must not classify terminal; the inverse (landed Done,
-    working copy Review) must classify terminal."""
+    working copy Review) must classify terminal. The RED PROOF rows run on the same read-only
+    fixture (see _deadlock_red_proof_rows)."""
     import worktree_terminal as w
 
-    results = []
     with tempfile.TemporaryDirectory() as tmp:
-        repo = _repo(os.path.join(tmp, "R"))
-
-        _commit_feature(repo, "FEAT-07-deadlock-a", {}, plan_station="review")
-        dest_a = _add_wt(repo, "FEAT-07-deadlock-a")
-        # overwrite the WORKING TREE plan.yaml to say done, without committing (FEAT-41 T-07:
-        # the station moved, so the file this case must lie in moved with it).
-        wt_feature = os.path.join(dest_a, ".harness", "harness", "features",
-                                   "FEAT-07-deadlock-a", "plan.yaml")
-        with open(wt_feature, "w") as f:
-            f.write("feature: FEAT-07-deadlock-a\nstatus: done\ntasks: []\n")
-
-        _commit_feature(repo, "FEAT-08-deadlock-b", {}, plan_station="done")
-        dest_b = _add_wt(repo, "FEAT-08-deadlock-b")
-        wt_feature_b = os.path.join(dest_b, ".harness", "harness", "features",
-                                     "FEAT-08-deadlock-b", "plan.yaml")
-        with open(wt_feature_b, "w") as f:
-            f.write("feature: FEAT-08-deadlock-b\nstatus: review\ntasks: []\n")
-
+        repo, dest_a, dest_b = _build_deadlock_pair(tmp)
         recs = w.classify(repo)
-        by_path = {r["path"]: r for r in recs}
-
-        r_a = by_path.get(os.path.realpath(dest_a)) or by_path.get(dest_a)
-        results.append(("(c) landed Review, working copy Done -> NOT terminal (omitted)",
-                         r_a is None, f"record: {r_a}"))
-
-        r_b = by_path.get(os.path.realpath(dest_b)) or by_path.get(dest_b)
-        results.append(("(c) inverse: landed Done, working copy Review -> terminal regardless",
-                         bool(r_b) and r_b["klass"] == "terminal", f"record: {r_b}"))
-
-    return results
+        r_a, r_b = _rec(recs, dest_a), _rec(recs, dest_b)
+        results = [
+            ("(c) landed Review, working copy Done -> NOT terminal (omitted)",
+             r_a is None, f"record: {r_a}"),
+            ("(c) inverse: landed Done, working copy Review -> terminal regardless",
+             bool(r_b) and r_b["klass"] == "terminal", f"record: {r_b}"),
+        ]
+        return results + _deadlock_red_proof_rows(dest_a, dest_b)
 
 
 def _classify_stub_reads_working_tree(worktree_path, feature_id):
@@ -251,58 +256,37 @@ def _classify_stub_reads_working_tree(worktree_path, feature_id):
     return "terminal" if "status: done" in text else "omitted"
 
 
-def case_deadlock_red_proof():
+def _deadlock_red_proof_rows(dest_a, dest_b):
     """(c) RED PROOF: run the same deadlock pair against a stub that reads the working tree.
     It must get BOTH halves wrong — that failing state is what the real classify() is built
     to avoid, and the intent requires demonstrating it explicitly."""
-    results = []
-    with tempfile.TemporaryDirectory() as tmp:
-        repo = _repo(os.path.join(tmp, "R"))
-
-        _commit_feature(repo, "FEAT-07-deadlock-a", {}, plan_station="review")
-        dest_a = _add_wt(repo, "FEAT-07-deadlock-a")
-        wt_feature = os.path.join(dest_a, ".harness", "harness", "features",
-                                   "FEAT-07-deadlock-a", "plan.yaml")
-        with open(wt_feature, "w") as f:
-            f.write("feature: FEAT-07-deadlock-a\nstatus: done\ntasks: []\n")
-
-        _commit_feature(repo, "FEAT-08-deadlock-b", {}, plan_station="done")
-        dest_b = _add_wt(repo, "FEAT-08-deadlock-b")
-        wt_feature_b = os.path.join(dest_b, ".harness", "harness", "features",
-                                     "FEAT-08-deadlock-b", "plan.yaml")
-        with open(wt_feature_b, "w") as f:
-            f.write("feature: FEAT-08-deadlock-b\nstatus: review\ntasks: []\n")
-
-        stub_a = _classify_stub_reads_working_tree(dest_a, "FEAT-07-deadlock-a")
-        stub_b = _classify_stub_reads_working_tree(dest_b, "FEAT-08-deadlock-b")
-
-        # correct (real-implementation) answers, per case_deadlock above: dest_a -> omitted
-        # (landed Review), dest_b -> terminal (landed Done).
-        results.append(("(c) red proof, forward: working-tree-reading stub wrongly says "
-                         "terminal for a landed-Review worktree",
-                         stub_a == "terminal", f"stub_a: {stub_a} (correct: omitted)"))
-        results.append(("(c) red proof, inverse: working-tree-reading stub wrongly says "
-                         "omitted for a landed-Done worktree",
-                         stub_b == "omitted", f"stub_b: {stub_b} (correct: terminal)"))
-
-    return results
+    stub_a = _classify_stub_reads_working_tree(dest_a, "FEAT-07-deadlock-a")
+    stub_b = _classify_stub_reads_working_tree(dest_b, "FEAT-08-deadlock-b")
+    # correct (real-implementation) answers, per case_deadlock: dest_a -> omitted
+    # (landed Review), dest_b -> terminal (landed Done).
+    return [("(c) red proof, forward: working-tree-reading stub wrongly says "
+             "terminal for a landed-Review worktree",
+             stub_a == "terminal", f"stub_a: {stub_a} (correct: omitted)"),
+            ("(c) red proof, inverse: working-tree-reading stub wrongly says "
+             "omitted for a landed-Done worktree",
+             stub_b == "omitted", f"stub_b: {stub_b} (correct: terminal)")]
 
 
-def _stub_landed_names(repo, default_branch="main"):
+def _stub_landed_names(repo):
     r = subprocess.run(
-        ["git", "ls-tree", "--name-only", f"{default_branch}:.harness/harness/features"],
+        ["git", "ls-tree", "--name-only", "main:.harness/harness/features"],
         cwd=repo, capture_output=True, text=True)
     if r.returncode != 0:
         return []
     return [line for line in r.stdout.splitlines() if line]
 
 
-def _stub_landed_station(repo, feature_id, default_branch="main"):
+def _stub_landed_station(repo, feature_id):
     """The landed station, for the deliberately-wrong stubs below. Reads plan.yaml as of
     FEAT-41 T-07, and keeps returning None for every failure so the stubs can go on
     conflating them — which is the defect they exist to demonstrate."""
     rel = os.path.join(".harness", "harness", "features", feature_id, "plan.yaml")
-    r = subprocess.run(["git", "show", f"{default_branch}:{rel}"], cwd=repo,
+    r = subprocess.run(["git", "show", f"main:{rel}"], cwd=repo,
                         capture_output=True, text=True)
     if r.returncode != 0:
         return None
@@ -378,26 +362,14 @@ def case_second_repo():
     with tempfile.TemporaryDirectory() as tmp:
         # The harness_boundary.resolve_root() MARKER: HARNESS_PROJECT_DIR is honored only
         # when .harness/team-config.yaml underneath it is readable.
+        # The probe is deliberately NOT a git repository, so classify(repo2) is graded alone.
         probe_root = os.path.join(tmp, "probe")
-        os.makedirs(os.path.join(probe_root, ".harness", "harness", "docs"), exist_ok=True)
-        with open(os.path.join(probe_root, ".harness", "harness", "docs", "SPEC.md"), "w") as f:
-            f.write("probe\n")
-        with open(os.path.join(probe_root, ".harness", "team-config.yaml"), "w") as f:
-            f.write("teams: []\n")
-
-        workspace_root = os.path.join(tmp, "workspace")
-        os.makedirs(workspace_root, exist_ok=True)
-
-        fleet_dir = os.path.join(probe_root, ".harness", "factory")
-        os.makedirs(fleet_dir, exist_ok=True)
-        with open(os.path.join(fleet_dir, "fleet.yaml"), "w") as f:
-            f.write(
-                "schema: factory-fleet/1\n"
-                f"workspace_root: {workspace_root}\n"
-                "repos:\n"
-                "  - name: acme/second-repo\n"
-                "    default_branch: main\n"
-            )
+        for rel, text in _PROBE_MARKERS.items():
+            os.makedirs(os.path.dirname(os.path.join(probe_root, rel)), exist_ok=True)
+            with open(os.path.join(probe_root, rel), "w") as f:
+                f.write(text)
+        workspace_root = _workspace(tmp)
+        _write_fleet(probe_root, workspace_root, SECOND_REPO_YAML)
 
         # workspace_path(fleet, "acme/second-repo") == workspace_root/second-repo — the real
         # second repository must actually live there for resolve_repo's fleet branch to line
@@ -407,38 +379,30 @@ def case_second_repo():
                          repo_segment="second-repo")
         dest2 = _add_wt(repo2, "FEAT-09-second-repo-done", repo_segment="second-repo")
 
-        script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
-            f"recs = w.classify({repo2!r})\n"
-            "print(json.dumps(recs))\n"
-        )
-        env = dict(os.environ)
-        env["HARNESS_PROJECT_DIR"] = probe_root
-        proc = subprocess.run([sys.executable, "-c", script], cwd=repo2,
-                               capture_output=True, text=True, env=env, timeout=30)
-
-        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
-        ok = False
-        record = None
-        if proc.returncode == 0:
-            try:
-                recs = json.loads(proc.stdout)
-                by_path = {r["path"]: r for r in recs}
-                record = by_path.get(os.path.realpath(dest2)) or by_path.get(dest2)
-                ok = (bool(record) and record["klass"] == "terminal"
-                      and record["feature_id"] == "FEAT-09-second-repo-done"
-                      and record["repo"] == "second-repo")
-            except Exception as exc:
-                detail += f" json-error={exc!r}"
-                ok = False
-
+        recs, detail = _run_w(probe_root, f"print(json.dumps(w.classify({repo2!r})))\n",
+                              cwd=repo2)
+        record = _rec(recs, dest2) if recs is not None else None
+        ok = (bool(record) and record["klass"] == "terminal"
+              and record["feature_id"] == "FEAT-09-second-repo-done"
+              and record["repo"] == "second-repo")
         results.append(("(g) real second git repo, fleet-resolved default branch, real "
                          "worktree add, landed Done -> terminal",
                          ok, detail + f" record={record}"))
 
     return results
+
+
+_PROBE_MARKERS = {".harness/harness/docs/SPEC.md": "probe\n",
+                  # harness_boundary.resolve_root()'s MARKER: HARNESS_PROJECT_DIR is honored
+                  # only when .harness/team-config.yaml underneath it is readable.
+                  ".harness/team-config.yaml": "teams: []\n"}
+SECOND_REPO_YAML = "  - name: acme/second-repo\n    default_branch: main\n"
+
+
+def _workspace(tmp):
+    workspace_root = os.path.join(tmp, "workspace")
+    os.makedirs(workspace_root, exist_ok=True)
+    return workspace_root
 
 
 # --- CLASSIFY_ALL fixture helpers, D-10. Cases (i)-(l) reuse case_second_repo's fixture shape
@@ -455,16 +419,7 @@ def _build_probe_repo(tmp):
     vacuously and grade nothing (dispatch note 2)."""
     probe_root = os.path.join(tmp, "probe")
     repo = _repo(probe_root, branch="main")
-    docs_dir = os.path.join(probe_root, ".harness", "harness", "docs")
-    os.makedirs(docs_dir, exist_ok=True)
-    with open(os.path.join(docs_dir, "SPEC.md"), "w") as f:
-        f.write("probe\n")
-    # harness_boundary.resolve_root's MARKER — see the module docstring at :351-352.
-    with open(os.path.join(probe_root, ".harness", "team-config.yaml"), "w") as f:
-        f.write("teams: []\n")
-    subprocess.run(["git", "add", ".harness/harness/docs/SPEC.md", ".harness/team-config.yaml"],
-                    cwd=probe_root, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", "spec"], cwd=probe_root, capture_output=True)
+    commit_files(probe_root, _PROBE_MARKERS, "spec")
     _commit_feature(repo, "FEAT-10-probe-done", {}, plan_station="done", repo_segment="harness")
     dest_probe = _add_wt(repo, "FEAT-10-probe-done", repo_segment="harness")
     return probe_root, dest_probe
@@ -485,21 +440,12 @@ def _build_second_repo(workspace_root, control_root):
 def _write_fleet(probe_root, workspace_root, repos_yaml):
     fleet_dir = os.path.join(probe_root, ".harness", "factory")
     os.makedirs(fleet_dir, exist_ok=True)
-    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    with open(fleet_path, "w") as f:
+    with open(os.path.join(fleet_dir, "fleet.yaml"), "w") as f:
         f.write(
             "schema: factory-fleet/1\n"
             f"workspace_root: {workspace_root}\n"
             "repos:\n" + repos_yaml
         )
-    return fleet_path
-
-
-def _run_classify_all_subprocess(probe_root, script):
-    env = dict(os.environ)
-    env["HARNESS_PROJECT_DIR"] = probe_root
-    return subprocess.run([sys.executable, "-c", script], cwd=probe_root,
-                           capture_output=True, text=True, env=env, timeout=30)
 
 
 def case_classify_all_two_repos():
@@ -511,45 +457,20 @@ def case_classify_all_two_repos():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         probe_root, dest_probe = _build_probe_repo(tmp)
-        workspace_root = os.path.join(tmp, "workspace")
-        os.makedirs(workspace_root, exist_ok=True)
+        workspace_root = _workspace(tmp)
         repo2, dest2 = _build_second_repo(workspace_root, probe_root)
-        _write_fleet(probe_root, workspace_root,
-                     "  - name: acme/second-repo\n    default_branch: main\n")
+        _write_fleet(probe_root, workspace_root, SECOND_REPO_YAML)
 
-        script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
-            f"recs_all = w.classify_all({probe_root!r})\n"
-            f"recs_classify_only = w.classify({probe_root!r})\n"
-            "print(json.dumps({'all': recs_all, 'classify_only': recs_classify_only}))\n"
-        )
-        proc = _run_classify_all_subprocess(probe_root, script)
-        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
-
-        ok_probe = ok_second = red_proof = False
-        record_probe = record_second = None
-        if proc.returncode == 0:
-            try:
-                data = json.loads(proc.stdout)
-                by_path_all = {r["path"]: r for r in data["all"]}
-                by_path_classify_only = {r["path"]: r for r in data["classify_only"]}
-
-                record_probe = by_path_all.get(os.path.realpath(dest_probe)) \
-                    or by_path_all.get(dest_probe)
-                ok_probe = bool(record_probe) and record_probe["klass"] == "terminal"
-
-                record_second = by_path_all.get(os.path.realpath(dest2)) \
-                    or by_path_all.get(dest2)
-                ok_second = (bool(record_second) and record_second["klass"] == "terminal"
-                             and record_second["repo"] == "second-repo")
-
-                second_via_classify_only = by_path_classify_only.get(os.path.realpath(dest2)) \
-                    or by_path_classify_only.get(dest2)
-                red_proof = second_via_classify_only is None
-            except Exception as exc:
-                detail += f" json-error={exc!r}"
+        data, detail = _run_w(probe_root, (
+            f"print(json.dumps({{'all': w.classify_all({probe_root!r}), "
+            f"'classify_only': w.classify({probe_root!r})}}))\n"))
+        ok = data is not None
+        record_probe = _rec(data["all"], dest_probe) if ok else None
+        record_second = _rec(data["all"], dest2) if ok else None
+        ok_probe = bool(record_probe) and record_probe["klass"] == "terminal"
+        ok_second = (bool(record_second) and record_second["klass"] == "terminal"
+                     and record_second["repo"] == "second-repo")
+        red_proof = ok and _rec(data["classify_only"], dest2) is None
 
         results.append(("(i) classify_all(probe_root) includes the harness half's own "
                          "terminal record",
@@ -602,8 +523,7 @@ def case_classify_all_absent_vs_unenumerable():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         probe_root, dest_probe = _build_probe_repo(tmp)
-        workspace_root = os.path.join(tmp, "workspace")
-        os.makedirs(workspace_root, exist_ok=True)
+        workspace_root = _workspace(tmp)
         repo2, dest2 = _build_second_repo(workspace_root, probe_root)
 
         absent_dir = os.path.join(workspace_root, "absent-repo")  # never created
@@ -614,40 +534,20 @@ def case_classify_all_absent_vs_unenumerable():
             f.write("plain directory, not a git repository\n")
 
         _write_fleet(probe_root, workspace_root,
-                     "  - name: acme/second-repo\n    default_branch: main\n"
-                     "  - name: acme/absent-repo\n    default_branch: main\n"
+                     SECOND_REPO_YAML
+                     + "  - name: acme/absent-repo\n    default_branch: main\n"
                      "  - name: acme/unenum-repo\n    default_branch: main\n")
 
-        script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
-            f"recs = w.classify_all({probe_root!r})\n"
-            "print(json.dumps(recs))\n"
-        )
-        proc = _run_classify_all_subprocess(probe_root, script)
-        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
-
-        ok_second = ok_absent = ok_unenum_klass = ok_unenum_path = False
-        record_second = record_absent = record_unenum = None
-        if proc.returncode == 0:
-            try:
-                recs = json.loads(proc.stdout)
-                by_path = {r["path"]: r for r in recs}
-                by_repo = {r.get("repo"): r for r in recs if r.get("repo")}
-
-                record_second = by_path.get(os.path.realpath(dest2)) or by_path.get(dest2)
-                ok_second = bool(record_second) and record_second["klass"] == "terminal"
-
-                record_absent = by_path.get(absent_dir) \
-                    or by_path.get(os.path.realpath(absent_dir))
-                ok_absent = record_absent is None
-
-                record_unenum = by_repo.get("unenum-repo")
-                ok_unenum_klass = bool(record_unenum) and record_unenum["klass"] == "unresolved"
-                ok_unenum_path = bool(record_unenum) and record_unenum["path"] == unenum_dir
-            except Exception as exc:
-                detail += f" json-error={exc!r}"
+        recs, detail = _run_w(probe_root, f"print(json.dumps(w.classify_all({probe_root!r})))\n")
+        ok = recs is not None
+        by_repo = {r.get("repo"): r for r in recs if r.get("repo")} if ok else {}
+        record_second = _rec(recs, dest2) if ok else None
+        ok_second = bool(record_second) and record_second["klass"] == "terminal"
+        record_absent = _rec(recs, absent_dir) if ok else None
+        ok_absent = ok and record_absent is None
+        record_unenum = by_repo.get("unenum-repo")
+        ok_unenum_klass = bool(record_unenum) and record_unenum["klass"] == "unresolved"
+        ok_unenum_path = bool(record_unenum) and record_unenum["path"] == unenum_dir
 
         results.append(("(j) real second repository's terminal record is unaffected by an "
                          "absent declared repo alongside it",
@@ -683,9 +583,8 @@ def case_classify_all_fleet_unloadable():
     a second, independent producer — a local stub that attempts artifact_accessors.load_fleet(),
     catches the failure, and returns only the harness half's classify(root) records — is run in
     the SAME subprocess against the SAME unloadable fleet.yaml. It never emits a fleet-path
-    record; the real classify_all does. Loop-back cycle 1 (T-02): the prior form compared the
-    real output's fleet-path record to itself with the record filtered out, which cannot fail
-    (see the c2 receipt's loop-back-cycle-1 section)."""
+    record; the real classify_all does. (Comparing the real output's fleet-path record to itself
+    with the record filtered out cannot fail, which is why the stub is a separate producer.)"""
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         probe_root, dest_probe = _build_probe_repo(tmp)
@@ -702,9 +601,6 @@ def case_classify_all_fleet_unloadable():
         # classify_all's own code path (it never calls classify_all), in the same spirit as
         # _stub_skip_both/_stub_reports_both above.
         script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
             "import artifact_accessors\n"
             f"real = w.classify_all({probe_root!r})\n"
             f"stub = list(w.classify({probe_root!r}))\n"
@@ -714,27 +610,15 @@ def case_classify_all_fleet_unloadable():
             "    pass\n"  # swallowed: no fleet-path record appended, unlike classify_all
             "print(json.dumps({'real': real, 'stub': stub}))\n"
         )
-        proc = _run_classify_all_subprocess(probe_root, script)
-        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
-
-        ok_fleet = ok_harness = red_proof = False
-        record_fleet = record_probe = None
-        recs = stub_recs = None
-        if proc.returncode == 0:
-            try:
-                both = json.loads(proc.stdout)
-                recs = both["real"]
-                stub_recs = both["stub"]
-                by_path = {r["path"]: r for r in recs}
-
-                record_fleet = by_path.get(fleet_path)
-                ok_fleet = bool(record_fleet) and record_fleet["klass"] == "unresolved"
-
-                record_probe = by_path.get(os.path.realpath(dest_probe)) \
-                    or by_path.get(dest_probe)
-                ok_harness = bool(record_probe) and record_probe["klass"] == "terminal"
-            except Exception as exc:
-                detail += f" json-error={exc!r}"
+        both, detail = _run_w(probe_root, script)
+        recs = both["real"] if both is not None else None
+        stub_recs = both["stub"] if both is not None else None
+        record_fleet = ({r["path"]: r for r in recs}.get(fleet_path)
+                        if recs is not None else None)
+        ok_fleet = bool(record_fleet) and record_fleet["klass"] == "unresolved"
+        record_probe = _rec(recs, dest_probe) if recs is not None else None
+        ok_harness = bool(record_probe) and record_probe["klass"] == "terminal"
+        red_proof = False
 
         results.append(("(l) fleet.yaml unloadable: classify_all returns an unresolved record "
                          "whose path is the fleet path",
@@ -761,8 +645,7 @@ def case_classify_from_linked_worktree():
     """(m) LINKED WORKTREE AS ROOT — T-02 rework: every case above calls classify(repo_root)
     from the repository ROOT, where the main checkout happens to equal `root` and gets skipped
     by coincidence. The harness never runs that way: it always runs with `root` set to a LINKED
-    worktree. Under the unfixed classify(), `os.path.realpath(path) == root_real` at
-    worktree_terminal.py:196 only skips the main checkout when it equals `root` — when root IS a
+    worktree. Under the unfixed classify(), `os.path.realpath(path) == root_real` only skips the main checkout when it equals `root` — when root IS a
     linked worktree, the main checkout survives the loop, fails _split_owner_segment_id (it is
     not under WORKTREES_SEGMENT), and gets appended as an `unresolved` record with
     feature_id=None. This is the exact hole the operator measured; no prior case can catch it
@@ -785,8 +668,7 @@ def case_classify_from_linked_worktree():
         # The settled consequence (lead-approved, not re-opened here): under the fix, root
         # itself — the linked worktree — is no longer skipped and becomes its own classified
         # record. Assert its presence as its own clause, never folded into a total count.
-        by_path = {r["path"]: r for r in recs}
-        own_record = by_path.get(os.path.realpath(dest)) or by_path.get(dest)
+        own_record = _rec(recs, dest)
         results.append(("(m) the linked worktree passed as root IS itself classified (landed "
                          "Done -> terminal), not silently skipped",
                          bool(own_record) and own_record["klass"] == "terminal"
@@ -822,17 +704,15 @@ def case_classify_empty_repo_no_linked_worktrees():
 def _landed_station_records(tmp, stations):
     """One committed feature per (id, plan station) with a linked worktree, classified; returns
     {id: record-or-None}. The feature.json carries NO status — what the FEAT-41 T-07 migration
-    leaves behind — so only a reader repointed at plan.yaml can see the station. REALPATH
-    FALLBACK as every other case here: on macOS the tempdir is /var/... while git reports
-    /private/var/..., so a bare dict lookup misses for a reason unrelated to the test."""
+    leaves behind — so only a reader repointed at plan.yaml can see the station."""
     import worktree_terminal as w
     repo = _repo(os.path.join(tmp, "R"))
     dests = {}
     for feature_id, station in stations:
         _commit_feature(repo, feature_id, {"feature_id": feature_id}, plan_station=station)
         dests[feature_id] = _add_wt(repo, feature_id)
-    recs = {r["path"]: r for r in w.classify(repo)}
-    return {fid: recs.get(os.path.realpath(dest)) or recs.get(dest) for fid, dest in dests.items()}
+    recs = w.classify(repo)
+    return {fid: _rec(recs, dest) for fid, dest in dests.items()}
 
 
 def case_plan_station_is_the_landed_authority():
@@ -870,13 +750,9 @@ def _commit_brief(repo, feature_id, approval_block, repo_segment="harness"):
     """Commit ONLY a BRIEF.md for `feature_id` — no feature.json, no plan.yaml — which is what
     a DEC-174 direct build lands. `approval_block` is the text under `## Approval`."""
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "BRIEF.md")
-    abs_path = os.path.join(repo, rel)
-    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    with open(abs_path, "w") as f:
-        f.write(f"# BRIEF — {feature_id}\n\n## Constraints\n\n- Built direct under DEC-174.\n\n"
-                f"## Approval\n\n{approval_block}\n")
-    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+    commit_files(repo, {rel: f"# BRIEF — {feature_id}\n\n## Constraints\n\n"
+                             f"- Built direct under DEC-174.\n\n## Approval\n\n{approval_block}\n"},
+                 f"add {feature_id}")
 
 
 def case_direct_build_brief_is_terminal():
@@ -903,10 +779,10 @@ def case_direct_build_brief_is_terminal():
         _commit_brief(repo, "FEAT-82-normal", "status: approved\ndate: 2026-09-13\nby: operator")
         normal_dest = _add_wt(repo, "FEAT-82-normal")
 
-        recs = {r["path"]: r for r in w.classify(repo)}
+        recs = w.classify(repo)
 
         def get(dest):
-            return recs.get(os.path.realpath(dest)) or recs.get(dest)
+            return _rec(recs, dest)
 
         results.append(("direct build: signed DEC-174 BRIEF with no feature.json -> terminal",
                         (get(direct_dest) or {}).get("klass") == "terminal",
@@ -936,43 +812,26 @@ def case_plan_station_scan_without_pyyaml():
     """
     import worktree_terminal as w
 
-    results = []
     plan = ("schema: plan/1\nfeature: FEAT-X\nstatus: done\n"
             "tasks:\n  - id: T-01\n    status: building\n")
-
-    results.append((
-        "T-07 scan: the TOP-LEVEL station is returned",
-        w._scan_top_level_status(plan) == {"status": "done"},
-        repr(w._scan_top_level_status(plan))))
-
-    # THE DISCRIMINATOR, and the reason the scan is column-0 anchored: a task's own `status:` is
-    # indented and appears later. A loose scan would match a task's value on some other plan
-    # shape and classify a live feature as terminal — a WRITE, since the sweep then removes it.
-    indented_first = ("tasks:\n  - id: T-01\n    status: done\n"
-                      "status: building\n")
-    results.append((
-        "T-07 scan: an INDENTED task status is never mistaken for the feature's station",
-        w._scan_top_level_status(indented_first) == {"status": "building"},
-        repr(w._scan_top_level_status(indented_first))))
-
-    results.append((
-        "T-07 scan: a trailing comment is stripped",
-        w._scan_top_level_status("status: done  # shipped\n") == {"status": "done"},
-        repr(w._scan_top_level_status("status: done  # shipped\n"))))
-
-    results.append((
-        "T-07 scan: quotes are stripped",
-        w._scan_top_level_status("status: 'done'\n") == {"status": "done"},
-        repr(w._scan_top_level_status("status: 'done'\n"))))
-
-    # NO top-level status at all is an EMPTY mapping, not None: the plan parsed, it simply
-    # records no station, which the caller treats as "not terminal" rather than unparseable.
-    results.append((
-        "T-07 scan: a plan with no top-level status yields an empty mapping, not a failure",
-        w._scan_top_level_status("feature: FEAT-X\ntasks: []\n") == {},
-        repr(w._scan_top_level_status("feature: FEAT-X\ntasks: []\n"))))
-
-    return results
+    rows = (
+        ("T-07 scan: the TOP-LEVEL station is returned", plan, {"status": "done"}),
+        # THE DISCRIMINATOR, and the reason the scan is column-0 anchored: a task's own `status:`
+        # is indented and appears later. A loose scan would match a task's value on some other
+        # plan shape and classify a live feature as terminal — a WRITE, since the sweep then
+        # removes it.
+        ("T-07 scan: an INDENTED task status is never mistaken for the feature's station",
+         "tasks:\n  - id: T-01\n    status: done\nstatus: building\n", {"status": "building"}),
+        ("T-07 scan: a trailing comment is stripped", "status: done  # shipped\n",
+         {"status": "done"}),
+        ("T-07 scan: quotes are stripped", "status: 'done'\n", {"status": "done"}),
+        # NO top-level status at all is an EMPTY mapping, not None: the plan parsed, it simply
+        # records no station, which the caller treats as "not terminal" rather than unparseable.
+        ("T-07 scan: a plan with no top-level status yields an empty mapping, not a failure",
+         "feature: FEAT-X\ntasks: []\n", {}),
+    )
+    return [(name, (got := w._scan_top_level_status(text)) == want, repr(got))
+            for name, text, want in rows]
 
 
 def _raiser(exc):
@@ -990,23 +849,12 @@ def _escapes(fn, exc_type=RuntimeError):
     return False
 
 
-class _patched:
-    """Temporarily rebind `name` on `holder`; the shim every boundary probe below needs."""
-    def __init__(self, holder, name, value):
-        self.holder, self.name, self.value = holder, name, value
-    def __enter__(self):
-        self.real = getattr(self.holder, self.name)
-        setattr(self.holder, self.name, self.value)
-    def __exit__(self, *exc):
-        setattr(self.holder, self.name, self.real)
-
-
 def _feat64_git_launcher_rows(w):
     rows = []
-    with _patched(w.subprocess, "run", _raiser(FileNotFoundError("no git"))):
+    with mock.patch.object(w.subprocess, "run", _raiser(FileNotFoundError("no git"))):
         rows.append(("(n) a git that cannot launch is None from _run_git", w._run_git(["status"], ".") is None, ""))
         rows.append(("(n) a git that cannot launch is (False, '') from _worktree_list_raw", w._worktree_list_raw(".") == (False, ""), ""))
-    with _patched(w.subprocess, "run", _raiser(RuntimeError("unrelated"))):
+    with mock.patch.object(w.subprocess, "run", _raiser(RuntimeError("unrelated"))):
         escaped = [_escapes(lambda: w._run_git(["status"], ".")), _escapes(lambda: w._worktree_list_raw("."))]
         rows.append(("(n) an unrelated RuntimeError escapes both git launchers", all(escaped), repr(escaped)))
     return rows
@@ -1015,16 +863,16 @@ def _feat64_git_launcher_rows(w):
 def _feat64_fleet_rows(w, artifact_accessors):
     class _FC:
         FLEET_PATH = "/nonexistent/fleet.yaml"
-    with _patched(artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
+    with mock.patch.object(artifact_accessors, "load_fleet", _raiser(RuntimeError("unrelated"))):
         return [("(n) an unrelated RuntimeError escapes _repo_arg_for_segment",
                  _escapes(lambda: w._repo_arg_for_segment("other", _FC)), "")]
 
 
 def _feat64_landed_json_rows(w, record_read):
-    with _patched(w, "_landed_blob_text", lambda *a: ("{}", None)):
-        with _patched(record_read, "load_feature_json", _raiser(RuntimeError("unrelated"))):
+    with mock.patch.object(w, "_landed_blob_text", lambda *a: ("{}", None)):
+        with mock.patch.object(record_read, "load_feature_json", _raiser(RuntimeError("unrelated"))):
             escaped = _escapes(lambda: w._read_landed_feature_json("/r", "main", "x/feature.json"))
-        with _patched(record_read, "load_feature_json",
+        with mock.patch.object(record_read, "load_feature_json",
                       _raiser(record_read.FeatureJsonError("bad", "x", "fix"))):
             got = w._read_landed_feature_json("/r", "main", "x/feature.json")
     return [("(n) an unrelated RuntimeError escapes the landed feature.json read", escaped, ""),
@@ -1033,10 +881,10 @@ def _feat64_landed_json_rows(w, record_read):
 
 def _feat64_landed_yaml_rows(w):
     import harness_yaml
-    with _patched(w, "_landed_blob_text", lambda *a: ("status: x\n", None)):
-        with _patched(harness_yaml, "load_str", _raiser(RuntimeError("unrelated"))):
+    with mock.patch.object(w, "_landed_blob_text", lambda *a: ("status: x\n", None)):
+        with mock.patch.object(harness_yaml, "load_str", _raiser(RuntimeError("unrelated"))):
             escaped = _escapes(lambda: w._read_landed_plan_yaml("/r", "main", "x/plan.yaml"))
-        with _patched(harness_yaml, "load_str", _raiser(harness_yaml.MissingDependency())):
+        with mock.patch.object(harness_yaml, "load_str", _raiser(harness_yaml.MissingDependency())):
             got = w._read_landed_plan_yaml("/r", "main", "x/plan.yaml")
     return [("(n) an unrelated RuntimeError escapes the landed plan.yaml read", escaped, ""),
             ("(n) MissingDependency (by class) falls back to the top-level status scan",
@@ -1063,28 +911,15 @@ def case_fleet_planning_worktree_resolves_to_its_segment():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         probe_root, _dest_probe = _build_probe_repo(tmp)
-        workspace_root = os.path.join(tmp, "workspace")
-        os.makedirs(workspace_root, exist_ok=True)
-        _write_fleet(probe_root, workspace_root,
-                     "  - name: acme/second-repo\n    default_branch: main\n")
+        _write_fleet(probe_root, _workspace(tmp), SECOND_REPO_YAML)
         _commit_feature(probe_root, "FEAT-11-fleet-plan", {}, plan_station="done",
                         repo_segment="second-repo")
         planning = _add_wt(probe_root, "FEAT-11-fleet-plan", repo_segment="harness")
-        script = (
-            "import json, sys\n"
-            f"sys.path.insert(0, {BIN_DIR!r})\n"
-            "import worktree_terminal as w\n"
+        data, detail = _run_w(probe_root, (
             f"recs = w.classify_all({probe_root!r})\n"
-            "print(json.dumps({'recs': recs, 'arg': w.repo_arg_for_segment('second-repo')}))\n"
-        )
-        proc = _run_classify_all_subprocess(probe_root, script)
-        detail = f"rc={proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}"
-        record, arg = None, None
-        if proc.returncode == 0:
-            data = json.loads(proc.stdout)
-            by_path = {r["path"]: r for r in data["recs"]}
-            record = by_path.get(os.path.realpath(planning)) or by_path.get(planning)
-            arg = data["arg"]
+            "print(json.dumps({'recs': recs, 'arg': w.repo_arg_for_segment('second-repo')}))\n"))
+        record = _rec(data["recs"], planning) if data is not None else None
+        arg = data["arg"] if data is not None else None
         results.append(("(2056) a fleet planning worktree classifies terminal under its segment",
                         bool(record) and record["klass"] == "terminal"
                         and record["repo"] == "second-repo", detail + f" record={record}"))
@@ -1101,8 +936,8 @@ def _commit_bad_utf8_feature(repo, feature_id, station="done"):
         f.write(b'{"feature_id": "\xff"}')
     with open(os.path.join(repo, rel_dir, "plan.yaml"), "w") as f:
         f.write(plan_text(feature_id, station))
-    subprocess.run(["git", "add", rel_dir], cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+    quiet_git(["add", rel_dir], repo)
+    quiet_git(["commit", "-qm", f"add {feature_id}"], repo)
 
 
 def _feature_row(name, got, feature_id, want_klass, must=(), must_not=()):
@@ -1179,10 +1014,7 @@ _FLEET_FEATURE_ROWS = (
 
 def _build_fleet_feature_fixture(tmp):
     probe_root, _dest_probe = _build_probe_repo(tmp)
-    workspace_root = os.path.join(tmp, "workspace")
-    os.makedirs(workspace_root, exist_ok=True)
-    _write_fleet(probe_root, workspace_root,
-                 "  - name: acme/second-repo\n    default_branch: main\n")
+    _write_fleet(probe_root, _workspace(tmp), SECOND_REPO_YAML)
     for fid, station in (("FEAT-907-fleet-done", "done"), ("FEAT-908-fleet-building", "building"),
                          ("FEAT-921-fleet-exact", "done")):
         _commit_feature(probe_root, fid, {}, plan_station=station, repo_segment="second-repo")
@@ -1193,16 +1025,11 @@ def _build_fleet_feature_fixture(tmp):
 
 def _classify_features_in_subprocess(probe_root, ids):
     """classify_feature for each id in a subprocess bound to the probe's fleet.yaml."""
-    script = (
-        "import json, sys\n"
-        f"sys.path.insert(0, {BIN_DIR!r})\n"
-        "import worktree_terminal as w\n"
-        f"print(json.dumps({{i: w.classify_feature({probe_root!r}, i) for i in {ids!r}}}))\n"
-    )
-    proc = _run_classify_all_subprocess(probe_root, script)
-    if proc.returncode != 0:
-        return {i: f"rc={proc.returncode} stderr={proc.stderr!r}" for i in ids}
-    return {k: tuple(v) for k, v in json.loads(proc.stdout).items()}
+    data, detail = _run_w(probe_root, (
+        f"print(json.dumps({{i: w.classify_feature({probe_root!r}, i) for i in {ids!r}}}))\n"))
+    if data is None:
+        return {i: detail for i in ids}
+    return {k: tuple(v) for k, v in data.items()}
 
 
 def case_classify_feature_fleet():
@@ -1219,7 +1046,6 @@ def main():
     results = (
         case_classify()
         + case_deadlock()
-        + case_deadlock_red_proof()
         + case_absent_red_proof()
         + case_second_repo()
         + case_classify_all_two_repos()
@@ -1235,13 +1061,10 @@ def main():
         + case_classify_feature_local()
         + case_classify_feature_fleet()
     )
-    all_ok = True
+    checks = Checks()
     for name, ok, detail in results:
-        status = "PASS" if ok else "FAIL"
-        if not ok:
-            all_ok = False
-        print(f"{status}: {name}" + ("" if ok else f"\n  {detail}"))
-    sys.exit(0 if all_ok else 1)
+        checks.check(name, ok, detail)
+    sys.exit(checks.report())
 
 
 if __name__ == "__main__":

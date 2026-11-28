@@ -7,16 +7,12 @@ harness_merge.require_destination accepts it — never a real feature directory.
 binary the same way test-expertise-merge.py resolves its own, so a mutated copy of the source
 under test can be swapped in without editing this file:
 
-    CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
+    CLI = os.environ.get("PLAN_MERGE_BIN") or str(BIN / "plan-merge.py")
 
 Case 1 is deliberately never routed through the CLI: it reproduces #628's naive whole-file
 write directly, so it stays red proof of the loss regardless of what this tool does.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import BIN
 import concurrent.futures
 import multiprocessing
 import os
@@ -27,14 +23,10 @@ import tempfile
 
 import yaml
 import artifact_accessors
-from check_state_support import copy_executable_package
+from check_support import Checks
 from harness_config_support import write_config
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
+CLI = os.environ.get("PLAN_MERGE_BIN") or str(BIN / "plan-merge.py")
 # The verbs live in the plan_merge package beside the entry (FEAT-70). A helper under test is
 # loaded from the module that OWNS it, resolved from the entry actually selected — so an
 # overridden PLAN_MERGE_BIN copy brings its own package, and a proof that mutates a copied
@@ -275,20 +267,18 @@ def case_proposal_indent_differs_from_base():
             "    dec: none\n"
             "tasks:\n" + task_block("T-01") +
             DEFAULT_APPROVAL)
-    with open(plan_path, "w", encoding="utf-8") as stream:
-        stream.write(base)
+    write(plan_path, base)
 
     # The proposal puts its item at COLUMN ZERO — the indentation a human writes by hand.
     proposal = os.path.join(root, "proposal.yaml")
-    with open(proposal, "w", encoding="utf-8") as stream:
-        stream.write("decisions:\n"
-                     "- id: D-02\n"
-                     "  choice: the amendment\n"
-                     "  because: an operator approved it\n"
-                     "  dec: DEC-199\n")
+    write(proposal, "decisions:\n"
+                    "- id: D-02\n"
+                    "  choice: the amendment\n"
+                    "  because: an operator approved it\n"
+                    "  dec: DEC-199\n")
 
     result = run_apply(plan_path, proposal)
-    merged = open(plan_path, encoding="utf-8").read()
+    merged = read(plan_path)
 
     check("apply_indent_mismatch_exits_0", result.returncode == 0,
           f"exit {result.returncode}: {(result.stdout + result.stderr)[:300]!r}")
@@ -319,7 +309,7 @@ def case_naive_last_writer_wins():
     full = ids(1, 14)
     write(path, render_plan(full))
     write(path, render_plan(["T-01"]))
-    content = open(path, encoding="utf-8").read()
+    content = read(path)
     for tid in full[1:]:
         check(f"case1: naive whole-file write loses {tid}", f"- id: {tid}\n" not in content, content[:400])
 
@@ -335,7 +325,7 @@ def case_green_union():
     r1 = run_apply(path, proposal1)
     check("case2: first apply exits 0", r1.returncode == 0, r1.stdout + r1.stderr)
 
-    content1 = open(path, encoding="utf-8").read()
+    content1 = read(path)
     for tid in full:
         check(f"case2: {tid} present after first apply", f"- id: {tid}\n" in content1, content1)
 
@@ -344,7 +334,7 @@ def case_green_union():
     r2 = run_apply(path, proposal2)
     check("case2: second apply exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
 
-    content2 = open(path, encoding="utf-8").read()
+    content2 = read(path)
     for tid in full + ["T-15"]:
         check(f"case2: {tid} present after second apply", f"- id: {tid}\n" in content2, content2)
 
@@ -364,7 +354,7 @@ def case_approval_byte_identity():
     r = run_apply(path, proposal)
     check("case3: exit 0", r.returncode == 0, r.stdout + r.stderr)
 
-    result = open(path, encoding="utf-8").read()
+    result = read(path)
     check(
         "case3: the exact byte slice of the base's approval block occurs verbatim in the result",
         DEFAULT_APPROVAL in result,
@@ -397,19 +387,14 @@ def case_concurrency_real(trials=20):
         proposal_b = os.path.join(root, "b.yaml")
         write(proposal_b, render_plan(base_ids + ["T-16"]))
 
-        pa = subprocess.Popen(
-            [sys.executable, CLI, "apply", "--file", path, "--proposal", proposal_a],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        pb = subprocess.Popen(
-            [sys.executable, CLI, "apply", "--file", path, "--proposal", proposal_b],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        out_a, err_a = pa.communicate(timeout=30)
-        out_b, err_b = pb.communicate(timeout=30)
-        rc_a, rc_b = pa.returncode, pb.returncode
+        # Both start before either is waited on, so the two applies really race.
+        procs = [subprocess.Popen([sys.executable, CLI, "apply", "--file", path, "--proposal", p],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                 for p in (proposal_a, proposal_b)]
+        (out_a, err_a), (out_b, err_b) = [p.communicate(timeout=30) for p in procs]
+        rc_a, rc_b = (p.returncode for p in procs)
 
-        content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+        content = read(path) if os.path.exists(path) else ""
         ok = False
         outcome = "other"
 
@@ -464,7 +449,7 @@ def case_conflict():
                     "  - id: T-03\n    title: A completely different title\n    notes: added\n")
 
     r = run_apply(path, proposal)
-    after = open(path, encoding="utf-8").read()
+    after = read(path)
     loaded = yaml.safe_load(after)
     t03 = next(t for t in loaded["tasks"] if t["id"] == "T-03")
     check("case5: a changed field on an existing id exits 0", r.returncode == 0,
@@ -498,11 +483,11 @@ def case_idempotence():
 
     r1 = run_apply(path, proposal)
     check("case6: first apply exits 0", r1.returncode == 0, r1.stdout + r1.stderr)
-    after_first = open(path, encoding="utf-8").read()
+    after_first = read(path)
 
     r2 = run_apply(path, proposal)
     check("case6: second apply exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
-    after_second = open(path, encoding="utf-8").read()
+    after_second = read(path)
 
     check(
         "case6: file is byte identical after the second, idempotent apply",
@@ -532,7 +517,7 @@ def case_destination_refusal():
     check("case7: a source path is REFUSED with exit 9", r.returncode == 9, r.stdout + r.stderr)
     check(
         "case7: ...and the refused file is untouched",
-        open(src, encoding="utf-8").read() == "real code\n",
+        read(src) == "real code\n",
         "the tool wrote to a path it said it refused",
     )
 
@@ -563,7 +548,7 @@ def case_destination_refusal():
     )
     check(
         "case7: ...and the file behind the symlink is untouched",
-        open(outside_plan, encoding="utf-8").read() == outside_original,
+        read(outside_plan) == outside_original,
         "the tool wrote through the symlink it said it refused",
     )
 
@@ -594,7 +579,7 @@ def case_unparseable():
         "proposal" in (r.stdout + r.stderr).lower(),
         r.stdout + r.stderr,
     )
-    after = open(path, encoding="utf-8").read()
+    after = read(path)
     check("case8: base file is byte identical to before", after == original, repr((original, after)))
 
 
@@ -621,7 +606,7 @@ def case_issue_720_duplicate_key_proposal_is_refused():
           r.returncode == 5, f"rc={r.returncode} {r.stdout + r.stderr}")
     check("issue #720: the refusal names the duplicate key",
           "status" in (r.stdout + r.stderr), r.stdout + r.stderr)
-    after = open(path, encoding="utf-8").read()
+    after = read(path)
     check("issue #720: the base is left byte-identical — no merge that later breaks a "
           "downstream reader",
           after == original, repr((original, after)))
@@ -647,7 +632,7 @@ def case_issue_720_duplicate_key_base_on_disk_is_refused():
           r.returncode == 5, f"rc={r.returncode} {r.stdout + r.stderr}")
     check("issue #720 half 2: the refusal names the base side",
           "base" in (r.stdout + r.stderr).lower(), r.stdout + r.stderr)
-    after = open(path, encoding="utf-8").read()
+    after = read(path)
     check("issue #720 half 2: the base is left byte-identical",
           after == original, repr((original, after)))
 
@@ -670,7 +655,7 @@ def case_comments_survive():
     r = run_apply(path, proposal)
     check("case9: exit 0", r.returncode == 0, r.stdout + r.stderr)
 
-    result = open(path, encoding="utf-8").read()
+    result = read(path)
     check("case9: leading comments survive byte identical",
           result.startswith(comment_block), result)
     check("case9: T-15 was added", "- id: T-15\n" in result, result)
@@ -695,7 +680,7 @@ def case_structural_refusal():
         and "approved" in (r_a.stdout + r_a.stderr),
         r_a.stdout + r_a.stderr,
     )
-    after_a = open(path, encoding="utf-8").read()
+    after_a = read(path)
     check("case10a: file is byte identical to before (nothing applied)", after_a == original, repr((original, after_a)))
     check("case10a: T-15 is absent, asserted by id", "- id: T-15\n" not in after_a, after_a)
 
@@ -707,7 +692,7 @@ def case_structural_refusal():
 
     r_b = run_apply(path_b, proposal_b)
     check("case10b: proposal with no approval key exits 0", r_b.returncode == 0, r_b.stdout + r_b.stderr)
-    after_b = open(path_b, encoding="utf-8").read()
+    after_b = read(path_b)
     check("case10b: T-15 is present", "- id: T-15\n" in after_b, after_b)
 
     # 10c: proposal's approval differs only in whitespace/comments (loads equal) -> exit 0,
@@ -719,7 +704,7 @@ def case_structural_refusal():
 
     r_c = run_apply(path_c, proposal_c)
     check("case10c: loaded-equal-but-reflowed approval exits 0", r_c.returncode == 0, r_c.stdout + r_c.stderr)
-    after_c = open(path_c, encoding="utf-8").read()
+    after_c = read(path_c)
     check("case10c: T-15 is present", "- id: T-15\n" in after_c, after_c)
 
 
@@ -740,7 +725,7 @@ def case_create_path_approval():
     check("case11a: create with no approval key exits 0", r_a.returncode == 0, r_a.stdout + r_a.stderr)
     check("case11a: the file now exists", os.path.exists(path_a), path_a)
     if os.path.exists(path_a):
-        content_a = open(path_a, encoding="utf-8").read()
+        content_a = read(path_a)
         for tid in full:
             check(f"case11a: {tid} present in the created file", f"- id: {tid}\n" in content_a, content_a)
         approval_a = (yaml.safe_load(content_a).get("approval") or {})
@@ -1051,7 +1036,8 @@ def case_1157_sign_approval_records_validated_overrules():
             "      disposition: open\n"
             "  readers: []\n\n"
         )
-        write(plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n"))
+        base = render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n")
+        write(plan, base)
         r = run_verb(
             "sign-approval", "--file", plan, "--by", "Operator: One",
             "--date", "2026-09-02",
@@ -1070,9 +1056,7 @@ def case_1157_sign_approval_records_validated_overrules():
                    "date": "2026-09-02", "reason": "risk owner: operator"},
               ], repr(approval))
 
-        before_refusal = write(
-            plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n")
-        )
+        before_refusal = write(plan, base)
         unknown = run_verb(
             "sign-approval", "--file", plan, "--by", "operator", "--date", "2026-09-02",
             "--overrule", "PF-unknown:accepted",
@@ -1219,7 +1203,6 @@ def case_sign_approval_is_the_only_signer():
     root, plan = fixture_root()
     try:
         write(plan, render_plan(ids(1, 2)))
-        head = read(plan).split("tasks:")[0]
         run_verb("set-task-station", "--file", plan, "--task", "T-01", "--station", "building")
         run_verb("set-feature-station", "--file", plan, "--station", "building")
         after_head = read(plan).split("tasks:")[0]
@@ -1230,7 +1213,6 @@ def case_sign_approval_is_the_only_signer():
               DEFAULT_APPROVAL in read(plan), after_head)
         check("only the feature status key was added to the head",
               after_head.count("status: building") == 1, after_head)
-        _ = head
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -2048,11 +2030,6 @@ def _load_owner(module):
     return importlib.import_module(f"plan_merge.{module}")
 
 
-def copy_plan_merge(dst_bin):
-    """The entry and its package copied into `dst_bin`, the one way a proof copies this tool."""
-    copy_executable_package(CLI, "plan_merge", dst_bin)
-
-
 def case_amend_f2_under_lock_hash_is_pinned():
     """PANEL F2, OPEN SINCE CYCLE 0 AND UNPINNED FOR FOUR CYCLES.
 
@@ -2066,7 +2043,7 @@ def case_amend_f2_under_lock_hash_is_pinned():
     """
     mod = _load_owner("amend")
     block = ["    title: actual\n"]
-    good = __import__("hashlib").sha256("".join(block).encode("utf-8")).hexdigest()
+    good = hashlib.sha256("".join(block).encode("utf-8")).hexdigest()
 
     ok = True
     try:
@@ -3262,7 +3239,6 @@ def _product_check_roots():
     """#2064: a harness checkout whose fleet serves org/kaya, and kaya's paired code worktree.
     The manifest grants src/** to backend and apps/web/src/** to frontend; the code worktree
     holds src/a.ts with a symbol, and no apps/ tree yet (a greenfield layout)."""
-    import yaml
     base = os.path.realpath(tempfile.mkdtemp(prefix="plan-merge-product-"))
     root, workspace = os.path.join(base, "harness"), os.path.join(base, "workspace")
     os.makedirs(os.path.join(root, ".harness", "factory"))
@@ -3614,20 +3590,17 @@ def _approved_plan():
 def _approval_of(plan):
     return yaml.safe_load(read(plan)).get("approval") or {}
 
-def _resume_plan(feature_status, task_statuses, approval_status="approved",
-                 resume_station=None):
+
+def _approved(plan):
+    return _approval_of(plan).get("status") == "approved"
+
+def _resume_plan(feature_status, task_statuses):
     approval = (
         "approval:\n"
-        f"  status: {approval_status}\n"
+        "  status: approved\n"
         "  approved_by: X\n"
         "  date: 2026-01-01\n"
     )
-    if resume_station is not None:
-        approval += (
-            "  reset_at: 2026-01-02T00:00:00+00:00\n"
-            "  reset_reason: earlier mutation\n"
-            f"  resume_station: {resume_station}\n"
-        )
     tasks = "".join(
         f"  - id: T-{index:02d}\n"
         f"    title: Task T-{index:02d}\n"
@@ -3700,7 +3673,7 @@ def case_f59_approval_auto_reset_on_every_task_changing_verb():
         r = run_verb("apply", "--file", plan, "--proposal", prop)
         check("reset/apply-replace exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
         check("reset/apply-replace: a replaced field on an existing task keeps approved (D-04)",
-              _approval_of(plan).get("status") == "approved" and "APPROVAL-RESET" not in r.stdout,
+              _approved(plan) and "APPROVAL-RESET" not in r.stdout,
               repr(_approval_of(plan)) + r.stdout)
 
         write(plan, _approved_plan())
@@ -3716,7 +3689,7 @@ def case_f59_approval_auto_reset_on_every_task_changing_verb():
                      "--expect-sha256", sha or "x", "--value-file", value)
         check("reset/amend exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
         check("reset/amend: amending a field on an existing task keeps approved (D-04)",
-              _approval_of(plan).get("status") == "approved" and "APPROVAL-RESET" not in r.stdout,
+              _approved(plan) and "APPROVAL-RESET" not in r.stdout,
               repr(_approval_of(plan)) + r.stdout)
 
         # And sign-approval clears the reset record when the operator signs again.
@@ -3909,13 +3882,12 @@ def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
     apply that changes nothing leaves an approved signature standing."""
     root, plan = fixture_root()
     try:
-        before = write(plan, render_plan(ids(1, 2)))          # pending
+        write(plan, render_plan(ids(1, 2)))          # pending
         prop = os.path.join(root, "prop.yaml")
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-03"))
         run_verb("apply", "--file", plan, "--proposal", prop)
         check("a pending plan's approval bytes are untouched by apply", DEFAULT_APPROVAL in read(plan),
               read(plan))
-        _ = before
 
         write(plan, _approved_plan())
         sha, _ = _sha_of(plan, "decisions", "D-01", "choice")
@@ -3924,18 +3896,18 @@ def case_f59_approval_auto_reset_leaves_pending_and_decision_edits_alone():
         r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-01", "--field", "choice",
                      "--expect-sha256", sha or "x", "--value-file", value)
         check("amending a decision leaves approval approved",
-              r.returncode == 0 and _approval_of(plan).get("status") == "approved"
+              r.returncode == 0 and _approved(plan)
               and "reset_at" not in _approval_of(plan), f"rc={r.returncode} {_approval_of(plan)!r}")
         r = run_verb("delete-items", "--file", plan, "--decision", "D-01", "--reason", "gone")
         check("deleting a decision leaves approval approved",
-              r.returncode == 0 and _approval_of(plan).get("status") == "approved",
+              r.returncode == 0 and _approved(plan),
               f"rc={r.returncode} {_approval_of(plan)!r}")
 
         write(plan, _approved_plan())
         write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n" + task_block("T-01"))
         r = run_verb("apply", "--file", plan, "--proposal", prop)
         check("an apply that changes nothing leaves approval approved",
-              r.returncode == 0 and _approval_of(plan).get("status") == "approved",
+              r.returncode == 0 and _approved(plan),
               f"rc={r.returncode} {_approval_of(plan)!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -4058,7 +4030,7 @@ def case_f59_sign_approval_rework_writes_feature_json():
                      "--rework", "rounds=2,minutes=90", "--decision", "notes/ruling.md")
         doc = json.loads(read(fj))
         check("sign-approval --rework exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
-        check("the approval is signed", _approval_of(plan).get("status") == "approved",
+        check("the approval is signed", _approved(plan),
               repr(_approval_of(plan)))
         check("feature.json carries the rework ruling per C1",
               doc.get("rework") == {"rounds": 2, "wall_clock_minutes": 90, "decision": "notes/ruling.md"},
@@ -4613,10 +4585,6 @@ _T01_AMENDMENT = '  amendments:\n    - { task: T-01, field: intent, was: untouch
 _TWO_ENTRY_AMENDMENTS = (
     _T01_AMENDMENT
     + '    - { task: T-03, field: intent, was: "Add a second text accessor with a compatibility exemption", now: "n", reason: "r" }\n')
-
-
-def _approved(plan):
-    return _approval_of(plan).get("status") == "approved"
 
 
 def case_b1716_approval_survives_record_amendments_and_amend():
@@ -5778,7 +5746,6 @@ def _brief_path(plan):
 
 def _brief_approval(text):
     """The ## Approval block's body, the region check-state's approved() reads."""
-    import re
     match = re.search(r"^##\s+Approval\s*$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
     return match.group(1) if match else None
 
@@ -6161,18 +6128,12 @@ def main():
         for case_results in pool.map(_run_case, range(len(CASES))):
             RESULTS.extend(case_results)
 
-    fails = 0
+    # Workers ship their checks back as lists, so the report is made here, in CASES order.
+    C = Checks()
     for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-
-    summary = "FAIL test-plan-merge.py" if fails else "PASS test-plan-merge.py"
-    print(summary)
-    return fails
+        C.check(name, ok, detail)
+    return C.report()
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())

@@ -23,7 +23,7 @@ Overrides are the caller's job; this module reads no environment variable, so an
 one file reaches no other:
   - a bin override for a script under test (CHECK_STATE_BIN, PLAN_SIGN_GATE_BIN, ...): the file
     keeps `SCRIPT = os.environ.get("X_BIN") or str(BIN / "x.py")` as written;
-  - a repository-root override (test-harness-yaml.py and test-validate-feature-json.py read
+  - a repository-root override (test-harness-yaml.py reads
     HARNESS_PROJECT_DIR, test-plan-team.py reads HARNESS_PROJECT_DIR or the cwd): the file keeps
     its own `REPO = os.environ.get("HARNESS_PROJECT_DIR") or ...` with ROOT as the fallback only
     where the original fallback was this file's checkout;

@@ -11,11 +11,7 @@ and its check_state/ package sit in the reader census AND the checker-structure 
 the broad-catch census, so they are where a repeated parse would show. CHECK_PLAN_ROUTES_BIN
 points the test at another checker file and the audit modules beside it.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT, BIN
 import ast
 import collections
 import json
@@ -26,10 +22,10 @@ import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
-BIN_DIR = os.path.join(REPO_ROOT, BIN_REL)
+from check_support import Checks
+
+REPO_ROOT, BIN_DIR = str(ROOT), str(BIN)
+BIN_REL = os.path.relpath(BIN_DIR, REPO_ROOT)
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(BIN_DIR, "check-plan-routes.py")
 # The audit modules UNDER TEST sit beside SCRIPT, so a mutant bin named through the override
 # is what gets imported.
@@ -46,13 +42,8 @@ _EMBEDDED_FIXTURE = (f'"""Fixture for test-structure-audit-single-pass.py."""\n'
                      f'PROGRAM = {_EMBEDDED_PROGRAM!r}\nAGAIN = {_EMBEDDED_PROGRAM!r}\n')
 _OVERLAP = (os.path.join(BIN_REL, "check-state.py"), os.path.join(BIN_REL, "check_state", "table.py"))
 
-failures = []
-
-
-def check(name, cond, detail=""):
-    print(f"{'PASS' if cond else 'FAIL'} {name}{'' if cond else ' ' + detail}")
-    if not cond:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 class Traversal:
@@ -105,22 +96,20 @@ class Traversal:
 
 def _fixture_root(td):
     shutil.copytree(BIN_DIR, os.path.join(td, BIN_REL), ignore=shutil.ignore_patterns("__pycache__"))
-    for rel in _TREE_FILES + (_MARKER,):
+    for rel in _TREE_FILES:
         os.makedirs(os.path.dirname(os.path.join(td, rel)), exist_ok=True)
-        if rel == _MARKER:
-            open(os.path.join(td, rel), "w", encoding="utf-8").close()
-        else:
-            shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+        shutil.copy(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
+    os.makedirs(os.path.dirname(os.path.join(td, _MARKER)), exist_ok=True)
+    open(os.path.join(td, _MARKER), "w", encoding="utf-8").close()
     for rel in _TREE_DIRS:
         shutil.copytree(os.path.join(REPO_ROOT, rel), os.path.join(td, rel))
     with open(os.path.join(td, BIN_REL, "_single_pass_fixture.py"), "w", encoding="utf-8") as stream:
         stream.write(_EMBEDDED_FIXTURE)
-    return td
 
 
-def _in_process(module, entry, root):
+def _in_process(entry, root):
     with Traversal() as traversal:
-        getattr(module, entry)(root)
+        getattr(structure_audit, entry)(root)
     return traversal.summary()
 
 
@@ -138,18 +127,27 @@ def cli_child(script, root, out):
         json.dump(dict(traversal.summary(), exit=code), stream)
 
 
-def _via_cli(root):
-    out = os.path.join(root, "single-pass-cli.json")
+def _start_cli(root, out):
+    """Start the CLI child; its JSON goes to `out`, outside the audited root, so it can run beside
+    the in-process audits without adding a file to the tree they walk."""
     env = {k: v for k, v in os.environ.items() if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")}
-    run = subprocess.run([sys.executable, os.path.abspath(__file__), "--cli-child", SCRIPT, root, out],
-                         capture_output=True, text=True, timeout=60, env=env)
-    if run.returncode != 0 or not os.path.isfile(out):
-        return {"error": f"exit {run.returncode}: {run.stderr[-400:]}"}
+    return subprocess.Popen([sys.executable, os.path.abspath(__file__), "--cli-child", SCRIPT, root, out],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+
+
+def _collect_cli(child, out):
+    try:
+        _stdout, stderr = child.communicate(timeout=60)
+    except subprocess.TimeoutExpired:
+        child.kill()
+        _stdout, stderr = child.communicate()
+    if child.returncode != 0 or not os.path.isfile(out):
+        return {"error": f"exit {child.returncode}: {stderr[-400:]}"}
     with open(out, encoding="utf-8") as stream:
         return json.load(stream)
 
 
-def _check_once(label, summary, physical):
+def _check_once(label, summary):
     print(f"COUNTS {label} {json.dumps({k: v for k, v in summary.items() if k != 'files'}, sort_keys=True)}")
     if "error" in summary:
         check(f"{label}_ran", False, summary["error"])
@@ -159,7 +157,7 @@ def _check_once(label, summary, physical):
     check(f"{label}_visits_no_node_outside_a_parsed_tree", summary["foreign"] == 0, f"{summary['foreign']} foreign")
     check(f"{label}_parses_no_source_twice", summary["reparsed"] == [], ", ".join(summary["reparsed"]))
     check(f"{label}_parses_embedded_programs", summary["embedded"] >= 1, "no embedded program parsed")
-    missing = [rel for rel in physical if rel not in summary["files"]]
+    missing = [rel for rel in _OVERLAP if rel not in summary["files"]]
     check(f"{label}_parses_the_overlapping_checker_sources", missing == [], ", ".join(missing))
 
 
@@ -168,19 +166,16 @@ def main():
           all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
               for m in (structure_audit, sys.modules["canonical_reader_audit"])),
           f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
-    module = structure_audit
-    with tempfile.TemporaryDirectory() as td:
-        root = _fixture_root(td)
+    with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as scratch:
+        _fixture_root(root)
+        out = os.path.join(scratch, "single-pass-cli.json")
+        child = _start_cli(root, out)
         for entry in ("consolidation_findings", "feat62_findings", "broad_catch_findings"):
-            _check_once(f"in_process_{entry}", _in_process(module, entry, root), _OVERLAP)
-        cli = _via_cli(root)
-        _check_once("cli_consolidation_audit", cli, _OVERLAP)
+            _check_once(f"in_process_{entry}", _in_process(entry, root))
+        cli = _collect_cli(child, out)
+        _check_once("cli_consolidation_audit", cli)
         check("cli_consolidation_audit_exit_is_a_verdict", cli.get("exit") in (0, 1), f"exit {cli.get('exit')!r}")
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        sys.exit(1)
-    print("\nALL PASS")
-    sys.exit(0)
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

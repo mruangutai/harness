@@ -13,11 +13,7 @@ Covers what a green `bun run typecheck` alone cannot show:
 Every failure exits nonzero; a missing toolchain or a timeout fails, never skips. The real
 checkout is never modified: the poison goes into a temporary copy outside it.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from integration_support import ROOT as _ROOT
 import json
 import os
 import shutil
@@ -26,20 +22,17 @@ import sys
 import tempfile
 import time
 
-ROOT = _anchor_root
+from check_support import Checks  # noqa: E402
+
+ROOT = str(_ROOT)
 COMMAND = ["bun", "run", "typecheck"]
 SETTLED = (".omp/extensions/harness-hooks.ts",
            "tests/unit/omp-hooks.test.ts", "tests/manual/probe-session-accessors.ts")
 POISONED = ".omp/extensions/harness-hooks.ts"
 SUPPRESSIONS = ("@ts-nocheck", "@ts-ignore", "@ts-expect-error")
 DEADLINE = time.monotonic() + 40
-failures = []
-
-
-def check(name, ok, detail=""):
-    print(("PASS " if ok else "FAIL ") + name + ("" if ok else f"\n      | {detail}"))
-    if not ok:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 def run(argv, cwd):
@@ -90,10 +83,9 @@ def check_real_tree_passes():
 
 
 def check_poison_fails(sources):
-    scratch = tempfile.mkdtemp(prefix="feat2257-typecheck-")
-    try:
+    with tempfile.TemporaryDirectory(prefix="feat2257-typecheck-") as scratch:
         for rel in ("tsconfig.json", "package.json", *sources):
-            os.makedirs(os.path.dirname(os.path.join(scratch, rel)) or scratch, exist_ok=True)
+            os.makedirs(os.path.dirname(os.path.join(scratch, rel)), exist_ok=True)
             shutil.copy2(os.path.join(ROOT, rel), os.path.join(scratch, rel))
         os.symlink(os.path.join(ROOT, "node_modules"), os.path.join(scratch, "node_modules"))
         clean = run(COMMAND, scratch)
@@ -106,8 +98,6 @@ def check_poison_fails(sources):
         check("one deliberate type error fails the same command, naming the poisoned file",
               poisoned.returncode != 0 and "error TS" in output and POISONED in output,
               f"rc={poisoned.returncode} {output}")
-    finally:
-        shutil.rmtree(scratch, ignore_errors=True)
 
 
 def check_activation():
@@ -128,9 +118,7 @@ def main():
     check_real_tree_passes()
     check_poison_fails(sources)
     check_activation()
-    print(f"FAIL test-typescript-typecheck.py ({len(failures)})" if failures
-          else "PASS test-typescript-typecheck.py")
-    return 1 if failures else 0
+    return C.report()
 
 
 if __name__ == "__main__":

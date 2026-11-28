@@ -22,39 +22,30 @@ cannot run on its own, these fail.
 T-05 (FEAT-31): does a NEW `budgets` key added to the template propagate into an
 existing project's harness.json? BRANCH FOUND TRUE, by reading upgrade-config.py:
 GENERIC MERGE ALREADY PROPAGATES IT — `budgets` receives no special handling
-anywhere in the file. `merge()` (upgrade-config.py:64-89) recurses into any
-key that is a dict on both sides (:86-87, `isinstance(tv, dict) and
+anywhere in the file. `merge()` in upgrade-config.py recurses into any
+key that is a dict on both sides (its both-dicts branch, `isinstance(tv, dict) and
 isinstance(out[k], dict)`), and inside that recursion a key absent from the
-project's dict is added at the template's value (:79-83, `if k not in out: ...
-out[k] = tv`). `budgets` in a real project config is exactly such a dict, so a
+project's dict is added at the template's value (its key-absent branch, `if k not in
+out: ... out[k] = tv`). `budgets` in a real project config is exactly such a dict, so a
 new leaf key under it is added by the same path that already adds a new
 top-level key. upgrade-config.py was changed NOT AT ALL for this task; only the
 proving case below (case 8) was added.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-from harness_config_support import build_config, write_config  # noqa: E402
+from integration_support import BIN
 import json
 import os
 import subprocess
 import sys
 import tempfile
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-SCRIPT = os.environ.get("UPGRADE_CONFIG_BIN") or os.path.join(HERE, "upgrade-config.py")
+from check_support import Checks
+from harness_config_support import build_config, write_config
 
-CASES = []
+BIN_DIR = str(BIN)
+SCRIPT = os.environ.get("UPGRADE_CONFIG_BIN") or os.path.join(BIN_DIR, "upgrade-config.py")
 
-
-def check(name, ok, detail=""):
-    CASES.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 TEMPLATE_MANIFEST = """schema_version: 2
@@ -111,43 +102,45 @@ def ran_clean(r):
     return "Traceback" not in r.stderr and "NameError" not in r.stderr
 
 
-def run(root, *args):
+def run(root, *args, templates=None):
+    templates = templates or os.path.join(root, "_templates")
     return subprocess.run(
-        [sys.executable, SCRIPT, root, "--templates", os.path.join(root, "_templates"), *args],
+        [sys.executable, SCRIPT, root, "--templates", templates, *args],
         capture_output=True, text=True)
 
 
-def _feat64_escape_shim(tmpdir, script, patch_module, patch_attr, argv, env):
-    """FEAT-64 (SC-03): run `script` with `patch_module.patch_attr` replaced by a function that
-    raises RuntimeError('unrelated defect'); return the CompletedProcess. Used to prove an
+def merged(root):
+    with open(os.path.join(root, ".harness", "harness.json")) as f:
+        return json.load(f)
+
+
+def _feat64_escape_shim(root, argv):
+    """FEAT-64 (SC-03): run SCRIPT with artifact_accessors.load_harness_json replaced by a function
+    that raises RuntimeError('unrelated defect'); return the CompletedProcess. Used to prove an
     unrelated programming defect ESCAPES the tool (non-zero, traceback) instead of entering its
-    quiet/best-effort path."""
-    shim = os.path.join(tmpdir, "feat64-shim.py")
+    quiet/best-effort path. The shim is written into the throwaway fixture `root`."""
+    shim = os.path.join(root, "feat64-shim.py")
     with open(shim, "w") as f:
         f.write("import sys, runpy\n"
                 f"sys.path.insert(0, {BIN_DIR!r})\n"
-                f"import {patch_module} as m\n"
+                "import artifact_accessors as m\n"
                 "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
-                f"m.{patch_attr} = boom\n"
-                "sys.argv = [sys.argv[0]] + sys.argv[1:]\n"
-                f"runpy.run_path({script!r}, run_name='__main__')\n")
-    return subprocess.run([sys.executable, shim, *argv], capture_output=True, text=True, env=env)
+                "m.load_harness_json = boom\n"
+                f"runpy.run_path({SCRIPT!r}, run_name='__main__')\n")
+    return subprocess.run([sys.executable, shim, *argv], capture_output=True, text=True)
 
 
 # --- FEAT-64: an unrelated defect in the config reader ESCAPES; a strict-read failure stays exit 1 ---
-with tempfile.TemporaryDirectory() as _t64:
-    _root64 = project()
-    r64 = _feat64_escape_shim(_t64, SCRIPT, "artifact_accessors", "load_harness_json",
-                              [_root64, "--templates", os.path.join(_root64, "_templates"), "--check"],
-                              dict(os.environ))
-    check("FEAT-64: an unrelated RuntimeError in load_harness_json escapes upgrade-config",
-          r64.returncode != 0 and "RuntimeError" in r64.stderr and "cannot read config" not in r64.stdout,
-          f"rc={r64.returncode} stdout={r64.stdout[-160:]!r} stderr={r64.stderr[-160:]!r}")
+_root64 = project()
+r64 = _feat64_escape_shim(_root64, [_root64, "--templates", os.path.join(_root64, "_templates"), "--check"])
+check("FEAT-64: an unrelated RuntimeError in load_harness_json escapes upgrade-config",
+      r64.returncode != 0 and "RuntimeError" in r64.stderr and "cannot read config" not in r64.stdout,
+      f"rc={r64.returncode} stdout={r64.stdout[-160:]!r} stderr={r64.stderr[-160:]!r}")
 
 # --- 1. it runs at all. This is the regression. ---
 r = run(project(), "--check")
 check("the script RUNS as a subprocess (F-03: NameError on every invocation)",
-      "NameError" not in r.stderr and "Traceback" not in r.stderr,
+      ran_clean(r),
       f"exit {r.returncode}: {r.stderr.strip()[-400:]}")
 
 # --- 2. the parser is actually reached, not merely the regexes removed ---
@@ -222,10 +215,7 @@ check("Q2: a YAML-truthy name (`- name: no`) does not vanish from the roster",
 # not trip the whole-tree grep for the retired command's name.
 RETIRED_CMD = "/" + "harness" + "-" + "deploy"
 no_templates = project()
-r = subprocess.run(
-    [sys.executable, SCRIPT, no_templates, "--check",
-     "--templates", os.path.join(no_templates, "_does_not_exist")],
-    capture_output=True, text=True)
+r = run(no_templates, "--check", templates=os.path.join(no_templates, "_does_not_exist"))
 out = r.stdout + r.stderr
 check("missing-templates message points at an incomplete checkout, not the retired command",
       RETIRED_CMD not in out and "checkout is incomplete" in out,
@@ -243,21 +233,23 @@ check("unparsable shipped template message points at a complete checkout, not th
 
 # --- 5. --check writes nothing ---
 p = project()
-before = open(os.path.join(p, ".harness", "team-config.yaml")).read()
-run(p, "--check")
-after = open(os.path.join(p, ".harness", "team-config.yaml")).read()
+manifest_path = os.path.join(p, ".harness", "team-config.yaml")
+with open(manifest_path) as f:
+    before = f.read()
 _r = run(p, "--check")
+with open(manifest_path) as f:
+    after = f.read()
 check("--check never rewrites team-config.yaml (safe_dump would strip its comments)",
       ran_clean(_r) and before == after, "the manifest changed under --check")
 
 
 # --- 8. a NEW budgets key propagates through the SAME generic nested-dict merge as
 # any other nested object (test_kinds, etc.) — see the module docstring for the read
-# (upgrade-config.py:79-83, :86-88) that establishes this without any production
+# (merge()'s key-absent and both-dicts branches) that establishes this without any production
 # change. Assert the VALUE, not mere presence.
 budgets_root = project(drop=[("budgets", "orchestrator_context_warn_tokens")])
 r = run(budgets_root)
-merged_budgets = json.load(open(os.path.join(budgets_root, ".harness", "harness.json")))
+merged_budgets = merged(budgets_root)
 check("a new budgets key (orchestrator_context_warn_tokens) propagates from the "
       "template at the template's value, 200000",
       ran_clean(r)
@@ -279,7 +271,7 @@ check("a new budgets key (orchestrator_context_warn_tokens) propagates from the 
 # migration failure this case exists to keep closed.
 era_gap = project(drop=[("panel_era_start",)])
 r = run(era_gap)
-merged_era = json.load(open(os.path.join(era_gap, ".harness", "harness.json")))
+merged_era = merged(era_gap)
 check("panel_era_start ARRIVES in a schema-2 project through the real merge, at the "
       "template's null",
       ran_clean(r)
@@ -289,25 +281,10 @@ check("panel_era_start ARRIVES in a schema-2 project through the real merge, at 
 
 era_set = project({"panel_era_start": "2026-01-15"})
 r = run(era_set)
-kept_era = json.load(open(os.path.join(era_set, ".harness", "harness.json")))
+kept_era = merged(era_set)
 check("a project's OWN panel_era_start survives the upgrade and is not reset to the "
       "template's null",
       ran_clean(r) and kept_era.get("panel_era_start") == "2026-01-15",
       f"exit {r.returncode}; merged={kept_era}; stderr={r.stderr.strip()[-300:]}")
 
-def main():
-    fails = 0
-    for name, ok, detail in CASES:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}")
-            for line in str(detail).splitlines()[:4]:
-                print(f"      | {line}")
-    print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.")
-    return fails
-
-
-if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+sys.exit(C.report())

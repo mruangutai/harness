@@ -5,12 +5,7 @@ Every case feeds hook JSON on stdin and asserts the process's STDOUT, because th
 whole contract: a deny is exit 0 plus a structured permissionDecision, and an allow is exit 0
 plus NOTHING. Asserting the exit code alone would pass for both.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
+from integration_support import BIN as _BIN
 import json
 import os
 import shutil
@@ -18,21 +13,14 @@ import subprocess
 import sys
 import tempfile
 
+from check_support import Checks
 from harness_config_support import build_config, write_config  # noqa: E402
 
-BIN = _anchor_bin
+BIN = str(_BIN)
 GATE = os.environ.get("GH_CLOSE_GATE_BIN") or os.path.join(BIN, "gh-close-gate.py")
 
-fails = 0
-
-
-def check(name, cond, detail=""):
-    global fails
-    if cond:
-        print(f"ok    {name}")
-    else:
-        fails += 1
-        print(f"FAIL  {name}\n      {detail}")
+C = Checks()
+check = C.check
 
 
 def _root(sync=True):
@@ -62,12 +50,28 @@ def _config_root(derive):
     return root
 
 
+def _spawn(exe, project_dir, command=None, payload=None):
+    """Run the gate at `exe` on one hook payload: `command` wrapped as tool_input, or raw `payload`."""
+    if payload is None:
+        payload = json.dumps({"tool_input": {"command": command}})
+    return subprocess.run([exe], input=payload, capture_output=True, text=True, check=False,
+                          env=dict(os.environ, HARNESS_PROJECT_DIR=project_dir))
+
+
+# The healthy sync=true root is only ever READ by the gate, so every default case shares one, and
+# a command several cases assert on (a named case and its corpus row) is spawned once.
+_HEALTHY_ROOT = _root()
+_healthy = {}
+
+
 def gate(command, root=None):
     """(returncode, decision_or_None, reason_or_None)."""
-    env = dict(os.environ)
-    env["HARNESS_PROJECT_DIR"] = root or _root()
-    r = subprocess.run([GATE], input=json.dumps({"tool_input": {"command": command}}),
-                       capture_output=True, text=True, env=env)
+    if root is None:
+        if command not in _healthy:
+            _healthy[command] = _spawn(GATE, _HEALTHY_ROOT, command)
+        r = _healthy[command]
+    else:
+        r = _spawn(GATE, root, command)
     if not r.stdout.strip():
         return (r.returncode, None, None)
     doc = json.loads(r.stdout)["hookSpecificOutput"]
@@ -295,14 +299,10 @@ _rc, _d, _ = gate("gh issue close 728", root=_duplicate_config_root)
 check("duplicate harness.json keys refuse a matching close at exit 2 rather than choosing one",
       _rc == 2 and _d is None, f"rc={_rc} decision={_d!r}")
 
-_duplicate_payload_root = _root()
-_duplicate_payload_env = dict(os.environ, HARNESS_PROJECT_DIR=_duplicate_payload_root)
 _duplicate_payload = (
     '{"tool_input":{"command":"gh issue list"},'
     '"tool_input":{"command":"gh issue close 728"}}')
-_duplicate_payload_result = subprocess.run(
-    [GATE], input=_duplicate_payload, capture_output=True, text=True,
-    env=_duplicate_payload_env)
+_duplicate_payload_result = _spawn(GATE, _HEALTHY_ROOT, payload=_duplicate_payload)
 if _duplicate_payload_result.stdout.strip():
     check("duplicate hook-payload keys are rejected before close policy evaluation",
           False, f"stdout={_duplicate_payload_result.stdout!r}")
@@ -312,10 +312,7 @@ if _duplicate_payload_result.stdout.strip():
 # .harness/team-config.yaml is not a root at all: resolve_root discards it and the gate falls
 # back to the LIVE checkout, reading the real github block and denying. The case is about a
 # MISSING harness.json, so the fixture carries the marker and omits only harness.json.
-_noroot = tempfile.mkdtemp()
-os.makedirs(os.path.join(_noroot, ".harness"))
-with open(os.path.join(_noroot, ".harness", "team-config.yaml"), "w") as _f:
-    _f.write("agents: {}\n")
+_noroot = _config_root(None)
 # MIGRATED (FEAT-2274 V1): a missing harness.json at a resolved root is a config read failure,
 # not "sync off" — a matching close is refused at exit 2 instead of passing unchecked.
 _rc, _d, _ = gate("gh issue close 728", root=_noroot)
@@ -350,15 +347,16 @@ def _faulted_bin(module=None, text=""):
 
 
 def _run_in(mbin, command, project_dir):
-    return subprocess.run([os.path.join(mbin, "gh-close-gate.py")],
-                          input=json.dumps({"tool_input": {"command": command}}),
-                          capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=project_dir))
+    return _spawn(os.path.join(mbin, "gh-close-gate.py"), project_dir, command)
 
 
 def _named_refusal(r, detail):
     return (r.returncode == 2 and not r.stdout.strip()
             and _REFUSAL_HEAD + detail in r.stderr and _REFUSAL_TAIL in r.stderr)
+
+
+def _untouched(r):
+    return r.returncode == 0 and not r.stdout.strip() and not r.stderr.strip()
 
 
 # FEAT-65's injected resolver defect, kept: it is no longer a loud exit 1 that the extension
@@ -367,19 +365,18 @@ def _named_refusal(r, detail):
 _mbin = _faulted_bin("harness_boundary.py",
                      "\n\ndef resolve_root(bin_dir, strict=True):\n"
                      "    raise RuntimeError('FEAT-65 injected')\n")
-_r = _run_in(_mbin, "gh issue close 728", _root())
+_r = _run_in(_mbin, "gh issue close 728", _HEALTHY_ROOT)
 check("FEAT-65: an unexpected resolver defect REFUSES a matching close at exit 2, named",
       _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
       f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 for _cmd, _match in APPLICABILITY_CORPUS:
-    _r = _run_in(_mbin, _cmd, _root())
+    _r = _run_in(_mbin, _cmd, _HEALTHY_ROOT)
     if _match:
         check(f"resolver defect: a matching command is refused, named: {_cmd!r}",
               _named_refusal(_r, "RuntimeError: FEAT-65 injected"),
               f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
     else:
-        check(f"resolver defect: an unrelated command passes untouched: {_cmd!r}",
-              _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+        check(f"resolver defect: an unrelated command passes untouched: {_cmd!r}", _untouched(_r),
               f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 # NO ROOT AT ALL. The override names a directory without the marker and the copied bin derives
@@ -392,21 +389,19 @@ check("no harness root: a matching close is refused at exit 2, named",
       _named_refusal(_r, "no harness root could be resolved from "),
       f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
 _r = _run_in(_mbin, "git status", _noroot_dir)
-check("no harness root: an unrelated command exits 0 untouched",
-      _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+check("no harness root: an unrelated command exits 0 untouched", _untouched(_r),
       f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 # THE GATE'S OWN BODY FAILS after the root resolves: its config read raises.
 _mbin = _faulted_bin("artifact_accessors.py",
                      "\n\ndef load_harness_json(*args, **kwargs):\n"
                      "    raise RuntimeError('FEAT-2274 body injected')\n")
-_r = _run_in(_mbin, "gh api -X PATCH repos/o/r/issues/9 -f state=closed", _root())
+_r = _run_in(_mbin, "gh api -X PATCH repos/o/r/issues/9 -f state=closed", _HEALTHY_ROOT)
 check("body failure: a matching close is refused at exit 2, named",
       _named_refusal(_r, "RuntimeError: FEAT-2274 body injected"),
       f"rc={_r.returncode} stderr={_r.stderr[-300:]!r}")
-_r = _run_in(_mbin, "gh pr close 5", _root())
-check("body failure: an unrelated command exits 0 untouched",
-      _r.returncode == 0 and not _r.stdout.strip() and not _r.stderr.strip(),
+_r = _run_in(_mbin, "gh pr close 5", _HEALTHY_ROOT)
+check("body failure: an unrelated command exits 0 untouched", _untouched(_r),
       f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
 # ---------------- A CONFIG THAT CANNOT BE READ IS NOT "SYNC OFF" (FEAT-2274 V1) ---------------
@@ -421,10 +416,6 @@ _CONFIG_FAULTS = (
     ("a github block that is a list", lambda c: json.dumps({**c, "github": [1, 2]})),
     ("a github block that is null", lambda c: json.dumps({**c, "github": None})),
 )
-
-
-def _untouched(r):
-    return r.returncode == 0 and not r.stdout.strip() and not r.stderr.strip()
 
 
 def _config_fault_case(label, derive):
@@ -449,5 +440,4 @@ for _label, _root_dir in (
     check(f"valid config, {_label}: a matching close exits 0 untouched", _untouched(_r),
           f"rc={_r.returncode} stdout={_r.stdout!r} stderr={_r.stderr[-300:]!r}")
 
-print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
-sys.exit(1 if fails else 0)
+sys.exit(C.report())

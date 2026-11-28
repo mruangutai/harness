@@ -1,36 +1,39 @@
 #!/usr/bin/env python3
-import os
-import subprocess
-import sys
-import tempfile
+from integration_support import ROOT, BIN
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-BIN = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin")
-CHECK = os.path.join(BIN, "check-instruction-paths.py")
-sys.path.insert(0, BIN)
-import harness_boundary
+import os  # noqa: E402
+import subprocess  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
 
-RESULTS = []
+import harness_boundary  # noqa: E402
+from check_support import Checks  # noqa: E402
 
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
-    print(("PASS" if ok else "FAIL") + " - " + name + (" (" + detail + ")" if detail and not ok else ""))
+REPO_ROOT = str(ROOT)
+CHECK = str(BIN / "check-instruction-paths.py")
+CHECKER = harness_boundary.load_repo_module("check_instruction_paths", CHECK)
+
+C = Checks()
+check = C.check
+# Every case's temp roots live under one directory that main() removes at the end.
+_BASE = []
+
+
+def scratch_dir():
+    return tempfile.mkdtemp(dir=_BASE[0])
+
 
 def make_root(body):
-    root = tempfile.mkdtemp()
+    root = scratch_dir()
     path = os.path.join(root, ".omp", "agents", "harness-backend-dev.md")
     os.makedirs(os.path.dirname(path))
     with open(path, "w") as handle:
         handle.write(body)
     return root, path
 
+
 def run(root, *args):
     return subprocess.run([sys.executable, CHECK, "--root", root, *args], text=True, capture_output=True)
-
-
-
-
 
 
 # FEAT-2397: inject-expertise.py loads this checker IN PROCESS and calls `violations(path,
@@ -57,9 +60,8 @@ PATH_DIRECTIONS = (
 
 
 def _direct_rows(root, path):
-    module = harness_boundary.load_repo_module("check_instruction_paths", CHECK)
     return [f"VIOLATION {os.path.relpath(path, root)}:{line}: {reason}: {token}"
-            for line, reason, token in module.violations(path, root)]
+            for line, reason, token in CHECKER.violations(path, root)]
 
 
 def case_path_directions():
@@ -111,8 +113,8 @@ def case_landed_feature_reads():
 
 
 def case_scope_and_debug_read():
-    check("empty scope refuses", run(tempfile.mkdtemp()).returncode == 2)
-    listed = subprocess.run([sys.executable, CHECK, "--root", REPO_ROOT, "--list-scope"], text=True, capture_output=True)
+    check("empty scope refuses", run(scratch_dir()).returncode == 2)
+    listed = run(REPO_ROOT, "--list-scope")
     for expected in ("harness-verification-rules/SKILL.md", "harness-expertise/SKILL.md", "harness-handoff/SKILL.md", "harness-backend-dev.md", "harness/templates/PLAN.md"):
         check("scope contains " + expected, expected in listed.stdout, listed.stdout)
     backend = os.path.join(REPO_ROOT, ".omp", "agents", "harness-backend-dev.md")
@@ -121,7 +123,7 @@ def case_scope_and_debug_read():
     relative_path = debug_line.split("`", 2)[1].replace(
         "<HARNESS_CONTROL_PLANE_ROOT>/", "")
     debug_path = os.path.join(REPO_ROOT, relative_path)
-    product_cwd = tempfile.mkdtemp()
+    product_cwd = scratch_dir()
     product_path = os.path.join(product_cwd, relative_path)
     check("product clone can read anchored systematic-debugging skill",
           os.path.isfile(debug_path)
@@ -131,14 +133,14 @@ def case_scope_and_debug_read():
           f"control={debug_path}; product={product_path}")
 
 
-
-
 def main():
-    for case in (case_path_directions, case_expertise_destinations, case_landed_feature_reads,
-                 case_scope_and_debug_read):
-        case()
-    if any(not row[1] for row in RESULTS):
-        raise SystemExit(1)
+    with tempfile.TemporaryDirectory() as base:
+        _BASE.append(base)
+        for case in (case_path_directions, case_expertise_destinations, case_landed_feature_reads,
+                     case_scope_and_debug_read):
+            case()
+    sys.exit(C.report())
+
 
 if __name__ == "__main__":
     main()
