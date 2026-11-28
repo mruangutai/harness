@@ -2477,7 +2477,8 @@ same trap DEC-119 recorded. The `SubagentStop` hook that makes it mandatory is t
 ## DEC-123 — The lead verdict roll-up is computed, not trusted
 
 SPEC 10.4 states the rule: the team verdict is the worst member verdict,
-`BLOCKED > ESCALATE > FAIL > PASS`. `ESCALATE` outranks `FAIL` deliberately — a decision only the
+`BLOCKED > ESCALATE > FAIL > PASS`. Since BUG-2582 the rule has one exception, the plan-team reader
+carve-out stated below. `ESCALATE` outranks `FAIL` deliberately — a decision only the
 user can make must not be masked by a failure the team could have fixed.
 
 That was prose, with a validator sitting next to it that could check it and did not. Verified live
@@ -2487,8 +2488,17 @@ and the most consequential digest error
 available — **the orchestrator routes on `VERDICT` and never opens member entries** (SPEC 8), so a
 masked `FAIL` ships.
 
-`validate-digest.py` now computes the roll-up and rejects a return that reports better than its
-worst member. Reporting **worse** stays legal: a lead may know something its members could not see.
+`validate-digest.py` computes the roll-up and rejects a return that reports better than its worst
+member, with one exception, the plan-team reader carve-out (BUG-2582). In a
+`harness-product-lead` digest with `team: plan`, for a feature whose `feature.json` records
+`mission: plan` and carrying exactly one member entry per reader step, a reader member (`scope`,
+`should-not-exist` or `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team
+digest attributes to it matches exactly one row of that feature's `plan.yaml` `panel.findings` by
+recomputed PF id, carrying the same reader string and `disposition: resolved`, and every other
+on-disk row attributed to it is `resolved`. An open, absent, mismatched, unattributable or
+ambiguous finding, a malformed panel row, a duplicated reader step, an unloadable plan, `ESCALATE`
+or `BLOCKED`, and every other team or mission keep worst-wins. Reporting **worse** stays legal: a
+lead may know something its members could not see.
 Every member that ran therefore needs its own `verdict:`. Only the optional external
 `fable-advisor` may instead record `status: skipped`, its persona, and the host reason; a skip
 makes no claim about unperformed work and is excluded from worst-wins. At least one member must
@@ -2520,6 +2530,10 @@ Both templates are now verified rather than read: extracted from the source file
 filled, run through the validator. Flipping SPEC's own example to `PASS` gets it blocked.
 
 **Why the roll-up is the lead's one irreplaceable act (moved from `harness-team` under FEAT-60).** A stapled digest means the orchestrator paid the lead's spawn for nothing; a merge that leaves three copies of one root cause spends three fix cycles on one problem; and reporting weak work up with a note is zero-micro-management's failure from the other side. The digest-file hook is the backstop, not the rule.
+
+**Amended by BUG-2582 (2026-11-27):** the plan-team reader carve-out above. Plan readers return
+`FAIL` to carry findings that pm's `apply` resolves in the same run, so worst-wins had made a ready
+plan indistinguishable from a failed one. Refs: DEC-228, DEC-229.
 
 ---
 
@@ -7629,7 +7643,10 @@ deps, verify-versus-delete, and architecture per `harness-codebase-design`; ther
 eng-lead review at plan time), `should-not-exist` (`fable-advisor`, skipped and recorded when it does
 not resolve) and `design` (`harness-ui-reviewer`, self-scoping out on non-UI). `apply` fixes every
 `form` finding in place, applies `substance` findings, records the panel with `plan-merge.py
-record-panel` and runs `plan-merge.py check`; then pm's `goalcheck` grades one result per
+record-panel`, marks resolved with `plan-merge.py set-panel` each finding whose remedy it applied
+in that step (BUG-2582; `resolved_by` names the carrying task where one exists, and a
+`scope: mission` finding and any finding it did not remedy stay open), and runs `plan-merge.py
+check`; then pm's `goalcheck` grades one result per
 perspective. Every finding carries `kind: substance | form | proportionality`; `form` never re-gates.
 A `proportionality` finding also carries `scope: task | mission`, and the validator and
 `record-panel` refuse one without it. `scope: task` — one task over-builds — is pm's at `apply`,
@@ -8444,7 +8461,11 @@ index and DEC and retain the existing nonzero check result and unrelated anchor/
 **Creation, not signature, determines the era.** New-plan creation stamps `drafted_at` once from
 the writer's UTC clock. Callers cannot supply it on creation or insert, rewrite, backdate,
 forward-date or null it later through set-key or apply/merge; an unchanged existing stamp may be
-preserved. Ordinary edits neither stamp an undated legacy plan nor change an existing stamp.
+preserved. Apart from one case, ordinary edits never stamp an undated legacy plan and never change
+an existing stamp. The case (BUG-2582): when `apply` or `add-tasks` converts a station-only record
+(`station_only: true`, empty `tasks:`, a non-finished station) into a task-bearing plan, that
+conversion is plan creation — the writer drops `station_only`, seeds `approval: {status: pending}`
+when absent and stamps `drafted_at` from its own clock when absent.
 This decision adds the per-project `decision_dispositions_era_start` key in `harness.json`: a
 timezone-qualified UTC activation instant. The drafting requirement applies when approval is
 pending, the station is nonterminal, and the writer stamp is at or after activation, including

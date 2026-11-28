@@ -15,15 +15,19 @@ panel:
   - reader: scope
     status: ran
     persona: harness-code-reviewer
-    reason: returned FAIL carrying 5 findings; note at notes/review-harness-code-reviewer-plan-c1.md
+    reason: none
   - reader: should-not-exist
     status: ran
     persona: fable-advisor
-    reason: resolved and returned one finding inline
+    reason: none
   - reader: design
     status: ran
     persona: harness-ui-reviewer
-    reason: self-scoped out (no user-facing surface); PASS with no findings
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
   findings:
   - id: PF-c53be1d223134c6f36f75b74c717f09f
     severity: high
@@ -285,6 +289,7 @@ tasks:
 
       Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-02.
   - id: T-03
+    status: done
     title: Amend DEC-123, DEC-254 and DEC-228 and state the carve-out in SPEC and harness-team
     traces: [SC-08]
     change_type: docs

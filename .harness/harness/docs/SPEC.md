@@ -1975,7 +1975,12 @@ Each member that ran uses the closed five-key shape `{step, persona, verdict, he
 files_touched}`. Only the optional external `fable-advisor` may instead use the closed skipped shape
 `{step, persona, status, reason}`. Skips do not enter worst-wins, but at least one member must have
 run before the lead may claim a verdict. `validate-digest.py` rejects a team verdict better than its
-worst member; reporting worse is allowed when the lead has evidence its members could not see.
+worst member; reporting worse is allowed when the lead has evidence its members could not see. The
+plan-team reader carve-out (DEC-123) is the one exception: in a feature with mission plan, a
+`harness-product-lead` `team: plan` digest may rank a reader member's FAIL as PASS only when every
+finding attributed to that reader is recorded in the feature's `plan.yaml` `panel.findings` with
+`disposition: resolved`, checked on disk; the check fails closed, keeping worst-wins, on any open,
+absent, mismatched or unattributable finding, a duplicated reader step or an unloadable plan.
 
 `adequacy_notes` qualifies a PASS. It neither gates like `must_fix` nor reaches the user like
 `open_questions`; it prevents a green verdict from being read more broadly than the work performed.
