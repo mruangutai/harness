@@ -21,6 +21,22 @@
       "cycles_used": 0,
       "ended_at": "2026-11-27T03:33:04+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T05:13:15+00:00",
+      "tokens": 199390,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-01-plan-product/digest.md",
+        "sha256": "fbe23bb4cdb52d139543f7df03099d2d5a3097c96843072f596d30f2f3f6b277"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-28T05:39:54+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -37,6 +53,13 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "plan run ESCALATE: all reader findings applied but two high T-03 remedies unread and D-03 departs from settled grilling text; no re-panel - both go to the batched signature (DEC-176)"
+    },
+    {
+      "at": "2026-11-28T05:39:55+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan narrowed to B-9 and retargeted; one scope re-read held two highs open and raised a third; pm remedies unread - to the signature per ruling 3 (DEC-176)"
     }
   ],
   "mission": "plan"

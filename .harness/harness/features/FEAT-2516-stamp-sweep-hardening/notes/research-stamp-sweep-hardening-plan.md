@@ -1,100 +1,189 @@
-# Research — FEAT-2516 stamp-sweep hardening (plan draft, run 2026-11-26-01-plan-product)
+# Research — FEAT-2516 plan revision, cycle 2 (run 2026-11-27-01-plan-product, draft step)
 
-**BLUF.** The plan has five tasks, all main-session-direct (DEC-174), with three decisions and ten
-decision dispositions; one of them amends DEC-157. After the c1 reader wave `plan-merge.py check`
-exits 0 (5 tasks, 16 anchors, 0 failures). B-4 (#2519) and the mechanical half of B-1 (#2516) are
-already delivered on main, so the plan only guards them. B-9's receipt is sharpened below (D-02).
+**BLUF.** I narrowed the plan to B-9 (#2524) under the operator's rulings of 2026-11-27. Tasks are
+exactly T-03 and T-05, `source_issues: [2524]`, and `approval.status` stays pending. T-03 now
+points at the `feature_record/` package that FEAT-2581 introduced. The planned `code_repository`
+and `planning_root` move to `feature_record/binding.py`. `plan-merge.py check` exits 0 with 2
+tasks, 14 anchors and 0 failures. The cycle-1 history of this note is in git
+(`671f03a7:<this path>`).
 
-## C1 reader-wave dispositions
+## Removed and kept
 
-- scope high, receipt contract: applied in T-03 A/B/C (sole_effect, exact keys, FAIL-only,
-  shared verify_fix_receipt; close-run acceptance test added).
-- scope high, repository binding: applied (T-03 A.3 moves `_qa_code_repository` to
-  `feature_schema.code_repository`; bound-feature acceptance and planning-only refusal tests).
-- scope med, same-second regate: applied by association, not timestamp (T-03 E; SC-11/SC-12).
-- scope med, T-01 segments: applied (reason names hit segments; row (l) asserts both; SC-02 baseline).
-- scope med, T-02 escaped diagnostic: applied (exactly one positively identified line per mode; SC-06).
-- scope form/med, keep rows: applied (DEC-159, DEC-221, DEC-227, DEC-230).
-- scope form/low, prose: applied (ledger synopsis and equality sentence in T-03 G; recommended
-  filename in D-02, T-05, SC-12; operator perspective says "no stamp outside").
-- fable info, D-03 decline: kept as is; operator signature question.
-- fable low, T-04 verify flag: declined. The grilling destination says the self-test is green; the
-  flag is the direct evidence, D-03 now says it stays a supported local entry point.
-- fable form/low, test rename: moot. The association design leaves that test unmodified and its
-  name true (its regates answer no FAIL run).
+- **Tasks.** I deleted T-01, T-02 and T-04 (`delete-items`). T-03 and T-05 remain.
+- **Decisions.** I deleted D-01 (absent class, used only by T-01 and T-02) and D-03 (canonical-reader
+  runner, used only by T-04). D-02, the fix receipt, stays.
+- **SCs.**
+  - SC-01 to SC-08 are gone: they covered the classifier, the sweep, the canonical-reader guard and
+    the CI comment.
+  - SC-09 stays, reduced to a regression check over T-03's surface: the canonical-reader audit,
+    `canonical_reader_live_audit_is_zero`, and test-check-plan-routes, test-checker-structure-locks,
+    test-validate-digest and test-check-state-table. I dropped test-worktree-terminal and
+    test-post-merge-sweep.
+  - SC-10 to SC-12 stay, re-pathed. SC-10 names `feature_record.evidence.run_evidence_problems`.
+    In SC-12 the close-run synopsis now lives in `SKILL.md` step 6.
+- **Perspectives.**
+  - **operator**: removed. Only SC-04 to SC-06 served it.
+  - **code maintainer**: reduced to the SC-09 promise.
+  - **orchestrator**: kept as written.
+- **Lane rows.**
+  - Dropped `.github/workflows/**`, which only T-04 used.
+  - Added `.claude/skills/harness/SKILL.md` for the synopsis retarget. check-domain resolves it to
+    NOBODY.
+  - Kept `bin/**`, `schemas/**`, `references/**`, `tests/**` and `.harness/harness/docs/**`, with
+    their reasons rewritten for T-03 and T-05.
+  - Re-resolved at 3e979ae3. team-config.yaml has not changed since 101779cc.
+- **decisions_affected.**
+  - Dropped DEC-180 and DEC-238, which only the stamp sweep needed.
+  - Kept DEC-157 (amend, successor D-02), DEC-174, DEC-191, DEC-226, DEC-159, DEC-221, DEC-227 and
+    DEC-230. I checked every clause as an exact substring of the current DECISIONS.md (a Python
+    substring check over each row). Only DEC-174's reason was reworded.
 
-## Measured at e83c4e20 (worktree), HARNESS_AGENT_TYPE unset
+## Where code_repository and planning_root live: feature_record/binding.py
 
-- `tests/integration/test-check-plan-routes.py --canonical-reader-self-test` exits 0 with ALL PASS
-  and 0 FAIL lines. `CASES` contains `*CANONICAL_READER_CASES` (commit 70e869d9, FEAT-2489 T-01:
-  "self-test ... runs by default"), so the integration runner already executes every self-test case,
-  T-07 included. `tests.yml`'s canonical-reader comment still says "which no runner invokes" (stale).
-  #2519 is CLOSED by PR #2530; #2516 is still OPEN. → T-04 adds a membership guard and fixes the
-  comment; D-03 records why no runner step passes the flag.
-- The tracked bin path is `.claude/skills/harness/bin/` (`.agents/skills` is a symlink);
-  `plan-merge.py check` resolves every anchor on that spelling.
-- `classify_feature` (`worktree_terminal.py`) returns three classes; absence is `unresolved` plus the
-  word `absent` in its reason. In the fleet walk, `_landed_dir_names` returning None is skipped, so an
-  unreadable tree and a missing one look the same (B-3).
-- `_sweep_shape_stamps` lists `os.path.join(main_checkout_root, ".harness")` by pathname with no
-  containment check, and interpolates raw names and reasons (B-5, B-6).
-- **spend `rework_rounds: 2` is wrong; it should be 1.** FEAT-2458's ledger holds regates at
-  `2026-11-24T13:21:14` (re-gating the plan FAIL, written by run-start of validate-c1, whose
-  `started_at` is the same second) and at `13:41:45` (re-gating validate-c1). `_regate_rounds` counts
-  a regate whose `at` is greater than or equal to the window opening, so the plan-FAIL regate counts.
-  run-start writes the regate in the same write as the run it opens, in the same second, so a
-  timestamp cannot separate the plan FAIL's regate from a same-second successor's. **Superseded at
-  c1 (scope finding):** the draft's "strictly after" cutoff is replaced by INV-40's ledger-order
-  association (`_owed_regate`: the k-th regate answers the k-th FAIL run); a regate counts when its
-  FAIL run is in the window, and only an unmatched regate keeps the old inclusive timestamp rule.
-  So `test_the_window_opens_exactly_at_the_first_validate_start` (all-PASS runs, unmatched regates)
-  stays unmodified and true. Cheap and reversible: a digest note, not a D-NN.
-- The B-9 refusal comes from `_run_end_digest` (`count != args.cycles_used`). Nothing records a
-  main-session round: ledger.md § The cycle budget says "A main-session-direct segment is not a run
-  and never appears in `runs:`".
+- binding.py describes itself as owning "a feature's repository binding". It already holds
+  `has_repository_binding`, which `_qa_code_repository` calls, and `_bound_mirror_binding`, which
+  reads fleet.yaml through `artifact_accessors.load_fleet` the same way. evidence.py stays the
+  evidence_ref protocol, and runs.py imports binding to resolve the commit.
+- validate-digest.py, as it stands at 3e979ae3:
+  - `_repo_root_for_feature` still has the same shape: realpath of four `..`.
+  - It has three in-module callers, and test-validate-digest.py calls it as well, so it stays as a
+    thin delegate to `record_binding.planning_root`.
+  - `_qa_code_repository` has exactly one call site, in `_qa_policy`.
+  - It returns `(planning_root, planning_root, None)` for an unbound feature. The moved body keeps
+    that.
+  - It used the module-global `artifact_accessors`, and imported `factory_config` and `binding`
+    locally. In binding.py both become local imports, as in `_bound_mirror_binding`.
+  - New in cycle 2: validate-digest gets a module-level
+    `from feature_record import binding as record_binding` beside the existing `record_read`
+    import. This is a cheap, reversible choice.
+- **canonical-reader row.** The row `validate-digest.py::_qa_code_repository::load_fleet#1` still
+  exists. Cycle 1's copy-source id, `feature_schema.py::_bound_mirror_binding::load_fleet#1`, no
+  longer exists. It is now `feature_record/binding.py::_bound_mirror_binding::load_fleet#1`, with
+  `dec174_category: none` and `execution_route: team`. The new row copies those fields, so its route
+  changes from validator/main-session-direct to none/team: same-file rows classify alike, and
+  `_route_finding` allows none/team. binding.py is already in `scanned_files`.
 
-## B-9 receipt — sharpened (D-02)
+## Other re-checks against current code at 671f03a7
 
-- **Location:** any regular file under the feature directory, recommended name
-  `notes/fix-round-<run-id>.json`, not `feature.json`. An `evidence_ref` hashes an immutable regular
-  feature-local file (`feature_schema.resolve_evidence_ref`), and `feature.json` is the mutable
-  ledger, so it cannot be its own evidence.
-- **Content:** the existing authorization-note protocol (`verify_evidence_ref`), tightened at c1:
-  `{"feature_id", "effects": [{"effect": "main-session-fix", "run_id", "digest": {path, sha256},
-  "cycles_used", "fix_commit"}]}`, exactly one `main-session-fix` effect in the note (new
-  `sole_effect=True`; the base matcher only requires one MATCHING effect), exactly those keys, and a
-  40-hex `fix_commit`. One shared `feature_schema.verify_fix_receipt` serves writer and INV-7; it also
-  requires the run's verdict FAIL and C = digest count + 1.
-- **Repository:** the writer resolves `fix_commit` with `code_grade.commit_oid` in the feature's code
-  repository: `validate-digest.py#_qa_code_repository` moves to `feature_schema.code_repository`
-  (bound feature → the `factory.repo` fleet checkout, DEC-221; else the four-up planning root). Its
-  `load_fleet` row in `canonical-reader-classification.json` moves with it. INV-7 checks shape only,
-  because a squash merge can drop the commit.
-- **Record:** `cycle_evidence.source: main-session-fix`, with `by`, `at` and `authorization`. The
-  schema enum and `run_evidence_problems` gain the branch (DEC-191 closed shape kept).
+- **Still present.** `_is_refused`, `_close_run_options` and the close-run run-end stage argv are in
+  runs.py. `_owed_regate` is in runs.py. `_judgements_of` is in judgements.py. `_not_before` and
+  `DISTILL_RUN` are in spend.py. `code_grade.commit_oid` is unchanged, and budget.py's `_commit_id`
+  shows the local-import precedent. `digest_record` is already a module import in runs.py and a
+  local import in evidence.py.
+- **Changed, so the intent changed.**
+  - `_run_end_digest(args, entry, changed, runs)` has no `doc`. Intent B.4 threads `doc` through
+    `_record_attribution` and `_attach_digest`.
+  - `cycle_evidence` is written in `_attach_digest`, so B.5 puts the replay rule there.
+  - `run_evidence_problems` now takes `feature_id`, and its source branch is in
+    `_check_cycle_evidence`.
+  - `_check_digest_record` gains `expected`. Cycle 1 said the receipt "replaces the equality check";
+    the verdict and artifact check is now kept explicitly.
+- **SKILL.md.** The rebase removed the close-run synopsis from ledger.md and pointed it at the
+  playbook. It is in `.claude/skills/harness/SKILL.md` step 6, so T-03 now owns SKILL.md through a
+  quoted anchor, and G.1 edits it there.
+- **Probes I ran.**
+  - `LEAD_DIGEST` with `VERDICT: FAIL` passes `validate-digest.py -- harness-eng-lead` (exit 0,
+    `digest ok`).
+  - The bound-feature fleet.yaml fixture loads and `workspace_path` gives `<ws>/product`.
+  - Every existing SpendTest run is PASS, so the existing cases still go through the timestamp
+    rule.
 
-## Decision dispositions
+## Not touched (left for the scope re-read)
 
-| DEC | disp | why |
-|---|---|---|
-| DEC-157 | amend → D-02 | its exact-equality clause is what refused FEAT-2458's round |
-| DEC-174 | keep | route |
-| DEC-180 | keep | stamps still deleted on terminal only |
-| DEC-238 | keep | sweep posture |
-| DEC-191 | keep | new source binds the same authorization note |
-| DEC-226 | keep | INV-39 bound unchanged |
-| DEC-159 | keep | close-run composition; receipt rides run-end |
-| DEC-221 | keep | fix commit resolved in the bound product repository |
-| DEC-227 | keep | spend stays advisory |
-| DEC-230 | keep | regate duty; spend matches regates to FAIL runs |
+I carried PF-d0e16ad5 (receipt contract) and PF-3a8e31e4 (fleet commit resolution) to their new
+homes unchanged. I left PF-590e7bb6 (strict cutoff) as it was. The panel findings on removed tasks
+are for the apply step to mark moot.
 
-FEAT-2458 D-01 (three results) was plan-local (`dec: none`). No DECISIONS.md entry records it, so the
-reversal lives in D-01 here and the shipped record stays untouched.
+## Check output
 
-## Open
+```
+OK T-03 12 anchor(s) resolved
+OK T-05 2 anchor(s) resolved
+CHECK .../FEAT-2516-stamp-sweep-hardening/plan.yaml against .../FEAT-2516-stamp-sweep-hardening: 2 task(s), 14 anchor(s) resolved, 0 failure(s)
+exit=0
+```
 
-- #2519 is excluded from `source_issues` because it is already closed. Ship should still name it as
-  delivered by #2530.
-- The B-5 stamp-path containment check in T-02 step 3 is close to unreachable: listed basenames hold
-  no separator, and leaf symlinks are skipped first. It is kept because the operator ruled "or a stamp
-  path". The redirected-`.harness` row and the leaf-symlink row carry the evidence.
+`check-plan-routes.py <plan.yaml>`: 0 violations. It prints a TASK DEVIATION for T-05: the
+DECISIONS files are granted to the documentor but declared main-session-direct, which is the
+expected DEC-174 carve-out.
+
+No task-changing call printed `APPROVAL-RESET:`, so I made no gh-sync call.
+
+## Cycle-2 apply step (after the one scope re-read)
+
+**BLUF.** I applied the reader's four must-fix remedies to T-03 and decisions_affected, recorded
+the cycle-2 panel, and set the dispositions. `plan-merge.py check` exits 0 with 2 tasks, 14
+anchors and 0 failures. **No reader has read any of these remedies.** They landed after the single
+re-read (review-harness-code-reviewer-plan-c2.md), and operator ruling 3 allows no further panel.
+The plan stays pending.
+
+### Remedies applied (unread)
+
+- **PF-d0e16ad5 (receipt contract).** Two changes:
+  - B.3 now refuses, whatever flags are given, any `--verdict` other than FAIL on an entry whose
+    cycle_evidence source is main-session-fix. A bare same-count run-end keeps the receipt in
+    `_record_attribution` without entering `_attach_digest`, so the guard has to sit in
+    `_record_run_end`.
+  - A.2 `verify_fix_receipt` now requires the authenticated digest itself to carry `VERDICT: FAIL`
+    and an `artifact` key, the same record shape `_check_digest_record` requires. INV-7 reaches it
+    through C.
+  - Tests in F.2: a bare `run-end --verdict PASS --cycles-used 1` after an accepted receipt is
+    refused (stderr `stays FAIL`, bytes unchanged). A reader problem containing `VERDICT FAIL` is
+    raised for a FAIL ledger with a receipt over a PASS digest.
+- **PF-3a8e31e4 (fleet commit resolution).** B.4 adds `runs.py::_require_checkout_root`. It
+  requires `git -C <code_root> rev-parse --show-toplevel` to realpath-equal `code_root` before
+  `code_grade.commit_oid` runs.
+  - I put it in runs.py, not binding.py, so that neither the validator nor check_state (which
+    loads `feature_record.binding` via board.py) gains a git spawn.
+  - Tests in F.2, each on a fresh pre-attribution record:
+    - A plain `ws/product` directory nested under the planning repo, refused with
+      `is not a git checkout root`.
+    - A planning-only `fix_commit`, refused with `fix receipt names no commit in` and asserted NOT
+      to contain `conflicts with the recorded receipt`.
+- **PF-7265e1a2 (unsegmented layout).**
+  - A.3's `code_repository(record, planning_root)` now takes the root from its caller.
+  - The new `binding.feature_repository_root(feature_dir)` resolves both `FEATURE_JSON_TAIL`
+    layouts: `REPO/.harness/features/FEAT` and `REPO/.harness/SEG/features/FEAT`.
+  - validate-digest.py passes its own unchanged four-level `_repo_root_for_feature`. This reverts
+    the cycle-2 draft's delegation to `planning_root`, so the validator's checkout contract is
+    untouched.
+  - Test in F.2: unsegmented acceptance on the base fixture's
+    `self.tmp/.harness/features/FEAT-77-record`.
+  - verify gains greps for `def feature_repository_root` and `def _require_checkout_root`.
+- **PF-78bdb915 (DEC-256).** Added a decisions_affected `keep` row for DEC-256. The clause is the
+  single-line exact substring from its QA review-pin exception D-01 bullet; I checked it with a
+  count==1 substring check against the current DECISIONS.md.
+- **D-02.** Its choice text now also says: the code repository must be its own checkout root, in
+  either layout; a receipt-attributed run stays FAIL; INV-7 checks that the digest records FAIL.
+
+### Calls (stdout captured in the run; abridged)
+
+- `apply` (D-02.choice, T-03.intent, T-03.verify): `REPLACED` ×3, `APPLIED`, exit 0.
+- `set-key decisions_affected`: `APPLIED`, exit 0.
+- `record-panel --cycle 2`: CARRIED PF-d0e16ad5 and PF-3a8e31e4; ADDED PF-7265e1a2 and
+  PF-78bdb915; exit 0.
+- `set-panel`: `PANEL cycle 2`, `APPLIED`, exit 0.
+- No call printed `APPROVAL-RESET:`, so I made no gh-sync call.
+- `check`: `OK T-03 12 anchor(s)`, `OK T-05 2 anchor(s)`, 0 failures, exit 0.
+
+The check-state lines after each write (BRIEF unapproved, INV-25/29 on a scratchpad worktree, INV-37
+receipt) existed before this step and are not caused by it.
+
+### Dispositions
+
+**Resolved, resolved_by T-03:**
+
+- PF-d0e16ad5, PF-3a8e31e4, PF-7265e1a2: remedied in this step, unread.
+- PF-590e7bb6, PF-92bcdbb1: the re-read graded both closed.
+- PF-6cf433c1: G.2 qualifies exact equality, G.1 adds the flags to the synopsis, and G.3 shows both
+  command forms and the recommended-versus-required note name. The stamp-containment half is moot by
+  ruling 1.
+
+**Resolved, no task:**
+
+- PF-94a4029f: DEC-159, DEC-221, DEC-227 and DEC-230 keep rows are present, and the re-read found
+  them sound.
+- PF-78bdb915: the plan-text row, unread.
+
+**Open:** PF-4901fed0 (T-01), PF-f289edde (T-02), PF-980581d8 (D-03) and PF-06e545e7 (T-04). All
+four are moot by ruling 1, not fixed.

@@ -3,11 +3,11 @@
 ## Current
 
 - feature: FEAT-2516-stamp-sweep-hardening
-- run: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/runs/2026-11-26-01-plan-product/state.yaml
+- run: .harness/harness/features/FEAT-2516-stamp-sweep-hardening/runs/2026-11-27-01-plan-product/state.yaml
 - squad: none
 - status: awaiting-user
 
 ## Open Questions
 
-- Q-A (signature, blocking): ratify or overrule plan D-03, which replaces the grilling's settled "have the integration runner invoke --canonical-reader-self-test" with a CASES-membership guard. Main session blocked on the operator.
-- Q-B (signature, blocking): two high scope findings on T-03 (PF-d0e16ad5…, PF-3a8e31e4…) were remedied at apply and not re-read. Accept as applied at signature, or order a targeted scope re-read first.
+- Q-1 (signature, blocking): the one scope re-read (cycle 2) held PF-d0e16ad5 and PF-3a8e31e4 open and raised PF-7265e1a2 (high). pm applied remedies to T-03 and marked all three resolved_by T-03; no reader has read that text. Sign after reading it, or order one more targeted re-read.
+- Q-2 (signature, non-blocking): PF-4901fed0, PF-f289edde, PF-980581d8, PF-06e545e7 name only removed tasks/decisions and stay open as moot; none is high.
