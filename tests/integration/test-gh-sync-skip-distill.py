@@ -15,6 +15,8 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 _anchor_sys.path.insert(0, _anchor_tests)
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -23,7 +25,9 @@ import sys
 import tempfile
 
 import working_files
-from gh_sync_support import BIN_DIR, SYNC, check, report, stage_working_files, working_dirs_present
+from gh_sync_support import (BIN_DIR, SYNC, check, load_gh_sync, report, stage_working_files,
+                             working_dirs_present)
+from harness_config_support import write_config
 from git_support import checked_git, git, init_repo  # tests/ is on sys.path via gh_sync_support
 
 FEATURE_WORKTREE = os.path.join(BIN_DIR, "feature-worktree.py")
@@ -40,11 +44,11 @@ def feature_doc(feature_id, **extra):
     return doc
 
 
-def owner_fixture(tmp, feature_id="FEAT-901-shipped", station="done", extra_doc=None):
+def owner_fixture(tmp, feature_id="FEAT-901-shipped", station="done", extra_doc=None, name="O"):
     """The owner checkout: marker, SPEC probe, ignore rules, one committed feature at `station`
     with notes/x.md, runs/r/digest.md, observations/a.md, a listed project note and an unlisted
     one. Returns (owner, feature dir, {note name: path}, reason file, gh log)."""
-    owner = os.path.join(tmp, "O")
+    owner = os.path.join(tmp, name)
     os.makedirs(os.path.join(owner, ".harness", "harness", "docs"))
     init_repo(owner, "main", identity=("test@example.com", "Test"), git=checked_git)
     open(os.path.join(owner, ".harness", "team-config.yaml"), "w").write("agents: {}\n")
@@ -75,11 +79,11 @@ def fake_gh(tmp):
     return bindir, log
 
 
-def sync(owner, feat, reason, *flags, path=None, tmp=None):
+def sync(owner, feat, reason, *flags, path=None, tmp=None, project_dir=None):
     bindir, _log = fake_gh(tmp)
     env = dict(os.environ)
     env.pop("HARNESS_AGENT_TYPE", None)
-    env["HARNESS_PROJECT_DIR"] = owner
+    env["HARNESS_PROJECT_DIR"] = project_dir or owner
     env["FACTORY_GH"] = os.path.join(bindir, "gh")
     env["PATH"] = path if path is not None else bindir + os.pathsep + env["PATH"]
     return subprocess.run([sys.executable, SYNC, "skip-distill", feat, "--reason-file", reason]
@@ -168,70 +172,67 @@ def case_preview_and_record():
               and git(owner, "rev-parse", "HEAD").stdout == head, r.stdout + r.stderr)
 
 
+def refused_untouched(name, owner, feat, reason, tmp, fragment=""):
+    """Run skip-distill --yes and check it exits 1, says `fragment`, and changes no byte."""
+    before = snapshot(owner)
+    r = sync(owner, feat, reason, "--yes", tmp=tmp)
+    out = r.stdout + r.stderr
+    check(name, r.returncode == 1 and fragment in out and snapshot(owner) == before, out)
+
+
 def case_refusals():
     with tempfile.TemporaryDirectory() as tmp:
-        owner, feat, notes, reason = owner_fixture(tmp, station="review")
-        before = snapshot(owner)
-        r = sync(owner, feat, reason, "--yes", tmp=tmp)
-        check("a feature at review exits 1 with nothing written or removed",
-              r.returncode == 1 and "not done" in r.stdout + r.stderr and snapshot(owner) == before,
-              r.stdout + r.stderr)
+        owner, feat, _notes, reason = owner_fixture(tmp, station="review")
+        refused_untouched("a feature at review exits 1 with nothing written or removed",
+                          owner, feat, reason, tmp, "not done")
 
+
+def case_refusals_worktree_and_reason():
     with tempfile.TemporaryDirectory() as tmp:
-        owner, feat, notes, reason = owner_fixture(tmp)
+        owner, feat, _notes, reason = owner_fixture(tmp)
         wt_feat = os.path.join(owner, ".claude", "worktrees", "harness", "FEAT-901",
                                ".harness", "harness", "features", "FEAT-901-shipped")
         shutil.copytree(feat, wt_feat)
-        before = snapshot(owner)
-        r = sync(owner, wt_feat, reason, "--yes", tmp=tmp)
-        check("a worktree path is refused as ship refuses it (exit 1, nothing written)",
-              r.returncode == 1 and "resolves inside a worktree" in r.stdout + r.stderr
-              and snapshot(owner) == before, r.stdout + r.stderr)
-
+        refused_untouched("a worktree path is refused as ship refuses it (exit 1, nothing written)",
+                          owner, wt_feat, reason, tmp, "resolves inside a worktree")
         open(reason, "w").write("  \n\t\n")
-        r = sync(owner, feat, reason, "--yes", tmp=tmp)
-        check("an empty reason file exits 1 with nothing written",
-              r.returncode == 1 and snapshot(owner) == before, r.stdout + r.stderr)
+        refused_untouched("an empty reason file exits 1 with nothing written",
+                          owner, feat, reason, tmp)
         open(reason, "w").write("x" * 241)
-        r = sync(owner, feat, reason, "--yes", tmp=tmp)
-        check("a reason over 240 characters exits 1 naming the limit, nothing written",
-              r.returncode == 1 and "240" in r.stdout + r.stderr and snapshot(owner) == before,
-              r.stdout + r.stderr)
+        refused_untouched("a reason over 240 characters exits 1 naming the limit, nothing written",
+                          owner, feat, reason, tmp, "240")
 
+
+def case_refusals_unwritable_feature_json():
     with tempfile.TemporaryDirectory() as tmp:
         # The judgement write cannot land: the feature directory is read-only, so feature-record's
         # atomic replace is refused. (A pre-existing undeclared key does not refuse it: the writer
         # enforces monotonic non-regression, so a base problem is tolerated.)
-        owner, feat, notes, reason = owner_fixture(tmp)
-        before = snapshot(owner)
+        owner, feat, _notes, reason = owner_fixture(tmp)
         os.chmod(feat, 0o555)
         try:
-            r = sync(owner, feat, reason, "--yes", tmp=tmp)
+            refused_untouched("a feature.json the judgement write refuses exits 1 and removes "
+                              "nothing", owner, feat, reason, tmp, "decline not recorded")
         finally:
             os.chmod(feat, 0o755)
-        check("a feature.json the judgement write refuses exits 1 and removes nothing",
-              r.returncode == 1 and "decline not recorded" in r.stdout + r.stderr
-              and snapshot(owner) == before and all_kept(feat, notes), r.stdout + r.stderr)
 
+
+def case_refusals_dirty_feature_json():
     with tempfile.TemporaryDirectory() as tmp:
-        owner, feat, notes, reason = owner_fixture(tmp)
+        owner, feat, _notes, reason = owner_fixture(tmp)
         fj = os.path.join(feat, "feature.json")
         doc = json.load(open(fj))
         doc["cycles_used"] = 1
         json.dump(doc, open(fj, "w"), indent=2)
-        before = snapshot(owner)
-        r = sync(owner, feat, reason, "--yes", tmp=tmp)
-        check("a feature.json with an uncommitted unrelated change and no decline exits 1 with "
-              "nothing written or removed",
-              r.returncode == 1 and "uncommitted changes" in r.stdout + r.stderr
-              and snapshot(owner) == before, r.stdout + r.stderr)
+        refused_untouched("a feature.json with an uncommitted unrelated change and no decline "
+                          "exits 1 with nothing written or removed",
+                          owner, feat, reason, tmp, "uncommitted changes")
 
 
 def case_environment_never_skips():
     with tempfile.TemporaryDirectory() as tmp:
         owner, feat, notes, reason = owner_fixture(tmp)
-        open(os.path.join(owner, ".harness", "harness.json"), "w").write(
-            json.dumps({"github": {"sync": False}}))
+        write_config(os.path.join(owner, ".harness", "harness.json"), {"github": {"sync": False}})
         git(owner, "add", "-A")
         git(owner, "commit", "-q", "-m", "sync off")
         r = sync(owner, feat, reason, "--yes", tmp=tmp)
@@ -319,13 +320,70 @@ def case_retained_short_id_worktree():
               r.returncode == 0 and working_dirs_present(wt_feat) == [], r.stdout + r.stderr)
 
 
+def case_stale_project_dir_cannot_redirect_cleanup():
+    """HARNESS_PROJECT_DIR names a different marked checkout holding the same shipped feature:
+    the cleanup child is bound to the owner of the feature directory skip-distill committed in,
+    so the owner's working files go and the decoy's stay."""
+    with tempfile.TemporaryDirectory() as tmp:
+        owner, feat, notes, reason = owner_fixture(tmp)
+        decoy, decoy_feat, decoy_notes, _ = owner_fixture(tmp, name="X")
+        r = sync(owner, feat, reason, "--yes", tmp=tmp, project_dir=decoy)
+        out = r.stdout + r.stderr
+        check("a conflicting HARNESS_PROJECT_DIR: --yes cleans the committed feature's owner",
+              r.returncode == 0 and committed_clean(owner, feat) and cleaned(feat, notes), out)
+        check("a conflicting HARNESS_PROJECT_DIR: the other checkout's working files are untouched",
+              all_kept(decoy_feat, decoy_notes), out)
+
+
+def case_cleanup_launch_failure_exits_4():
+    """feature-worktree.py cannot be launched after the decline is committed: exit 4 naming the
+    clean command, never a traceback (SC-17)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        owner, feat, notes, reason = owner_fixture(tmp)
+        ghs = load_gh_sync()
+        real_run = ghs.subprocess.run
+
+        def run(argv, *args, **kwargs):
+            if any(str(a).endswith("feature-worktree.py") for a in argv):
+                raise OSError("simulated launch failure")
+            return real_run(argv, *args, **kwargs)
+
+        out, err = io.StringIO(), io.StringIO()
+        saved = os.environ.get("HARNESS_PROJECT_DIR")
+        os.environ["HARNESS_PROJECT_DIR"] = owner
+        ghs.subprocess.run, code = run, None
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                ghs.cmd_skip_distill(feat, reason, yes=True)
+        except SystemExit as exc:
+            code = exc.code
+        except OSError as exc:
+            code = f"traceback: {exc}"
+        finally:
+            ghs.subprocess.run = real_run
+            if saved is None:
+                os.environ.pop("HARNESS_PROJECT_DIR", None)
+            else:
+                os.environ["HARNESS_PROJECT_DIR"] = saved
+        check("cleanup launch OSError after the commit exits 4 naming the clean command",
+              code == 4 and committed_clean(owner, feat) and all_kept(feat, notes)
+              and "feature-worktree.py clean --repo harness --id FEAT-901-shipped" in err.getvalue()
+              and "do not re-run skip-distill" in err.getvalue(),
+              f"code={code!r} {out.getvalue()}{err.getvalue()}")
+
+
 def main():
     case_preview_and_record()
     case_refusals()
+    case_refusals_worktree_and_reason()
+    case_refusals_unwritable_feature_json()
+    case_refusals_dirty_feature_json()
     case_environment_never_skips()
     case_commit_failure_then_retry()
     case_commit_takes_feature_json_alone()
     case_retained_short_id_worktree()
+    case_stale_project_dir_cannot_redirect_cleanup()
+    case_cleanup_launch_failure_exits_4()
     return report()
 
 

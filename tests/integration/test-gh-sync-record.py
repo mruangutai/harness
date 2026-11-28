@@ -22,7 +22,8 @@ import tempfile
 
 from gh_sync_support import (
     FAKE_GH_STATIONS, add_plan_station, calls, check, install_gh, read_feature_json,
-    read_plan_station, report, run, stage, stage_station, write_feature_json)
+    read_plan_station, report, run, stage, stage_station, write_feature_json,
+    write_validate_handoff)
 
 
 # ---------- T-03 (FEAT-26): record-pr derives and records the PR number from the recorded
@@ -81,6 +82,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "created",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featG)  # the rewrite above drops stage()'s validator PASS run
         r = run(["ship", featG], tmpG)
         logG = calls(tmpG)
         close40G = [l for l in logG if l.startswith("issue close 40")]
@@ -129,6 +131,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featH)
         r = run(["ship", featH], tmpH)
         logH = calls(tmpH)
         check("ship leaves an adopted parent open",
@@ -149,6 +152,7 @@ def main():
             feature_id="FEAT-07-ship-noorigin",
             github={"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featI)
         r = run(["ship", featI], tmpI)
         logI = calls(tmpI)
         docI = read_feature_json(os.path.join(featI, "feature.json"))
@@ -172,6 +176,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featJ)
         bodyJ = os.path.join(tmpJ, "body.txt")
         open(bodyJ, "w").write("ship review notes, signed")
         r = run(["ship", featJ, "--body-file", bodyJ], tmpJ)
@@ -192,6 +197,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featK)
         r = run(["ship", featK], tmpK)
         logK = calls(tmpK)
         check("ship without --body-file posts nothing",
@@ -208,6 +214,7 @@ def main():
             github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
                     "attached": ["T-01"], "issues": {"T-01": 41}},
         )
+        write_validate_handoff(featL)
         emptyL = os.path.join(tmpL, "empty.txt")
         open(emptyL, "w").close()
         r = run(["ship", featL, "--body-file", emptyL], tmpL)
@@ -503,6 +510,7 @@ def main():
         _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None, status="Review",
                     github={"milestone": 7, "parent": 40, "parent_origin": "created",
                             "attached": ["T-01"], "issues": {"T-01": 41}})
+        write_validate_handoff(featPR6)
         for argv in (["init", "-q", "-b", "main"], ["config", "user.email", "t@example.com"],
                      ["config", "user.name", "t"], ["add", "-A"], ["commit", "-qm", "fixture"]):
             subprocess.run(["git", *argv], cwd=tmpPR6, capture_output=True)

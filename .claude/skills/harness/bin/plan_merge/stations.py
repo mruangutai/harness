@@ -399,7 +399,15 @@ def _clean_rejected(plan_path):
               f"cleanup failed: {exc}", file=sys.stderr)
         for path in removed:
             print(f"plan-merge: removed before the failure: {path}", file=sys.stderr)
-        print(f"plan-merge: retry the cleanup alone with: "
-              f"{working_files.retry_command(feature_dir)} - do not write the station again",
-              file=sys.stderr)
+        print(f"plan-merge: retry the cleanup alone with: {_retry_command(feature_dir)} - do "
+              f"not write the station again", file=sys.stderr)
         return 10
+
+
+def _retry_command(feature_dir):
+    """working_files.retry_command, or a sentence naming why none resolves: this report runs
+    after the station landed, so a lookup failure must not turn exit 10 into a traceback."""
+    try:
+        return working_files.retry_command(feature_dir)
+    except working_files.WorkingFilesError as exc:
+        return f"feature-worktree.py clean (no command resolves: {exc})"

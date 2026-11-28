@@ -89,9 +89,35 @@ def case_working_files_error_before_any_removal():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_flat_layout_without_a_retry_command():
+    """A flat .harness/features/<id> layout resolves no feature-worktree.py clean command; the
+    report still returns 10 and names why, rather than raising out of the failure branch."""
+    root = tempfile.mkdtemp(prefix="set-station-cleanup-flat-")
+    feature_dir = os.path.join(root, ".harness", "features", "FEAT-0-flat")
+    os.makedirs(os.path.join(feature_dir, "notes"))
+    plan = os.path.join(feature_dir, "plan.yaml")
+    with open(plan, "w", encoding="utf-8") as f:
+        f.write("feature: FEAT-0-flat\nstatus: rejected\ntasks: []\n")
+    try:
+        def fake_clean(feature_dir, owner_root, dry_run=False, emit=print):
+            raise OSError("simulated removal failure")
+
+        try:
+            rc, _out, err = run(plan, fake_clean)
+        except Exception as exc:  # the defect: the retry-command lookup raised
+            rc, err = None, f"{type(exc).__name__}: {exc}"
+        check("flat layout: a cleanup failure still returns 10", rc == 10, f"rc={rc} {err}")
+        check("flat layout: the report says the station was recorded and why no clean "
+              "command resolves",
+              "station rejected was recorded" in err and "no command resolves" in err, err)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     case_oserror_after_a_removal()
     case_working_files_error_before_any_removal()
+    case_flat_layout_without_a_retry_command()
     return 1 if FAILS else 0
 
 
