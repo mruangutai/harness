@@ -487,7 +487,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 keeps clean-checkout proof collection and the immutable pin of the enforcement-layer change with the direct main-session work.
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - .harness/harness/features/FEAT-2581-feature-record-package/notes/**
     verify: |
