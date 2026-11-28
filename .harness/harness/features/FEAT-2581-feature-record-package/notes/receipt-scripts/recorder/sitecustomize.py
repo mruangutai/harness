@@ -135,6 +135,30 @@ def _write_all(fd, data):
         view = view[os.write(fd, view):]
 
 
+def _opt_b64(value):
+    return None if value is None else _b64(value)
+
+
+def _cli_record(child, before, after):
+    ordinal = _locked_counter("cli")
+    return {
+        "id": "%s#%d" % (os.environ.get("FEAT2581_TESTFILE", "none"), ordinal),
+        "kind": "cli", "class": _cli_class(sys.argv[0]),
+        "streams": {"argv": _b64(_argv_bytes(sys.orig_argv)), "cwd": _b64(os.fsencode(os.getcwd())),
+                    "exit": _b64(str(child.returncode).encode()), "stdout": _b64(child.stdout),
+                    "stderr": _b64(child.stderr), "file_before": _opt_b64(before),
+                    "file_after": _opt_b64(after)}}
+
+
+def _exit_as(returncode):
+    """Exit with the child's status; a child killed by a signal kills this process the same way."""
+    if returncode < 0:
+        import signal
+        signal.signal(-returncode, signal.SIG_DFL)
+        os.kill(os.getpid(), -returncode)
+    os._exit(returncode)
+
+
 def _intercept_cli():
     """Run the identical command once as a child; record it; relay; exit with its status."""
     import subprocess
@@ -146,23 +170,10 @@ def _intercept_cli():
     except OSError as exc:
         _fail("feature-record.py child did not start: %r" % (exc,))
         raise
-    after = _read_or_none(target)
-    ordinal = _locked_counter("cli")
-    to_b64 = lambda v: None if v is None else _b64(v)  # noqa: E731
-    _write_record({
-        "id": "%s#%d" % (os.environ.get("FEAT2581_TESTFILE", "none"), ordinal),
-        "kind": "cli", "class": _cli_class(sys.argv[0]),
-        "streams": {"argv": _b64(_argv_bytes(sys.orig_argv)), "cwd": _b64(os.fsencode(os.getcwd())),
-                    "exit": _b64(str(child.returncode).encode()), "stdout": _b64(child.stdout),
-                    "stderr": _b64(child.stderr), "file_before": to_b64(before),
-                    "file_after": to_b64(after)}})
+    _write_record(_cli_record(child, before, _read_or_none(target)))
     _write_all(1, child.stdout)
     _write_all(2, child.stderr)
-    if child.returncode < 0:
-        import signal
-        signal.signal(-child.returncode, signal.SIG_DFL)
-        os.kill(os.getpid(), -child.returncode)
-    os._exit(child.returncode)
+    _exit_as(child.returncode)
 
 
 def _gate_script(args):
@@ -188,6 +199,36 @@ def _inject_env(env):
     if recorder and recorder not in paths:
         env["PYTHONPATH"] = os.pathsep.join([recorder, *paths])
     return env
+
+
+def _bytes_mode(proc, input):
+    """Point a text-mode Popen at its byte buffers; return the codecs and the encoded input."""
+    codecs = {}
+    for name in ("stdin", "stdout", "stderr"):
+        stream = getattr(proc, name)
+        if stream is not None:
+            codecs[name] = (stream.encoding, stream.errors)
+            setattr(proc, name, stream.buffer)
+    if isinstance(input, str):
+        input = input.encode(*codecs["stdin"])
+    proc.text_mode = False
+    return codecs, input
+
+
+def _text_result(proc, codecs, out, err):
+    out = None if out is None else proc._translate_newlines(out, *codecs["stdout"])
+    err = None if err is None else proc._translate_newlines(err, *codecs["stderr"])
+    return out, err
+
+
+def _write_gate(proc, gate, out, err):
+    argv, cwd = gate
+    _write_record({
+        "id": "gate#%s#%d" % (os.environ.get("FEAT2581_TESTFILE", "none"), _locked_counter("gate")),
+        "kind": "gate",
+        "streams": {"argv": _b64(_argv_bytes(argv)), "cwd": _b64(os.fsencode(cwd)),
+                    "exit": _b64(str(proc.returncode).encode()), "stdout": _b64(out or b""),
+                    "stderr": _b64(err or b"")}})
 
 
 def _install_subprocess_hooks():
@@ -218,31 +259,15 @@ def _install_subprocess_hooks():
         saved = (self.stdin, self.stdout, self.stderr)
         codecs = {}
         if text:
-            for name in ("stdin", "stdout", "stderr"):
-                stream = getattr(self, name)
-                if stream is not None:
-                    codecs[name] = (stream.encoding, stream.errors)
-                    setattr(self, name, stream.buffer)
-            if isinstance(input, str):
-                input = input.encode(*codecs["stdin"])
-            self.text_mode = False
+            codecs, input = _bytes_mode(self, input)
         try:
             out, err = original_communicate(self, input, timeout)
         finally:
             if text:
                 self.text_mode = True
                 self.stdin, self.stdout, self.stderr = saved
-        argv, cwd = gate
-        _write_record({
-            "id": "gate#%s#%d" % (os.environ.get("FEAT2581_TESTFILE", "none"), _locked_counter("gate")),
-            "kind": "gate",
-            "streams": {"argv": _b64(_argv_bytes(argv)), "cwd": _b64(os.fsencode(cwd)),
-                        "exit": _b64(str(self.returncode).encode()), "stdout": _b64(out or b""),
-                        "stderr": _b64(err or b"")}})
-        if text:
-            out = None if out is None else self._translate_newlines(out, *codecs["stdout"])
-            err = None if err is None else self._translate_newlines(err, *codecs["stderr"])
-        return out, err
+        _write_gate(self, gate, out, err)
+        return _text_result(self, codecs, out, err) if text else (out, err)
 
     popen.__init__ = __init__
     popen.communicate = communicate

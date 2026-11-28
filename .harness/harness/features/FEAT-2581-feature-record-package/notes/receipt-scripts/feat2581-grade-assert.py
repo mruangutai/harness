@@ -56,26 +56,31 @@ def package_files(ref):
     return ["feature_record/" + n for n in proc.stdout.split() if n.endswith(".py")] if proc.returncode == 0 else []
 
 
-def main():
-    ref = sys.argv[sys.argv.index("--ref") + 1]
-    cg = grader()
-    package = package_files(ref)
-    if not package:
-        below = sorted((q, g) for q, (g, _) in grade(cg, ref, ["feature-record.py", "feature_schema.py"]).items() if g < 4)
-        for qualname, value in below:
-            print("below_bar: %s %d" % (qualname, value))
-        sys.exit(1)
-    rows = grade(cg, ref, ["feature-record.py", *package])
-    baseline = grade(cg, BASE, ["feature-record.py", "feature_schema.py"])
+def below_bar_report(cg, ref):
+    """A ref without feature_record/: list the functions below 4 and refuse."""
+    below = sorted((q, g) for q, (g, _) in grade(cg, ref, ["feature-record.py", "feature_schema.py"]).items() if g < 4)
+    for qualname, value in below:
+        print("below_bar: %s %d" % (qualname, value))
+    return 1
+
+
+def placement_problems(rows):
+    """Below-bar functions, then any of the twelve not at its owner."""
     problems = ["below bar: %s %d (%s)" % (q, g, p) for q, (g, p) in sorted(rows.items()) if g < 4]
-    problems += ["twelve: %s not at %s (found %s)" % (q, owner, rows.get(q, (None, "absent"))[1])
-                 for q, owner in sorted(TWELVE.items()) if rows.get(q, (None, None))[1] != owner]
-    moved = sorted(q for q in rows if q in baseline and q not in TWELVE)
-    problems += ["moved: %s grade %d at the baseline, %d at %s" % (q, baseline[q][0], rows[q][0], ref[:12])
-                 for q in moved if rows[q][0] != baseline[q][0]]
+    return problems + ["twelve: %s not at %s (found %s)" % (q, owner, rows.get(q, (None, "absent"))[1])
+                       for q, owner in sorted(TWELVE.items()) if rows.get(q, (None, None))[1] != owner]
+
+
+def drift_problems(rows, baseline, moved, ref):
+    """Moved functions whose grade changed, then baseline functions that vanished."""
+    problems = ["moved: %s grade %d at the baseline, %d at %s" % (q, baseline[q][0], rows[q][0], ref[:12])
+                for q in moved if rows[q][0] != baseline[q][0]]
     # A nested helper of one of the twelve is rewritten with its owner, not moved.
-    problems += ["missing: %s (baseline %s)" % (q, baseline[q][1]) for q in sorted(baseline)
-                 if q not in rows and q.split(".")[0] not in TWELVE]
+    return problems + ["missing: %s (baseline %s)" % (q, baseline[q][1]) for q in sorted(baseline)
+                       if q not in rows and q.split(".")[0] not in TWELVE]
+
+
+def report(rows, baseline, moved, problems, files):
     for qualname in sorted(TWELVE):
         print("twelve: %s %s -> %s at %s" % (qualname, baseline.get(qualname, (None,))[0],
                                               rows.get(qualname, (None,))[0], TWELVE[qualname]))
@@ -84,8 +89,21 @@ def main():
         print("new: %s %d %s" % (qualname, rows[qualname][0], rows[qualname][1]))
     for problem in problems:
         print("RED " + problem)
-    print("grade_bar %s: %d function(s) over %d file(s)" % ("RED" if problems else "GREEN", len(rows), 1 + len(package)))
-    sys.exit(1 if problems else 0)
+    print("grade_bar %s: %d function(s) over %d file(s)" % ("RED" if problems else "GREEN", len(rows), files))
+    return 1 if problems else 0
+
+
+def main():
+    ref = sys.argv[sys.argv.index("--ref") + 1]
+    cg = grader()
+    package = package_files(ref)
+    if not package:
+        sys.exit(below_bar_report(cg, ref))
+    rows = grade(cg, ref, ["feature-record.py", *package])
+    baseline = grade(cg, BASE, ["feature-record.py", "feature_schema.py"])
+    moved = sorted(q for q in rows if q in baseline and q not in TWELVE)
+    problems = placement_problems(rows) + drift_problems(rows, baseline, moved, ref)
+    sys.exit(report(rows, baseline, moved, problems, 1 + len(package)))
 
 
 main()

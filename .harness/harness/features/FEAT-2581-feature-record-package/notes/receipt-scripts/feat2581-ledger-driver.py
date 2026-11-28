@@ -63,33 +63,41 @@ def calibration(env):
                    env=dict(env, FEAT2581_TESTFILE="calibration", FEAT2581_TESTINDEX="000"))
 
 
+def suite_argv(rel, junit):
+    if rel == OMP:
+        return ["bun", "test", "--preload", PRELOAD, "--reporter=junit", "--reporter-outfile=" + junit, rel]
+    return [sys.executable, rel]
+
+
+def suite_cases(rel, junit):
+    path = junit if rel == OMP else os.path.join(
+        LEDGER, "cases", "".join(c if c.isalnum() or c in "-_." else "_" for c in rel) + ".txt")
+    if rel != OMP and not os.path.exists(path):
+        return b""
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
+def proc_streams(proc):
+    return {"exit": b64(str(proc.returncode).encode()), "stdout": b64(proc.stdout), "stderr": b64(proc.stderr)}
+
+
 def suite(env, index, rel):
     test_env = dict(env, FEAT2581_TESTFILE=rel, FEAT2581_TESTINDEX="%03d" % index, FEAT2581_TOP="1")
     junit = os.path.join(LEDGER, "omp-hooks.junit.xml")
-    if rel == OMP:
-        argv = ["bun", "test", "--preload", PRELOAD, "--reporter=junit", "--reporter-outfile=" + junit, rel]
-    else:
-        argv = [sys.executable, rel]
+    argv = suite_argv(rel, junit)
     proc = subprocess.run(argv, cwd=checkout, env=test_env, capture_output=True, stdin=subprocess.DEVNULL)
-    if rel == OMP:
-        with open(junit, "rb") as handle:
-            cases = handle.read()
-    else:
-        path = os.path.join(LEDGER, "cases", "".join(c if c.isalnum() or c in "-_." else "_" for c in rel) + ".txt")
-        cases = open(path, "rb").read() if os.path.exists(path) else b""
+    cases = suite_cases(rel, junit)
     print("%s %s exit %d" % (side, rel, proc.returncode), flush=True)
     return {"id": "suite#" + rel, "kind": "suite", "streams": {
-        "argv": b64(argv_bytes(argv)), "cwd": b64(os.fsencode(checkout)),
-        "exit": b64(str(proc.returncode).encode()), "stdout": b64(proc.stdout), "stderr": b64(proc.stderr),
-        "cases": b64(cases)}}
+        "argv": b64(argv_bytes(argv)), "cwd": b64(os.fsencode(checkout)), **proc_streams(proc), "cases": b64(cases)}}
 
 
 def audit():
     env = {k: v for k, v in os.environ.items() if k not in ("HARNESS_AGENT_TYPE", "CLAUDE_PROJECT_DIR", "PYTHONPATH")}
     proc = subprocess.run([os.path.join(checkout, ".agents/skills/harness/bin/check-plan-routes.py"),
                            "--canonical-reader-audit"], cwd=checkout, env=env, capture_output=True)
-    return {"id": "audit", "kind": "audit", "streams": {
-        "exit": b64(str(proc.returncode).encode()), "stdout": b64(proc.stdout), "stderr": b64(proc.stderr)}}
+    return {"id": "audit", "kind": "audit", "streams": proc_streams(proc)}
 
 
 def replay():
@@ -99,22 +107,32 @@ def replay():
         return json.load(handle)
 
 
-def main():
+def private_dir(path):
+    """Remove path and recreate it mode 0700. A tree this user cannot remove, or a symlink in its
+    place, stops the run instead of being reused."""
+    if os.path.lexists(path):
+        shutil.rmtree(path)
+    os.mkdir(path, 0o700)
+
+
+def prepare_scratch():
+    os.makedirs(os.path.dirname(LEDGER), mode=0o700, exist_ok=True)
     for d in (LEDGER, FIXTURES, "/tmp/feat2581-replay-ledger"):
-        shutil.rmtree(d, ignore_errors=True)
-    os.makedirs(LEDGER)
-    os.makedirs(FIXTURES)
-    env = base_env()
-    calibration(env)
-    records = [suite(env, i, rel) for i, rel in enumerate(run_files(), 1)]
-    records += replay()
-    records.append(audit())
+        private_dir(d)
+
+
+def recorder_records():
+    records = []
     for path in sorted(glob.glob(os.path.join(LEDGER, "rec", "*.json"))):
         with open(path, encoding="utf-8") as handle:
             records.append(json.load(handle))
     errors = sorted(glob.glob(os.path.join(LEDGER, "errors", "*.txt")))
     if errors:
         sys.exit("recorder could not capture a required stream: %s" % [open(e).read().strip() for e in errors])
+    return records
+
+
+def write_records(records):
     ids = [r["id"] for r in records]
     if len(ids) != len(set(ids)):
         sys.exit("duplicate record ids: %s" % sorted({i for i in ids if ids.count(i) > 1})[:10])
@@ -124,6 +142,17 @@ def main():
     with open(out, "wb") as handle:
         with gzip.GzipFile(filename="", mode="wb", fileobj=handle, mtime=0) as gz:
             gz.write(body)
+
+
+def main():
+    prepare_scratch()
+    env = base_env()
+    calibration(env)
+    records = [suite(env, i, rel) for i, rel in enumerate(run_files(), 1)]
+    records += replay()
+    records.append(audit())
+    records += recorder_records()
+    write_records(records)
     print("%s: %d record(s) -> %s" % (side, len(records), out))
 
 

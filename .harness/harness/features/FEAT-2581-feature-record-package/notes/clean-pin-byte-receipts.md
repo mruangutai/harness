@@ -12,3 +12,9 @@ from `measurements/{baseline,pin}.jsonl.gz`). Baseline e12381fd, implementation 
   C 129 nondeterminism outside the change (concurrency order, random names, clock SHAs, timings).
 - A first measurement was discarded: the bun preload did not reach Bun's spawn env, so bun-class
   records were zero; the preload was fixed and both sides re-measured once.
+- Validate fix round 1 (`answers-2026-11-27-validate-escalate.md`): the receipt scripts were refactored
+  to DEC-209 grade 4 (CR-1), `ruled` now requires non-blank string by/date/reason (CR-2, generator half),
+  and the scratch directories are private and fail-loud (SEC-1). The receipt was regenerated with
+  `--reuse` from the unchanged measurements. Every line except the five changed `script_sha256` lines
+  and the `generated` stamp is identical, and `build-divergences.md` is byte-identical. The measurements
+  were taken with the pre-refactor recorder, ledger-driver and replay bytes, which are recorded at `c65ceb81`.

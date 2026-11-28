@@ -2,12 +2,12 @@ implementation_pin: c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7
 baseline: e12381fde910eb05728004476a10d741d6918010
 checkout_root: baseline /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-base-e12381fd
 checkout_root: pin /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-pin-c91df7a5
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py e189dadfdbee2dc6f8b3cfd2727e721980b182eb2a9c793fee59eda552eaca05
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-grade-assert.py ec72e9ea544021f1fd6dd685cfebae79e0d523b6ad77689938fe38096db227d1
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py fa8001a0cf350fb1d893a37df39c8e6027a44f36f75477b25eb52f3f950ba60c
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/recorder/sitecustomize.py 5e06b4a5bb6841c87752f9b6916e5a4fc7d1a6e034841f95ac6b07f3337e054c
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py e53f20e819ba219e34c1a7f1641647fd87d752488a0dc850ecd3d73433f51a2a
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-grade-assert.py 3bf9680d78e1a47075d902c13682bf60a0d0063b08ee16881f5929f9937202d6
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py 9fc1088ee0662823e0e0c60e34a14dad6f179299c98e65d9a7e0d907c548d568
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/recorder/sitecustomize.py 769c97318f3e71e511b2520b4a2c9f7ba8c3185dfb71b1598975879fbd727082
 script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-bun-preload.js 6dafa42f7a0dfc943bbb8c972aeac178358934f7e9a70ea2e8a8146bbe650b76
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-replay.py ba875501a13519ad400b385af8da2a36d2b4d8908f591024f0485da904ff533e
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-replay.py 7ce59230d65cd2860cebccfc96b8731bc000535b56ad4452ad0c7dbed209db43
 baseline_failing: tests/integration/test-typescript-typecheck.py 1 1
 case_set: tests/integration/test-bash-write-guard.py marker 308 308 SAME
 case_set: tests/integration/test-board-lifecycle.py marker 196 196 SAME
@@ -920,4 +920,4 @@ grade at the pin (exit 0), at the baseline (exit 1):
     below_bar: run_evidence_problems 2
     below_bar: spend_for 2
     below_bar: verify_evidence_ref 2
-generated 2026-11-28T00:48:12+00:00 by .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7 --reuse
+generated 2026-11-28T01:20:56+00:00 by .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7 --reuse
