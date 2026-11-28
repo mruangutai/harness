@@ -36,15 +36,13 @@ is the identical command on an identical fresh fixture.
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 
 import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path before the imports below)
 from check_support import Checks
-from gh_sync_support import SYNC, install_gh
+from gh_sync_support import calls as _calls, install_gh, run as _run
 from harness_config_support import write_config
-from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
 C = Checks()
 check = C.check
@@ -106,19 +104,11 @@ def stage(tmp):
 
 
 def run(feat_dir, tmp, env_extra=None, log="calls.log"):
-    env, sentinel_log = offline_gh_env(os.path.join(tmp, "gh"), tmp)
-    env["FAKE_LOG"] = os.path.join(tmp, log)
-    env.update(env_extra or {})
-    result = subprocess.run([SYNC, "backlog", feat_dir, *ITEMS], capture_output=True, text=True, env=env)
-    assert_sentinel_unused(sentinel_log)
-    return result
+    return _run(["backlog", feat_dir, *ITEMS], tmp, env_extra, log)
 
 
 def calls(tmp, log="calls.log"):
-    p = os.path.join(tmp, log)
-    return ([l.rstrip("\x01") for l in
-              open(p, encoding="utf-8", errors="replace").read().splitlines()]
-            if os.path.exists(p) else [])
+    return _calls(tmp, log, strip=True)
 
 
 RECEIPT_NAME = "backlog-issues.json"

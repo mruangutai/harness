@@ -8,23 +8,19 @@ module's in-process entry point, below the CLI subprocess the integration cases 
     PLAN_MERGE_UNION=<path to union.py>  optional: load a different union.py (red-first runs)
     ./test-plan-merge-union-head.py      -> exit 0 all pass, 1 otherwise
 """
-import importlib.util
 import os
 import sys
 
 import yaml
 
-from unit_support import BIN
+from unit_support import BIN, load_script
 from check_support import Checks
 
 import plan_merge  # noqa: E402  the package must be importable before its union module loads
 import harness_merge  # noqa: E402
 
 _UNION = os.environ.get("PLAN_MERGE_UNION") or str(BIN / "plan_merge" / "union.py")
-_spec = importlib.util.spec_from_file_location("plan_merge.union", _UNION)
-union = importlib.util.module_from_spec(_spec)
-sys.modules["plan_merge.union"] = union
-_spec.loader.exec_module(union)
+union = load_script("union.py", path=_UNION, module_name="plan_merge.union", register=True)
 
 C = Checks()
 check = C.check

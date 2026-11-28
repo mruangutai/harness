@@ -29,6 +29,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 from check_support import Checks  # noqa: E402
+from git_support import git, git_out  # noqa: E402
 
 ROOT = str(ROOT)
 BIN_DIR = str(BIN)
@@ -1403,10 +1404,8 @@ BASE_DOC = [("Patterns", [("P-01", "alpha rule"), ("P-03", "gamma rule")]),
 
 
 def sh(cwd, *args):
-    return subprocess.run(
-        ["git", "-C", cwd, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
-         "-c", "commit.gpgsign=false", *args],
-        capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+    """Isolated git (git_support ENV: fixed identity, no global config to turn on signing)."""
+    return git_out(cwd, *args, timeout=30)
 
 
 def head(co):
@@ -1436,7 +1435,7 @@ def new_checkout(parent, name, craft=None):
 
 def clone(src, parent, name):
     dst = os.path.join(parent, name)
-    subprocess.run(["git", "clone", "-q", src, dst], capture_output=True, timeout=30, check=True)
+    git(parent, "clone", "-q", src, dst, timeout=30)
     return dst
 
 

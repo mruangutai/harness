@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from git_support import git as isolated_git
+from git_support import git as isolated_git, write_files
 
 HERE = BIN
 SCRIPT = Path(os.environ.get("MERGE_GITIGNORE_BIN", HERE / "merge-gitignore.py")).resolve()
@@ -147,7 +147,7 @@ RUN_EXCLUDED = ["ui/shot.webp", "ui/traces/trace.zip", "state.yaml.lock"]
 def git(repo, *args):
     """Isolated git (git_support ENV: no system/global config, fixed identity) that also blanks
     core.excludesFile, so a developer's XDG ignore file cannot hide or expose run files."""
-    return isolated_git(repo, "-c", "core.excludesFile=", *args).stdout
+    return isolated_git(repo, "-c", "core.excludesFile=", *args, timeout=30).stdout
 
 
 def z_paths(repo, *args):
@@ -162,13 +162,9 @@ def git_repo(path):
 
 
 def seed_run(repo, run_dir, names):
-    written = []
-    for name in names:
-        path = repo / run_dir / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(("evidence %s\n" % name).encode())
-        written.append((Path(run_dir) / name).as_posix())
-    return written
+    files = {(Path(run_dir) / name).as_posix(): ("evidence %s\n" % name).encode() for name in names}
+    write_files(repo, files)
+    return list(files)
 
 
 def require_records_tracked_and_ui_excluded(repo, label):

@@ -2,11 +2,13 @@
 
 Two ways to run git, each with its exit-code policy explicit:
 
-    git(cwd, *args, check=True) -> CompletedProcess (text)
+    git(cwd, *args, check=True, timeout=None, input=None, text=True) -> CompletedProcess
         Runs under ENV, the isolated environment: system and global git config disabled, a fixed
         author and committer identity, every inherited GIT_* variable dropped. check=True raises
         AssertionError naming the command on a non-zero exit; check=False never checks.
-    git_out(cwd, *args) -> str
+        timeout (a hang guard, seconds) and input (stdin, e.g. hash-object --stdin) go to
+        subprocess.run; text=False returns stdout and stderr as bytes (cat-file blob).
+    git_out(cwd, *args, timeout=None) -> str
         git(cwd, *args).stdout.strip(): the same isolated environment and the same raising on a
         non-zero exit, for the reads (rev-parse, symbolic-ref, status --porcelain) a caller
         compares as a string.
@@ -18,6 +20,8 @@ Two ways to run git, each with its exit-code policy explicit:
 
 Primitives, each taking `git=quiet_git`: init_repo, commit_files, commit_all, commit_feature,
 add_worktree, plus feature_rel and plan_text. IDENTITY and MAINTENANCE_OFF are config pairs.
+write_files runs no git: it writes `{relpath: text or bytes}` under a root, creating parent
+directories, and commits nothing; commit_files is write_files plus one add and one commit.
 
 Nothing here picks a default branch, maintenance setting, file, or commit message on a caller's
 behalf: `init_repo` takes the branch (None leaves git's own default), and the seed file,
@@ -58,18 +62,19 @@ def _isolated_env():
 ENV = _isolated_env()
 
 
-def git(cwd, *args, check=True):
+def git(cwd, *args, check=True, timeout=None, input=None, text=True):
     """Run git in `cwd` under the isolated environment; returns the CompletedProcess."""
-    proc = subprocess.run(["git", *args], cwd=cwd, env=ENV, capture_output=True, text=True)
+    proc = subprocess.run(["git", *args], cwd=cwd, env=ENV, capture_output=True, text=text,
+                          input=input, timeout=timeout)
     if check and proc.returncode != 0:
         raise AssertionError(f"git {' '.join(args)} in {cwd} exited {proc.returncode}: "
                              f"{proc.stderr.strip()}")
     return proc
 
 
-def git_out(cwd, *args):
+def git_out(cwd, *args, timeout=None):
     """Run git like git(cwd, *args) above and return its stdout stripped."""
-    return git(cwd, *args).stdout.strip()
+    return git(cwd, *args, timeout=timeout).stdout.strip()
 
 
 def quiet_git(args, cwd):
@@ -83,23 +88,29 @@ def checked_git(args, cwd):
 
 def init_repo(path, branch, identity=IDENTITY, config=(), git=quiet_git):
     """`git init` at `path` (created if absent) on `branch` — None omits `-b` — then the
-    identity and any extra `(key, value)` config pairs, in that order."""
+    identity and any extra `(key, value)` config pairs, in that order. identity=None writes no
+    identity config, for a caller whose `git` already supplies one (checked_git's ENV)."""
     os.makedirs(path, exist_ok=True)
     git(["init", "-q"] + ([] if branch is None else ["-b", branch]), path)
-    email, name = identity
-    for key, value in (("user.email", email), ("user.name", name)) + tuple(config):
+    pairs = () if identity is None else (("user.email", identity[0]), ("user.name", identity[1]))
+    for key, value in pairs + tuple(config):
         git(["config", key, value], path)
     return path
 
 
+def write_files(root, files):
+    """Write each `{relpath: text or bytes}` under `root`, creating parent directories. No git."""
+    for rel, content in files.items():
+        abs_path = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(abs_path) or root, exist_ok=True)
+        with open(abs_path, "wb" if isinstance(content, bytes) else "w") as f:
+            f.write(content)
+
+
 def commit_files(repo, files, message, git=quiet_git):
-    """Write each `{relpath: text}` under `repo`, stage exactly those paths in that order, and
-    land them in ONE commit."""
-    for rel, text in files.items():
-        abs_path = os.path.join(repo, rel)
-        os.makedirs(os.path.dirname(abs_path) or repo, exist_ok=True)
-        with open(abs_path, "w") as f:
-            f.write(text)
+    """write_files(repo, files), stage exactly those paths in that order, and land them in ONE
+    commit."""
+    write_files(repo, files)
     git(["add"] + list(files), repo)
     git(["commit", "-qm", message], repo)
 
@@ -121,12 +132,12 @@ def plan_text(feature_id, station):
 def commit_feature(repo, feature_id, doc_or_raw, repo_segment, message, plan_station=None,
                    extra_files=None, git=quiet_git):
     """Commit `<feature dir>/feature.json` on the CURRENT branch — a dict is written as JSON, a
-    string verbatim — plus, in the SAME commit, a sibling `plan.yaml` carrying `plan_station`
+    str or bytes verbatim — plus, in the SAME commit, a sibling `plan.yaml` carrying `plan_station`
     when given and any `extra_files` (`{relpath: text}`, staged after the plan). Landing them
     together matters: readers resolve one from the other's directory at a landed ref.
     Returns the absolute feature.json path."""
     rel = feature_rel(repo_segment, feature_id, "feature.json")
-    files = {rel: doc_or_raw if isinstance(doc_or_raw, str) else json.dumps(doc_or_raw)}
+    files = {rel: doc_or_raw if isinstance(doc_or_raw, (str, bytes)) else json.dumps(doc_or_raw)}
     if plan_station is not None:
         files[feature_rel(repo_segment, feature_id, "plan.yaml")] = plan_text(feature_id,
                                                                               plan_station)

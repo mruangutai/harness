@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 
-from check_domain_support import FIXTURE_MANIFEST, fire, fire_write_payload, fixture  # noqa: E402
+from check_domain_support import FIXTURE_MANIFEST, _env, fire, fire_write_payload, fixture  # noqa: E402
 from check_support import Checks  # noqa: E402
 from isolated_bin import isolated_bin  # noqa: E402
 
@@ -30,7 +30,7 @@ FEAT65_ROUTE = _run_path("feat65")
 def _run_hook(hook, root, stdin, argv=()):
     """Spawn `hook` with raw `stdin` text (malformed or duplicate-key payloads included)."""
     return subprocess.run([hook, *argv], input=stdin, capture_output=True, text=True,
-                          env=dict(os.environ, HARNESS_PROJECT_DIR=root))
+                          env=_env(root))
 
 
 def _feat65_fire(sibling, override, argv=(), stdin=None):

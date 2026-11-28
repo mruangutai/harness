@@ -14,8 +14,7 @@ import tempfile
 from unittest import mock
 
 from check_support import Checks  # noqa: E402
-from git_support import (add_worktree, commit_feature, commit_files, init_repo,  # noqa: E402
-                         plan_text, quiet_git)
+from git_support import add_worktree, commit_feature, commit_files, init_repo  # noqa: E402
 
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = str(BIN)
@@ -930,14 +929,8 @@ def case_fleet_planning_worktree_resolves_to_its_segment():
 
 def _commit_bad_utf8_feature(repo, feature_id, station="done"):
     """Commit a feature.json whose bytes are not valid UTF-8, beside a readable plan.yaml."""
-    rel_dir = os.path.join(".harness", "harness", "features", feature_id)
-    os.makedirs(os.path.join(repo, rel_dir), exist_ok=True)
-    with open(os.path.join(repo, rel_dir, "feature.json"), "wb") as f:
-        f.write(b'{"feature_id": "\xff"}')
-    with open(os.path.join(repo, rel_dir, "plan.yaml"), "w") as f:
-        f.write(plan_text(feature_id, station))
-    quiet_git(["add", rel_dir], repo)
-    quiet_git(["commit", "-qm", f"add {feature_id}"], repo)
+    commit_feature(repo, feature_id, b'{"feature_id": "\xff"}', "harness", f"add {feature_id}",
+                   plan_station=station)
 
 
 def _feature_row(name, got, feature_id, want_klass, must=(), must_not=()):

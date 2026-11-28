@@ -9,9 +9,9 @@ shared driver in check_domain_support.py applies to every block in this family.
 from integration_support import BIN
 import io, json, os, re, subprocess, sys, tempfile, yaml
 from isolated_bin import isolated_bin
-from check_domain_support import (HERE, HOOK, _aggregation_verdict, _env, _fire_edit,
-    _handoff_done_when_fixture, _handoff_text, _run_block_captured, drive, fire, fire_post,
-    fire_write_payload, fixture, fixture_fleet, make_linked_worktree)
+from check_domain_support import (HERE, HOOK, _aggregation_verdict, _fire_edit,
+    _handoff_done_when_fixture, _handoff_text, _invoke, _run_block_captured, drive, fire,
+    fire_post, fire_write_payload, fixture, fixture_fleet, make_linked_worktree)
 
 VALIDATE_DIGEST = str(BIN / "validate-digest.py")
 
@@ -106,10 +106,7 @@ def _feat50_binding_red_case(root, target, refused):
     mutant = _feat50_mutant_between(
         '    feature_checkout_guard(verdict["rel"], target)\n',
         '    approval_guard(verdict["rel"], agent)\n', iso)
-    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-               "tool_input": {"file_path": target, "content": "x"}}
-    muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
-                           text=True, env=_env(root))
+    muted = fire(root, target, hook=mutant)
     ok = refused.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("feature-checkout-red", ok,
             f"real={refused.returncode}, mutant={muted.returncode}: {muted.stderr}")
@@ -303,14 +300,8 @@ teams:
     os.makedirs(os.path.dirname(receipt), exist_ok=True)
     os.makedirs(product_cwd, exist_ok=True)
 
-    def invoke(path):
-        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-                   "tool_input": {"file_path": path, "content": "x"}}
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=_env(root), cwd=product_cwd)
-
-    allowed = invoke(receipt)
-    refused = invoke(os.path.join(product_cwd, rel))
+    allowed = fire(root, receipt, cwd=product_cwd)
+    refused = fire(root, os.path.join(product_cwd, rel), cwd=product_cwd)
     return (
         "SC-15 PAIR: foreign product cwd allows its feature-worktree receipt and refuses its product twin",
         allowed.returncode == 0 and refused.returncode == 2,
@@ -376,9 +367,7 @@ def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
 
 def _fire_path_only_edit(root, path):
     """The omp Edit shape: file_path only, no old_string/new_string to reconstruct from."""
-    payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root))
+    return _invoke(root, {"tool_name": "Edit", "tool_input": {"file_path": path}})
 
 
 def _bug1106_edit_after(fixture_fn, prior, old_s, new_s):
@@ -913,13 +902,8 @@ def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
         _feat50_write_text(state, prior)
     if marker:
         _bug1305_write_marker(state, run_uid="U1")
-    payload = {"tool_name": "Write",
-               "tool_input": {"file_path": state, "content": incoming}}
-    if session_id is not None:
-        payload["session_id"] = session_id
-    return subprocess.run(
-        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-        env=_env(root))
+    extra = {"session_id": session_id} if session_id is not None else None
+    return fire_write_payload(root, state, incoming, extra=extra)
 
 
 def _bug1305_identity_edit(new_string=""):

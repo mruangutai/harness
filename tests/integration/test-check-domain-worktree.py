@@ -7,9 +7,9 @@ and B-2's cwd independence. The grant-parity block is a file of its own
 (test-check-domain-worktree-parity.py) because it alone is a ~6s serial run.
 """
 import integration_support  # noqa: F401  (the sys.path seam: bin/ and tests/)
-import contextlib, json, os, shutil, subprocess, sys, tempfile, time  # noqa: E402
-from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,  # noqa: E402
-    _legal_feature_json, drive, fire, fire_post, fixture, make_linked_worktree)
+import contextlib, os, shutil, sys, tempfile, time  # noqa: E402
+from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT,  # noqa: E402
+    _invoke, _legal_feature_json, drive, fire, fire_post, fixture, make_linked_worktree)
 from check_support import Checks  # noqa: E402
 from git_support import checked_git, commit_all, git, init_repo  # noqa: E402
 from isolated_bin import isolated_bin  # noqa: E402
@@ -210,16 +210,11 @@ def run_worktree():
                   "def resolve_root(bin_dir, strict=True): return '/definitely/not/here'\n"
                   "def root_from_script(bin_dir): return '/definitely/not/here'\n"
                   "def root_above(start): return None\n")
-    _p556 = {"agent_type": "harness-backend-dev", "tool_name": "Write",
-             "tool_input": {"file_path": os.path.join(ROOT, ".harness", "harness",
-                                                      "docs", "SPEC.md"),
-                            "content": "x"}}
-    _clean = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
-                            text=True, env=_env(ROOT), cwd=tempfile.gettempdir())
+    _spec556 = os.path.join(ROOT, ".harness", "harness", "docs", "SPEC.md")
+    _clean = fire(ROOT, _spec556, agent="harness-backend-dev", cwd=tempfile.gettempdir())
     wt("#556 control: from a clean cwd the out-of-domain write is REFUSED",
        _clean.returncode == 2, _d(_clean))
-    _hijack = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
-                             text=True, env=_env(ROOT), cwd=_hostile)
+    _hijack = fire(ROOT, _spec556, agent="harness-backend-dev", cwd=_hostile)
     wt("#556: a harness_boundary.py in the CWD does not become the gate's resolver",
        _hijack.returncode == 2 and _hijack.returncode == _clean.returncode
        and "enforcement OFF" not in _hijack.stderr,
@@ -420,10 +415,7 @@ def run_sweep_clean_tracked():
                         "tool_input": {"command": "true"}}
 
         def sweep(hook_path=None):
-            argv = [hook_path or HOOK, "--post"]
-            return subprocess.run(argv, input=json.dumps(bash_payload),
-                                  capture_output=True, text=True,
-                                  env=_env(root))
+            return _invoke(root, bash_payload, [hook_path or HOOK, "--post"])
 
         def inv_lines(r):
             return [l for l in (r.stdout + r.stderr).splitlines()
@@ -767,8 +759,7 @@ B2_OUTSIDE_CWD = "/tmp"
 
 
 def _b2_fire(payload, cwd, root):
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, cwd=cwd, env=_env(root)).returncode
+    return _invoke(root, payload, cwd=cwd).returncode
 
 
 def _b2_case(results, name, payload, want, root, rel_path):

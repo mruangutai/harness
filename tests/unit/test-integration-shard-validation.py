@@ -9,14 +9,12 @@ FEAT-2337 SC-05: the same seams take an explicit optional `kind`. `unit` validat
 full-suite `--shard 1/1` receipt against top-level tests/unit/test-*.py; omitting `kind`
 keeps every integration default the CI aggregation relies on.
 """
-from unit_support import BIN
+from unit_support import load_script
 
-import importlib.util
 import sys
 
 from check_support import Checks
 
-GATE = BIN / "check-integration-shards.py"
 SHA = "a" * 40
 OTHER = "b" * 40
 EXPECTED = ["tests/integration/test-a.py", "tests/integration/test-b.py",
@@ -33,10 +31,7 @@ check = C.check
 
 
 def load_gate():
-    spec = importlib.util.spec_from_file_location("check_integration_shards", GATE)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return load_script("check-integration-shards.py")
 
 
 def manifest(index, paths, kind="integration", count=4):

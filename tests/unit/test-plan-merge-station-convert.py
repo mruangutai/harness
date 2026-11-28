@@ -11,7 +11,6 @@ now converts; the loader's pair stays as it was.
     ./test-plan-merge-station-convert.py  -> exit 0 all pass, 1 otherwise
 """
 import contextlib
-import importlib.util
 import io
 import os
 import re
@@ -23,10 +22,7 @@ from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(ROOT / "tests"))
+from unit_support import ROOT, BIN, load_script
 
 import plan_merge  # noqa: E402,F401  the package must be importable before its union module loads
 import harness_merge  # noqa: E402
@@ -34,10 +30,7 @@ import harness_yaml  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
 _UNION = os.environ.get("PLAN_MERGE_UNION") or str(BIN / "plan_merge" / "union.py")
-_spec = importlib.util.spec_from_file_location("plan_merge.union", _UNION)
-union = importlib.util.module_from_spec(_spec)
-sys.modules["plan_merge.union"] = union
-_spec.loader.exec_module(union)
+union = load_script("union.py", path=_UNION, module_name="plan_merge.union", register=True)
 
 CHECKER_RELATIVE = Path(".claude/skills/harness/bin/check-state.py")
 DRAFTED_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")

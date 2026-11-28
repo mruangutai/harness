@@ -7,15 +7,14 @@ in-process. Every external write is intercepted at the module's own seams — `g
 list, so a case asserts what was written, in what order, with which arguments. No corpus lookup
 is modelled: confirmation, not discovery, is the guard (BUG-2161 D-01).
 
-python3 stdlib only. importlib loading follows tests/unit/test-gh-sync-build-entry.py.
+python3 stdlib only. gh-sync.py loads through unit_support.load_script.
 End-to-end subprocess coverage with the fake gh lives in tests/integration/test-gh-sync-abandon.py.
 
     ./test-gh-sync-abandon-sources.py    -> exit 0 all pass, 1 otherwise
 """
-from unit_support import BIN
+from unit_support import load_script
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -27,9 +26,7 @@ from unittest import mock
 
 from check_support import Checks
 
-_spec = importlib.util.spec_from_file_location("_ghs_abandon_sources", str(BIN / "gh-sync.py"))
-gh_sync = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(gh_sync)
+gh_sync = load_script("gh-sync.py")
 
 C = Checks()
 check = C.check
