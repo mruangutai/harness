@@ -153,4 +153,6 @@ note the main checkout cannot see.
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator
+date: 2026-11-28
