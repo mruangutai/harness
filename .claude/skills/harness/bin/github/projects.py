@@ -289,7 +289,7 @@ def _project_field_resolve(owner, number, field):
     D-03: one diagnosis walk, entered from both the exception path (gh exits non-zero but still
     carries a `data` envelope on stdout — GraphQL's partial-failure shape) and the success path.
     Every raise here carries a real, actionable value (D-03 step e) — never the generic argv[:2]
-    fallback `transport._value_from_argv` would produce for a `-f owner=` argv.
+    fallback `transport.value_from_argv` would produce for a `-f owner=` argv.
     """
     argv = ["api", "graphql",
             "-f", "query=" + _FIELD_QUERY,

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Tests for github/transport.py, the single seam every factory tool talks to GitHub through (D-02, D-14).
+"""Tests for the github package's transport, issues, projects and refs modules, the single seam
+every harness tool talks to GitHub through (D-02, D-14).
 
 WHY: this module's whole job is deciding failure behaviour once — loud (GhError), never a
 swallowed default — and routing the three DAG edge functions through github.issue_args' argv builders

@@ -97,7 +97,8 @@ def _modules(cards, bindings, fail=None):
 
 def _run(features, cards, fail=None, owner_sync=True, gh_ok=True):
     gb, fs, log = _modules(cards, {"org/prod": _PROD}, fail)
-    modules = {"github.board": gb, "feature_record.binding": fs}
+    modules = {"github.board": gb, "github.transport": github.transport,
+               "feature_record.binding": fs}
     with tempfile.TemporaryDirectory() as root:
         # Written before the patch: building the config loads repo modules of its own.
         cj = write_config(os.path.join(root, ".harness", "harness.json"),

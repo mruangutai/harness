@@ -32,7 +32,8 @@ def issue_number_from_url(args, output):
     if number < 1:
         raise transport.GhError(
             args, None, output, "",
-            f"{' '.join(['gh'] + list(args[:2]))} returned no issue number", transport._value_from_argv(args),
+            f"{' '.join(['gh'] + list(args[:2]))} returned no issue number",
+            transport.value_from_argv(args),
             "output did not contain a /issues/<n> URL",
         )
     return number

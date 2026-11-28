@@ -698,9 +698,10 @@ def _inv26_group(ctx, _gb, plan_docs, group):
     # prose is still a reader's next false lead.
     bad = []
     repo, board = group["repo"], group["board"]
+    _transport = harness_boundary.load_repo_module("github.transport")
     try:
         _stations = _gb.board_stations_for(board, repo, group["numbers"])
-    except (_gb.BoardError, _gb.transport.GhError) as error:
+    except (_gb.BoardError, _transport.GhError) as error:
         for _feat in group["features"]:
             bad.append(f"INV-26 CANNOT VERIFY {_feat}: the board read from {repo} "
                        f"({board['owner']} project {board['number']}) failed — {error}. "

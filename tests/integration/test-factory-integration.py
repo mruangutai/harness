@@ -1270,8 +1270,8 @@ with tempfile.TemporaryDirectory() as td:
 
 
 # ============================================================================
-# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive github/transport.py gains in this
-# task (D-12). github/transport.py is a LIBRARY with no __main__ (its own module docstring says so), so
+# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive factory_gh.py (now
+# github/projects.py) gained in this task (D-12). github/transport.py is a LIBRARY with no __main__ (its own module docstring says so), so
 # "forking a real process" here means a real `python3 -c` subprocess that imports a github module and
 # calls the primitive — the discriminating property is that the GraphQL call round-trips through
 # a genuinely forked `gh` binary reading GH_STATE from disk, which an in-process

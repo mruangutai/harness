@@ -19,8 +19,8 @@ harness-codebase-design skill, which this file does not restate.
   functions from `plan_merge` modules. The entry parses and dispatches; the logic lives in the
   package.
 - **Flat modules.** A flat `bin/` module that serves one package's domain moves into that package.
-  Only a cross-cutting module that stands alone stays flat, such as `harness_boundary.py` and
-  `harness_merge.py`.
+  Only a cross-cutting module that stands alone stays flat, such as `harness_boundary.py`.
 - **Shared domains.** When several modules serve one domain that many entries use, they live in one
   package named for the domain, such as `github/`. The package has an empty `__init__.py` and no
-  entry. Never use flat siblings that share a prefix.
+  entry. Never use flat siblings that share a prefix. Prefix groups that predate this rule and have
+  not moved yet: `digest_*`, `factory_*` and `handoff_*`.

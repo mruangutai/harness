@@ -61,7 +61,7 @@ def _rate_limit_budget_error(orig_argv, orig_stdout, orig_stderr):
         return GhError(
             orig_argv, None, orig_stdout, orig_stderr,
             "gh reported a rate limit and the budget could not be read",
-            _value_from_argv(orig_argv),
+            value_from_argv(orig_argv),
             "the original gh failure is preserved as detail — re-run after checking gh auth "
             "status and network access",
         )
@@ -97,7 +97,7 @@ class GhError(Exception):
         super().__init__(factory_cli.body(what, value, next_step))
 
 
-def _value_from_argv(argv):
+def value_from_argv(argv):
     """Best-effort concrete value for a GhError message: the repo, the owner, or the subcommand."""
     if "--repo" in argv:
         i = argv.index("--repo")
@@ -180,7 +180,7 @@ def _decode_gh_json(args, r):
         return artifact_accessors.parse_gh_json(r.stdout, "GitHub response")
     except artifact_accessors.ArtifactAccessError as error:
         raise GhError(args, r.returncode, r.stdout, r.stderr,
-                      _what_from_argv(args), _value_from_argv(args), str(error)) from error
+                      _what_from_argv(args), value_from_argv(args), str(error)) from error
 
 
 def _exit_error(args, r):
@@ -191,7 +191,7 @@ def _exit_error(args, r):
         return _rate_limit_budget_error(list(args), r.stdout, r.stderr)
     next_step = _first_line(r.stderr) or _first_line(r.stdout) or "no output captured"
     return GhError(args, r.returncode, r.stdout, r.stderr,
-                   _what_from_argv(args), _value_from_argv(args), next_step)
+                   _what_from_argv(args), value_from_argv(args), next_step)
 
 
 def try_gh(args, json_out=False, *, input=None):
