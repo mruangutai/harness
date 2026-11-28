@@ -81,10 +81,9 @@ anchors resolve there; `check` refuses it without one.
 
 ## `verify:` is a literal block, and this one has teeth
 
-Write `verify:` as a literal block `|` or a single-line plain scalar, **never a folded `>`**. The
-lead carries the string **verbatim** to the member, which cross-checks it against the plan and
-returns `BLOCKED` on any mismatch (`harness-zero-micro-management`); a folded scalar loads as a
-different string, so a correct task blocks.
+Write `verify:` as a literal block `|` or a single-line plain scalar. `validate-digest.py`
+checks the receipt against the *parsed* `verify:`, and a folded `>` collapses its newlines, so a
+receipt pasting the command as written fails; `load_plan` refuses a folded `>` on a pending plan.
 
 A verify step creating durable state (a run, issue, branch or other named record) MUST derive a
 fresh id at execution (timestamp or run counter) or receive one as a parameter; a literal
