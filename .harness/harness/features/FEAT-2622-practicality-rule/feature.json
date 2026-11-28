@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2622-practicality-rule",
   "branch": "feat/FEAT-2622-practicality-rule",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "d131c231d3e4f278019a8acdffd4706e6f622cee",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
