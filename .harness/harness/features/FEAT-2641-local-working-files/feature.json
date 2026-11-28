@@ -160,11 +160,12 @@
     "T-04": "a027d116ba133adf0f23b39bb9b73e09a2299c936e07cb4e86d18820f537a030",
     "T-05": "2f94f74430b89497afe8e9baefedd1b01070155dc9eba0e722bf81845fb0a967",
     "T-06": "e2a7556a27a745b5e9e7ce601181fb7aa0938afd95ebeb072885677905fb581b",
-    "T-07": "edfd6a4a49a4a46a9bf79e12debfda57d35d802d7de29c78c3c89c40c5848cef",
+    "T-07": "033faa2ad8be54533d213f9a765e154ee7a9c58594671a5f5aceabfe7755bf2c",
     "T-08": "b0ff88cabad8fe82b065c5a320ca6a72f481981f1404fa5417e2a9aefc83418b",
     "T-09": "655b5f4db2cfb68d5db56311fba5b0574a46acb90bd84286ca35f0b72354e575",
     "T-10": "b6f6340b9073b80c477ed995f81c6e96b14941cec363a3e95a62723b02a2ad39",
-    "T-11": "ea074095956286d72a8a215aa24ec5993343711a3df4f8e78f5506eb2a76866a"
+    "T-11": "ea074095956286d72a8a215aa24ec5993343711a3df4f8e78f5506eb2a76866a",
+    "T-12": "7e33c1f330f45e2799a1e18dc188908baf39a647e4d2eb7527fa36648270249b"
   },
   "github": {
     "milestone": 148,
@@ -180,7 +181,8 @@
       "T-08",
       "T-09",
       "T-10",
-      "T-11"
+      "T-11",
+      "T-12"
     ],
     "issues": {
       "T-01": 2656,
@@ -193,7 +195,8 @@
       "T-08": 2663,
       "T-09": 2664,
       "T-10": 2665,
-      "T-11": 2686
+      "T-11": 2686,
+      "T-12": 2691
     },
     "source_issues": [
       2641
@@ -210,6 +213,7 @@
       "T-09": true,
       "T-10": true,
       "T-11": true,
+      "T-12": true,
       "parent": true
     },
     "build_entry": "opened",
