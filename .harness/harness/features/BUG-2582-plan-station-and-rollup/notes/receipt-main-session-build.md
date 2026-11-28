@@ -73,4 +73,4 @@ After the last edit:
 - The T-02 literal verify exits 0, with "red-first ok" and ALL PASSED.
 - `test-check-plan-routes.py`, `test-broad-catch-census.py`, `test-checker-structure-locks.py` and `test-gen-decisions-index.py` all exit 0.
 - The T-03 verify prints "decisions ok".
-- Every changed function meets its grade bar. The only sub-bar function in `validate-digest.py` is the untouched, pre-existing `reviewed_python_change` (grade 2).
+- Every function changed in the fix round meets its grade bar. The only sub-bar function in `validate-digest.py` is the untouched, pre-existing `reviewed_python_change` (grade 2). Two test helpers from the original build remain grade 2 against the test bar of 3, each with a DEC-209 exception: `bug2582_station_stub` in T-04 and `converted_case.body` in T-01. Validate run 03 noted these, and the claim here was corrected to match.
