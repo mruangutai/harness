@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-2565-digest-frontmatter-contract
-status: review
+status: done
 approval:
   date: '2026-11-27'
   approved_by: operator
