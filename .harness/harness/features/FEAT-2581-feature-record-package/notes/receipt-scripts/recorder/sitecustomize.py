@@ -151,10 +151,12 @@ def _cli_record(child, before, after):
 
 
 def _exit_as(returncode):
-    """Exit with the child's status; a child killed by a signal kills this process the same way."""
+    """Exit with the child's status; a child killed by a signal kills this process the same way.
+    SIGKILL and SIGSTOP cannot have their handler reset, and need no reset."""
     if returncode < 0:
         import signal
-        signal.signal(-returncode, signal.SIG_DFL)
+        if -returncode not in (signal.SIGKILL, signal.SIGSTOP):
+            signal.signal(-returncode, signal.SIG_DFL)
         os.kill(os.getpid(), -returncode)
     os._exit(returncode)
 

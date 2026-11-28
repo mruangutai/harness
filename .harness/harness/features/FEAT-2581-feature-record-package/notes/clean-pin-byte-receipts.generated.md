@@ -2,10 +2,10 @@ implementation_pin: c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7
 baseline: e12381fde910eb05728004476a10d741d6918010
 checkout_root: baseline /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-base-e12381fd
 checkout_root: pin /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-pin-c91df7a5
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py e53f20e819ba219e34c1a7f1641647fd87d752488a0dc850ecd3d73433f51a2a
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py b7969b6d8d60940ef2bedf26e7e09ada6f1e6f654f9d046ef9640eee5d65a3ea
 script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-grade-assert.py 3bf9680d78e1a47075d902c13682bf60a0d0063b08ee16881f5929f9937202d6
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py 9fc1088ee0662823e0e0c60e34a14dad6f179299c98e65d9a7e0d907c548d568
-script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/recorder/sitecustomize.py 769c97318f3e71e511b2520b4a2c9f7ba8c3185dfb71b1598975879fbd727082
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py faf62e0bccc2a9658e495960d9df416c49013f9340fea436128456177c336d68
+script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/recorder/sitecustomize.py 79b1e6eced1eef25b05632709b363e2258af714f6bd1e13d4261fb3605b957cf
 script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-bun-preload.js 6dafa42f7a0dfc943bbb8c972aeac178358934f7e9a70ea2e8a8146bbe650b76
 script_sha256: .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-replay.py 7ce59230d65cd2860cebccfc96b8731bc000535b56ad4452ad0c7dbed209db43
 baseline_failing: tests/integration/test-typescript-typecheck.py 1 1
@@ -835,9 +835,9 @@ overall: PASS
 # provenance (not derived lines)
 
 measured baseline at e12381fde910eb05728004476a10d741d6918010: 2026-11-28T00:15:28+00:00 .. 2026-11-28T00:31:07+00:00, command /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2581-feature-record-package/.harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py baseline /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-base-e12381fd e12381fde910eb05728004476a10d741d6918010 /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2581-feature-record-package/.harness/harness/features/FEAT-2581-feature-record-package/notes/measurements/baseline.jsonl.gz
-measurement file baseline.jsonl.gz: 771204 gzip bytes, raw sha256 370065e700b3c353e578c65b6b031a056665eec0d2c42e1d6e6764a4f389903c, normalized jsonl sha256 3a8fb085155fe1a61755afff9dec886b92383e43532c5ac43888502ac3ef8f3b
+measurement file baseline.jsonl.gz: 771204 gzip bytes, raw sha256 370065e700b3c353e578c65b6b031a056665eec0d2c42e1d6e6764a4f389903c, decompressed jsonl sha256 3a8fb085155fe1a61755afff9dec886b92383e43532c5ac43888502ac3ef8f3b
 measured pin at c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7: 2026-11-28T00:31:07+00:00 .. 2026-11-28T00:47:56+00:00, command /opt/homebrew/opt/python@3.15/bin/python3.15 /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2581-feature-record-package/.harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-ledger-driver.py pin /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/feat2581-pin-c91df7a5 e12381fde910eb05728004476a10d741d6918010 /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2581-feature-record-package/.harness/harness/features/FEAT-2581-feature-record-package/notes/measurements/pin.jsonl.gz
-measurement file pin.jsonl.gz: 773684 gzip bytes, raw sha256 1ff283c66a85fc7912fb5d50510fe44da3ad16bdfa764ef950035d5b2318a89c, normalized jsonl sha256 59e5b9aed9e0e380ad4ba2fef196619e29839a8516e05b28bb93c3dae8370751
+measurement file pin.jsonl.gz: 773684 gzip bytes, raw sha256 1ff283c66a85fc7912fb5d50510fe44da3ad16bdfa764ef950035d5b2318a89c, decompressed jsonl sha256 59e5b9aed9e0e380ad4ba2fef196619e29839a8516e05b28bb93c3dae8370751
 checkouts were detached at the two SHAs with an empty `git status --porcelain` before measuring
 grade at the pin (exit 0), at the baseline (exit 1):
     twelve: _close_refused_run.mutate 1 -> 4 at feature_record/runs.py
@@ -920,4 +920,4 @@ grade at the pin (exit 0), at the baseline (exit 1):
     below_bar: run_evidence_problems 2
     below_bar: spend_for 2
     below_bar: verify_evidence_ref 2
-generated 2026-11-28T01:20:56+00:00 by .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7 --reuse
+generated 2026-11-28T01:34:07+00:00 by .harness/harness/features/FEAT-2581-feature-record-package/notes/receipt-scripts/feat2581-cleanpin.py c91df7a5913a1c45b0c797bd10a3a0a91ed9c9c7 --reuse

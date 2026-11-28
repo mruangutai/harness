@@ -18,3 +18,9 @@ from `measurements/{baseline,pin}.jsonl.gz`). Baseline e12381fd, implementation 
   `--reuse` from the unchanged measurements. Every line except the five changed `script_sha256` lines
   and the `generated` stamp is identical, and `build-divergences.md` is byte-identical. The measurements
   were taken with the pre-refactor recorder, ledger-driver and replay bytes, which are recorded at `c65ceb81`.
+- Validate fix round 2: the `/tmp/feat2581-ledger` parent is created mode 0700 or refused unless it is an
+  own, group/other-unwritable directory (SEC-1 residual). The recorder no longer tries to reset SIGKILL or
+  SIGSTOP before re-raising a child's fatal signal (CR-3). The footer's measurement digest is relabelled
+  "decompressed jsonl sha256" (CR-4); its values are unchanged, because the old root replacement never
+  matched the base64 payload. Regenerated with `--reuse`: derived lines, `build-divergences.md`, the rulings
+  and the measurements are unchanged.

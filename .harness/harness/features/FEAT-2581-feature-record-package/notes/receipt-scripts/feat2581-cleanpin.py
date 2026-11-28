@@ -493,12 +493,11 @@ def receipt_lines(m, d, derived, grades):
 
 def measurement_provenance(m, meta, side):
     raw = m.raw[side]
-    normalized = gzip.decompress(raw).replace(m.root[side].encode(), b"<checkout>")
     run = meta[side]
     return ["measured %s at %s: %s .. %s, command %s" % (side, REF[side], run["started"], run["finished"],
                                                          " ".join(run["command"])),
-            "measurement file %s.jsonl.gz: %d gzip bytes, raw sha256 %s, normalized jsonl sha256 %s" % (
-                side, len(raw), hashlib.sha256(raw).hexdigest(), hashlib.sha256(normalized).hexdigest())]
+            "measurement file %s.jsonl.gz: %d gzip bytes, raw sha256 %s, decompressed jsonl sha256 %s" % (
+                side, len(raw), hashlib.sha256(raw).hexdigest(), hashlib.sha256(gzip.decompress(raw)).hexdigest())]
 
 
 def provenance_lines(m, meta, grades):

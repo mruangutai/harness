@@ -14,6 +14,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -115,8 +116,19 @@ def private_dir(path):
     os.mkdir(path, 0o700)
 
 
+def private_parent(path):
+    """Create path mode 0700, or accept an existing one only when it is a real directory owned by
+    this user that no other account can write; anything else stops the run."""
+    try:
+        os.mkdir(path, 0o700)
+    except FileExistsError:
+        st = os.lstat(path)
+        if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            sys.exit("refusing %s: not a directory owned by this user and closed to group/other writes" % path)
+
+
 def prepare_scratch():
-    os.makedirs(os.path.dirname(LEDGER), mode=0o700, exist_ok=True)
+    private_parent(os.path.dirname(LEDGER))
     for d in (LEDGER, FIXTURES, "/tmp/feat2581-replay-ledger"):
         private_dir(d)
 

@@ -9,11 +9,14 @@ failure was.
   the seven high ones and the five grade-2 ones (`code-grade.py` exits 1 on any of them).
 - **OQ-V1 / ESC-1 (CR-2, verifier half):** dispositioned as an accepted risk, so T-03's signed
   verify stays unamended. The evidence at the time: all 1,893 by/date/reason values in the
-  631 committed rulings are non-blank strings, no committed tool writes divergence-rulings.json,
+  631 committed rulings are non-blank strings, no committed tool writes ruling metadata (the
+  generator only seeds an empty `[]` file when none exists),
   and the scripts are frozen proof artefacts after ship. The generator half is fixed:
   `Derived.ruled` requires non-blank strings. A null-metadata mutant on `audit:stdout` gives
   `divergence: audit:stdout UNRULED` and `overall: FAIL`, and the real rulings still pass.
 - **SEC-1:** folded into the same rewrite. The replay scratch, the ledger, the fixtures and the
   replay ledger are now removed fail-loud (a tree that cannot be removed, or a symlink in its
-  place, stops the run) and recreated mode 0700. Their fixed paths are unchanged.
+  place, stops the run) and recreated mode 0700. Their fixed paths are unchanged. Fix round 2,
+  after validate 02: the shared `/tmp/feat2581-ledger` parent is created mode 0700, or accepted
+  only when it is a real directory owned by this user and closed to group and other writes.
 - **SEC-2:** not routed, as the validator lead recommended.
