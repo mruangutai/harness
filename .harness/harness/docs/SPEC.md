@@ -796,6 +796,42 @@ failures (a broken root at exit 2, for any command), and when its process cannot
 — a timeout included — `narrowGateApplies`, a port of its `merge_ref`, refuses only a matching
 `git merge` or `gh pr merge` (`--abort`, `--continue` and `--quit` exempt).
 
+**Stale hook code (BUG-2566).** OMP imports `.omp/extensions/harness-hooks.ts` once, at process
+start, so a long-running session keeps enforcing the code it loaded. At module load the extension
+records a fingerprint, by content (sha256), of the hook modules the process loaded from
+`.omp/extensions`, which is `harness-hooks.ts` alone (`HOOK_FINGERPRINT_MODULES`). The fingerprint is
+resolved from the checkout the extension was loaded from (`import.meta.url`), never from the cwd. A
+missing module is recorded as absent, and a path that is not a regular file is recorded by its kind
+and never opened.
+
+The digest schema directory and the agent definitions are not fingerprinted. The loaded hook reads
+neither, and gate scripts such as `validate-digest.py` start as a new process per call. OMP
+rediscovers agent definitions on every task spawn, so each new spawn receives the current digest
+contract; this does not update a child already running.
+
+Before any other check, every governed call re-reads the fingerprint. The governed calls are every
+tool call of a Harness persona session, Main's task dispatch, and Main's Bash whose command names
+merge (`MERGE_COMMAND_PREFILTER`). When the fingerprint differs from load, the call is refused with
+one line that names the changed paths and tells the operator to restart omp
+(`staleHookRefusal`). There is no warn-and-continue mode.
+
+The one exception is a persona's yield of a BLOCKED digest. It proceeds to yield validation as it
+does in a held run (DEC-204), so an in-flight child can still submit a BLOCKED digest recording why
+it stopped. Yield validation still judges that digest normally, so the exception does not guarantee
+that the run completes or releases its claim. A persona's refusal tells it that, while the process
+is stale, it may yield only a BLOCKED digest. Main's other calls are never checked, so the operator
+can always repair and restart.
+
+These do not trip the check:
+
+- a touched timestamp with unchanged bytes;
+- an edit to a digest schema or an agent definition;
+- a change in a different checkout, such as a feature worktree for a session started in the main
+  checkout.
+
+Restoring the original bytes clears the refusal. The baseline is taken at module load, so a session
+started before this check shipped cannot detect staleness and must be restarted once.
+
 **Asynchronous, bounded, parallel (DEC-100).** Every Python policy process — gate or helper — is
 spawned asynchronously and awaited, so a pending process never freezes OMP's event loop and a
 delayed helper is never an early authorization, release or injection. One named budget,

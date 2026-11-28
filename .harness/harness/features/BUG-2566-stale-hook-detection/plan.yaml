@@ -1,0 +1,293 @@
+schema: plan/1
+feature: BUG-2566-stale-hook-detection
+approval:
+  date: '2026-11-27'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-27T16:10:44Z'
+status: review
+source_issues: [2566]
+
+panel:
+  last_run: 2026-11-27-03-plan-product
+  cycle: 3
+  readers:
+  - reader: scope
+    status: skipped
+    persona: harness-code-reviewer
+    reason: 'operator Q-01 option (a): final pm pass with no re-read; the remedies came
+      from the cycle-2 scope read'
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: 'operator Q-01 option (a): no reader runs in cycle 3; ran in cycle 1'
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: 'operator Q-01 option (a): no reader runs in cycle 3; ran in cycle 1'
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-0050f59cf0f7fa44b6d7ef103bcf7d29
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 cannot build before BUG-2565 despite claiming either merge order works.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-6aff54056062822a7881a396400bbaf3
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 cannot name changed schema files in the refusal.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-7f61e5f49d7d37d8d67276de9059e9a7
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: A non-regular schema entry can hang the OMP process and stop Main recovery.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-d5952f7314edff9bf7d13221a77ee070
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: The decisions record omits the held-run yield contract changed by D-02.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-96c39de98c795b1afec0f37848f8073d
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: The task does not schedule SC-04’s timestamp-mutant evidence.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-8a3eeb1b8abbf1936045b9aea8bd8e24
+    severity: low
+    reader: code-reviewer
+    kind: proportionality
+    summary: T-01 exposes unused fingerprint internals and gates on the export.
+    disposition: resolved
+    scope: task
+    resolved_by: T-01
+  - id: PF-75ab68d541fc124b1f8ce16dcb3fb714
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: T-01 reports the schema directory instead of the changed, added, or removed schema file.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-03296ef9d169a7fbbfa92049d9445f68
+    severity: med
+    reader: should-not-exist
+    kind: substance
+    summary: 'Drop (or re-decide with the operator) the schemas/digest directory in the fingerprint: after the mandated 2565-first ordering, the loaded hook never reads it.'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-8ddb5ea0ab69bb6388d8ac1581350cc2
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: The digest-schema.ts fingerprint entry guards a state the plan's own precondition makes unreachable; three SC-01 cases test it.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-45feecdf80f5f226573a4b14043090ff
+    severity: low
+    reader: should-not-exist
+    kind: substance
+    summary: D-02's removal of the BLOCKED-yield exception (unlike BUG-1898's held-run gate) strands every in-flight subagent the moment staleness trips, with no operator decision recorded.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-1cf493dca96cf1b1ce94d1c72f41f191
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 omits the held JSON BLOCKED witness and stale data-less finalize denial.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-3eb8320f87fbfc385db827a63b69c19c
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: SC-01's direct synchronous FIFO probe can hang the test process.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-37c5f930210963a3fd5f2f342ab1158a
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-01's separate stat and read can still block on a concurrently substituted FIFO.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-292338b000a110a3e4f6387d0b8e9c27
+    severity: low
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 applies a load-time mtime instruction to a sidecar absent at load.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-7f19ccf3cc0e473e95fa93d8e93fbfb3
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: D-04 overstates its grep's precision.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-298aabb8f36427c47c37e864b3cbadb6
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: D-02 and T-02 overstate what passing the stale check guarantees.
+    disposition: resolved
+    resolved_by: T-01
+lanes:
+  resolved_at: e12381fde910eb05728004476a10d741d6918010
+  rows:
+  - surface: .omp/extensions/**
+    lane: main-session-direct
+    reason: NOBODY owns the OMP hook surface; DEC-174 keeps a change to the hook that enforces its own build out of team execution.
+  - surface: tests/unit/omp-hooks.test.ts
+    lane: main-session-direct
+    reason: Granted to harness-backend-dev, harness-dev-ops and harness-qa; DEC-174 keeps a gate's test with its gate.
+  - surface: .harness/harness/docs/SPEC.md
+    lane: main-session-direct
+    reason: Owner harness-documentor; the operator routed every task of this feature main-session-direct under DEC-174.
+
+decisions:
+  - id: D-01
+    choice: The stale check re-hashes the full content of every fingerprinted regular file with sha256 on every governed call; a stat call only classifies each entry's kind and is never a shortcut around the content comparison.
+    because: Measured at e12381fd a full re-hash costs 0.35 ms median against 14 ms for one gate process spawn, while a stat or mtime shortcut saves 0.3 ms and adds a false-negative path (an equal-size, equal-mtime rewrite) that is exactly the silent staleness this bug removes; rejected alternative is stat-first then hash.
+    dec: none
+  - id: D-02
+    choice: 'On mismatch the stale refusal precedes every other check and covers every governed call (a persona''s tool calls, Main''s task dispatch and Main''s merge-gated Bash) with one exception: a persona''s yield whose data is an object with VERDICT exactly BLOCKED skips the stale check and continues through the unchanged held-run and yield validation path, as a held run''s BLOCKED yield does. Every other yield is refused, a persona''s refusal adds the sentence While this process is stale, you may yield only a BLOCKED digest that names this cause. and Main''s other calls are never checked. Skipping the stale check admits a BLOCKED yield to the normal yield validation; it does not guarantee that the yield is accepted, ends the run or releases its claim.'
+    because: 'Each governed call runs through the loaded stale code and the operator ruled out warn-and-continue. At the 2026-11-27 signature questions (Q-04) the operator took the BLOCKED-yield carve-out, so an in-flight child can still submit a BLOCKED digest recording why instead of being stranded; that yield reaches validate-digest.py, a new process that is never stale, which judges it exactly as before, so whether it completes the run and releases the run''s claim stays subject to that normal validation (a lead with no authorized durable artifact, for example, is still refused). Leaving Main''s ordinary calls unchecked lets the operator always repair and restart. DEC-204 and DEC-100 stay true as written. Rejected alternatives: refusing every yield, which strands completed child work in transcripts, and letting any yield through, which would pass a success digest produced under stale enforcement.'
+    dec: none
+  - id: D-03
+    choice: "The fingerprint is a map from absolute path to entry state (content hash, absent, not-a-file or unreadable) over exactly the hook modules the omp process loads from .omp/extensions, which on the post-BUG-2565 base is harness-hooks.ts alone, resolved from import.meta.url and captured once at module load. The digest schema directory (schemas/digest, formerly DIGEST_SCHEMA_DIR), digest-schema.ts and the .omp/agents definitions are not fingerprinted."
+    because: 'Operator ruling at the 2026-11-27 signature questions (Q-02, Q-03), overriding the grilling''s settled set. After BUG-2565 the loaded hook reads no schema file and digest-schema.ts no longer exists, so fingerprinting them would refuse every governed call on a schema regeneration while guarding no loaded code. OMP rediscovers agent definitions on every task spawn (omp task-agent-discovery.md, verified by the main session), so each new spawn receives the current frontmatter digest contract (a child already running keeps the schema it started with, which is not loaded hook code), and validate-digest.py starts as a new process per call. Resolving from the loaded module rather than cwd means a session reacts only to the checkout whose code it is running, and per-path keys let the refusal name each changed module. Rejected alternatives: keeping the schema directory and digest-schema.ts (false refusals, no loaded code guarded) and adding .omp/agents (rediscovered on each new spawn).'
+    dec: none
+
+  - id: D-04
+    choice: 'T-01 builds only on a base where BUG-2565-digest-frontmatter-contract has landed, checked by .omp/extensions/digest-schema.ts being absent and by a text grep of harness-hooks.ts for the known legacy import spelling, from "./digest-schema, counting 0. The grep is not import-aware: it would also count a commented-out line in that spelling and would miss another spelling, so the new code and comments never contain that phrase, and the file''s absence is the check that carries the 2565-first condition. If either check fails, T-01 stops BLOCKED; this plan makes no claim to build in the reverse order.'
+    because: "The operator settled sequential builds with BUG-2565 first, and both features edit harness-hooks.ts. At e12381fd harness-hooks.ts imports digest-schema.ts at module load, so on a pre-2565 base the process would load a second module that D-03's fingerprint does not cover, and the tests would pin a module set BUG-2565 then deletes. Rejected alternative: an order-independent build that fingerprints digest-schema.ts while it exists, which the operator dropped (Q-03)."
+    dec: none
+decisions_affected:
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful
+  successor: none
+  reason: This feature changes the hook that enforces its own build, so it is planned through Harness and every task executes main-session-direct, exactly as DEC-174 rules.
+- dec: DEC-204
+  disposition: keep
+  clause: '- every tool except `yield` is refused, and only a BLOCKED digest may be yielded.'
+  successor: none
+  reason: D-02's BLOCKED-yield carve-out leaves this held-run clause true. A stale process lets a persona's BLOCKED yield through to the unchanged held-run and yield validation path, exactly as a held run does, so nothing in the clause is narrowed and T-02 does not edit DEC-204.
+- dec: DEC-100
+  disposition: keep
+  clause: 'a child that cannot claim refuses every
+
+    tool itself and may yield only a BLOCKED digest that names the cause and whether a retry can
+
+    succeed.'
+  successor: none
+  reason: The same held-run BLOCKED-yield exception, restated in DEC-100, survives the stale refusal under D-02's carve-out, so the sentence stays true as written and T-02 does not edit DEC-100.
+- dec: DEC-202
+  disposition: keep
+  clause: '- lifecycle enforcement is `.omp/extensions/harness-hooks.ts`;'
+  successor: none
+  reason: The detector lives inside this module and fingerprints it from its own import.meta.url; no wiring changes.
+- dec: DEC-237
+  disposition: keep
+  clause: '**Yield owns live validation.** The hook passes YieldTool `data` directly to'
+  successor: none
+  reason: A yield that reaches validation, including a stale process's BLOCKED yield, is validated exactly as before; the stale refusal only stops a non-BLOCKED yield from reaching it.
+- dec: DEC-251
+  disposition: keep
+  clause: '**Boundaries and evidence.** Main-session and non-governed calls retain their inputs and'
+  successor: none
+  reason: Main's non-governed calls are never checked for staleness and keep their inputs unchanged.
+
+tasks:
+  - id: T-01
+    title: Fingerprint the loaded hook code at module load and refuse every governed call when disk differs
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-10]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - changes the tool_call hook in harness-hooks.ts that enforces the build itself, with its test.
+    depends_on: []
+    status: done
+    files:
+      - .omp/extensions/harness-hooks.ts#registerHarnessHooks
+      - tests/unit/omp-hooks.test.ts
+    verify: |
+      set -eu
+      test ! -e .omp/extensions/digest-schema.ts
+      test "$(grep -c 'from "./digest-schema' .omp/extensions/harness-hooks.ts || true)" = 0
+      bun install --frozen-lockfile
+      bun test tests/unit/omp-hooks.test.ts
+      bun run typecheck
+      test "$(grep -c 'export function staleHookRefusal' .omp/extensions/harness-hooks.ts)" = 1
+      test "$(grep -cE 'export (function|type|const) (hookFingerprint|staleHookReason|HookFingerprint|entryState)' .omp/extensions/harness-hooks.ts || true)" = 0
+      test "$(grep -c 'BUG-2566' tests/unit/omp-hooks.test.ts)" -ge 4
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2566-stale-hook-detection; every relative-path edit stays inside it. Main owns this task under DEC-174 and DEC-179, with no engineering-lead dispatch. Source issue 2566. Read this feature's BRIEF.md and notes/research-stale-hook-detection.md first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them; .harness/harness/docs/SPEC.md section 4.2 is the governing description of the hook.
+
+      Precondition (D-04): BUG-2565-digest-frontmatter-contract has landed in this branch's base. Rebase on main, then check both: .omp/extensions/digest-schema.ts does not exist, and grep -c 'from "./digest-schema' .omp/extensions/harness-hooks.ts prints 0. The grep is a text check for the known legacy import spelling, not an import-aware one: it would also count a commented-out line in that spelling and would miss another spelling. So no new code or comment may contain the phrase from "./digest-schema (name digest-schema.ts without it), and the file's absence is the check that carries the 2565-first condition. If either fails, stop and report BLOCKED naming D-04; do not build against the pre-2565 hook and do not adapt this task to the reverse order.
+
+      Write the tests first (the BUG-2566 cases below), run bun test tests/unit/omp-hooks.test.ts and confirm the new refusal and fingerprint cases fail against the unchanged hook, then implement. The (b) carve-out cases already reach validate-digest.py on the unchanged hook: record them as preserved, never as failing first. Record the command, the failing test names, the preserved test names and the exit status in .harness/harness/features/BUG-2566-stale-hook-detection/notes/fail-first-T-01.md.
+
+      Implementation, all inside .omp/extensions/harness-hooks.ts (no new module: OMP loads every module in .omp/extensions as an extension, so a new file would be loaded code outside the fingerprinted set). Add the import createHash from node:crypto, add closeSync, constants, fstatSync, openSync and statSync to the existing node:fs import, and add relative to the existing node:path import. Next to BIN, declare the module-level constant MERGE_COMMAND_PREFILTER = /\bmerge\b/ (no g flag, so test keeps no state) and change the first line of mainMergeGate to test that constant instead of its inline literal; nothing else in mainMergeGate changes. Below gatePath, add one comment block naming BUG-2566 that says: OMP imports this module once per process, so a long-running session keeps enforcing the code it loaded; the fingerprint covers exactly the hook modules this process loaded from .omp/extensions, which after BUG-2565 is this module alone, and a module later added to .omp/extensions must be added to HOOK_FINGERPRINT_MODULES; the digest schema directory and the agent definitions are deliberately not fingerprinted, because this module reads neither after BUG-2565 and OMP rediscovers agent definitions on every task spawn (D-03); the fingerprint is taken at module load and compared by content on every governed call (D-01: stat only classifies an entry's kind, never shortcuts the comparison; a regular file is hashed through the one nonblocking descriptor whose fstat confirms it is a regular file, so a FIFO swapped in after the stat cannot block); an absent module is a recorded state. Then add the following; only item 6 is exported:
+      1. A private type HookFingerprint, Readonly of Record of string and string.
+      2. A private function entryState(path: string) returning a string. It first calls statSync(path), which follows links: any kind other than a regular file (directory, FIFO, socket, device) returns the string not-a-file and the path is never opened. For a regular file it opens the path once with openSync(path, constants.O_RDONLY | constants.O_NONBLOCK), calls fstatSync on that descriptor, and returns not-a-file without reading when the opened descriptor is not a regular file (a FIFO or other kind swapped in after the statSync); otherwise it returns the sha256 hex digest of readFileSync(fd), read from that same descriptor. The descriptor is closed with closeSync in a finally block. The kind check and the read use one descriptor, so a path replaced by a FIFO after statSync can never block the call. On a thrown error (from statSync, openSync, fstatSync or the read) whose code is ENOENT or ENOTDIR it returns the string absent; on any other error it returns unreadable: followed by the error code (or the message when there is no code). It never throws.
+      3. A private function hookFingerprint(modules: readonly string[]) returning a HookFingerprint. It maps each module path to entryState(path), returns the object frozen and never throws.
+      4. Module-level constants, in this order: HOOK_MODULE = fileURLToPath(import.meta.url); HOOK_FINGERPRINT_MODULES, a readonly array holding HOOK_MODULE alone; LOADED_HOOK_FINGERPRINT = hookFingerprint(HOOK_FINGERPRINT_MODULES); HOOK_LOADED_AT = new Date().toISOString(). Nothing here reads an environment variable, process.cwd(), ctx or tool input, and module load never throws.
+      5. A private function staleHookReason(loaded: HookFingerprint, current: HookFingerprint, root: string, loadedAt: string) returning a string or undefined. Collect every key of loaded or current whose values differ, a key missing on one side counting as the value absent. Sort them and map each through relative(root, key). If none remain, return undefined; otherwise return exactly: Harness refuses this call: the Harness hook code this omp process loaded at LOADEDAT no longer matches PATHS on disk; restart omp to load the current hooks. where LOADEDAT is loadedAt and PATHS is the relative paths joined with a comma and a space. The string contains no newline.
+      6. An exported function staleHookRefusal() returning a string or undefined: staleHookReason(LOADED_HOOK_FINGERPRINT, hookFingerprint(HOOK_FINGERPRINT_MODULES), gateRoot(), HOOK_LOADED_AT). It uses only node:fs and node:crypto and spawns nothing.
+      7. A private function isBlockedYieldData(data: unknown) returning a boolean. When data is a string it is replaced by JSON.parse(data), and a parse error returns false. It returns true only when the value is a non-null object, not an array, whose VERDICT property is exactly the string BLOCKED.
+
+      registerHarnessHooks gains a third optional parameter staleCheck, typed as a zero-argument function returning a string or undefined, defaulting to staleHookRefusal, after the existing pi and policyRunner parameters. The default export harnessHooks stays registerHarnessHooks(pi).
+
+      In the tool_call handler: move the existing ompMainTask declaration (no persona, toolName task, agentId Main, no parentAgentId) up so it is computed right after sessionCwd is assigned, keeping its expression unchanged and removing it from its old place. Immediately after it, before the existing task-without-agentId check and before the held-run check, declare governedCall as Boolean(currentAgent) or ompMainTask or (toolName is bash and MERGE_COMMAND_PREFILTER tests true on text(input.command)), and blockedYield as Boolean(currentAgent) and toolName is yield and isBlockedYieldData(input.data). When governedCall is true and blockedYield is false, call staleCheck() once and, if it returns a string, return a block with block true and as reason: that string when currentAgent is empty (Main), or that string followed by one space and While this process is stale, you may yield only a BLOCKED digest that names this cause. when currentAgent is set. A BLOCKED yield skips the stale check and continues through the existing held-run and yield handling unchanged, so it still reaches validate-digest.py. Add a one-line comment citing BUG-2566 D-02: the stale refusal outranks every other check; only a persona's BLOCKED yield passes, as in a held run; Main's other calls are never checked. Change nothing else in the handler.
+
+      Tests, in tests/unit/omp-hooks.test.ts; every new test name starts with BUG-2566. Add an optional staleCheck option, the same zero-argument function type, to the options of the fixture() helper inside describe OMP task lifecycle adapter, and pass it as the third argument of that helper's registerHarnessHooks(pi, runner) call (undefined keeps the default). Inside that describe, using the existing start helper and ompContext, with staleCheck returning the fixed reason stale-fixture-reason restart omp, and P meaning that reason followed by one space and While this process is stale, you may yield only a BLOCKED digest that names this cause. Persona sessions start through start. Main is always initialized through its unmarked fixture, never through start: ctx = ompContext("/repo", "Main", undefined, "main-session"), then await handlers.get("before_agent_start")?.({ systemPrompt: ["project"] }, ctx) before the call under test. The cases:
+      (a) SC-02 refused: each of these is its own test asserting the result is a block with block true and the stated reason exactly, and that the tool_call recorded no policy invocation (compare calls.length before and after the call): a started persona session's read, write, edit, bash and task, reason P; a started persona session's yield of a well-formed object with VERDICT PASS, reason P; a started persona session's yield whose data is an array, reason P; a started persona session's yield whose data is the JSON text of a well-formed object with VERDICT PASS, reason P; a started persona session's yield whose data is the malformed text not json, reason P; a started persona session's data-less finalize, a yield whose input is {type: "result"} with no data property, reason P (the stale check refuses it before the existing data-less early return); a persona session whose run is held (make run-start refuse through the gate option) calling read, reason P, not the held reason; Main (initialized through its unmarked fixture) task, reason exactly the fixed reason; Main bash with command echo merge, reason exactly the fixed reason.
+      (b) SC-02 carve-out: each of these four is its own test asserting that the result carries no reason containing stale-fixture-reason, and that the tool_call recorded exactly one new validate-digest.py call (filter calls by script, compare before and after), whose args equal ["--hook"] and whose payload's digest_object deep-equals the decoded BLOCKED object: a started persona session's yield whose data is an object with VERDICT BLOCKED; a started persona session's yield whose data is the JSON text of that object; a held persona session's yield whose data is that object; a held persona session's yield whose data is the JSON text of that object.
+      (c) SC-03: Main, initialized through its unmarked fixture, calling read, edit, write, and bash git status each return undefined, each its own test.
+      Add a new top-level describe named BUG-2566 stale hook fingerprint. Its helper staleTree() creates root = realpathSync(mkdtempSync(join(tmpdir(), "bug2566-"))); cpSync the repository's .omp/extensions into root/.omp/extensions recursively; cpSync the repository's .claude/skills/harness/schemas/digest into root/.agents/skills/harness/schemas/digest recursively, so the exclusion cases below change real schema files; set the copied hook module's atime and mtime with utimesSync to the fixed whole-second value M = 1800000000, so its load-time mtime is exactly M seconds; then dynamically import root/.omp/extensions/harness-hooks.ts and return root and the imported module. Each case uses a fresh staleTree. Let H be .omp/extensions/harness-hooks.ts and S be .agents/skills/harness/schemas/digest, both relative to root.
+      (d) SC-01: right after import, staleHookRefusal() is undefined. Then each change alone, one test each, makes it return a string with no newline that contains restart omp and contains H: append a comment line to H; delete H; overwrite H with bytes of the same length that differ only in the last byte (it becomes a space, or a newline if it already was a space), then utimesSync H back to atime and mtime M, and assert statSync(H).size is unchanged and statSync(H).mtimeMs equals M times 1000 before calling staleHookRefusal(); replace H with a FIFO. The FIFO case never runs the detector in the test process: write a probe script to root/fifo-probe.ts that dynamically imports root/H, then rmSync H, creates the FIFO with spawnSync of mkfifo on H, calls staleHookRefusal() and prints its JSON.stringify to stdout. Run it with spawnSync(process.execPath, [the probe path], { encoding: "utf8", timeout: 5000, killSignal: "SIGKILL" }) and give that test a 15000 ms test timeout. Assert the child returned normally (its signal is null, its error is undefined and its status is 0) and that its parsed stdout is a string with no newline containing restart omp and H. A regression that opens the FIFO then fails at the deadline instead of hanging the suite.
+      (e) SC-04: staleHookRefusal() stays undefined after each of these, one test each. Controlled mtime offsets apply only to the three hook timestamp cases, each relative to H's load-time mtime M: utimesSync alone on H to M plus 5 seconds with bytes unchanged; H rewritten with its identical bytes, then utimesSync on H to M plus 5 seconds; H changed (assert a reason is returned first), then restored to its original bytes and utimesSync on H to M plus 10 seconds. The remaining cases are plain writes with no utimesSync: the bytes of S/common.json changed; S/harness-pm.json removed; a new file .omp/extensions/digest-schema.ts, which this process never loaded and which has no load-time mtime, created with the content export {}; followed by a newline. With two staleTree roots A and B, appending to B's H leaves A's staleHookRefusal() undefined while B's returns a reason.
+      (f) SC-05: on the repository's real module (the hooks namespace already imported at the top of the file), call hooks.staleHookRefusal() 20 times, then time 200 calls with performance.now(); assert every call returned undefined and the median duration is below 5 ms.
+      Import rmSync, statSync and utimesSync from node:fs where not already imported (spawnSync is already imported from node:child_process).
+
+      After the suite is green, prove SC-04 discriminates. Save a byte copy of the implemented .omp/extensions/harness-hooks.ts to a mktemp path outside the repository; change only entryState's regular-file branch to return String(fstatSync(fd).mtimeMs), read from the opened descriptor, instead of the digest; run bun test tests/unit/omp-hooks.test.ts -t 'BUG-2566 stale hook fingerprint'; confirm the touch, identical-bytes rewrite and restore cases (SC-04) and the same-size, fixed-mtime byte-change case (SC-01) fail under this mutant. Append the command, the failing test names and the exit status to notes/fail-first-T-01.md. Then copy the saved bytes back, confirm with cmp that the file equals the saved copy, and only then commit. Run the literal verify from the PRODUCT checkout root; expected: both precondition checks pass, every bun test passes, typecheck exits 0 and the three grep counts match.
+
+  - id: T-02
+    title: Document the stale hook refusal and its BLOCKED-yield exception in SPEC 4.2
+    traces: [SC-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - documents the hook change; the operator routed every task of this feature main-session-direct.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/harness/docs/SPEC.md
+    verify: |
+      set -eu
+      python3 - <<'PY'
+      import subprocess, sys
+      spec = subprocess.run(["git", "show", "HEAD:.harness/harness/docs/SPEC.md"], capture_output=True, text=True, check=True).stdout
+      section = spec.split("### 4.2 ", 1)[1].split("### 4.3 ", 1)[0]
+      need = ["BUG-2566", "restart omp", "harness-hooks.ts", "by content", "never opened", "not fingerprinted", "BLOCKED digest", "module load", "restarted once"]
+      missing = [n for n in need if n not in section]
+      print("SPEC 4.2 ok" if not missing else "MISSING: " + ", ".join(missing))
+      sys.exit(1 if missing else 0)
+      PY
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2566-stale-hook-detection; every relative-path edit stays inside it. Main owns this task under DEC-174, with no documentor dispatch. Source issue 2566. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md are the governing record. Read the T-01 diff first so the text matches what landed.
+
+      SPEC. In .harness/harness/docs/SPEC.md section 4.2 (Domain enforcement, the hook), insert one new paragraph immediately before the paragraph that opens with the bold run-in Asynchronous, bounded, parallel (DEC-100). Open it with the bold run-in Stale hook code (BUG-2566). Use the file's existing convention of code formatting for paths and identifiers. Its content, in this order: OMP imports .omp/extensions/harness-hooks.ts once, at process start, so a long-running session keeps enforcing the code it loaded. At module load the extension records a fingerprint, by content (sha256), of the hook modules the process loaded from .omp/extensions, which is harness-hooks.ts alone, resolved from the checkout the extension was loaded from, never from the cwd; a missing module is recorded as absent, and a path that is not a regular file is recorded by its kind and never opened. The digest schema directory and the agent definitions are not fingerprinted: the loaded hook reads neither, gate scripts such as validate-digest.py start as a new process per call, and OMP rediscovers agent definitions on every task spawn, so each new spawn receives the current digest contract; this does not update a child already running. Before any other check, every governed call re-reads the fingerprint: every tool call of a Harness persona session, Main's task dispatch, and Main's Bash whose command names merge. When it differs from load, the call is refused with one line naming the changed paths and telling the operator to restart omp; there is no warn-and-continue mode. The one exception is a persona's yield of a BLOCKED digest, which proceeds to yield validation as it does in a held run (DEC-204), so an in-flight child can still submit a BLOCKED digest recording why; yield validation still judges that digest normally, so the exception does not guarantee that the run completes or releases its claim. A persona's refusal tells it that, while the process is stale, it may yield only a BLOCKED digest. Main's other calls are never checked, so the operator can always repair and restart. A touched timestamp with unchanged bytes, a schema or agent-definition edit, or a change in a different checkout (a feature worktree, for a session started in the main checkout) does not trip it, and restoring the original bytes clears it. The baseline is taken at module load, so a session started before this check shipped cannot detect staleness and must be restarted once. Use these exact phrases somewhere in the paragraph: by content, never opened, not fingerprinted, BLOCKED digest, restart omp, module load, restarted once. Change nothing else in SPEC.md. Do not edit DECISIONS.md: the BLOCKED-yield exception leaves DEC-204 and DEC-100 true as written (plan decisions_affected keep rows).
+
+      Run the literal verify from the PRODUCT checkout root after committing; expected: SPEC 4.2 ok and exit 0.
