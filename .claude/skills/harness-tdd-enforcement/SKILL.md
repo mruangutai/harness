@@ -48,6 +48,13 @@ Before executing a task, scan it. **Refuse it** if it contains:
 Do **not** infer the intent. Return `BLOCKED` in the shape `harness-digest-dev` § Refusing an
 under-specified task gives, every field present.
 
+## Plausible inputs, not exotic ones
+
+Tests target the code's plausible inputs. Adversarial and malformed-input tests belong only where
+input crosses a trust boundary (external input, credentials, a gate meant to refuse). A
+contrived, no-worse-than-today finding is never the reason for a new test (the practicality rule,
+`harness-code-review`).
+
 ## Exemptions
 
 Read `test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. Change types mapping to `[]` — `config`, `scaffolding`,

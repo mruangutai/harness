@@ -19,9 +19,11 @@ spent copying one file into another (DEC-229).
 
 Dispositions are written with `plan-merge.py set-panel`, and only in the template's shape: a
 finding carries `id severity reader kind summary disposition`, plus `scope` on a proportionality
-finding and `resolved_by` on a resolved one, and nothing else. Every panel verb, `sign-approval`
-and INV-32 refuse any other key or value (#2095); a rationale goes in a feature note, not on the
-finding.
+finding, `resolved_by` on a resolved one and `exposure`, and nothing else. `exposure` is required
+on every row `record-panel` newly writes and absent on legacy rows: `record-panel` refuses a
+finding without it and a discounted finding (contrived, no_worse, not adversary-controlled)
+above `med`, under the practicality rule. Every panel verb, `sign-approval` and INV-32 refuse any
+other key or value (#2095); a rationale goes in a feature note, not on the finding.
 
 - A finding whose remedy you applied in the same run (`form`, `substance` or `scope: task`) is set
   `resolved` by `plan-merge.py set-panel` right after `record-panel`, with `resolved_by: T-NN`
