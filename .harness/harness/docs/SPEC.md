@@ -147,8 +147,9 @@ surfaces everything else. The main session asks, then re-delegates with answers 
 `resume_from` + `state.yaml` path — the same mechanism that handles context resets. Human pauses
 and crash recovery share one code path.
 
-**Answers are durable, not ephemeral.** The main session writes user answers to
-`.harness/features/<FEAT>/notes/answers-<runid>.md`, never only into a run dir — run dirs are pruned, and
+**Answers are written to a named file.** The main session writes user answers to
+`.harness/features/<FEAT>/notes/answers-<runid>.md`, never only into a run dir — the answers file is a
+local working file removed after the feature's terminal write (DEC-262), and
 durable artifacts may be written from these answers. A LATERAL lead→lead resolution is recorded in
 the consolidated DIGEST's `escalations` trace instead, never a second write to this file (DEC-78
 supersedes DEC-44's file-based lateral mechanism).
@@ -248,13 +249,12 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 `## Open Questions`) *is* the handoff artifact, re-read at every `/harness` entry. A mid-team stop
 leaves its run dir behind; the state check surfaces it and offers resume or discard.
 
-**Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `notes/` / `logs/` / `expertise/` are
-**committed**, so reviewers auditing the PR diff see plan and state changes.
-`features/*/feature.json` is **committed** — it is the record of what shipped.
-`features/*/runs/<id>/` records (`digest.md`, `state.yaml`, `.run-identity.json`, panels, QA
-receipts) are **committed** with the feature through its ordinary commit, never force-added
-(DEC-257). Only `runs/*/ui/**` (screenshots and traces) is git-ignored. What ship keeps and what
-abandon prunes is DEC-238's station rule.
+**Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `logs/` / `expertise/` are **committed**,
+so reviewers auditing the PR diff see plan and state changes.
+`features/*/feature.json` is **committed** — it is the record of what shipped. A feature's
+`notes/`, `runs/` and `observations/`, and project notes under `.harness/notes/`, are local working
+files: git-ignored, never committed, removed by one routine after the feature's terminal write
+(DEC-262).
 
 ---
 
@@ -1066,7 +1066,7 @@ Every `expertise_update` item requires `persona`, with no `state`; ordinary runs
 candidates keep `[]`. The member reports only its own accepted ops after successful application.
 The engine persists ordered exact batches, originals or absence, before/after hashes, stable batch
 identities and caller lineage in feature-local
-`notes/expertise-receipt-<sha256-runtime-id>.json`. Receipts travel in the current PR.
+`notes/expertise-receipt-<sha256-runtime-id>.json`, a local working file never committed (DEC-262).
 `verify-receipt` is read-only and checks the reconstructed final effect of active batches against
 the actual file, not whether a superseded intermediate replacement still survives. Leads verify
 these receipts and files, preserving exact mixed-persona ops; the orchestrator confirms, never applies.
@@ -1079,8 +1079,8 @@ Emitting an op alone is not completion.
 
 **Replay before merge in the still-live worktree.** Fetch/rebase current main, rebuild touched files
 from that exact main blob using `expertise-merge.py replay` with the feature root, feature and base,
-run `check-expertise`, then commit/push reconstruction and original receipts. Replay selects only
-this PR's receipt set, excluding receipts already on main; its `--check` mode is read-only.
+run `check-expertise`, then commit/push the reconstruction and `feature.json`; the receipts stay
+local. Replay reads every receipt in the feature's local notes; its `--check` mode is read-only.
 Identical adds preserve their ids. Different-text add collisions receive the first free positive
 numeric id for that prefix in that section, padded to at least two digits and excluding reserved
 ids; later references from the same runtime caller follow the mapping. Repeated replay is idempotent.
@@ -1689,8 +1689,8 @@ production command, the commit rule and the trust boundary; in short:
 - **Refusal and repair.** An invalid receipt refuses the PASS at exit 2, naming every bad file
   and the exact command that rewrites it; there is no fallback run. QA's grant covers
   `runs/*/qa/manifest-*.json` only.
-- **Committed with the run.** The receipts are ordinary tracked files (DEC-257), committed with
-  the closed run record.
+- **Local with the run.** The receipts stay in the local run record, a working file nobody commits
+  (DEC-262).
 - **Trust boundary.** This checks recorded execution against git; it does not catch a
   deliberately forged complete receipt. The PR CI suite of §9.2 is unchanged and is that
   backstop.
@@ -1699,7 +1699,7 @@ production command, the commit rule and the trust boundary; in short:
 validate run are the installed control-plane copies, not the candidate source under review. Its
 QA records the host launcher's path, version and hash and the candidate's source pin separately,
 proves candidate behavior with tests run from `review_sha`, and never claims the installed hook
-behaved as the candidate does. Candidate receipts are still produced for main to commit; the
+behaved as the candidate does. Candidate receipts are still produced in the local run record; the
 host is not redeployed mid-run.
 
 ---
@@ -2384,11 +2384,11 @@ open_questions:
 - **Leads write their own run file and nothing else.** `check-domain.py` grants each lead exactly
   `features/*/runs/*-<its-squad>/**`.
 
-**Retention:** a run's records under `features/*/runs/<id>/` are committed with the feature
-(DEC-257); only `runs/*/ui/**` is git-ignored. Station decides what is kept (DEC-238): abandon
-prunes `runs/`, and ship keeps every run's `digest.md`, `state.yaml` and `.run-identity.json`.
-`feature.json` is **committed**, so the durable record of what shipped (branch, PR, runs,
-verdicts) survives either way.
+**Retention:** a run's records under `features/*/runs/<id>/` are local working files, git-ignored
+and never committed (DEC-262). One routine removes them, with the feature's `notes/` and
+`observations/`, after its terminal write: abandon, the rejected write, merge-distill, skip-distill
+or clean; ship removes nothing, so distill can still read them. `feature.json` is **committed**, so
+the durable record of what shipped (branch, PR, runs, verdicts) survives either way.
 
 **Runner invocation contract:** the host is invoked with `(team, goal)` and optionally
 `resume_from: <step-id>` + `answers: <path>`. The latter pair is how the orchestrator re-delegates
@@ -2500,7 +2500,8 @@ a UAT script for that feature:
 - **A failed UAT step is a `FAIL`, not a discussion.** It loops back through the orchestrator to the
   responsible squad with your `result:` text attached, and consumes a cycle from
   `max_total_cycles`.
-- The file is committed, so what you accepted and when is part of the record.
+- The file is a local working file, never committed (DEC-262); the ship briefing carries what you
+  accepted and when.
 
 ---
 
@@ -2618,7 +2619,7 @@ before it can be built.** This is a hard precondition on `ship-feature`, not a s
 |---|---|
 | **Who decides it's needed** | `harness-visual-designer`, during the design pass of the `plan` mission. The design pass sits at the end of the product planning cycle, so the call lands *before* any build and *inside* what you approve |
 | **What "high fidelity" means** | Interactive and real enough to judge the experience — built on the team's design-system convention (§3.2), not a static image and not a wireframe. Throwaway mockups remain a separate, ungated exploration tool |
-| **Where it lives** | `.harness/notes/prototypes/<FEAT>/` — committed, so what you approved is on the record |
+| **Where it lives** | `.harness/notes/prototypes/<FEAT>/` — a local working file, never committed (DEC-262); the plan signature records what you approved |
 | **How you review it** | Published as an Artifact where the project supports a single-file build, otherwise run locally with instructions in the team's report |
 | **Approval** | Bundled with PLAN approval — one signature covers plan and prototype |
 
