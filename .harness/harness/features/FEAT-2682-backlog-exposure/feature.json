@@ -1,0 +1,27 @@
+{
+  "feature_id": "FEAT-2682-backlog-exposure",
+  "branch": "feat/FEAT-2682-backlog-exposure",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-28-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T13:51:25+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T13:51:23+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "patch",
+      "reason": "known cause (no exposure slot in briefing table or backlog verb); bounded diff; refusal inside an existing verb reusing panel_findings.is_discounted; no record format change"
+    }
+  ],
+  "mission": "patch"
+}
