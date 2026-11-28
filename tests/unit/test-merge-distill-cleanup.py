@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for merge-gate.py's post-merge working-file cleanup (FEAT-2641 T-06, D-05, DEC-260):
 _clean_after_merge never raises, and distill_main reports a merged distill whose cleanup failed
-with exit 4, the clean command and no REFUSED line. Plain script: one ok/FAIL line per check,
-exit 1 on any FAIL."""
+with exit 4, the clean command and no REFUSED line. A merge call that returns without the PR
+reading MERGED (a merge queue or auto-merge, validate c0 must_fix 3) removes nothing and exits 7.
+Plain script: one ok/FAIL line per check, exit 1 on any FAIL."""
 import contextlib
 import importlib.util
 import io
@@ -106,6 +107,44 @@ def case_lookup_failures(mg, root):
         check_main(mg, label, evidence_of(result))
 
 
+def case_landed_state(mg):
+    def gh_down(repo, *args):
+        raise mg.DistillRefusal("gh pr view failed (probe outage)")
+
+    for label, fake, want in (
+            ("MERGED", lambda repo, *args: '{"state": "MERGED"}', "MERGED"),
+            ("queued", lambda repo, *args: '{"state": "OPEN"}', "OPEN")):
+        with patched(mg, "_gh", fake):
+            check(f"_landed_state reads {label} from gh pr view", mg._landed_state("", "7") == want)
+    try:
+        with patched(mg, "_gh", gh_down):
+            state = mg._landed_state("", "7")
+    except Exception as exc:  # noqa: BLE001 - the check is that nothing escapes
+        state = repr(exc)
+    check("_landed_state: an unreadable PR state is unconfirmed, never MERGED, never raised",
+          state != "MERGED" and "unconfirmed" in state and "probe outage" in state, state)
+
+
+def case_unlanded_merge(mg, root):
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    calls = []
+    unlanded = {"merged": False, "pr_state": "OPEN", "feature": FEATURE, "pr": "7"}
+    with patched(mg, "_verified_merge", lambda r, f, n: dict(unlanded)), \
+            patched(mg.working_files, "clean", lambda *a, **k: calls.append(a)), \
+            patched(mg.feature_corpus, "owner_root", lambda r: r):
+        evidence = mg.merge_distill(root, FEATURE, "7")
+    check("unlanded: merge_distill never calls the cleanup", calls == [], calls)
+    check("unlanded: evidence cleans nothing and carries the clean command",
+          evidence.get("cleaned") == [] and "feature-worktree.py clean" in evidence.get("cleanup_retry", "")
+          and FEATURE in evidence.get("cleanup_retry", ""), evidence)
+    rc, out, err = run_main(mg, evidence)
+    check("unlanded: distill_main returns 7", rc == 7, rc)
+    check("unlanded: prints 'has not merged', the clean command and re-run guidance, never MERGED or REFUSED",
+          "has not merged" in err and evidence.get("cleanup_retry", "?") in err and "re-run merge-distill" in err
+          and f"MERGED {FEATURE}" not in err and "REFUSED" not in err + out, err)
+    check("unlanded: prints the evidence JSON", '"pr_state": "OPEN"' in out, out)
+
+
 def main():
     mg = load()
     check("_clean_after_merge exists", hasattr(mg, "_clean_after_merge"))
@@ -115,6 +154,8 @@ def main():
     try:
         case_partial_oserror(mg, root)
         case_lookup_failures(mg, root)
+        case_landed_state(mg)
+        case_unlanded_merge(mg, root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

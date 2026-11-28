@@ -2035,6 +2035,33 @@ def case_replay_local_receipts(root):
     check("replay --check reports the checkout file already equals the replay", out.get("files", [{}])[0].get("up_to_date") is True, out.get("files"))
 
 
+def case_replay_base_tracked_receipt(root):
+    """SC-10 (validate c0 must_fix 9): no base-tree exclusion. A receipt the base already tracks
+    (a branch cut before DEC-260 untracked them) is read like any other local receipt; restoring
+    the old base exclusion drops it and the replay no longer reproduces the checkout."""
+    co = new_checkout(root, "sel-base", craft=BASE_DOC)
+    base0 = head(co)
+    member(co, "run-one", [mop("add", "Patterns", "P-05", "fresh rule")])
+    sh(co, "add", "--", receipt_path(co, "run-one"))
+    sh(co, "commit", "-q", "-m", "receipt tracked at base")
+    base = head(co)
+    member(co, "run-two", [mop("add", "Gotchas", "G-02", "watch two")], parent="parent-2")
+    commit_all(co, "distill")
+    tracked = sh(co, "ls-tree", "-r", "--name-only", base, "--", NOTES_REL)
+    check("base-tracked receipt: the base tracks run-one's receipt and its Expertise file is unchanged",
+          tracked.endswith(os.path.basename(receipt_path(co, "run-one")))
+          and sh(co, "diff", "--name-only", base0, base, "--", CRAFT_REL) == "", tracked)
+    r = replay(co, base, check_only=True)
+    out = jout(r)
+    paths = sorted(x.get("path") for x in out.get("receipts", []))
+    want = sorted(NOTES_REL + "/expertise-receipt-%s.json" % hashlib.sha256(rt).hexdigest()
+                  for rt in (b"run-one", b"run-two"))
+    check("base-tracked receipt: replay --check reads the base-tracked receipt with the local one",
+          r.returncode == 0 and out.get("replayed") is True and paths == want, out_of(r))
+    check("base-tracked receipt: the replay reproduces the checkout's Expertise file",
+          (out.get("files") or [{}])[0].get("up_to_date") is True, out.get("files"))
+
+
 def _collision_fixture(root):
     origin = new_checkout(root, "o-col", craft=BASE_DOC)
     base0 = head(origin)
@@ -2398,7 +2425,8 @@ SERIAL_CASES = (
 POOLED_CASES = (
     case_member_absent_files, case_member_destination_boundaries, case_member_strict_ops,
     case_member_batches_append, case_member_refusal_preserves, case_member_receipt_failure_fails_closed,
-    case_member_verify, case_replay_local_receipts, case_replay_collision_and_repeat,
+    case_member_verify, case_replay_local_receipts, case_replay_base_tracked_receipt,
+    case_replay_collision_and_repeat,
     case_replay_independent_callers, case_replay_changed_main_and_cap, case_supersession_flow,
     case_replay_evidence_fails_closed, case_verify_complete_destination, case_verify_authorized_anchor)
 

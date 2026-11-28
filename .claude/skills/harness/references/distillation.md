@@ -67,5 +67,7 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
 5. **After it merges,** `merge-gate.py merge-distill` deletes the feature's `notes/`, `runs/`,
    `observations/` and the project notes its `feature.json` `project_notes` lists, and prints
    them; exit 4 means merged but cleanup failed — run
-   `feature-worktree.py clean --repo <repo> --id <FEAT> --yes`. Never delete them before the
-   merge, because replay reads the receipts.
+   `feature-worktree.py clean --repo <repo> --id <FEAT> --yes`. Exit 7 means submitted but not
+   merged (a merge queue or auto-merge enqueued it) and nothing was removed: run that clean once
+   it merges, or re-run `merge-distill` if it is dropped. Never delete them before the merge,
+   because replay reads the receipts.

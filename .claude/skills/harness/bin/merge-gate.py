@@ -12,10 +12,12 @@ D-03) holds one owner-checkout harness_merge lock from start until the synchrono
 completes or fails. Inside it: current main, the exact PR head, replay --check, check-expertise,
 committed-blob equality, and the same owner/binding/mirror-receipt policy the hook enforces
 (DEC-220); main and head are rechecked immediately before merging at the exact head commit. It
-never rebases, applies, re-judges, opens or recovers mirrors. After the merge, still under the
-lock, it removes the feature's local working files (DEC-260); exit 0 merged and cleaned, 3 refused
-before any merge (nothing removed), 5/6/9 the lock refused, 4 merged but the cleanup failed - the
-stderr line names the clean command to retry alone.
+never rebases, applies, re-judges, opens or recovers mirrors. After the merge call it reads the
+PR back, and only a MERGED PR has its local working files removed, still under the lock
+(DEC-260); exit 0 merged and cleaned, 3 refused before any merge (nothing removed), 5/6/9 the
+lock refused, 4 merged but the cleanup failed - the stderr line names the clean command to retry
+alone, 7 submitted but not merged (a merge queue or auto-merge enqueued it, or its state could not
+be read) - nothing removed; clean once it merges, re-run merge-distill if it is dropped.
 
 WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
 isolated root resolution, refusal behavior and hook stream contracts while
@@ -526,9 +528,22 @@ def _verified_merge(root, feature, number):
     _require_owner(root, feature, branch, github)
     _recheck(root, base, main, number, repo, head)
     _gh(repo, "pr", "merge", number, "--squash", "--match-head-commit", head)
-    return {"merged": True, "feature": feature, "pr": number, "branch": branch, "head": head,
-            "main": main, "files": files, "receipts": report.get("receipts"),
-            "batches": report.get("batches")}
+    state = _landed_state(repo, number)
+    return {"merged": state == "MERGED", "pr_state": state, "feature": feature, "pr": number,
+            "branch": branch, "head": head, "main": main, "files": files,
+            "receipts": report.get("receipts"), "batches": report.get("batches")}
+
+
+def _landed_state(repo, number):
+    """The PR's state after the merge call. `gh pr merge` also exits 0 when a merge queue or
+    auto-merge only enqueues the PR, so only a read-back MERGED lets the cleanup run; an
+    unreadable state is reported as unconfirmed, never raised, because the call has been made."""
+    try:
+        meta = _parse_json(_gh(repo, "pr", "view", number, "--json", "state"), f"gh pr view {number}")
+    except DistillRefusal as exc:
+        return f"unconfirmed ({exc})"
+    state = meta.get("state") if isinstance(meta, dict) else None
+    return state if isinstance(state, str) and state else "unconfirmed (gh pr view returned no state)"
 
 
 def merge_distill(root, feature, number):
@@ -537,6 +552,10 @@ def merge_distill(root, feature, number):
     lock_path = os.path.join(feature_corpus.owner_root(root), DISTILL_LOCK)
     with harness_merge.acquire(lock_path):
         evidence = _verified_merge(root, feature, number)
+        if not evidence["merged"]:
+            evidence["cleaned"] = []
+            evidence["cleanup_retry"] = _cleanup_retry(root, feature)
+            return evidence
         removed, error, retry = _clean_after_merge(root, feature)
         evidence["cleaned"] = removed
         if error is not None:
@@ -549,25 +568,23 @@ def _clean_after_merge(root, feature):
     """Remove the merged feature's working files (DEC-260). (removed, None, None) on success;
     (removed so far, error text, retry command) on any failure - never raises, so a post-merge
     failure is never reported as a refusal of a merge that has landed."""
-    removed, feature_dir = [], None
+    removed = []
     try:
         feature_dir = working_files.feature_directory(root, feature)
         owner = feature_corpus.owner_root(root)
         working_files.clean(feature_dir, owner, emit=lambda line: removed.append(line.split(" ", 1)[1]))
     except (working_files.WorkingFilesError, feature_corpus.CorpusError, OSError) as exc:
-        return removed, str(exc), _cleanup_retry(feature_dir, feature)
+        return removed, str(exc), _cleanup_retry(root, feature)
     return removed, None, None
 
 
-def _cleanup_retry(feature_dir, feature):
-    fallback = ("python3 .claude/skills/harness/bin/feature-worktree.py clean --repo <repo> "
-                f"--id {feature} --yes")
-    if feature_dir is None:
-        return fallback
+def _cleanup_retry(root, feature):
+    """The command that removes the feature's working files alone, once its merge has landed."""
     try:
-        return working_files.retry_command(feature_dir)
+        return working_files.retry_command(working_files.feature_directory(root, feature))
     except (working_files.WorkingFilesError, OSError):
-        return fallback
+        return ("python3 .claude/skills/harness/bin/feature-worktree.py clean --repo <repo> "
+                f"--id {feature} --yes")
 
 
 def _pr_number(text):
@@ -597,6 +614,13 @@ def distill_main(argv):
         print(f"merge-distill: REFUSED {args.feature} PR #{args.pr}: {exc}", file=sys.stderr)
         return 3
     print(json.dumps(evidence, sort_keys=True))
+    if not evidence["merged"]:
+        print(f"merge-distill: SUBMITTED {args.feature} PR #{args.pr}, but it has not merged (PR state "
+              f"{evidence['pr_state']}; a merge queue or auto-merge may only have enqueued it); no "
+              f"working file was removed. Once it has merged, remove them alone with: "
+              f"{evidence['cleanup_retry']}; if it leaves the queue unmerged, re-run merge-distill",
+              file=sys.stderr)
+        return 7
     if "cleanup_error" in evidence:
         print(f"merge-distill: MERGED {args.feature} PR #{args.pr}, but working-file cleanup failed: "
               f"{evidence['cleanup_error']}; retry the cleanup alone with: {evidence['cleanup_retry']} "

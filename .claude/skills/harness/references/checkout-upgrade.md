@@ -57,9 +57,10 @@ its default branch, every Harness reader refuses that member.
   5. Commit `.gitignore` and the untracking as their own commit. History is not rewritten and
      the files stay on disk.
 
-  An in-flight branch that still tracks its own working files turns
-  `tests/unit/test-working-files-untracked.py` red once it merges main; its repair is the same
-  `git rm -r --cached --sparse` command run on that branch and committed alone (DEC-260).
+  An in-flight branch that still tracks its own working files brings them back as tracked files
+  when it merges main (in the Harness repository its `test-working-files-untracked.py` unit test
+  goes red); its repair is the same `git rm -r --cached --sparse` command run on that branch and
+  committed alone (DEC-260).
 - **Re-run the checklist above for an existing checkout that pulls a snippet change** (the
   PyYAML `.pyyaml-bootstrap` entry, or the DEC-260 working-file rules). `merge-gitignore.py --check`
   reads its rule list from the snippet and reports obsolete Harness rules, so the check

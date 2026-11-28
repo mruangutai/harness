@@ -455,7 +455,8 @@ if args[:2] == ["pr", "view"]:
     if state["views"] == 2:
         second_view()
     save()
-    meta = {"headRefOid": state["head"], "headRefName": state["branch"], "baseRefName": "main"}
+    meta = {"headRefOid": state["head"], "headRefName": state["branch"], "baseRefName": "main",
+            "state": state.get("pr_state", "OPEN")}
     print(meta["headRefName"] if "-q" in args else json.dumps(meta))
 elif args[:2] == ["pr", "diff"]:
     if state.get("diff_fails"):
@@ -463,6 +464,8 @@ elif args[:2] == ["pr", "diff"]:
     print("\n".join(state["files"]))
 elif args[:2] == ["pr", "merge"]:
     state.setdefault("merges", []).append({"args": args, "lock_held": lock_held()})
+    if not state.get("queued"):
+        state["pr_state"] = "MERGED"
     save()
 else:
     sys.exit(2)
@@ -779,6 +782,28 @@ def case_distill_ledger_commits_working_files_stay_local():
           and os.path.exists(unclaimed), cleaned)
 
 
+def case_distill_queued_merge_keeps_working_files():
+    """FEAT-2641 must_fix 3: a merge queue or auto-merge makes `gh pr merge` succeed while the PR
+    stays open; merge-distill confirms the PR state before deleting anything, so a PR later
+    dropped from the queue still has its receipts."""
+    fx, _feature_rel, working, claimed, _unclaimed = _ledger_fixture()
+    git(fx["wt"], "add", "-A", "--", ".harness")
+    git(fx["wt"], "commit", "-qm", "distill ledger")
+    git(fx["wt"], "push", "-q", "origin", DBRANCH)
+    set_state(fx, head=git(fx["wt"], "rev-parse", "HEAD"), merges=[], queued=True)
+    r = distill(fx)
+    merges = gh_state(fx).get("merges", [])
+    evidence = json_or_empty(r.stdout)
+    check("FEAT-2641 a submitted but unlanded distill merge exits 7, reporting the PR state",
+          r.returncode == 7 and len(merges) == 1 and evidence.get("merged") is False
+          and evidence.get("pr_state") == "OPEN" and "has not merged" in r.stderr
+          and "REFUSED" not in r.stderr, f"rc={r.returncode} evidence={evidence} stderr={r.stderr!r}")
+    check("FEAT-2641 an unlanded merge removes no working file and names the clean command",
+          evidence.get("cleaned") == [] and all(os.path.exists(p) for p in working + [claimed])
+          and "feature-worktree.py clean" in r.stderr and "re-run merge-distill" in r.stderr,
+          f"evidence={evidence} stderr={r.stderr!r}")
+
+
 VALID_DISTILL = case_distill_valid()
 case_raw_distill_hook_denials(VALID_DISTILL)
 case_raw_distill_hook_allows(VALID_DISTILL)
@@ -790,6 +815,7 @@ case_distill_build_entry()
 case_distill_identity()
 case_shipped_not_exempt()
 case_distill_ledger_commits_working_files_stay_local()
+case_distill_queued_merge_keeps_working_files()
 
 # FEAT-2337: the corpus against merge-gate.py itself, on a HEALTHY root (it refuses every command
 # on a broken one) whose checked-out branch owes its Build-entry receipt, with gh unreachable so a
