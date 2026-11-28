@@ -2,6 +2,9 @@
 
 Authoritative lines: `clean-pin-byte-receipts.generated.md` (derived by `receipt-scripts/feat2581-cleanpin.py`
 from `measurements/{baseline,pin}.jsonl.gz`). Baseline e12381fd, implementation pin c91df7a5.
+Those files, `build-divergences.md` and `divergence-rulings.json` left the tree after ship. They have no
+reader there, and DEC-252 checks nothing for a shipped feature. Read them at the pin with
+`git show c039c32d:<path>` (fetch `refs/pull/2629/head`) or at the squash, `git show 1c887c07:<path>`.
 
 - Every verdict PASS: grade_bar, unit_files, integration_files, case_identity, cli_identity
   (210 checkout, 1 copied, 12 bun records per side), replay_identity (43 records x 9 steps,
