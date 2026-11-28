@@ -462,13 +462,15 @@ def _refuse_illegal_dispositions(prop_doc):
 
 
 def _merge_inputs(base_bytes, proposal_text):
-    """(base_doc, prop_doc, base_text), both documents parsed and the proposal's anchors checked."""
+    """(base_doc, prop_doc, base_text), both documents parsed, the proposal's anchors checked and
+    an empty proposal refused (#2702)."""
     base_text = base_bytes.decode("utf-8")
     try:
         base_doc = harness_yaml.load_str(base_text, "<base plan>")
     except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: base failed to parse: {exc}"])
     prop_doc = _parsed_proposal(proposal_text)
+    _refuse_empty_proposal(prop_doc)
     base_doc = base_doc if isinstance(base_doc, dict) else {}
     return base_doc, prop_doc, base_text
 
@@ -758,7 +760,32 @@ def cmd_apply(args):
 
     _print_apply_receipt(result["merged"])
     print(f"APPLIED {resolved}")
+    _report_unloadable(resolved)
     sys.exit(0)
+
+
+# #2702: a proposal with no keys (empty stdin, only comments, `{}`) merges nothing. Reporting
+# APPLIED for it let a caller believe a change landed. Creation already refuses it (no `feature:`
+# key to anchor approval, exit 5); this is the same refusal for an existing plan.
+def _refuse_empty_proposal(prop_doc):
+    if not prop_doc:
+        raise harness_merge.MergeRefusal(
+            2, ["REFUSED: the proposal is empty — it carries no keys, so nothing was merged.",
+                "  Check what was passed as --proposal (or piped on stdin)."])
+
+
+# #2692: apply writes a draft the plan loader refuses on purpose (DO NO HARM above: a plan
+# mid-authoring is legitimately incomplete), but it must not report that write as clean. After
+# APPLIED, the written plan goes through the readers' own loader, and its refusal is relayed on
+# stderr. Advisory: the write stands and the exit stays 0.
+def _report_unloadable(resolved):
+    import artifact_accessors
+    try:
+        artifact_accessors.load_plan(resolved)
+    except (harness_yaml.PlanSchemaError, harness_yaml.YamlParseError) as exc:
+        print(f"NOT LOADABLE: {exc}", file=sys.stderr)
+        print("  The plan was written, but readers refuse it until this is fixed.",
+              file=sys.stderr)
 
 
 def _print_apply_receipt(merged):
