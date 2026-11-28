@@ -378,6 +378,7 @@ tasks:
 
       Run the file against the unchanged union.py (LEAD_START_UNION set to the base revision's copy, as the verify does) and confirm stub-plan-start and stub-hand-written-refused pass while stub-convert-after-start fails with apply exit=5. Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-04.
   - id: T-05
+    status: done
     title: Make the plan team's apply step resolve the findings pm applied
     traces: [SC-11]
     change_type: config

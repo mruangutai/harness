@@ -185,8 +185,16 @@ steps:
       `APPROVAL-RESET:` receipt, run `gh-sync.py status <feature-dir> plan` after the local reset
       has landed. No `APPROVAL-RESET:` receipt means no remote call. Then run
       `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c{{cycle}}.md
-      --cycle {{cycle}}` and `plan-merge.py check --file <plan.yaml> --root <checkout root>`;
-      both must exit 0 before you return. Do not write `approval:`.
+      --cycle {{cycle}}`. Next mark resolved, in one `plan-merge.py set-panel --file <plan.yaml>
+      --value-file /dev/stdin` whose stdin is the recorded panel with only these dispositions
+      changed, every finding whose remedy you applied in this step (a form fix, an applied
+      substance finding, a trimmed `scope: task` finding), setting `disposition: resolved` and
+      `resolved_by: T-NN` naming the task that carries the remedy when one exists (a remedy that
+      lives only in the BRIEF carries no `resolved_by`); every `scope: mission` finding, every
+      finding you did not remedy and every earlier disposition stay open or as they were, and
+      your digest names each finding left open and why. Then run `plan-merge.py check --file
+      <plan.yaml> --root <checkout root>`; all three must exit 0 before you return. Do not write
+      `approval:`.
 
   # ONE goal-check at plan exit, graded per perspective (SC-09); it does not re-run per
   # cycle, so the note carries no cycle suffix.
