@@ -35,22 +35,3 @@ Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differ
   ruling → docs) and owns the cycle budget and the ledger.
 - **Terminus:** the CEO briefing, presented by you verbatim. The user decides ship / fix first /
   re-scope / stop. PR and merge follow their call — never automatically.
-- **On "ship", before the PR — prune run evidence (#1997).** The UI lane commits `runs/<id>/ui/`
-  per run so each reader's judgement binds to a pin; nothing else prunes them, and two features
-  reached 98 run ids. In the feature worktree, after the last validate and before the PR:
-
-  ```
-  python3 .claude/skills/harness/bin/prune-run-evidence.py --feature <flow-id> --dry-run
-  python3 .claude/skills/harness/bin/prune-run-evidence.py --feature <flow-id>
-  ```
-
-  It keeps every validator-squad validate or fix run recorded PASS (a reader's judgement lives in
-  that run's directory, so that is the last PASS of every reader) and every run whose
-  `results.json` names the shipped `review_sha`; for every other run (eng, product,
-  reconciliation, distill) it deletes only `runs/<id>/ui/`, and refuses a feature whose
-  `review_sha` is unset, empty or a placeholder. Before any mutation, including dry-run, it
-  refuses with exit 2 naming every recorded cycle_evidence path missing from disk and with exit 1
-  naming every unreadable directory under a recorded run. Every run directory, `digest.md`, `state.yaml`
-  and `.run-identity.json` survives — check-state pins each recorded run's digest as cycle
-  evidence (#2177). Commit the removal as `[harness:human] <flow-id>: prune run evidence at
-  ship`.

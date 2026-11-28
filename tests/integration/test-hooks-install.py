@@ -52,7 +52,7 @@ import sys
 import tempfile
 
 from git_support import (MAINTENANCE_OFF, add_worktree, commit_feature, commit_files,
-                         feature_rel, init_repo)
+                         init_repo)
 from harness_config_support import write_config
 
 SCRIPT = os.path.abspath(__file__)
@@ -196,14 +196,12 @@ def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, 
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the LANDED
     # plan at the default branch's ref, so it must be in the SAME commit — the `status` argument
     # keeps its name and every caller, and is lowercased into that file.
-    # BUG-1129: ship refuses a feature with no validate handoff; this fixture models a VALIDATED
-    # terminal feature, so the note lands in the same commit.
-    nrel = feature_rel(repo_segment, feature_id, "notes", "handoff-validate.md")
+    # BUG-1129 / DEC-260: ship refuses a feature whose feature.json records no validator run at
+    # PASS; this fixture models a VALIDATED terminal feature, so the run lands in the same commit.
+    doc["runs"] = [{"id": "validate-c0-validator", "squad": "validator", "verdict": "PASS"}]
     return commit_feature(
         repo, feature_id, doc, repo_segment, f"add {feature_id}",
-        plan_station=str(status).lower(),
-        extra_files={nrel: "## next\n## trust\n## dead ends\n## working set\n## done when\n"},
-        git=_git)
+        plan_station=str(status).lower(), git=_git)
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness", ref="HEAD", new_branch=None):

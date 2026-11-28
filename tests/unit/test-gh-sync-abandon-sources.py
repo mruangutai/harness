@@ -3,7 +3,7 @@
 
 Drives the REAL planner (`_abandon_plan`), executor (`_apply_abandon_plan`) and `cmd_abandon`
 in-process. Every external write is intercepted at the module's own seams — `gh_try`, `_place`,
-`ensure_labels`, `_record_station`, `_prune_abandoned_runs` — and appended to ONE ordered event
+`ensure_labels`, `_record_station`, `_clean_after_terminal` — and appended to ONE ordered event
 list, so a case asserts what was written, in what order, with which arguments. No corpus lookup
 is modelled: confirmation, not discovery, is the guard (BUG-2161 D-01).
 
@@ -83,10 +83,12 @@ class Seams:
     `fail` is a list of substrings: a `gh_try` call whose joined argv contains one returns
     (False, 'boom'), so a write failure is observable without a subprocess."""
 
-    def __init__(self, fail=(), station_ok=True):
+    def __init__(self, fail=(), station_ok=True, record_station=True, clean=True):
         self.events = []
         self.fail = list(fail)
         self.station_ok = station_ok
+        self.record_station = record_station
+        self.clean = clean
 
     def _gh_try(self, args):
         self.events.append(("gh", list(args)))
@@ -100,11 +102,13 @@ class Seams:
             "_place": lambda board, repo, num, station, **kw: (
                 self.events.append(("place", num, station)) or True),
             "ensure_labels": lambda repo, labels: self.events.append(("labels", sorted(labels))),
-            "_record_station": lambda d, station: (
-                self.events.append(("station", station)) or self.station_ok),
-            "_prune_abandoned_runs": lambda d, dry_run=False: self.events.append(
-                ("prune", dry_run)),
         }
+        if self.record_station:
+            fakes["_record_station"] = lambda d, station: (
+                self.events.append(("station", station)) or self.station_ok)
+        if self.clean:
+            fakes["_clean_after_terminal"] = lambda d, station, verb: self.events.append(
+                ("clean", station, verb))
         self._stack = contextlib.ExitStack()
         for name, fake in fakes.items():
             self._stack.enter_context(mock.patch.object(gh_sync, name, fake))
@@ -289,17 +293,18 @@ for alias_label, alias, other in (("source/task alias", 41, 40), ("source/parent
           and not any(f"#{alias}" in l and "--close-sources" in l for l in out.splitlines()),
           repr(s.events))
 
-# --- F1: a refused station write must not prune runs/ ------------------------------------------------
-for label, station_ok, plan_station, prunes in (
+# --- F1: a refused station write must not clean the working files --------------------------------
+CLEAN = ("clean", "abandoned", "abandon")
+for label, station_ok, plan_station, cleans in (
         ("station write refused", False, "building", False),
         ("station write recorded", True, "building", True),
         ("station already abandoned", False, "abandoned", True)):
     s, out, err, code, reason = abandon(unopened_github(), station=plan_station,
                                         seams={"station_ok": station_ok}, yes=True)
-    check(f"F1 {label}: runs/ pruned = {prunes}" + ("" if prunes else
+    check(f"F1 {label}: working files cleaned = {cleans}" + ("" if cleans else
           ", and the gap is reported"),
-          (("prune", False) in s.events) == prunes
-          and (prunes or ("runs/" in out and "not pruned" in out)),
+          (CLEAN in s.events) == cleans
+          and (cleans or "working files not removed" in out),
           out + repr(s.events))
 
 # --- a second ACTIVE feature citing the same source does not change the target set ----------------
@@ -332,18 +337,18 @@ check("AS-12 plan.yaml's source list wins over a stale feature.json mirror",
 # --- unopened record ------------------------------------------------------------------------------
 # One run serves AS-13 and AS-19: unopened, no sources, --yes, no --close-sources.
 s, out, err, code, reason = abandon(unopened_github(), [], yes=True)
-check("AS-13 unopened, no sources, --yes: no SKIP; records abandoned THEN prunes, with no "
+check("AS-13 unopened, no sources, --yes: no SKIP; records abandoned THEN cleans, with no "
       "remote write and no label creation",
       code is None and "SKIP" not in out
-      and s.events == [("station", "abandoned"), ("prune", False)],
+      and s.events == [("station", "abandoned"), CLEAN],
       f"code={code} out={out!r} events={s.events}")
 as19_out = out
 
 s, out, err, code, reason = abandon(unopened_github(), [51, 52], yes=True, close_sources=True)
 station = lambda e: e == ("station", "abandoned")
-check("AS-14 unopened with plan-only sources: both disposed, then station, then prune",
+check("AS-14 unopened with plan-only sources: both disposed, then station, then clean",
       {51, 52} <= set(s.targets("close"))
-      and s.before(station, lambda e: e == ("prune", False))
+      and s.before(station, lambda e: e == CLEAN)
       and s.before(closed_issue(52), lambda e: e[0] == "station"),
       repr(s.events))
 
@@ -351,20 +356,20 @@ check("AS-14 unopened with plan-only sources: both disposed, then station, then 
 s, out, err, code, reason = abandon(unopened_github(), [51], station="abandoned", yes=True,
                                     close_sources=True)
 check("AS-15 re-entry at abandoned: the station is NOT rewritten, the source IS disposed, "
-      "and runs/ is still pruned",
+      "and the working files are still cleaned",
       ("station", "abandoned") not in s.events
-      and 51 in s.targets("close") and ("prune", False) in s.events,
+      and 51 in s.targets("close") and CLEAN in s.events,
       repr(s.events))
 
 # --- failure continuation -------------------------------------------------------------------------
 s, out, err, code, reason = abandon(unopened_github(), [51, 52], seams={"fail": ["issues/51 "]},
                                     yes=True, close_sources=True)
 check("AS-16 a failed source close is reported and never stops the next source or the "
-      "station and prune",
+      "station and clean",
       "could not close source #51" in err and "#51 did not close" in out
       and 52 in s.targets("close") and ("place", 52, "backlog") in s.events
       and ("place", 51, "backlog") not in s.events
-      and s.events[-2:] == [("station", "abandoned"), ("prune", False)],
+      and s.events[-2:] == [("station", "abandoned"), CLEAN],
       f"err={err!r} out={out!r}")
 
 s, out, err, code, reason = abandon(unopened_github(), [51, 52],
@@ -392,5 +397,124 @@ check("AS-20 an existing direct caller (no close_sources argument) still dispose
       "task and touches no source",
       {40, 41} <= set(s.targets("close")) and 51 not in s.targets("close"),
       repr(s.events))
+
+# --- DEC-260 D-05: _clean_after_terminal reports a failed cleanup after the station landed --------
+def call_in(fn, *args):
+    out, err = io.StringIO(), io.StringIO()
+    code = None
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            fn(*args)
+        except SystemExit as e:
+            code = e.code
+    return out.getvalue(), err.getvalue(), code
+
+
+def probe_dir(tmp, notes=()):
+    d = feat_dir(tmp, "FEAT-0-probe")
+    write_plan(d, "FEAT-0-probe", station="abandoned")
+    write_feature(d, "FEAT-0-probe", unopened_github())
+    if notes:
+        doc = json.loads(Path(d, "feature.json").read_text(encoding="utf-8"))
+        doc["project_notes"] = list(notes)
+        Path(d, "feature.json").write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    return d
+
+
+def failing_clean(exc, emitted=None):
+    def fake(feature_dir, owner_root, dry_run=False, emit=print):
+        if emitted:
+            emit(f"removed {emitted}")
+        raise exc
+    return fake
+
+
+WF = gh_sync.working_files
+for label, fake, removed in (
+        ("OSError after one removal", failing_clean(OSError("disk gone"), "/tmp/a"), "/tmp/a"),
+        ("WorkingFilesError", failing_clean(WF.WorkingFilesError("symlinked notes parent")), None)):
+    with tempfile.TemporaryDirectory() as tmp:
+        d = probe_dir(tmp)
+        with Seams(record_station=False, clean=False) as s, \
+                mock.patch.object(gh_sync.working_files, "clean", fake):
+            out, err, code = call_in(gh_sync._clean_after_terminal, d, "abandoned", "abandon")
+        check(f"CL-01 {label}: _clean_after_terminal exits 4 naming the recorded station, the "
+              "clean command and 'do not re-run abandon', with no GitHub seam called",
+              code == 4 and "station abandoned was recorded" in err
+              and WF.retry_command(d) in err and "do not re-run abandon" in err
+              and (removed is None or f"removed before the failure: {removed}" in err)
+              and s.events == [], f"code={code} err={err!r} events={s.events}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    d = probe_dir(tmp, notes=[".harness/notes/grill.md"])
+
+    def no_owner(start):
+        raise gh_sync.feature_corpus.CorpusError("not a checkout")
+
+    with Seams(record_station=False, clean=False) as s, \
+            mock.patch.object(gh_sync.feature_corpus, "owner_root", no_owner):
+        out, err, code = call_in(gh_sync._clean_after_terminal, d, "abandoned", "abandon")
+    check("CL-02 an owner-root lookup failure after the station landed exits 4 the same way, "
+          "never a traceback",
+          code == 4 and "station abandoned was recorded" in err and "not a checkout" in err
+          and WF.retry_command(d) in err and "do not re-run abandon" in err and s.events == [],
+          f"code={code} err={err!r}")
+
+# --- reject: plan-merge.py exit 10 (station recorded, cleanup failed) exits 4 ---------------------
+import subprocess  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    d = feat_dir(tmp, FEAT)
+    write_plan(d, FEAT)
+    write_feature(d, FEAT, opened_github())
+    reason = reason_file(tmp)
+    with Seams(record_station=False, clean=False) as s:
+        def exit_ten(argv, **kw):
+            s.events.append(("subprocess", list(argv)))
+            return subprocess.CompletedProcess(
+                argv, 10, stdout="plan-merge: removed /tmp/n\n",
+                stderr="plan-merge: station rejected was recorded, but working-file cleanup "
+                       "failed: boom\n")
+        with mock.patch.object(gh_sync.subprocess, "run", exit_ten):
+            out, err, code = call_in(gh_sync.cmd_reject, d, REPO, BOARD, "88", reason, True)
+    sub = s.index(lambda e: e[0] == "subprocess")
+    check("CL-03 reject --yes whose set-feature-station exits 10 exits 4 naming the recorded "
+          "station, the clean command and 'do not re-run reject', with no GitHub seam after it",
+          code == 4 and "station rejected was recorded" in err
+          and WF.retry_command(d) in err and "do not re-run reject" in err
+          and "gh-sync: plan-merge: station rejected was recorded" in err
+          and sub is not None and all(e[0] != "gh" for e in s.events[sub:]),
+          f"code={code} out={out!r} err={err!r} events={s.events}")
+
+# --- skip-distill: a failed feature-worktree.py clean after the committed decline exits 4 ---------
+_GIT_ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+            "GIT_COMMITTER_EMAIL": "t@t"}
+with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, _GIT_ENV):
+    subprocess.run(["git", "init", "-q", tmp], check=True)
+    Path(tmp, ".harness").mkdir()
+    Path(tmp, ".harness", "team-config.yaml").write_text("teams: []\n", encoding="utf-8")
+    d = feat_dir(tmp, "FEAT-0-probe")
+    write_plan(d, "FEAT-0-probe", station="done")
+    write_feature(d, "FEAT-0-probe", unopened_github())
+    subprocess.run(["git", "-C", tmp, "add", "-A"], check=True)
+    subprocess.run(["git", "-C", tmp, "commit", "-q", "-m", "fixture"], check=True)
+    reason = reason_file(tmp)
+    real_run = subprocess.run
+
+    def clean_fails(argv, **kw):
+        if any("feature-worktree.py" in str(a) for a in argv):
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="clean refused\n")
+        return real_run(argv, **kw)
+
+    with Seams(record_station=False, clean=False) as s, \
+            mock.patch.object(gh_sync.subprocess, "run", clean_fails):
+        out, err, code = call_in(gh_sync.cmd_skip_distill, d, reason, True)
+    ledger = json.loads(Path(d, "feature.json").read_text(encoding="utf-8")).get("judgements") or []
+    check("CL-04 skip-distill --yes whose clean exits 1 exits 4 naming the recorded decline, the "
+          "clean command and 'do not re-run skip-distill', and the judgement stays recorded",
+          code == 4 and "distill decline was recorded" in err
+          and WF.retry_command(d) in err and "do not re-run skip-distill" in err
+          and [(e.get("kind"), e.get("decision")) for e in ledger] == [("distill", "declined")]
+          and s.events == [], f"code={code} out={out!r} err={err!r} ledger={ledger}")
 
 sys.exit(C.report())

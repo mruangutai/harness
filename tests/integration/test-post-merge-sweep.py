@@ -198,23 +198,24 @@ def _repo(path):
     return _from_template(path, _seed_repo)
 
 
-def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harness"):
+def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harness",
+                    validated=True):
     """Widened from T-03's original signature by an optional `milestone` — every existing
     caller (the dry-run case) still calls this with only `status` and gets exactly the old
     behaviour (no `github:` block at all)."""
     doc = {"feature_id": feature_id}
     if milestone is not None:
         doc["github"] = {"repo": "acme/repo-x", "milestone": milestone, "build_entry": "opened"}
+    # BUG-1129 / DEC-260: ship refuses a feature whose feature.json records no validator run at
+    # PASS; these fixtures model VALIDATED features unless `validated=False`.
+    if validated:
+        doc["runs"] = [{"id": "validate-c0-validator", "squad": "validator", "verdict": "PASS"}]
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the
     # LANDED plan at the default branch's ref, so the plan must be in the same commit — the
     # `status` argument keeps its name and its callers, and is lowercased into that file.
-    # BUG-1129: ship refuses a feature with no validate handoff; these fixtures model
-    # VALIDATED features, so the note is part of the same commit.
-    nrel = feature_rel(repo_segment, feature_id, "notes", "handoff-validate.md")
     return commit_feature(
         repo, feature_id, doc, repo_segment, f"add {feature_id}",
-        plan_station=str(status).lower(),
-        extra_files={nrel: "## next\n## trust\n## dead ends\n## working set\n## done when\n"})
+        plan_station=str(status).lower())
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness", ref="HEAD", new_branch=None):
@@ -602,38 +603,63 @@ def case_unresolved_left_standing():
 
 def case_unvalidated_feature_is_not_shipped():
     """The reported incident: `git pull` fired the sweep while BUG-1081's validate was still
-    running; the sweep shipped (cards to Done, parent closed) before handoff-validate.md
-    existed. ship now refuses before its first write (exit 1, no SKIP), and the sweep's
-    existing gate keeps the worktree on a non-zero ship. The fixture is the ordinary terminal
-    one with the note removed from the landed commit."""
+    running; the sweep shipped (cards to Done, parent closed) before the validate landed. ship
+    now refuses before its first write (exit 1, no SKIP), and the sweep's existing gate keeps
+    the worktree on a non-zero ship. The fixture is the ordinary terminal one whose landed
+    feature.json records no validator run at PASS (DEC-260: ship reads the ledger)."""
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
         sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
-        _commit_feature(repo, "FEAT-942-unvalidated", "Done", milestone=7)
-        note = os.path.join(repo, ".harness", "harness", "features", "FEAT-942-unvalidated",
-                            "notes", "handoff-validate.md")
-        subprocess.run(["git", "rm", "-q", os.path.relpath(note, repo)], cwd=repo,
-                       capture_output=True)
-        subprocess.run(["git", "commit", "-qm", "validate still in flight"], cwd=repo,
-                       capture_output=True)
+        _commit_feature(repo, "FEAT-942-unvalidated", "Done", milestone=7, validated=False)
         dest = _add_wt(repo, "FEAT-942-unvalidated")
 
         r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
         out = (r.stdout or "") + (r.stderr or "")
-        results.append(("BUG-1129: the sweep keeps the worktree of a feature whose validate "
-                        "handoff does not exist", os.path.isdir(dest),
+        results.append(("BUG-1129: the sweep keeps the worktree of a feature with no validator "
+                        "run recorded PASS", os.path.isdir(dest),
                         f"dest={dest} out={out[-600:]!r}"))
         results.append(("BUG-1129: the refusal is named in the sweep's output",
-                        "handoff-validate.md" in out and "SKIP removal" in out,
+                        "validation incomplete" in out and "SKIP removal" in out,
                         f"out={out[-600:]!r}"))
         log_text = open(log).read() if os.path.exists(log) else ""
         results.append(("BUG-1129: no milestone-close call was made — nothing on GitHub "
                         "changed", "milestones/" not in log_text, f"log={log_text!r}"))
     return results
 
+
+def case_working_files_keep_worktree():
+    """SC-09 (DEC-260 D-08): a terminal feature whose worktree holds an ignored notes/x.md is
+    shipped, but feature-worktree.py remove refuses while the working file exists, so the
+    worktree survives until distill or clean has run."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+        _commit_feature(repo, "FEAT-944-working-files", "Done", milestone=7)
+        dest = _add_wt(repo, "FEAT-944-working-files")
+        with open(os.path.join(repo, ".git", "info", "exclude"), "a") as f:
+            f.write(".harness/*/features/*/notes/\n")
+        note = os.path.join(dest, ".harness", "harness", "features", "FEAT-944-working-files",
+                            "notes", "x.md")
+        os.makedirs(os.path.dirname(note))
+        open(note, "w").write("observation\n")
+
+        r = subprocess.run([sweep], cwd=repo, capture_output=True, text=True, env=env)
+        out = (r.stdout or "") + (r.stderr or "")
+        log_text = open(log).read() if os.path.exists(log) else ""
+        results.append(("SC-09: the feature is shipped (its milestone is closed)",
+                        "milestones/7" in log_text, f"log={log_text!r} out={out[-600:]!r}"))
+        results.append(("SC-09: its worktree survives while it holds an ignored working file",
+                        os.path.isdir(dest) and os.path.isfile(note),
+                        f"dest={dest} out={out[-600:]!r}"))
+        results.append(("SC-09: the output carries WOULD DISCARD WORKING FILES",
+                        "WOULD DISCARD WORKING FILES" in out, f"out={out[-800:]!r}"))
+    return results
 
 # ---------------------------------------------------------------------------------------------
 # (g) SKIP IS NOT SUCCESS, plus its red proof.
@@ -1283,6 +1309,7 @@ JOBS = (
      case_unresolved_left_standing,
      case_skip_is_not_success,
      case_unvalidated_feature_is_not_shipped,
+     case_working_files_keep_worktree,
      case_failed_is_not_success,
      case_cwd_outside_repo]
     + [functools.partial(case_t07_build_entry_receipt, row) for row in range(len(_T07_NAMES))]

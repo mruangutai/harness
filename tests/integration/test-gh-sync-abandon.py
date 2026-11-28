@@ -16,15 +16,17 @@ _anchor_sys.path.insert(0, _anchor_tests)
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
 import yaml
 
 from gh_sync_support import (
-    FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, add_plan_station, calls, check, edits_to,
+    FAKE_GH, FAKE_GH_SHIP, FAKE_GH_STATIONS, BIN_DIR, add_plan_station, calls, check, edits_to,
     install_gh, label_create_fails, read_feature_json, read_plan_station, report, run, ship_env,
-    stage, stage_ship, stage_station, write_feature_json, write_validate_handoff)
+    stage, stage_ship, stage_station, stage_working_files, working_dirs_present,
+    write_feature_json, write_validate_handoff)
 from harness_config_support import write_config
 
 
@@ -146,9 +148,10 @@ def main():
         noteA = os.path.join(featA, "abandon-note.md")
         open(noteA, "w").write("kept\n")
         r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
-        check("abandon --yes removes the feature's runs/ evidence (#1996)",
-              not os.path.exists(runsA) and "removed runs/validate-c1-validator" in r.stdout, r.stdout + r.stderr)
-        check("abandon prunes only runs/: the feature's notes stay", os.path.exists(noteA) and os.path.exists(os.path.join(featA, "feature.json")))
+        check("abandon --yes removes the feature's runs/ evidence (#1996, DEC-260)",
+              not os.path.exists(runsA) and f"gh-sync: removed {runsA}" in r.stdout, r.stdout + r.stderr)
+        check("abandon removes only working files: the feature's other files stay",
+              os.path.exists(noteA) and os.path.exists(os.path.join(featA, "feature.json")))
         logA = calls(tmpA)
         patchedA = [l for l in logA if "api -X PATCH" in l and "issues/" in l and "state_reason=not_planned" in l]
         check("abandon closes 3 subs not_planned",
@@ -351,7 +354,6 @@ def main():
         `plan-merge.py set-feature-station`, which needs a plan on disk to write to — a fixture with
         only a feature.json makes those paths print "absent" and record nothing, which is a
         different case from the one every caller here means."""
-        write_validate_handoff(os.path.dirname(path))
         with open(os.path.join(os.path.dirname(path), "plan.yaml"), "w", encoding="utf-8") as f:
             f.write(f"schema: plan/1\nfeature: {feat_name}\nstatus: {str(status).lower()}\n"
                     f"tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
@@ -365,7 +367,7 @@ def main():
             review_sha="none",
             cycles_used=1,
             max_total_cycles=10,
-            runs=[],
+            runs=[{"id": "validate-c0-validator", "squad": "validator", "verdict": "PASS"}],
             github={"milestone": 7, "parent": 41, "parent_origin": "created",
                     "attached": ["T-01"], "issues": {"T-01": issue_num}},
         )
@@ -453,7 +455,8 @@ def main():
         os.makedirs(os.path.join(featA1, "runs", "validate-c1-validator", "ui"))
         r = run(["abandon", featA1, "--reason-file", reasonA1], tmpA1)
         check("abandon dry run: names the runs/ it would remove and leaves it (#1996)",
-              os.path.isdir(os.path.join(featA1, "runs", "validate-c1-validator")) and "would remove runs/validate-c1-validator" in r.stdout, r.stdout)
+              os.path.isdir(os.path.join(featA1, "runs", "validate-c1-validator"))
+              and f"gh-sync: would remove {os.path.join(featA1, 'runs')}" in r.stdout, r.stdout)
         logA1 = calls(tmpA1)
         wouldA1 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
         check("abandon dry run: exits 0", r.returncode == 0, r.stdout + r.stderr)
@@ -1040,7 +1043,7 @@ def main():
         check("close-sources dry run: every byte of the feature directory — plan, feature.json "
               "and runs/ — is unchanged", _snapshot(featS2) == snapS2, "snapshot differs")
         check("close-sources dry run: names the runs/ it would remove",
-              "would remove runs/validate-c1-validator" in r.stdout, r.stdout)
+              f"gh-sync: would remove {os.path.join(featS2, 'runs')}" in r.stdout, r.stdout)
 
     # --- a source that is ALSO a task issue: the reason is posted on it, and it closes once ---------
     with tempfile.TemporaryDirectory() as tmpO:
@@ -1157,11 +1160,12 @@ def main():
         check("unopened + close-sources: records abandoned and prunes runs/",
               read_plan_station(featU1) == "abandoned" and not os.path.exists(os.path.join(featU1, "runs")),
               read_plan_station(featU1))
-        check("unopened + close-sources: the station is recorded BEFORE runs/ is pruned",
+        runsU1_dir = os.path.join(featU1, "runs")
+        check("unopened + close-sources: the station is recorded BEFORE runs/ is removed",
               "plan.yaml station -> abandoned" in r.stdout
-              and "removed runs/validate-c1-validator" in r.stdout
+              and f"removed {runsU1_dir}" in r.stdout
               and r.stdout.index("plan.yaml station -> abandoned")
-              < r.stdout.index("removed runs/validate-c1-validator"), r.stdout)
+              < r.stdout.index(f"removed {runsU1_dir}"), r.stdout)
         afterU1 = _snapshot(featU1)
         check("unopened + close-sources: every other artifact — feature.json and the plan's "
               "source list — is preserved",
@@ -1220,8 +1224,8 @@ def main():
             check("already abandoned, %s: runs/ is gone afterwards" % labelA,
                   not os.path.exists(os.path.join(featA7, "runs")), r.stdout)
             if withRunsA:
-                check("already abandoned, retained runs/: it is pruned and named",
-                      "removed runs/validate-c1-validator" in r.stdout, r.stdout)
+                check("already abandoned, retained runs/: it is removed and named",
+                      f"gh-sync: removed {os.path.join(featA7, 'runs')}" in r.stdout, r.stdout)
 
     with tempfile.TemporaryDirectory() as tmpA8:
         featA8, reasonA8 = _src_fixture(tmpA8, "FEAT-2161-reentry-bare", opened=False,
@@ -1315,20 +1319,140 @@ def main():
                   and all(v not in (None, False, []) for v in _src_ops(logGP, 52).values()),
                   r.stdout + r.stderr + str(logGP))
 
-    # --- F1: a refused station write must leave runs/ in place and report the gap ------------------
+    # --- F1: a refused station write must leave every working file in place and report the gap --
     with tempfile.TemporaryDirectory() as tmpP:
         featP, reasonP = _src_fixture(tmpP, "FEAT-2161-station-refused", opened=False, sources=())
         os.remove(os.path.join(featP, "plan.yaml"))
         runsP = os.path.join(featP, "runs", "validate-c1-validator")
         os.makedirs(runsP)
         open(os.path.join(runsP, "shot.webp"), "wb").write(b"RIFF")
+        stage_working_files(featP)
         r = run(["abandon", featP, "--reason-file", reasonP, "--yes"], tmpP, _env(tmpP))
-        check("station write refused (plan.yaml absent): runs/ is preserved, nothing is pruned, "
-              "no plan.yaml appears, and the gap is reported",
+        check("station write refused (plan.yaml absent): every working file is preserved, nothing "
+              "is removed, no plan.yaml appears, and the gap is reported",
               os.path.isfile(os.path.join(runsP, "shot.webp"))
-              and "removed runs/" not in r.stdout and "not pruned" in r.stdout
+              and working_dirs_present(featP) == ["notes", "runs", "observations"]
+              and "gh-sync: removed" not in r.stdout and "working files not removed" in r.stdout
               and "gh-sync: FAILED" in r.stdout
               and not os.path.exists(os.path.join(featP, "plan.yaml")), r.stdout + r.stderr)
+
+    # --- DEC-260 D-05: abandon and reject clean the feature's local working files ---------------
+    def _wf_fixture(tmp, name, script=FAKE_GH_STATIONS):
+        """A git-initialised owner carrying the harness marker, a feature with notes/, runs/ and
+        observations/, a project note its project_notes lists and an unlisted one beside it."""
+        install_gh(tmp, script)
+        feat = stage_station(tmp, name, [("T-01", "ready")], issues={"T-01": 41}, parent=40,
+                             milestone=7)
+        subprocess.run(["git", "init", "-q", tmp], check=True)
+        open(os.path.join(tmp, ".harness", "team-config.yaml"), "w").write("teams: []\n")
+        notes = stage_working_files(feat, tmp, listed=("grill.md",), unlisted=("spike.md",))
+        reason = os.path.join(tmp, "reason.txt")
+        open(reason, "w").write("source ticket is obsolete")
+        return feat, reason, notes
+
+    def _targets(feat, notes):
+        # The owner root resolves through realpath, so a listed note is named by its real path.
+        return ([os.path.join(feat, d) for d in ("notes", "runs", "observations")]
+                + [os.path.realpath(notes["grill.md"])])
+
+    def _all_kept(feat, notes):
+        return (working_dirs_present(feat) == ["notes", "runs", "observations"]
+                and os.path.isfile(notes["grill.md"]) and os.path.isfile(notes["spike.md"]))
+
+    def _cleaned(feat, notes):
+        return (working_dirs_present(feat) == [] and not os.path.lexists(notes["grill.md"])
+                and os.path.isfile(notes["spike.md"]))
+
+    with tempfile.TemporaryDirectory() as tmpW1:
+        featW1, reasonW1, notesW1 = _wf_fixture(tmpW1, "FEAT-2641-abandon-clean")
+        r = run(["abandon", featW1, "--reason-file", reasonW1, "--yes"], tmpW1, _env(tmpW1))
+        check("DEC-260: abandon --yes removes notes/, runs/, observations/ and the listed project "
+              "note, and leaves the unlisted note",
+              r.returncode == 0 and read_plan_station(featW1) == "abandoned"
+              and _cleaned(featW1, notesW1)
+              and all(f"gh-sync: removed {p}" in r.stdout for p in _targets(featW1, notesW1)),
+              r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpW2:
+        featW2, reasonW2, notesW2 = _wf_fixture(tmpW2, "FEAT-2641-abandon-dry")
+        r = run(["abandon", featW2, "--reason-file", reasonW2], tmpW2, _env(tmpW2))
+        check("DEC-260: the abandon dry run lists every working file it would remove and removes "
+              "nothing",
+              r.returncode == 0 and _all_kept(featW2, notesW2)
+              and all(f"gh-sync: would remove {p}" in r.stdout for p in _targets(featW2, notesW2))
+              and notesW2["spike.md"] not in r.stdout, r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpW3:
+        featW3, reasonW3, notesW3 = _wf_fixture(tmpW3, "FEAT-2641-reject-preview")
+        r = run(["reject", featW3, "--superseded-by", "88", "--reason-file", reasonW3], tmpW3,
+                _env(tmpW3))
+        linesW3 = r.stdout.splitlines()
+        stationW3 = next((i for i, l in enumerate(linesW3)
+                          if l == "gh-sync: would record feature station rejected"), None)
+        removesW3 = [i for i, l in enumerate(linesW3) if l.startswith("gh-sync: would remove ")]
+        check("DEC-260: the reject numeric preview lists one remove line per working file, after "
+              "the station line, and removes nothing",
+              r.returncode == 0 and stationW3 is not None and len(removesW3) == 4
+              and all(i > stationW3 for i in removesW3)
+              and all(f"gh-sync: would remove {p}" in linesW3 for p in _targets(featW3, notesW3))
+              and _all_kept(featW3, notesW3), r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpW4:
+        featW4, reasonW4, notesW4 = _wf_fixture(tmpW4, "FEAT-2641-reject-numeric")
+        r = run(["reject", featW4, "--superseded-by", "88", "--reason-file", reasonW4, "--yes"],
+                tmpW4, _env(tmpW4))
+        check("DEC-260: reject numeric --yes records rejected and its station write removes the "
+              "working files, relayed by gh-sync",
+              r.returncode == 0 and read_plan_station(featW4) == "rejected"
+              and _cleaned(featW4, notesW4)
+              and all(l.startswith("gh-sync: ") for l in r.stdout.splitlines()
+                      if "removed " in l)
+              and all(f"removed {os.path.realpath(p)}" in r.stdout
+                      for p in _targets(featW4, notesW4)),
+              r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpW5:
+        featW5, reasonW5, notesW5 = _wf_fixture(tmpW5, "FEAT-2641-reject-refused")
+        os.remove(os.path.join(featW5, "plan.yaml"))
+        r = run(["reject", featW5, "--superseded-by", "88", "--reason-file", reasonW5, "--yes"],
+                tmpW5, _env(tmpW5))
+        check("DEC-260: reject numeric with a refused station write exits 1 and removes nothing",
+              r.returncode == 1 and _all_kept(featW5, notesW5)
+              and not os.path.exists(os.path.join(featW5, "plan.yaml")), r.stdout + r.stderr)
+
+    with tempfile.TemporaryDirectory() as tmpW6:
+        featW6, reasonW6, notesW6 = _wf_fixture(tmpW6, "FEAT-2641-reject-step-fails",
+                                                script=FAKE_GH_STATIONS_LABEL_FAILS)
+        r = run(["reject", featW6, "--superseded-by", "88", "--reason-file", reasonW6, "--yes"],
+                tmpW6, _env(tmpW6))
+        check("DEC-260: a failed reject step exits 1, writes no station and removes nothing",
+              r.returncode == 1 and read_plan_station(featW6) != "rejected"
+              and _all_kept(featW6, notesW6), r.stdout + r.stderr)
+
+    keptW = ("gh-sync: working files are kept by this command: plan-merge.py set-feature-station "
+             "removes them when you record station rejected")
+    for labelW, yesW in (("--yes", ["--yes"]), ("preview", [])):
+        with tempfile.TemporaryDirectory() as tmpW7:
+            featW7, reasonW7, notesW7 = _wf_fixture(tmpW7, "FEAT-2641-reject-none")
+            r = run(["reject", featW7, "--superseded-by", "none", "--reason-file", reasonW7] + yesW,
+                    tmpW7, _env(tmpW7))
+            check(f"DEC-260: reject none {labelW} exits 0, removes nothing, leaves the station "
+                  "unrejected and ends by saying set-feature-station removes them, with no remove "
+                  "line and no clean command",
+                  r.returncode == 0 and _all_kept(featW7, notesW7)
+                  and read_plan_station(featW7) != "rejected"
+                  and r.stdout.rstrip("\n").splitlines()[-1] == keptW
+                  and not any("remove " in l and l != keptW for l in r.stdout.splitlines())
+                  and "feature-worktree.py" not in r.stdout + r.stderr, r.stdout + r.stderr)
+            if yesW:
+                pm = subprocess.run(
+                    [sys.executable, os.path.join(BIN_DIR, "plan-merge.py"), "set-feature-station",
+                     "--file", os.path.join(featW7, "plan.yaml"), "--station", "rejected"],
+                    capture_output=True, text=True)
+                check("DEC-260: a following plan-merge.py set-feature-station --station rejected "
+                      "removes them",
+                      pm.returncode == 0 and read_plan_station(featW7) == "rejected"
+                      and _cleaned(featW7, notesW7), pm.stdout + pm.stderr)
 
     # --- --close-sources belongs to abandon alone ---------------------------------------------------
     with tempfile.TemporaryDirectory() as tmpX:
