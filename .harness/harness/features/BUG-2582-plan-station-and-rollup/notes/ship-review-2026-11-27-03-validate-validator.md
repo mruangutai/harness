@@ -76,3 +76,21 @@ Advisories left out under the practicality rule (#2622):
 - the bare `approval:` null and the dropped comment, which you ruled on in run 02.
 
 Also out of scope: member verdicts in a lead digest are not checked against the members' real returns anywhere in the validator. That gap predates this feature and is why MF-1 was arguable. Worth a ticket if you want roster binding to carry real weight.
+
+## After the PASS: merging main (`0e85478f`)
+
+`main` moved four commits while this feature was in review. One of them was FEAT-2581 (#2629), which moved `load_feature_json` from `artifact_accessors` to `feature_record.read`. Merging it changed feature code in two places, and nothing else:
+- **`validate-digest.py` `_carveout_plan`.** It calls `record_read.load_feature_json` and catches `record_read.FeatureJsonError`, as every other feature.json read in that file now does.
+- **The inventory row.** `_carveout_plan::load_feature_json#1` now names the remedy `feature_record.read.load_feature_json`, matching main's other rows.
+
+Both merge conflicts were mechanical:
+- **The import line.** Both sides were kept.
+- **`DECISIONS-INDEX.md`.** I took main's copy, regenerated it from the merged `DECISIONS.md`, and restored the DEC-123 ruling (28 words).
+
+`review_sha` stays at `4460c352`, the commit the validators reviewed. Measured on the merge:
+- **Task verifies.** T-02, T-03, T-04 and T-05 exit 0.
+- **T-01.** All 10 unit cases pass. Its `git diff --quiet e6960865 -- harness_yaml.py` line now fails, but only because `main`'s #2626 changed that file. It is identical to `origin/main`, so this feature still does not touch it.
+- **The four former CI reds** pass: `test-check-plan-routes.py`, `test-broad-catch-census.py`, `test-checker-structure-locks.py` and `test-gen-decisions-index.py`.
+- `check-state` reports 0 violations.
+
+The PR's CI runs the full suites over the merged tree.
