@@ -412,6 +412,8 @@ import harness_merge  # noqa: E402
 DFEAT = "FEAT-9100-distill-fixture"
 DBRANCH = f"feat/{DFEAT}"
 CRAFT = ".harness/expertise/harness-backend-dev.md"
+WORKING_RULES = (".harness/*/features/*/notes/", ".harness/*/features/*/runs/",
+                 ".harness/*/features/*/observations/", ".harness/notes/")
 PLAN = ("status: {status}\ntasks:\n  - id: T-01\n    title: Fixture task\n    change_type: test\n"
         "    execution_mode: main-session-direct\n    files: [fixture.py]\n    status: ready\n"
         "    verify: python3 test.py\n    intent: Exercise the merge gate fixture.\n")
@@ -484,17 +486,17 @@ def seed_owner(owner, entry, repo):
     write(os.path.join(owner, ".harness", "team-config.yaml"), "agents: {}\n")
     write(os.path.join(owner, ".harness", "harness.json"),
           build_config({"github": {"sync": True, "repo": "acme/widgets"}}))
-    write(os.path.join(owner, ".gitignore"), "*.lock\n")
+    write(os.path.join(owner, ".gitignore"), "*.lock\n" + "".join(f"{rule}\n" for rule in WORKING_RULES))
     write(os.path.join(feature_dir, "feature.json"),
           {"feature_id": DFEAT, "branch": DBRANCH, "github": github})
     write(os.path.join(feature_dir, "plan.yaml"), PLAN.format(status="build"))
 
 
-def member_ops(wt, entry="Distill fixture entry text."):
-    ops = [{"op": "add", "section": "Patterns", "target": "P-01", "entry": entry, "why": "fixture"}]
+def member_ops(wt, entry="Distill fixture entry text.", target="P-01", runtime="rt-1"):
+    ops = [{"op": "add", "section": "Patterns", "target": target, "entry": entry, "why": "fixture"}]
     return subprocess.run(
         [sys.executable, os.path.join(BIN, "expertise-merge.py"), "member-ops", "--root", wt,
-         "--feature", DFEAT, "--persona", "harness-backend-dev", "--runtime-id", "rt-1",
+         "--feature", DFEAT, "--persona", "harness-backend-dev", "--runtime-id", runtime,
          "--parent-id", "parent-1", "--tier", "craft", "--ops", "-"],
         input=json.dumps(ops), capture_output=True, text=True, timeout=60)
 
@@ -721,32 +723,60 @@ def case_shipped_not_exempt():
           reason)
 
 
-def case_bug2399_distill_records_commit_before_merge():
-    """BUG-2399: a distill run's own non-UI records are ordinary tracked files under the canonical
-    repository ignore rules, so merge-distill refuses while they are uncommitted and merges once
-    they are committed and pushed. The gate itself is unchanged; the ignore rule is what moved."""
+def _ledger_fixture():
+    """A distill whose receipts, run records and observation log exist only on disk, whose
+    feature.json gains its distill run and claims one project note, left uncommitted."""
     fx = distill_fixture()
-    shutil.copyfile(os.path.join(ROOT, ".gitignore"), os.path.join(fx["wt"], ".gitignore"))
-    set_state(fx, head=commit_push(fx["wt"], "canonical ignore rules"))
-    run_dir = os.path.join(".harness", "harness", "features", DFEAT, "runs", "distill-validator")
-    records = [os.path.join(run_dir, name) for name in ("digest.md", "state.yaml", ".run-identity.json")]
-    for rel in records + [os.path.join(run_dir, "ui", "shot.webp")]:
-        write(os.path.join(fx["wt"], rel), f"evidence {os.path.basename(rel)}\n")
-    refused_before_merge("BUG-2399 merge-distill refuses while the distill run's own records are uncommitted",
+    ops = member_ops(fx["wt"], entry="Second distill entry.", target="P-02", runtime="rt-2")
+    assert ops.returncode == 0, ops.stdout + ops.stderr
+    feature_rel = os.path.join(".harness", "harness", "features", DFEAT)
+    feature_dir = os.path.join(fx["wt"], feature_rel)
+    for rel in ("runs/distill-validator/digest.md", "runs/distill-validator/state.yaml",
+                "runs/distill-validator/.run-identity.json", "observations/harness-backend-dev.md"):
+        write(os.path.join(feature_dir, rel), f"evidence {os.path.basename(rel)}\n")
+    claimed, unclaimed = (os.path.join(fx["owner"], ".harness", "notes", name)
+                          for name in ("grill-fixture.md", "spike-fixture.md"))
+    write(claimed, "grilling\n")
+    write(unclaimed, "spike\n")
+    with open(os.path.join(feature_dir, "feature.json")) as stream:
+        record = json.load(stream)
+    record["runs"] = [{"id": "distill-validator", "squad": "validator", "verdict": "PASS"}]
+    record["project_notes"] = [".harness/notes/grill-fixture.md"]
+    write(os.path.join(feature_dir, "feature.json"), record)
+    working = [os.path.join(feature_dir, d) for d in ("notes", "runs", "observations")]
+    return fx, feature_rel, working, claimed, unclaimed
+
+
+def case_distill_ledger_commits_working_files_stay_local():
+    """FEAT-2641 (DEC-260): a distill commits feature.json and the Expertise file only; its
+    receipts, run records and observation logs stay local, and the merge removes them."""
+    fx, feature_rel, working, claimed, unclaimed = _ledger_fixture()
+    refused_before_merge("FEAT-2641 merge-distill refuses while the feature.json change is uncommitted",
                          fx, distill(fx), "uncommitted .harness changes")
-    git(fx["wt"], "add", "--", ".harness")
+    check("FEAT-2641 a refused distill leaves every working file in place",
+          all(os.path.exists(p) for p in working + [claimed, unclaimed]), working)
+    git(fx["wt"], "add", "-A", "--", ".harness")
     staged = set(git(fx["wt"], "diff", "--cached", "--name-only").splitlines())
-    check("BUG-2399 ordinary git add stages the distill records and leaves run UI out",
-          set(records) <= staged and not any("/ui/" in path for path in staged), f"staged={sorted(staged)}")
-    git(fx["wt"], "commit", "--allow-empty", "-qm", "distill run records")
+    check("FEAT-2641 git add stages feature.json and the Expertise file, no working file",
+          staged == {f"{feature_rel}/feature.json", CRAFT}, f"staged={sorted(staged)}")
+    git(fx["wt"], "commit", "-qm", "distill ledger")
     git(fx["wt"], "push", "-q", "origin", DBRANCH)
     set_state(fx, head=git(fx["wt"], "rev-parse", "HEAD"), merges=[])
     r = distill(fx)
     merges = gh_state(fx).get("merges", [])
-    check("BUG-2399 the same distill merges once, at the new head, after its records are committed",
+    check("FEAT-2641 the same distill merges once, at the new head, after its ledger is committed",
           r.returncode == 0 and len(merges) == 1
           and option_value(merges[0]["args"], "--match-head-commit") == gh_state(fx)["head"],
           f"rc={r.returncode} merges={merges} stderr={r.stderr!r}")
+    tree = git(fx["wt"], "ls-tree", "-r", "--name-only", gh_state(fx)["head"]).splitlines()
+    check("FEAT-2641 the merged head tracks no notes/, runs/ or observations/ path",
+          not any(f"/{d}/" in p for p in tree for d in ("notes", "runs", "observations")), tree)
+    cleaned = json_or_empty(r.stdout).get("cleaned")
+    check("FEAT-2641 the evidence's cleaned list names notes/, runs/ and observations/, now gone",
+          cleaned is not None and all(p in cleaned and not os.path.exists(p) for p in working), cleaned)
+    check("FEAT-2641 the evidence lists the claimed project note, now gone; an unclaimed note survives",
+          cleaned is not None and claimed in cleaned and not os.path.exists(claimed)
+          and os.path.exists(unclaimed), cleaned)
 
 
 VALID_DISTILL = case_distill_valid()
@@ -759,7 +789,7 @@ case_distill_replay_invalid()
 case_distill_build_entry()
 case_distill_identity()
 case_shipped_not_exempt()
-case_bug2399_distill_records_commit_before_merge()
+case_distill_ledger_commits_working_files_stay_local()
 
 # FEAT-2337: the corpus against merge-gate.py itself, on a HEALTHY root (it refuses every command
 # on a broken one) whose checked-out branch owes its Build-entry receipt, with gh unreachable so a

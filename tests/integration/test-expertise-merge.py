@@ -2006,27 +2006,31 @@ def case_verify_authorized_anchor(root):
     _check_unchained_active_batch(root)
 
 
-def _selection_fixture(root):
+def _local_receipts_fixture(root):
+    """FEAT-2641 D-04: receipts are local working files, ignored and never committed."""
     co = new_checkout(root, "sel", craft=BASE_DOC)
-    member(co, "old-run", [mop("replace", "Patterns", "P-01", "beta rule")])
-    commit_all(co, "earlier distill")
-    moved = [("Patterns", [("P-01", "changed upstream"), ("P-03", "gamma rule")]), ("Gotchas", [("G-01", "watch one")]),
-             ("Outcomes", []), ("Open", [])]
-    write_file(os.path.join(co, CRAFT_REL), moved)
-    base2 = commit_all(co, "main moved")
-    member(co, "new-run", [mop("add", "Patterns", "P-05", "fresh rule")])
-    return co, base2
+    with open(os.path.join(co, ".gitignore"), "w", encoding="utf-8") as fh:
+        fh.write("*.lock\n.harness/*/features/*/notes/\n")
+    base = commit_all(co, "ignore working files")
+    member(co, "run-one", [mop("add", "Patterns", "P-05", "fresh rule")])
+    member(co, "run-two", [mop("add", "Gotchas", "G-02", "watch two")], parent="parent-2")
+    commit_all(co, "distill")
+    return co, base
 
 
-def case_replay_current_pr_selection(root):
-    co, base2 = _selection_fixture(root)
+def case_replay_local_receipts(root):
+    co, base = _local_receipts_fixture(root)
+    tracked = sh(co, "ls-files", "--", NOTES_REL)
+    check("local receipts: member-ops receipts are never committed", tracked == "", tracked)
     snap = snapshot(co, locks=True)
-    r = replay(co, base2, check_only=True)
+    r = replay(co, base, check_only=True)
     out = jout(r)
-    check("replay selection: earlier distill's receipt on main is ignored (replay succeeds)", r.returncode == 0, out_of(r))
-    paths = [x.get("path") for x in out.get("receipts", [])]
-    check("replay selection: only the current PR's receipt is read",
-          paths == [NOTES_REL + "/expertise-receipt-%s.json" % hashlib.sha256(b"new-run").hexdigest()], paths)
+    check("local receipts: replay --check reports replayed true", r.returncode == 0 and out.get("replayed") is True,
+          out_of(r))
+    paths = sorted(x.get("path") for x in out.get("receipts", []))
+    want = sorted(NOTES_REL + "/expertise-receipt-%s.json" % hashlib.sha256(rt).hexdigest()
+                  for rt in (b"run-one", b"run-two"))
+    check("local receipts: both uncommitted receipts are read", paths == want, paths)
     check("replay --check is read-only", snapshot(co, locks=True) == snap, None)
     check("replay --check reports the checkout file already equals the replay", out.get("files", [{}])[0].get("up_to_date") is True, out.get("files"))
 
@@ -2275,13 +2279,6 @@ def _check_supersession_ambiguous(x, base_z, old, new_op):
     check("supersession: ambiguous attempt wrote nothing", snapshot(x) == snap, None)
 
 
-def _check_supersession_outside_pr(x, new_op):
-    new_id = load_receipt(x, "run-c2")["batches"][0]["id"]
-    base3 = commit_all(x, "PR merged")
-    outside = member(x, "run-c4", [new_op], supersedes=[new_id], base=base3)
-    check("supersession: a reference whose receipt is already on main is outside this PR (15)", outside.returncode == 15, out_of(outside))
-
-
 def _supersession_withdraw(root, origin, z, base_z):
     x2 = clone(origin, root, "x2-sup")
     member(x2, "run-c", [mop("replace", "Patterns", "P-03", "mine")])
@@ -2315,7 +2312,6 @@ def case_supersession_flow(root):
     _check_supersession_replay_idempotent(x, base_z, expected)
     _check_supersession_verification(x, base_z, new_op)
     _check_supersession_ambiguous(x, base_z, old, new_op)
-    _check_supersession_outside_pr(x, new_op)
     x2, old2 = _supersession_withdraw(root, origin, z, base_z)
     _check_supersession_withdrawal_result(x2, z, old2, base_z)
 
@@ -2402,7 +2398,7 @@ SERIAL_CASES = (
 POOLED_CASES = (
     case_member_absent_files, case_member_destination_boundaries, case_member_strict_ops,
     case_member_batches_append, case_member_refusal_preserves, case_member_receipt_failure_fails_closed,
-    case_member_verify, case_replay_current_pr_selection, case_replay_collision_and_repeat,
+    case_member_verify, case_replay_local_receipts, case_replay_collision_and_repeat,
     case_replay_independent_callers, case_replay_changed_main_and_cap, case_supersession_flow,
     case_replay_evidence_fails_closed, case_verify_complete_destination, case_verify_authorized_anchor)
 
