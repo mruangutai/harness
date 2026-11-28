@@ -9,13 +9,19 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(ROOT / "tests"))
+from unit_support import ROOT, BIN
 import artifact_accessors as accessors  # noqa: E402
+import harness_yaml  # noqa: E402
 from feature_record import read as record_read  # noqa: E402
 from harness_config_support import build_config  # noqa: E402
+
+
+def _write(directory, name, text):
+    """Write text as UTF-8 to directory/name, creating parents, and return the path."""
+    path = Path(directory) / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 class SystemPythonCompatibilityContracts(unittest.TestCase):
@@ -57,12 +63,12 @@ class SystemPythonCompatibilityContracts(unittest.TestCase):
 
 class JsonContracts(unittest.TestCase):
     def test_nonfinite_json_constants_are_rejected(self):
-        for value in ("NaN", "Infinity", "-Infinity"):
-            with self.subTest(value=value), tempfile.TemporaryDirectory() as directory:
-                path = Path(directory) / "harness.json"
-                path.write_text('{"value": ' + value + '}', encoding="utf-8")
-                with self.assertRaises(accessors.ArtifactAccessError):
-                    accessors.load_harness_json(path)
+        with tempfile.TemporaryDirectory() as directory:
+            for value in ("NaN", "Infinity", "-Infinity"):
+                with self.subTest(value=value):
+                    path = _write(directory, "harness.json", '{"value": ' + value + '}')
+                    with self.assertRaises(accessors.ArtifactAccessError):
+                        accessors.load_harness_json(path)
 
     def test_in_memory_json_retains_caller_context(self):
         with self.assertRaises(accessors.ArtifactAccessError) as caught:
@@ -127,8 +133,6 @@ class JsonContracts(unittest.TestCase):
                 "harness.json", text="{}", context="remote harness.json"
             )
 
-
-
     def test_feature_json_rejects_malformed_recorded_blocks(self):
         invalid_blocks = (
             {"github": {"parent": True}},
@@ -150,8 +154,7 @@ class JsonContracts(unittest.TestCase):
             "github": {"parent": "7", "issues": {"T-01": "8"}},
         }
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "feature.json"
-            path.write_text(json.dumps(document), encoding="utf-8")
+            path = _write(directory, "feature.json", json.dumps(document))
             self.assertEqual(document, record_read.load_feature_json(path))
 
     def test_feature_json_excessive_depth_is_a_typed_input_error(self):
@@ -187,10 +190,9 @@ class JsonContracts(unittest.TestCase):
     # The run-step contract is read by two gates (check-state INV-16, check-domain's version-2
     # step closure). One accessor owns the navigation so a schema restructure moves one site.
     def test_load_run_step_contract_returns_step_schema_declared_keys_and_evidence_pattern(self):
-        contract = accessors.load_run_step_contract(BIN)
-        step_schema, declared, pattern = contract
-        with open(BIN.parent / "schemas" / "run-state.json", encoding="utf-8") as handle:
-            raw = json.load(handle)["properties"]["steps"]["items"]
+        step_schema, declared, pattern = accessors.load_run_step_contract(BIN)
+        schema_text = (BIN.parent / "schemas" / "run-state.json").read_text(encoding="utf-8")
+        raw = json.loads(schema_text)["properties"]["steps"]["items"]
         self.assertEqual(raw, step_schema)
         self.assertEqual(set(raw["properties"]), declared)
         self.assertEqual(raw["properties"]["evidence"]["propertyNames"]["pattern"], pattern)
@@ -204,20 +206,19 @@ class JsonContracts(unittest.TestCase):
             ('{"properties": {"steps": []}}', TypeError),
             ('{"properties": {"steps": {"items": {"properties": {}}}}}', KeyError),
         )
-        for text, expected in cases:
-            with self.subTest(text=text), tempfile.TemporaryDirectory() as directory:
-                (Path(directory) / "schemas").mkdir()
-                (Path(directory) / "schemas" / "run-state.json").write_text(text, encoding="utf-8")
-                with self.assertRaises(expected):
-                    accessors.load_run_step_contract(Path(directory) / "bin")
+        with tempfile.TemporaryDirectory() as directory:
+            for text, expected in cases:
+                with self.subTest(text=text):
+                    _write(directory, "schemas/run-state.json", text)
+                    with self.assertRaises(expected):
+                        accessors.load_run_step_contract(Path(directory) / "bin")
 
     def test_load_run_step_contract_is_strict_about_the_schema_file_itself(self):
         with tempfile.TemporaryDirectory() as directory:
-            (Path(directory) / "schemas").mkdir()
-            (Path(directory) / "schemas" / "run-state.json").write_text(
-                '{"properties": {"steps": 1, "steps": 2}}', encoding="utf-8")
+            _write(directory, "schemas/run-state.json", '{"properties": {"steps": 1, "steps": 2}}')
             with self.assertRaises(accessors.ArtifactAccessError):
                 accessors.load_run_step_contract(Path(directory) / "bin")
+
 
 class ManifestDomainsContracts(unittest.TestCase):
     def test_omitted_agent_aggregates_named_role_writes_only(self):
@@ -239,16 +240,12 @@ shared:
   - path: shared-write
 """
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "team-config.yaml"
-            path.write_text(manifest, encoding="utf-8")
-            self.assertEqual(
-                (["alpha-write", "beta-write"], ["shared-write"]),
-                accessors.manifest_domains(path),
-            )
-            self.assertEqual(
-                (["alpha-write", "beta-write"], ["shared-write"]),
-                accessors.manifest_domains(path, None),
-            )
+            path = _write(directory, "team-config.yaml", manifest)
+            for args in ((), (None,)):
+                self.assertEqual(
+                    (["alpha-write", "beta-write"], ["shared-write"]),
+                    accessors.manifest_domains(path, *args),
+                )
             self.assertEqual(
                 (["alpha-write"], ["shared-write"]),
                 accessors.manifest_domains(path, "alpha"),
@@ -283,9 +280,8 @@ main_session:
   writes: ["  keep  ", 7, "", "last"]
 """
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "team-config.yaml"
-            path.write_text(manifest, encoding="utf-8")
-            with mock.patch("harness_yaml.load_file", wraps=__import__("harness_yaml").load_file) as load_file:
+            path = _write(directory, "team-config.yaml", manifest)
+            with mock.patch.object(harness_yaml, "load_file", wraps=harness_yaml.load_file) as load_file:
                 view = accessors.manifest_domains(path, view=True)
             self.assertEqual(1, load_file.call_count)
         self.assertEqual(
@@ -306,10 +302,10 @@ main_session:
 
     def test_view_coerces_role_names_to_its_public_string_type(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "team-config.yaml"
-            path.write_text("roles:\n  - name: 17\n    domain: []\n", encoding="utf-8")
+            path = _write(directory, "team-config.yaml", "roles:\n  - name: 17\n    domain: []\n")
             view = accessors.manifest_domains(path, view=True)
         self.assertEqual((accessors.ManifestRoleDomains("17", ()),), view.roles)
+
     def test_view_keeps_named_roles_with_missing_or_invalid_domains(self):
         manifest = """\
 roles:
@@ -327,8 +323,7 @@ roles:
       - path: aggregate-second
 """
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "team-config.yaml"
-            path.write_text(manifest, encoding="utf-8")
+            path = _write(directory, "team-config.yaml", manifest)
             view = accessors.manifest_domains(path, view=True)
         self.assertEqual(
             (
@@ -351,25 +346,21 @@ roles:
         )
         with tempfile.TemporaryDirectory() as directory:
             for number, (manifest, present, writes) in enumerate(cases):
-                path = Path(directory) / f"{number}.yaml"
-                path.write_text(manifest, encoding="utf-8")
+                path = _write(directory, f"{number}.yaml", manifest)
                 view = accessors.manifest_domains(path, view=True)
                 self.assertEqual(present, view.main_session_present)
                 self.assertEqual(writes, view.main_session_writes)
 
     def test_view_preserves_strict_yaml_errors_and_rejects_agent(self):
-        harness_yaml = __import__("harness_yaml")
         with tempfile.TemporaryDirectory() as directory:
-            duplicate = Path(directory) / "duplicate.yaml"
-            duplicate.write_text("shared: []\nshared: []\n", encoding="utf-8")
+            duplicate = _write(directory, "duplicate.yaml", "shared: []\nshared: []\n")
             with self.assertRaises(harness_yaml.DuplicateKeyError):
                 accessors.manifest_domains(duplicate, view=True)
             for name, manifest in (
                 ("malformed.yaml", "shared: [\n"),
                 ("nonmapping.yaml", "[]\n"),
             ):
-                path = Path(directory) / name
-                path.write_text(manifest, encoding="utf-8")
+                path = _write(directory, name, manifest)
                 with self.assertRaises(harness_yaml.YamlParseError):
                     accessors.manifest_domains(path, view=True)
             with self.assertRaises(harness_yaml.YamlParseError):
@@ -390,17 +381,15 @@ class YamlContracts(unittest.TestCase):
     def test_omp_config_accepts_both_yaml_extensions(self):
         with tempfile.TemporaryDirectory() as directory:
             for suffix in (".yml", ".yaml"):
-                path = Path(directory) / ("config" + suffix)
-                path.write_text("name: omp\n", encoding="utf-8")
+                path = _write(directory, "config" + suffix, "name: omp\n")
                 self.assertEqual({"name": "omp"}, accessors.load_omp_config(path))
 
 
 class WriterContract(unittest.TestCase):
     def test_writer_makes_backup_and_writes_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "harness.json"
-            path.write_text(json.dumps(build_config()), encoding="utf-8")
-            before = path.read_text(encoding="utf-8")
+            before = json.dumps(build_config())
+            path = _write(directory, "harness.json", before)
             updated = build_config({"log_retention_days": 3})
             accessors.write_harness_json(path, updated)
             self.assertEqual(updated, json.loads(path.read_text(encoding="utf-8")))

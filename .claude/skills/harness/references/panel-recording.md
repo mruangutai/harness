@@ -23,8 +23,10 @@ finding and `resolved_by` on a resolved one, and nothing else. Every panel verb,
 and INV-32 refuse any other key or value (#2095); a rationale goes in a feature note, not on the
 finding.
 
-- A `form` finding you fixed in the same run stays present with disposition `resolved` and
-  `resolved_by: T-NN`, naming a task in this plan.
+- A finding whose remedy you applied in the same run (`form`, `substance` or `scope: task`) is set
+  `resolved` by `plan-merge.py set-panel` right after `record-panel`, with `resolved_by: T-NN`
+  naming the task that carries the remedy when one exists; a `scope: mission` finding and any
+  finding you did not remedy stay open (BUG-2582, DEC-228).
 - A `substance` finding re-gates only the tasks it names.
 - The operator's overrule belongs in `approval.rulings`; that is the main session's write
   (`sign-approval --overrule`), never pm's, and never a disposition. `sign-approval` refuses

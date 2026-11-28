@@ -7,20 +7,17 @@ subtree question must answer exactly as `ast.walk(subject)` would. The session i
 per public audit call: nothing it read survives into the next call or crosses to another root.
 CHECK_PLAN_ROUTES_BIN, when set, names the checker whose bin directory is under test.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT, BIN
 import ast
 import os
 import sys
 import tempfile
+from pathlib import Path
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_REL = os.path.join(".claude", "skills", "harness", "bin")
-SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(ROOT, BIN_REL, "check-plan-routes.py")
+from check_support import Checks
+
+BIN_REL = os.path.relpath(BIN, ROOT)
+SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or str(BIN / "check-plan-routes.py")
 AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
 sys.path.insert(0, AUDIT_DIR)
 import structure_audit  # noqa: E402
@@ -46,13 +43,12 @@ class Ctx:
             pass
 '''
 
-failures = []
+C = Checks()
+check = C.check
 
 
-def check(name, cond, detail=""):
-    print(f"{'PASS' if cond else 'FAIL'} {name}{'' if cond else ' ' + detail}")
-    if not cond:
-        failures.append(name)
+def _write(path, text):
+    Path(path).write_text(text, encoding="utf-8")
 
 
 def _walk_parents(tree):
@@ -89,12 +85,12 @@ def case_subtree_queries_match_ast_walk(mod):
         same = all(list(index.within(s, kind)) == [n for n in ast.walk(s) if isinstance(n, kind)] for s in subjects)
         check(f"within_{kind.__name__}_equals_ast_walk_of_the_subject", same)
     outer = next(n for n in tree.body if isinstance(n, ast.FunctionDef))
-    check("input_literals_skip_fstring_parts", mod._input_literals(index, outer) == {"x.json"},
-          repr(mod._input_literals(index, outer)))
+    literals = mod._input_literals(index, outer)
+    check("input_literals_skip_fstring_parts", literals == {"x.json"}, repr(literals))
     check("observed_resources_read_the_spawned_argv", mod._observed_inputs(index, outer)[1] == {"git:status"})
     method = index.facts["functions"][-1]
-    check("called_names_map_ctx_methods", mod._called_names(index, method) == ["Ctx.spawn"],
-          repr(mod._called_names(index, method)))
+    names = mod._called_names(index, method)
+    check("called_names_map_ctx_methods", names == ["Ctx.spawn"], repr(names))
     frozen = next(c for c in index.facts["calls"] if mod._callee_name(c) == "frozenset")
     check("call_symbol_is_the_innermost_function", mod._call_symbol(index, frozen) == "inner")
 
@@ -102,10 +98,9 @@ def case_subtree_queries_match_ast_walk(mod):
 def case_embedded_programs_count_once(mod):
     with tempfile.TemporaryDirectory() as td:
         path = os.path.join(td, "carrier.py")
-        with open(path, "w", encoding="utf-8") as stream:
-            stream.write(SOURCE)
-        check("broad_count_is_own_handlers_plus_embedded_program", mod._broad_catch_count(path) == 3,
-              repr(mod._broad_catch_count(path)))
+        _write(path, SOURCE)
+        count = mod._broad_catch_count(path)
+        check("broad_count_is_own_handlers_plus_embedded_program", count == 3, repr(count))
         session = mod._AuditSession(td)
         text = mod._SourceIndex(ast.parse(SOURCE)).program_texts[0]
         first = session.program(text)
@@ -117,8 +112,7 @@ def case_session_caches_once_and_keeps_errors(mod):
     with tempfile.TemporaryDirectory() as td:
         good, bad = os.path.join(td, "good.py"), os.path.join(td, "bad.py")
         for path, text in ((good, "x = 1\n"), (bad, "def (:\n")):
-            with open(path, "w", encoding="utf-8") as stream:
-                stream.write(text)
+            _write(path, text)
         session = mod._AuditSession(td)
         check("session_index_is_built_once_per_file", session.index(good, "good.py") is session.index(
             os.path.join(td, ".", "good.py"), "good.py"))
@@ -133,17 +127,17 @@ def case_session_caches_once_and_keeps_errors(mod):
         missing = os.path.join(td, "absent.py")
         try:
             session.text(missing)
-            check("session_text_raises_for_an_absent_file", False)
         except OSError:
-            check("session_text_raises_for_an_absent_file", True)
+            raised = True
+        else:
+            raised = False
+        check("session_text_raises_for_an_absent_file", raised)
 
 
 def _root_with_bin(td, text):
     bin_dir = os.path.join(td, BIN_REL)
     os.makedirs(bin_dir)
-    with open(os.path.join(bin_dir, "probe.py"), "w", encoding="utf-8") as stream:
-        stream.write(text)
-    return td
+    _write(os.path.join(bin_dir, "probe.py"), text)
 
 
 _BROAD = "try:\n    pass\nexcept Exception:\n    pass\n"
@@ -157,8 +151,7 @@ def case_each_invocation_is_fresh(mod):
         found = mod.broad_catch_findings(two)
         check("second_root_is_audited_from_its_own_sources", len(found) == 1 and "probe.py" in found[0], repr(found))
         check("first_root_is_still_clean_after_the_second", mod.broad_catch_findings(one) == [])
-        with open(os.path.join(one, BIN_REL, "probe.py"), "w", encoding="utf-8") as stream:
-            stream.write(_BROAD)
+        _write(os.path.join(one, BIN_REL, "probe.py"), _BROAD)
         check("an_edit_between_invocations_is_seen", len(mod.broad_catch_findings(one)) == 1)
     leaked = [name for name, value in vars(structure_audit).items()
               if isinstance(value, (structure_audit._AuditSession, structure_audit._SourceIndex))]
@@ -166,19 +159,15 @@ def case_each_invocation_is_fresh(mod):
 
 
 def main():
+    reader_audit = sys.modules["canonical_reader_audit"]
     check("audit_modules_load_from_the_bin_under_test",
-          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
-              for m in (structure_audit, sys.modules["canonical_reader_audit"])),
-          f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
+          all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR for m in (structure_audit, reader_audit)),
+          f"{structure_audit.__file__}, {reader_audit.__file__}")
     for case in (case_index_facts_match_ast_walk, case_subtree_queries_match_ast_walk,
                  case_embedded_programs_count_once, case_session_caches_once_and_keeps_errors,
                  case_each_invocation_is_fresh):
         case(structure_audit)
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        sys.exit(1)
-    print("\nALL PASS")
-    sys.exit(0)
+    sys.exit(C.report())
 
 
 if __name__ == "__main__":

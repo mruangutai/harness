@@ -7,14 +7,10 @@ directory every dispatch needs while git reports success (FEAT-58 D-08), so ever
 a case that would catch that.
 """
 import importlib.util
-import sys
 import unittest
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
-import feature_corpus as fc  # noqa: E402
+from unit_support import BIN
+import feature_corpus as fc
 
 _spec = importlib.util.spec_from_file_location("worktree_state", BIN / "worktree-state.py")
 ws = importlib.util.module_from_spec(_spec)

@@ -20,24 +20,16 @@ host; test-orchestrator-playbook.py and the harness-team prose carry the blockin
 Stdlib only, no subprocess. Repo root is derived from this file's own path — never the
 caller's cwd — exactly as test-orchestrator-playbook.py does.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
+from unit_support import ROOT
+
 import os
 import re
 import sys
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+from check_support import Checks
 
 DECISIONS_PATH = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS.md")
 DECISIONS_INDEX_PATH = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
-INFLIGHT_REGISTRY_PATH = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "inflight_registry.py")
 
 # FEAT-51 superseded inflight_registry.py's recurring-refusal prose with a
 # nonterminal suspension. The once-only floor still binds the decision authority,
@@ -90,6 +82,12 @@ def line_number(text, pos):
 
 DEC_HEADING_RE = re.compile(r"^## DEC-\d+", re.MULTILINE)
 
+
+def entry_body(text, start):
+    """`text` from `start` (a `## DEC-` heading) up to the next `## DEC-` heading."""
+    nxt = DEC_HEADING_RE.search(text, start + 1)
+    return text[start : nxt.start() if nxt else len(text)]
+
 # ---------------------------------------------------------------------------
 # GROUP "bound" detectors
 # ---------------------------------------------------------------------------
@@ -118,13 +116,7 @@ def struck_entry_covers(text, pos):
             break
     if heading_before is None:
         return False
-    start = heading_before.start()
-    end = len(text)
-    for m in headings:
-        if m.start() > start:
-            end = m.start()
-            break
-    return "STRUCK" in text[start:end]
+    return "STRUCK" in entry_body(text, heading_before.start())
 
 
 def bound_site_cases(path, results):
@@ -209,8 +201,8 @@ LEAD_RE = re.compile(r"\bleads?\b|\bdomain lead\b|\blead tier\b", re.I)
 ENDTURN_RE = re.compile(
     r"ends its turn|end its turn|ends the turn|end the turn|ends their turn|end your turn", re.I
 )
-DEC201_INDEX_ROW_RE = re.compile(r"^- DEC-201\b", re.MULTILINE)
-DEC201_HEADING_RE = re.compile(r"^## DEC-201\b", re.MULTILINE)
+DEC201_INDEX_ROW_RE = re.compile(r"^- DEC-201\b.*$", re.MULTILINE)
+DEC201_HEADING_RE = re.compile(r"^## DEC-201\b.*$", re.MULTILINE)
 
 
 def coverage_cases():
@@ -226,10 +218,7 @@ def coverage_cases():
         if not m:
             results.append(("case_index_row", False, "DEC-201 row not found in DECISIONS-INDEX.md"))
         else:
-            line_end = index_text.find("\n", m.start())
-            if line_end == -1:
-                line_end = len(index_text)
-            row = index_text[m.start() : line_end]
+            row = m.group()
             if "::" not in row:
                 results.append(("case_index_row", False, f"DEC-201 row has no :: separator: {row!r}"))
             else:
@@ -255,10 +244,7 @@ def coverage_cases():
         results.append(("case_entry_scope", False, "DEC-201 level-two heading not found"))
         return results
 
-    line_end = dec_text.find("\n", hm.start())
-    if line_end == -1:
-        line_end = len(dec_text)
-    heading_line = dec_text[hm.start() : line_end]
+    heading_line = hm.group()
     ok_heading = bool(LEAD_RE.search(heading_line))
     results.append(
         (
@@ -268,19 +254,10 @@ def coverage_cases():
         )
     )
 
-    end = len(dec_text)
-    for m2 in DEC_HEADING_RE.finditer(dec_text):
-        if m2.start() > hm.start():
-            end = m2.start()
-            break
-    body = dec_text[hm.start() : end]
-
-    ok_scope = False
-    for s, e in _sentences(body):
-        sent = body[s:e]
-        if LEAD_RE.search(sent) and ENDTURN_RE.search(sent):
-            ok_scope = True
-            break
+    body = entry_body(dec_text, hm.start())
+    ok_scope = any(
+        LEAD_RE.search(body[s:e]) and ENDTURN_RE.search(body[s:e]) for s, e in _sentences(body)
+    )
     results.append(
         (
             "case_entry_scope",
@@ -298,22 +275,12 @@ def coverage_cases():
 # ---------------------------------------------------------------------------
 
 
-def report(results, failures):
+def report(results):
+    """Grades every (name, ok, detail) case through the shared harness; returns the exit code."""
+    C = Checks()
     for name, ok, detail in results:
-        if ok:
-            print(f"PASS {name}")
-        else:
-            print(f"FAIL {name} {detail}")
-            failures.append(name)
-
-
-
-def run_bound_group(failures, only_path=None):
-    report(bound_cases(only_path), failures)
-
-
-def run_coverage_group(failures):
-    report(coverage_cases(), failures)
+        C.check(name, ok, detail)
+    return C.report()
 
 
 # ---------------------------------------------------------------------------
@@ -379,20 +346,12 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
 
-    failures = []
-    if group is None:
-        run_bound_group(failures)
-        run_coverage_group(failures)
-    elif group == "bound":
-        run_bound_group(failures, only_path)
-    elif group == "coverage":
-        run_coverage_group(failures)
-
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
+    results = []
+    if group != "coverage":
+        results += bound_cases(only_path)
+    if group != "bound":
+        results += coverage_cases()
+    return report(results)
 
 
 if __name__ == "__main__":

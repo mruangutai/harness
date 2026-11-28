@@ -29,7 +29,9 @@ ROOT = HERE.parents[1]
 BIN = ROOT / ".claude/skills/harness/bin"
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(BIN))
+sys.path.insert(0, str(HERE.parent))
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 
 SEGMENTS = ("harness", "kaya")
 
@@ -41,11 +43,11 @@ class Hooked(unittest.TestCase):
         self.addCleanup(ctx.__exit__, None, None, None)
         owner = self.fx.owner
         self.bin, self.hooks = F.install_hooks(owner, ROOT)
-        self.env = dict(F.ENV, HARNESS_PROJECT_DIR=owner, GH_BIN="/nonexistent-gh")
+        self.env = dict(G.ENV, HARNESS_PROJECT_DIR=owner, GH_BIN="/nonexistent-gh")
 
     def state(self, checkout, mode="--verify"):
         proc = subprocess.run([sys.executable, os.path.join(self.bin, "worktree-state.py"), mode,
-                               "--json", "--checkout", checkout], env=F.ENV,
+                               "--json", "--checkout", checkout], env=G.ENV,
                               capture_output=True, text=True)
         doc = json.loads(proc.stdout)
         return proc.returncode, doc
@@ -53,11 +55,11 @@ class Hooked(unittest.TestCase):
     def assert_converged(self, checkout):
         code, doc = self.state(checkout)
         self.assertEqual(code, 0, doc["findings"])
-        self.assertEqual(F.git(checkout, "status", "--porcelain").stdout, "")
+        self.assertEqual(G.git(checkout, "status", "--porcelain").stdout, "")
         return doc
 
     def cone(self, checkout):
-        return F.git(checkout, "sparse-checkout", "list").stdout.split()
+        return G.git(checkout, "sparse-checkout", "list").stdout.split()
 
 
 class Creation(Hooked):
@@ -72,9 +74,9 @@ class Creation(Hooked):
     def record_converges(self, checkout, segment, fid):
         F.write_files(checkout, {f".harness/{segment}/features/{fid}/feature.json":
                                  F.feature_json(fid, f"feat/{fid}")})
-        F.git(checkout, "add", "-A")
-        F.git(checkout, "commit", "-qm", f"record {fid}")
-        F.git(checkout, "commit", "-q", "--amend", "--no-edit")      # post-rewrite repairs
+        G.git(checkout, "add", "-A")
+        G.git(checkout, "commit", "-qm", f"record {fid}")
+        G.git(checkout, "commit", "-q", "--amend", "--no-edit")      # post-rewrite repairs
         doc = self.assert_converged(checkout)
         self.assertEqual((doc["active_feature"], doc["artifact_segment"]), (fid, segment))
         self.assertEqual(F.feature_dirs_on_disk(checkout), [f"{segment}/{fid}"])
@@ -100,10 +102,10 @@ class Creation(Hooked):
         workspace = os.path.join(self.fx.base, "workspace")
         product = os.path.join(workspace, "kaya")
         os.makedirs(product)
-        F.git(product, "init", "-q", "-b", "main")
+        G.git(product, "init", "-q", "-b", "main")
         F.write_files(product, {"README.md": "kaya\n"})
-        F.git(product, "add", "-A")
-        F.git(product, "commit", "-qm", "seed")
+        G.git(product, "add", "-A")
+        G.git(product, "commit", "-qm", "seed")
         self.fx.commit_owner({".harness/factory/fleet.yaml":
                               f"schema: factory-fleet/1\nworkspace_root: {workspace}\n"
                               f"repos:\n  - name: org/kaya\n    default_branch: main\n"}, "fleet")
@@ -119,7 +121,7 @@ class Creation(Hooked):
         self.record_converges(planning, "kaya", "FEAT-11-kplan")             # artifact segment
 
     def test_pinned_checkout_add(self):
-        sha = F.git(self.fx.owner, "rev-parse", "HEAD").stdout.strip()
+        sha = G.git(self.fx.owner, "rev-parse", "HEAD").stdout.strip()
         proc = subprocess.run([sys.executable, os.path.join(self.bin, "pinned-checkout.py"),
                                "add", "--feature", "FEAT-2-beta", "--run-id", "r1",
                                "--persona", "qa", "--sha", sha],
@@ -142,14 +144,14 @@ class Operations(Hooked):
         # hook its operation fires, never on whether creation happened to converge first.
         self.assertEqual(self.state(self.wt, "--repair")[0], 0)
         F.write_files(self.wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "work\n"})
-        F.git(self.wt, "add", "-A")
-        F.git(self.wt, "commit", "-qm", "worktree work")
+        G.git(self.wt, "add", "-A")
+        G.git(self.wt, "commit", "-qm", "worktree work")
         self.fx.commit_owner({"newtop/file.txt": "new\n",
                               ".harness/harness/features/FEAT-2-beta/BRIEF.md": "# v2\n"},
                              "main grows a top-level directory and edits a hidden feature")
 
     def test_merge(self):
-        proc = F.git(self.wt, "merge", "--no-edit", "main")
+        proc = G.git(self.wt, "merge", "--no-edit", "main")
         self.assert_converged(self.wt)
         self.assertTrue(os.path.isfile(os.path.join(self.wt, "newtop/file.txt")))
         self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
@@ -157,26 +159,26 @@ class Operations(Hooked):
                       proc.stdout + proc.stderr)
 
     def test_rebase(self):
-        F.git(self.wt, "rebase", "main")
+        G.git(self.wt, "rebase", "main")
         self.assert_converged(self.wt)
         self.assertTrue(os.path.isfile(os.path.join(self.wt, "newtop/file.txt")))
         self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
 
     def test_class_a_after_an_index_rewrite_is_repaired_by_amend(self):
-        F.git(self.wt, "read-tree", "HEAD")
-        deleted = F.git(self.wt, "status", "--porcelain").stdout.splitlines()
+        G.git(self.wt, "read-tree", "HEAD")
+        deleted = G.git(self.wt, "status", "--porcelain").stdout.splitlines()
         self.assertTrue(deleted and all(line.startswith(" D .harness/") for line in deleted),
                         deleted)
-        F.git(self.wt, "commit", "-q", "--amend", "--no-edit")
+        G.git(self.wt, "commit", "-q", "--amend", "--no-edit")
         self.assert_converged(self.wt)
         self.assertEqual(F.feature_dirs_on_disk(self.wt), ["harness/FEAT-1-alpha"])
 
     def test_class_c_is_skipped_and_left_byte_identical(self):
         F.write_files(self.wt, {".harness/harness/features/FEAT-2-beta/stray.md": "mine\n"})
         before = F.snapshot(self.wt)
-        head = F.git(self.wt, "rev-parse", "HEAD").stdout.strip()
+        head = G.git(self.wt, "rev-parse", "HEAD").stdout.strip()
         proc = subprocess.run([os.path.join(self.hooks, "post-checkout"), head, head, "1"],
-                              cwd=self.wt, env=F.ENV, capture_output=True, text=True)
+                              cwd=self.wt, env=G.ENV, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0)
         self.assertIn(f"layout repair SKIPPED in {self.wt}", proc.stderr)
         self.assertEqual(F.snapshot(self.wt), before)
@@ -186,11 +188,11 @@ class Operations(Hooked):
         # repair, so the hooks say nothing (#2103 panel 7). Agents obey imperative stderr.
         F.write_files(self.wt, {".harness/harness/features/FEAT-1-alpha/notes/w.md": "more\n",
                                 "README.md": "edited\n"})
-        head = F.git(self.wt, "rev-parse", "HEAD").stdout.strip()
+        head = G.git(self.wt, "rev-parse", "HEAD").stdout.strip()
         for hook, args, stdin in (("post-checkout", [head, head, "1"], ""),
                                   ("post-rewrite", ["amend"], f"{head} {head}\n")):
             proc = subprocess.run([os.path.join(self.hooks, hook), *args], cwd=self.wt,
-                                  env=F.ENV, input=stdin, capture_output=True, text=True)
+                                  env=G.ENV, input=stdin, capture_output=True, text=True)
             self.assertEqual((proc.returncode, proc.stderr), (0, ""), hook)
         self.assertEqual(self.state(self.wt, "--verify")[0], 8)       # still reported as dirty
 

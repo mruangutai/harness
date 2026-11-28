@@ -9,7 +9,6 @@ feature_record.write exists to close.
 """
 from pathlib import Path
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -17,12 +16,10 @@ import sys
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
-sys.path.insert(0, str(ROOT / "tests"))
+from unit_support import BIN  # noqa: E402  (puts bin/ and tests/ on sys.path)
 from feature_record import evidence as record_evidence, read as record_read  # noqa: E402
 from feature_record import runs as record_runs, schema as record_schema  # noqa: E402
+from git_support import git  # noqa: E402
 from harness_config_support import write_config  # noqa: E402
 
 CLI = BIN / "feature-record.py"
@@ -1260,17 +1257,14 @@ class PinReviewTest(FeatureRecordCase):
 
     def setUp(self):
         super().setUp()
-        for cmd in (["init", "-q"], ["config", "user.email", "t@example.com"],
-                    ["config", "user.name", "t"]):
-            self.git(*cmd)
+        self.git("init", "-q")   # git_support.ENV supplies the commit identity
         self.before = self.write(base_doc())
         self.git("add", "-A")
         self.git("commit", "-qm", "seam")
         self.head = self.git("rev-parse", "HEAD")
 
     def git(self, *args):
-        return subprocess.run(["git", "-C", str(self.tmp), *args], check=True,
-                              capture_output=True, text=True).stdout.strip()
+        return git(self.tmp, *args).stdout.strip()
 
     def pin(self, *sha):
         return self.run_cli("pin-review", "--file", str(self.path), *sha)
@@ -1369,8 +1363,9 @@ class ProposeReworkTest(FeatureRecordCase):
         self.write(base_doc(mission="plan"))
         for tasks, rounds in ((1, 2), (3, 2), (4, 2), (7, 3), (9, 3), (10, 4)):
             self.plan(tasks)
-            self.assertEqual(rounds, self.propose()["rounds"], tasks)
-            self.assertEqual(rounds * 45, self.propose()["minutes"], tasks)
+            proposal = self.propose()
+            self.assertEqual(rounds, proposal["rounds"], tasks)
+            self.assertEqual(rounds * 45, proposal["minutes"], tasks)
 
     def test_rounds_never_exceed_max_total_cycles(self):
         self.write(base_doc(mission="plan"))
@@ -1397,7 +1392,7 @@ class ProposeReworkTest(FeatureRecordCase):
         dressed as the plan's fault and never exit 0."""
         self.write(base_doc(mission="plan"))
         self.plan(2)
-        mbin = Path(tempfile.mkdtemp()) / "bin"
+        mbin = self.tmp / "bin"   # inside self.tmp, so tearDown removes the copy
         shutil.copytree(BIN, mbin)
         with open(mbin / "artifact_accessors.py", "a", encoding="utf-8") as handle:
             handle.write("\n\ndef load_plan(path):\n    raise RuntimeError('FEAT-65 injected')\n")
@@ -1474,11 +1469,11 @@ class SchemaTest(unittest.TestCase):
             entry = self.judgement()
             del entry[key]
             problems = self.problems(base_doc(judgements=[entry]))
-            self.assertTrue(problems and any(repr(key) in p for p in problems), (key, problems))
+            self.assertTrue(any(repr(key) in p for p in problems), (key, problems))
 
     def test_judgement_unknown_kind_is_rejected(self):
         problems = self.problems(base_doc(judgements=[self.judgement(kind="hunch")]))
-        self.assertTrue(problems and any("/judgements/0/kind" in p for p in problems), problems)
+        self.assertTrue(any("/judgements/0/kind" in p for p in problems), problems)
 
     def test_github_block_refuses_removed_mirror_replacement_keys(self):
         for key, value in (("history", []), ("recovery", {})):
@@ -1490,11 +1485,11 @@ class SchemaTest(unittest.TestCase):
 
     def test_judgement_extra_key_is_rejected(self):
         problems = self.problems(base_doc(judgements=[self.judgement(note="why")]))
-        self.assertTrue(problems and any("'note'" in p for p in problems), problems)
+        self.assertTrue(any("'note'" in p for p in problems), problems)
 
     def test_judgement_at_must_be_an_iso_timestamp(self):
         problems = self.problems(base_doc(judgements=[self.judgement(at="yesterday")]))
-        self.assertTrue(problems and any("/judgements/0/at" in p for p in problems), problems)
+        self.assertTrue(any("/judgements/0/at" in p for p in problems), problems)
 
     def test_amendment_kind_is_valid_and_overruled_true_only_on_it(self):
         self.assertEqual([], self.problems(base_doc(judgements=[amendment()])))
@@ -1503,7 +1498,7 @@ class SchemaTest(unittest.TestCase):
                     base_doc(judgements=[self.judgement(overruled=True)]),
                     base_doc(judgements=[self.judgement(kind="regate", overruled=True)])):
             problems = self.problems(bad)
-            self.assertTrue(problems and any("overruled" in p for p in problems), problems)
+            self.assertTrue(any("overruled" in p for p in problems), problems)
 
     def test_signed_task_hashes_is_a_t_nn_to_sha256_map(self):
         good = {"T-01": "a" * 64, "T-12": "0123456789abcdef" * 4}
@@ -1512,24 +1507,24 @@ class SchemaTest(unittest.TestCase):
         for bad in ({"SC-01": "a" * 64}, {"T-01": "A" * 64}, {"T-01": "a" * 63},
                     {"T-01": "g" * 64}, {"T-01": 1}, ["a" * 64]):
             problems = self.problems(base_doc(signed_task_hashes=bad))
-            self.assertTrue(problems and any("signed_task_hashes" in p for p in problems),
+            self.assertTrue(any("signed_task_hashes" in p for p in problems),
                             (bad, problems))
 
     def test_mission_outside_the_two_lanes_is_rejected(self):
         problems = self.problems(base_doc(mission="epic"))
-        self.assertTrue(problems and any("/mission" in p for p in problems), problems)
+        self.assertTrue(any("/mission" in p for p in problems), problems)
 
     def test_rework_requires_all_three_keys(self):
         for key in ("rounds", "wall_clock_minutes", "decision"):
             rework = {"rounds": 1, "wall_clock_minutes": 30, "decision": "d"}
             del rework[key]
             problems = self.problems(base_doc(rework=rework))
-            self.assertTrue(problems and any(repr(key) in p for p in problems), (key, problems))
+            self.assertTrue(any(repr(key) in p for p in problems), (key, problems))
 
     def test_budget_decision_below_one_cycle_is_rejected(self):
         problems = self.problems(base_doc(budget_decisions=[
             {"at": "2026-09-11T10:00:00+00:00", "max_total_cycles": 0, "decision": "d"}]))
-        self.assertTrue(problems and any("max_total_cycles" in p for p in problems), problems)
+        self.assertTrue(any("max_total_cycles" in p for p in problems), problems)
 
     def test_run_tokens_negative_or_string_is_rejected_null_is_not(self):
         def run(tokens):
@@ -1539,7 +1534,7 @@ class SchemaTest(unittest.TestCase):
         self.assertEqual([], self.problems(run(0)))
         for bad in (-1, "1200", 12.5):
             problems = self.problems(run(bad))
-            self.assertTrue(problems and any("/runs/0/tokens" in p for p in problems),
+            self.assertTrue(any("/runs/0/tokens" in p for p in problems),
                             (bad, problems))
 
 

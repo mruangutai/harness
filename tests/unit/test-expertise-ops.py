@@ -8,13 +8,17 @@ nothing under the bin directory.
 """
 import copy
 import importlib.util
+import json
 import os
 import sys
+import tempfile
+from unittest import mock
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-MODULE_PATH = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(BIN_DIR, "expertise-merge.py")
+from unit_support import BIN
+from check_support import Checks
+from git_support import git
+
+MODULE_PATH = os.environ.get("EXPERTISE_MERGE_BIN") or str(BIN / "expertise-merge.py")
 
 _spec = importlib.util.spec_from_file_location("expertise_merge_ops_under_test", MODULE_PATH)
 expertise_merge = importlib.util.module_from_spec(_spec)
@@ -36,11 +40,8 @@ LINE_BREAKING_CHARS = tuple(
 )
 
 
-RESULTS = []
-
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 def base_sections(sections):
@@ -50,11 +51,10 @@ def base_sections(sections):
     return secs, order
 
 
-def op(verb, section, target, entry=None, **extra):
+def op(verb, section, target, entry=None):
     d = {"op": verb, "target": target, "section": section}
     if entry is not None:
         d["entry"] = entry
-    d.update(extra)
     return d
 
 
@@ -167,7 +167,7 @@ def case_u11():
     )
     results = {}
     for label, ops in variants:
-        secs, order = base_sections([("Patterns", list(entries))])
+        secs, order = base_sections([("Patterns", entries)])
         merged, _, _ = resolve_ops(secs, order, ops)
         results[label] = merged["Patterns"]
         ids = [eid for eid, _ in merged["Patterns"]]
@@ -190,7 +190,7 @@ def case_u11():
 def case_u12():
     """TWO DROPS AT DISTINCT ORIGINAL INDICES IN ONE SECTION."""
     entries = [("P-01", "a"), ("P-02", "b"), ("P-03", "c"), ("P-04", "d"), ("P-05", "e")]
-    secs, order = base_sections([("Patterns", list(entries))])
+    secs, order = base_sections([("Patterns", entries)])
     ops = [op("drop", "Patterns", "P-01"), op("drop", "Patterns", "P-04")]
     merged, _, _ = resolve_ops(secs, order, ops)
     ids = [eid for eid, _ in merged["Patterns"]]
@@ -324,7 +324,7 @@ def case_u20():
         ("b", "four-b"),  # matches the surviving occurrence — used to be PRESERVED, exit 0
     )
     for label, entry in variants:
-        secs, order = base_sections([("Patterns", list(duplicated))])
+        secs, order = base_sections([("Patterns", duplicated)])
         try:
             resolve_ops(secs, order, [op("add", "Patterns", "P-07", entry)])
             check(f"u20: ({label}) MergeRefusal raised", False, "no exception raised")
@@ -362,53 +362,26 @@ def case_u23():
     """A PROPOSAL NAMING THE SAME id TWICE IN ONE SECTION IS AMBIGUOUS ON THE PROPOSAL ALONE
     (BUG-276): the first entry must not silently win over the second, regardless of base state.
     """
-    # (a) different texts
-    secs, order = base_sections([("Patterns", [("P-01", "one")])])
-    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}
-    prop_order = ["Patterns"]
-    try:
-        compute_union(secs, order, prop_secs, prop_order)
-        check("u23a: MergeRefusal raised", False, "no exception raised")
-    except MergeRefusal as e:
-        check("u23a: different texts refuse with code 11", e.code == 11, e.code)
-        check("u23a: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
-        check(
-            "u23a: line carries section, id and reason tokens",
-            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
-            e.lines,
-        )
-
-    # (b) identical texts
-    secs, order = base_sections([("Patterns", [("P-01", "one")])])
-    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "ALPHA")]}
-    prop_order = ["Patterns"]
-    try:
-        compute_union(secs, order, prop_secs, prop_order)
-        check("u23b: MergeRefusal raised", False, "no exception raised")
-    except MergeRefusal as e:
-        check("u23b: identical texts refuse with code 11", e.code == 11, e.code)
-        check("u23b: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
-        check(
-            "u23b: line carries section, id and reason tokens",
-            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
-            e.lines,
-        )
-
-    # (c) no base
-    secs, order = {}, []
-    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}
-    prop_order = ["Patterns"]
-    try:
-        compute_union(secs, order, prop_secs, prop_order)
-        check("u23c: MergeRefusal raised", False, "no exception raised")
-    except MergeRefusal as e:
-        check("u23c: no base refuses with code 11", e.code == 11, e.code)
-        check("u23c: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
-        check(
-            "u23c: line carries section, id and reason tokens",
-            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
-            e.lines,
-        )
+    two = {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}
+    variants = (
+        ("u23a", "different texts refuse", [("Patterns", [("P-01", "one")])], two),
+        ("u23b", "identical texts refuse", [("Patterns", [("P-01", "one")])],
+         {"Patterns": [("P-02", "ALPHA"), ("P-02", "ALPHA")]}),
+        ("u23c", "no base refuses", [], two),
+    )
+    for label, what, base, prop_secs in variants:
+        secs, order = base_sections(base)
+        try:
+            compute_union(secs, order, prop_secs, ["Patterns"])
+            check(f"{label}: MergeRefusal raised", False, "no exception raised")
+        except MergeRefusal as e:
+            check(f"{label}: {what} with code 11", e.code == 11, e.code)
+            check(f"{label}: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
+            check(
+                f"{label}: line carries section, id and reason tokens",
+                "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
+                e.lines,
+            )
 
 
 # ---------------------------------------------------------------------------------------------
@@ -416,11 +389,6 @@ def case_u23():
 # are RED against the pre-change tool (every name below is new) and each one is paired with a
 # one-mechanism mutant in the T-01 receipt.
 # ---------------------------------------------------------------------------------------------
-import contextlib
-import json
-import shutil
-import tempfile
-
 PERSONA = "harness-backend-dev"
 CRAFT_REL = f".harness/expertise/{PERSONA}.md"
 REPO_REL = f".harness/harness/expertise/{PERSONA}.md"
@@ -449,13 +417,15 @@ def replay_blob(sections):
 
 def case_u30_free_ids():
     free = expertise_merge._next_free_id
-    check("u30: first gap is chosen", free("P", ["P-01", "P-03"]) == "P-02", free("P", ["P-01", "P-03"]))
+    got = free("P", ["P-01", "P-03"])
+    check("u30: first gap is chosen", got == "P-02", got)
     check("u30: past the end", free("P", ["P-01", "P-02"]) == "P-03", None)
     check("u30: empty section starts at 01", free("P", []) == "P-01", None)
     check("u30: other prefixes do not occupy ids", free("G", ["P-01"]) == "G-01", None)
-    check("u30: numeric not textual comparison", free("P", ["P-1", "P-2"]) == "P-03", free("P", ["P-1", "P-2"]))
-    wide = [f"P-{n:02d}" for n in range(1, 100)]
-    check("u30: width grows past 99", free("P", wide) == "P-100", free("P", wide))
+    got = free("P", ["P-1", "P-2"])
+    check("u30: numeric not textual comparison", got == "P-03", got)
+    got = free("P", [f"P-{n:02d}" for n in range(1, 100)])
+    check("u30: width grows past 99", got == "P-100", got)
 
 
 def case_u31_destination_rel():
@@ -522,8 +492,10 @@ def u34_fixtures():
 
 def case_u34_refusals():
     changed, gone, _, _, rep, drp = u34_fixtures()
-    check("u34: replace over changed entry refuses CHANGED", (refusal_reason(changed, [rep]) or "").startswith("CHANGED"), refusal_reason(changed, [rep]))
-    check("u34: replace of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [rep]) or "").startswith("DISAPPEARED"), refusal_reason(gone, [rep]))
+    reason = refusal_reason(changed, [rep])
+    check("u34: replace over changed entry refuses CHANGED", (reason or "").startswith("CHANGED"), reason)
+    reason = refusal_reason(gone, [rep])
+    check("u34: replace of vanished entry refuses DISAPPEARED", (reason or "").startswith("DISAPPEARED"), reason)
     check("u34: drop over changed entry refuses CHANGED", (refusal_reason(changed, [drp]) or "").startswith("CHANGED"), None)
     check("u34: drop of vanished entry refuses DISAPPEARED", (refusal_reason(gone, [drp]) or "").startswith("DISAPPEARED"), None)
 
@@ -636,11 +608,31 @@ def case_u39_batch_identity():
         check(f"u39: identity covers {key}", expertise_merge.batch_identity(changed, batch) != ident, None)
 
 
-@contextlib.contextmanager
-def failed_receipt_tree():
-    """A feature checkout where member_ops landed its target and then failed at the receipt write:
-    yields (tmp, features, the refusal member_ops raised, or None when it raised nothing)."""
-    tmp = tempfile.mkdtemp(prefix="member-ops-unit-")
+def member_ops_refusal(tmp, locked_update):
+    """Run member_ops on a fresh FEAT-1 checkout at tmp with harness_merge.locked_update swapped
+    for locked_update during the call only; returns the MergeRefusal it raised, or None."""
+    os.makedirs(os.path.join(tmp, ".harness", "harness", "features", "FEAT-1"))
+    with mock.patch.object(expertise_merge.harness_merge, "locked_update", locked_update):
+        try:
+            expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
+                                       json.dumps([op("add", "Patterns", "P-01", "text")]))
+        except MergeRefusal as e:
+            return e
+    return None
+
+
+def _verify_refusal(tmp):
+    try:
+        expertise_merge.verify_receipt(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
+                                       [dict(op("add", "Patterns", "P-01", "text"), persona=PERSONA)])
+    except MergeRefusal as e:
+        return e
+    return None
+
+
+def case_u40_receipt_failure():
+    """member_ops lands its target and then fails at the receipt write: the call fails, and a
+    later verification of that run fails closed."""
     real = expertise_merge.harness_merge.locked_update
 
     def failing(path, transform, timeout=None):
@@ -648,46 +640,17 @@ def failed_receipt_tree():
             raise OSError("disk full")
         return real(path, transform, timeout)
 
-    try:
-        features = os.path.join(tmp, ".harness", "harness", "features", "FEAT-1")
-        os.makedirs(features)
-        expertise_merge.harness_merge.locked_update = failing
-        try:
-            expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
-                                       json.dumps([op("add", "Patterns", "P-01", "text")]))
-            refusal = None
-        except MergeRefusal as e:
-            refusal = e
-        finally:
-            expertise_merge.harness_merge.locked_update = real
-        yield tmp, features, refusal
-    finally:
-        expertise_merge.harness_merge.locked_update = real
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
-def case_u40_receipt_failure_fails_call():
-    with failed_receipt_tree() as (tmp, features, refusal):
-        if refusal is None:
-            check("u40: receipt failure fails the call", False, "no refusal")
-        else:
-            check("u40: receipt failure is refusal 15", refusal.code == 15, refusal)
+    with tempfile.TemporaryDirectory(prefix="member-ops-unit-", ignore_cleanup_errors=True) as tmp:
+        refusal = member_ops_refusal(tmp, failing)
+        check("u40: receipt failure is refusal 15", refusal is not None and refusal.code == 15, refusal)
         target = os.path.join(tmp, CRAFT_REL)
         written = open(target, encoding="utf-8").read() if os.path.exists(target) else ""
         check("u40: target was persisted before the receipt step", "P-01: text" in written, written)
-        notes = os.path.join(features, "notes")
+        notes = os.path.join(tmp, ".harness", "harness", "features", "FEAT-1", "notes")
         receipts = [n for n in os.listdir(notes) if n.endswith(".json")] if os.path.isdir(notes) else []
         check("u40: no receipt exists, so verification must fail closed", receipts == [], receipts)
-
-
-def case_u40_verify_without_receipt():
-    with failed_receipt_tree() as (tmp, _features, _refusal):
-        try:
-            expertise_merge.verify_receipt(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
-                                           [dict(op("add", "Patterns", "P-01", "text"), persona=PERSONA)])
-            check("u40: verify refuses without receipt", False, "verified")
-        except MergeRefusal as e:
-            check("u40: verify without receipt is 15", e.code == 15, e)
+        verify = _verify_refusal(tmp)
+        check("u40: verify without receipt is 15", verify is not None and verify.code == 15, verify)
 
 
 def case_u41_effect_mismatches():
@@ -708,28 +671,19 @@ def case_u41_effect_mismatches():
 def case_u42_receipt_file_agreement():
     """Success is published only once receipt and file agree: a target that changes between its
     own persist and the receipt landing (a stand-in for any disagreement) fails the call."""
-    tmp = tempfile.mkdtemp(prefix="member-ops-unit-")
     real = expertise_merge.harness_merge.locked_update
-    target = os.path.join(tmp, CRAFT_REL)
+    with tempfile.TemporaryDirectory(prefix="member-ops-unit-", ignore_cleanup_errors=True) as tmp:
+        target = os.path.join(tmp, CRAFT_REL)
 
-    def disagreeing(path, transform, timeout=None):
-        real(path, transform, timeout)
-        if path.endswith(".json"):
-            with open(target, "a", encoding="utf-8") as fh:
-                fh.write("- P-99: written behind the receipt's back\n")
+        def disagreeing(path, transform, timeout=None):
+            real(path, transform, timeout)
+            if path.endswith(".json"):
+                with open(target, "a", encoding="utf-8") as fh:
+                    fh.write("- P-99: written behind the receipt's back\n")
 
-    try:
-        os.makedirs(os.path.join(tmp, ".harness", "harness", "features", "FEAT-1"))
-        expertise_merge.harness_merge.locked_update = disagreeing
-        try:
-            expertise_merge.member_ops(tmp, "FEAT-1", PERSONA, "r1", "p", "craft", None,
-                                       json.dumps([op("add", "Patterns", "P-01", "text")]))
-            check("u42: receipt/file disagreement refuses the call", False, "published success")
-        except MergeRefusal as e:
-            check("u42: disagreement is refusal 15 naming the mismatch", e.code == 15 and "MISMATCH" in e.lines[0], e)
-    finally:
-        expertise_merge.harness_merge.locked_update = real
-        shutil.rmtree(tmp, ignore_errors=True)
+        refusal = member_ops_refusal(tmp, disagreeing)
+        check("u42: disagreement is refusal 15 naming the mismatch",
+              refusal is not None and refusal.code == 15 and "MISMATCH" in refusal.lines[0], refusal)
 
 
 def _write(ident, before, after, at):
@@ -752,22 +706,17 @@ def case_u43_write_chain():
 
 
 def _git(repo, *args):
-    import subprocess
-    return subprocess.run(["git", "-C", repo, "-c", "user.name=t", "-c", "user.email=t@example.invalid",
-                           "-c", "commit.gpgsign=false", *args],
-                          capture_output=True, text=True, timeout=30, check=True).stdout.strip()
+    return git(repo, *args).stdout.strip()
 
 
-def _branch_repo():
-    """main at A; feature branch at B (a commit the feature itself made). Returns (repo, A, B)."""
-    import tempfile
-    repo = tempfile.mkdtemp(prefix="authorized-base-unit-")
+def _branch_repo(repo):
+    """main at A; feature branch at B (a commit the feature itself made). Returns (A, B)."""
     _git(repo, "init", "-q", "-b", "main")
     _git(repo, "commit", "-q", "--allow-empty", "-m", "A")
     first = _git(repo, "rev-parse", "HEAD")
     _git(repo, "checkout", "-q", "-b", "feat/x")
     _git(repo, "commit", "-q", "--allow-empty", "-m", "B")
-    return repo, first, _git(repo, "rev-parse", "HEAD")
+    return first, _git(repo, "rev-parse", "HEAD")
 
 
 def _authorized_or_refusal(repo, base=None):
@@ -779,19 +728,20 @@ def _authorized_or_refusal(repo, base=None):
 
 def case_u44_authorized_base():
     """c2: the anchor is the merge-base with the default branch (or --base), never HEAD."""
-    repo, first, feature = _branch_repo()
-    check("u44: no --base anchors on the merge-base with local main, not the feature HEAD",
-          _authorized_or_refusal(repo) == first, (first, feature))
-    check("u44: --base anchors on its merge-base with HEAD", _authorized_or_refusal(repo, feature) == feature, None)
-    _git(repo, "update-ref", "refs/remotes/origin/main", feature)
-    _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
-    check("u44: refs/remotes/origin/HEAD wins over local main", _authorized_or_refusal(repo) == feature, None)
-    for ref in ("refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/heads/main"):
-        _git(repo, "update-ref", "-d", "--no-deref", ref)
-    refusal = _authorized_or_refusal(repo)
-    check("u44: no default branch refuses 15 NO AUTHORIZED BASE",
-          isinstance(refusal, MergeRefusal) and refusal.code == 15 and refusal.lines[0].startswith("NO AUTHORIZED BASE"),
-          refusal)
+    with tempfile.TemporaryDirectory(prefix="authorized-base-unit-") as repo:
+        first, feature = _branch_repo(repo)
+        check("u44: no --base anchors on the merge-base with local main, not the feature HEAD",
+              _authorized_or_refusal(repo) == first, (first, feature))
+        check("u44: --base anchors on its merge-base with HEAD", _authorized_or_refusal(repo, feature) == feature, None)
+        _git(repo, "update-ref", "refs/remotes/origin/main", feature)
+        _git(repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+        check("u44: refs/remotes/origin/HEAD wins over local main", _authorized_or_refusal(repo) == feature, None)
+        for ref in ("refs/remotes/origin/HEAD", "refs/remotes/origin/main", "refs/heads/main"):
+            _git(repo, "update-ref", "-d", "--no-deref", ref)
+        refusal = _authorized_or_refusal(repo)
+        check("u44: no default branch refuses 15 NO AUTHORIZED BASE",
+              isinstance(refusal, MergeRefusal) and refusal.code == 15 and refusal.lines[0].startswith("NO AUTHORIZED BASE"),
+              refusal)
 
 
 def run_guarded(fn):
@@ -801,40 +751,22 @@ def run_guarded(fn):
         check(f"{fn.__name__}: completed without raising", False, repr(exc))
 
 
-LEGACY_CASES = (case_u1, case_u2, case_u3, case_u5, case_u6, case_u7, case_u8, case_u9, case_u10,
-                case_u11, case_u12, case_u13, case_u14, case_u15, case_u16, case_u17, case_u18,
-                case_u19, case_u20, case_u21, case_u22, case_u23)
-GUARDED_CASES = (case_u30_free_ids, case_u31_destination_rel, case_u32_collision_remap,
-                 case_u33_identical_add_preserved, case_u34_refusals, case_u34_applies,
-                 case_u34_refused_batch_report, case_u35_independent_callers, case_u36_caps_deferred,
-                 case_u38_retirement, case_u38_refused_graphs, case_u39_batch_identity,
-                 case_u40_receipt_failure_fails_call, case_u40_verify_without_receipt,
-                 case_u41_effect_mismatches, case_u42_receipt_file_agreement, case_u43_write_chain,
-                 case_u44_authorized_base)
-
-
-def print_results():
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"PASS  {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    return fails
+CASES = (case_u1, case_u2, case_u3, case_u5, case_u6, case_u7, case_u8, case_u9, case_u10,
+         case_u11, case_u12, case_u13, case_u14, case_u15, case_u16, case_u17, case_u18,
+         case_u19, case_u20, case_u21, case_u22, case_u23, case_u30_free_ids,
+         case_u31_destination_rel, case_u32_collision_remap, case_u33_identical_add_preserved,
+         case_u34_refusals, case_u34_applies, case_u34_refused_batch_report,
+         case_u35_independent_callers, case_u36_caps_deferred, case_u38_retirement,
+         case_u38_refused_graphs, case_u39_batch_identity, case_u40_receipt_failure,
+         case_u41_effect_mismatches, case_u42_receipt_file_agreement, case_u43_write_chain,
+         case_u44_authorized_base)
 
 
 def main():
-    for case in LEGACY_CASES:
-        case()
-    for case in GUARDED_CASES:
+    for case in CASES:
         run_guarded(case)
-
-    fails = print_results()
-    summary = "FAIL test-expertise-ops.py" if fails else "PASS test-expertise-ops.py"
-    print(summary)
-    return fails
+    return C.report()
 
 
 if __name__ == "__main__":
-    sys.exit(1 if main() else 0)
+    sys.exit(main())

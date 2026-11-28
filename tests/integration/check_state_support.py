@@ -65,8 +65,11 @@ def check_state_owner(needle):
 def check_state_mutant(iso_bin, owner, mutant_text):
     """Overwrite `owner`'s copy under the isolated bin `iso_bin` with `mutant_text` and return
     the entry to fork there. `owner` is a path from check_state_files()."""
-    rel = os.path.relpath(os.path.realpath(owner), os.path.dirname(os.path.realpath(SCRIPT)))
-    with open(os.path.join(iso_bin, rel), "w", encoding="utf-8") as file:
+    # The target is named from iso_bin and owner's own place (entry, or a check_state/ module),
+    # never from SCRIPT's live directory, so the write is visibly confined to the copy.
+    package = ("check_state",) if os.path.basename(os.path.dirname(owner)) == "check_state" else ()
+    with open(os.path.join(iso_bin, *package, os.path.basename(owner)), "w",
+              encoding="utf-8") as file:
         file.write(mutant_text)
     return os.path.join(iso_bin, "check-state.py")
 

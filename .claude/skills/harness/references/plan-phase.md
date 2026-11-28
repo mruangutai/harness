@@ -36,10 +36,13 @@ Inside the run:
   ran and found nothing) and `design` (ui-reviewer, which self-scopes out on a non-UI plan).
 - pm applies: every `form` finding is fixed in place, every `substance` finding is applied, then
   pm runs `plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c<N>.md --cycle N`
-  over the lead's reader fan-in and `plan-merge.py check --file <plan.yaml> --root <worktree>`
+  over the lead's reader fan-in, then `plan-merge.py set-panel`, marking `resolved` each finding
+  whose remedy it applied in that step (`resolved_by` naming the carrying task where one exists;
+  `scope: mission` and unremedied findings stay open; BUG-2582, DEC-228), and then
+  `plan-merge.py check --file <plan.yaml> --root <worktree>`
   (`--code-root <code worktree>` too for a served repository's plan),
   which resolves every anchor, every `files:` path against the layout gate and every
-  `execution_agent` route. Both verbs are pm's, inside the run; no run exists to transcribe.
+  `execution_agent` route. All three verbs are pm's, inside the run; no run exists to transcribe.
 - pm's goal-check, **once, at plan exit** (SC-09): one grade per perspective against the
   operator's STATED INTENT — the grilling or wayfinding artifact handed through the plan door, not
   the BRIEF derived from it. The question, verbatim: **does this plan deliver the operator's stated

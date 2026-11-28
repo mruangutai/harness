@@ -112,7 +112,7 @@ Collation is **not** concatenation — it is why the lead tier exists. In order:
 
 | | Do |
 |---|---|
-| **a. roll up** | `BLOCKED > ESCALATE > FAIL > PASS`, worst wins — `ESCALATE` outranks `FAIL` so a user decision cannot hide behind a fixable failure. Every member that ran carries `verdict:`; only the optional external `fable-advisor` may carry `status: skipped` with the host reason, outside worst-wins, and at least one member must have run. You may report **worse** than your members |
+| **a. roll up** | `BLOCKED > ESCALATE > FAIL > PASS`, worst wins — `ESCALATE` outranks `FAIL` so a user decision cannot hide behind a fixable failure. Every member that ran carries `verdict:`; only the optional external `fable-advisor` may carry `status: skipped` with the host reason, outside worst-wins, and at least one member must have run. You may report **worse** than your members — except the plan-team reader carve-out (DEC-123): in a feature with mission plan, the product lead's `team: plan` digest may rank a reader's FAIL as PASS only when every finding attributed to that reader is resolved in `plan.yaml`, checked by `validate-digest.py` on disk; it fails closed to worst-wins otherwise |
 | **b. merge** | union `must_fix`, `files_touched`, `open_questions`; one defect reported three ways is one entry naming all reporters. Re-rank `low`/`info` against **what the project does next** — you alone see priority (DEC-124) |
 | **c. assess** | the table below — you alone saw every slice |
 | **d. headline** | one line, conclusion first, what the team **achieved** — "Auth ship-ready; refresh path untested" routes; "Ran three steps" does not |

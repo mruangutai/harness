@@ -6,23 +6,20 @@ length tracks how long a feature ran, so counting it fired the cap on the one pa
 file nobody should be asked to shorten. These cases pin both halves: the ledger is free,
 and everything else is still capped exactly as before.
 """
-from pathlib import Path
 import json
-import sys
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+import unit_support  # noqa: F401  puts bin/ on sys.path
 from feature_record import schema as record_schema
 
 
-def record(runs, extra=None):
+def record(runs, extra=None, indent=2):
     doc = {"feature_id": "FEAT-90", "branch": "feat/FEAT-90", "pr": None,
            "review_sha": "none", "cycles_used": 0, "max_total_cycles": 10,
            "runs": [{"id": f"r{index}", "squad": "eng", "verdict": "PASS",
                      "agent": "harness-eng-lead"} for index in range(runs)]}
     doc.update(extra or {})
-    return json.dumps(doc, indent=2)
+    return json.dumps(doc, indent=indent)
 
 
 class JournalLinesTest(unittest.TestCase):
@@ -58,12 +55,10 @@ class JournalLinesTest(unittest.TestCase):
             if index % 5 == 0:
                 run["code_grade"] = "n_a"
             runs.append(run)
-        doc = {"feature_id": "FEAT-90-fixture", "branch": "feat/FEAT-90-fixture", "pr": 9,
-               "review_sha": "none", "cycles_used": 22, "max_total_cycles": 30, "runs": runs,
-               "github": {"milestone": 9, "parent": 90, "attached": tasks,
-                          "issues": {task: 900 + n for n, task in enumerate(tasks)},
-                          "source_issues": []}}
-        text = json.dumps(doc, indent=2)
+        text = record(0, {"runs": runs,
+                          "github": {"milestone": 9, "parent": 90, "attached": tasks,
+                                     "issues": {task: 900 + n for n, task in enumerate(tasks)},
+                                     "source_issues": []}})
         self.assertGreater(len(text.splitlines()), 300)
         self.assertLess(record_schema.journal_lines(text), 100)
         self.assertGreater(record_schema.journal_lines(text), 2 * len(tasks))
@@ -83,7 +78,7 @@ class JournalLinesTest(unittest.TestCase):
         self.assertEqual(len(text.splitlines()), record_schema.journal_lines(text))
 
     def test_compact_record_counts_one_line(self):
-        self.assertEqual(1, record_schema.journal_lines(json.dumps(json.loads(record(9)))))
+        self.assertEqual(1, record_schema.journal_lines(record(9, indent=None)))
 
 
 if __name__ == "__main__":

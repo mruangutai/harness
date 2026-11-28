@@ -1,0 +1,10 @@
+{
+  "chore:bug2582-guard-eng-lead-plan-steps does not catch mutant M6 (deleting the product-lead check): its eng-lead fixture carries findings: [], so nothing reaches the carve-out; give it the two resolved findings": {
+    "number": 2645,
+    "typed": true
+  },
+  "chore:Two grade-2 test helpers sit against the test bar of 3 under DEC-209 exceptions: bug2582_station_stub (test-lead-start-return.py:325) and converted_case.body (test-plan-merge-station-convert.py:107); raise them to grade 3": {
+    "number": 2646,
+    "typed": true
+  }
+}

@@ -18,18 +18,19 @@ must hold before and after it.
 
     python3 tests/unit/test-lead-start-preflight.py   -> exit 0 all pass, 1 otherwise
 """
+from unit_support import ROOT, BIN  # noqa: F401  (puts bin/ and tests/ on sys.path)
+
+import contextlib
 import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
-TESTS_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN_DIR)
-from isolated_bin import isolated_bin  # noqa: E402
+from check_support import Checks
+from isolated_bin import isolated_bin
 
 FEATURE = "BUG-2110-lead-start-fixture"
 LEADS = {"harness-eng-lead": ("engineering", "eng"),
@@ -43,12 +44,18 @@ PERSONAS = ("harness-orchestrator", "harness-code-reviewer", *LEADS)
 REGISTRY_REL = os.path.join(".harness", ".inflight-claims.json")
 BINDING_ERROR = "authorization requires exactly one matching open registered lead run"
 
-RESULTS = []
+C = Checks()
 _PRIVATE = {}
 
 
 def check(kind, case_id, name, ok, detail=""):
-    RESULTS.append((kind, case_id, name, bool(ok), detail))
+    return C.check(f"[{kind}] {case_id}: {name}", ok, detail)
+
+
+def check_all(kind, case_id, name, wanted, detail):
+    """One check that holds only when every condition in `wanted` does; names the misses."""
+    return check(kind, case_id, name, all(wanted.values()),
+                 f"missing={[k for k, v in wanted.items() if not v]} {detail}")
 
 
 def guard():
@@ -81,6 +88,10 @@ def irrelevant_runs(lead):
     ]
 
 
+def two_open_runs(lead):
+    return [lead_run(lead), lead_run(lead, f"r2-{LEADS[lead][1]}")]
+
+
 def team_config():
     lines = ["agents: {}", "leads:"]
     for lead, (squad, suffix) in LEADS.items():
@@ -90,33 +101,40 @@ def team_config():
     return "\n".join(lines) + "\n"
 
 
-def make_root(runs, record=True):
-    """A disposable registered checkout: team-config grants, personas, feature.json."""
-    root = os.path.realpath(tempfile.mkdtemp(prefix="lead-start-"))
-    os.makedirs(os.path.join(root, ".omp", "agents"))
-    os.makedirs(os.path.join(root, ".harness"))
-    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
-        handle.write(team_config())
-    for persona in PERSONAS:
-        shutil.copyfile(os.path.join(ROOT, ".omp", "agents", persona + ".md"),
-                        os.path.join(root, ".omp", "agents", persona + ".md"))
-    feature_dir = os.path.join(root, ".harness", "harness", "features", FEATURE)
-    os.makedirs(feature_dir)
-    if record is True:
-        with open(os.path.join(feature_dir, "feature.json"), "w") as handle:
-            json.dump({"feature_id": FEATURE, "runs": runs}, handle)
-    elif record is not None:
-        with open(os.path.join(feature_dir, "feature.json"), "w") as handle:
-            handle.write(record)
-    return root
+def feature_dir(root):
+    return os.path.join(root, ".harness", "harness", "features", FEATURE)
 
 
 def feature_json(root):
-    return os.path.join(root, ".harness", "harness", "features", FEATURE, "feature.json")
+    return os.path.join(feature_dir(root), "feature.json")
 
 
 def plan_path(root):
-    return os.path.join(root, ".harness", "harness", "features", FEATURE, "plan.yaml")
+    return os.path.join(feature_dir(root), "plan.yaml")
+
+
+@contextlib.contextmanager
+def fixture_root(runs, record=True):
+    """A disposable registered checkout: team-config grants, personas, feature.json.
+
+    `record` True writes `runs` as the record, a string is written verbatim, None writes none."""
+    root = os.path.realpath(tempfile.mkdtemp(prefix="lead-start-"))
+    try:
+        os.makedirs(os.path.join(root, ".omp", "agents"))
+        os.makedirs(os.path.join(root, ".harness"))
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as handle:
+            handle.write(team_config())
+        for persona in PERSONAS:
+            shutil.copyfile(os.path.join(ROOT, ".omp", "agents", persona + ".md"),
+                            os.path.join(root, ".omp", "agents", persona + ".md"))
+        os.makedirs(feature_dir(root))
+        body = json.dumps({"feature_id": FEATURE, "runs": runs}) if record is True else record
+        if body is not None:
+            with open(feature_json(root), "w") as handle:
+                handle.write(body)
+        yield root
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def write_plan(root, status):
@@ -128,11 +146,11 @@ def write_plan(root, status):
                      "    verify: \"true\"\n    intent: exercise the start preflight\n")
 
 
-def prompt(root, mission=None, extra=()):
+def prompt(root, mission=None):
     lines = [f"HARNESS-FEATURE: {FEATURE}", f"HARNESS-FEATURE-TREE-ROOT: {root}"]
     if mission:
         lines.append(f"HARNESS-MISSION: {mission}")
-    return "\n".join([*lines, *extra, "do the assigned work"])
+    return "\n".join([*lines, "do the assigned work"])
 
 
 def dispatch(root, dispatched, dispatcher="harness-orchestrator", text=None, env_extra=None):
@@ -158,25 +176,26 @@ def claims(root, agent=None):
     return [row for row in rows if agent is None or row.get("agent") == agent]
 
 
-def outcome(result, root, agent):
+def outcome(result, held):
     """The observable result every detail line carries, so a receipt can read it."""
-    held = claims(root, agent)
     return (f"exit={result.returncode} claim={'yes' if held else 'no'} "
             f"receipt={'yes' if 'harness_claim' in result.stdout else 'no'} "
             f"stderr={result.stderr.strip()[:900]!r}")
 
 
 def lead_start(lead, runs, record=True, env_extra=None):
-    root = make_root(runs, record)
-    try:
+    with fixture_root(runs, record) as root:
         result = dispatch(root, lead, text=prompt(root, MISSION[lead]), env_extra=env_extra)
-        return result, claims(root, lead), outcome(result, root, lead), feature_json(root)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+        held = claims(root, lead)
+        return result, held, outcome(result, held), feature_json(root)
 
 
 def refused_before_claim(result, held):
     return result.returncode == 2 and not held and "harness_claim" not in result.stdout
+
+
+def started(result, held):
+    return result.returncode == 0 and len(held) == 1 and "harness_claim" in result.stdout
 
 
 # ---------------------------------------------------------------------------------------
@@ -184,12 +203,14 @@ def refused_before_claim(result, held):
 # ---------------------------------------------------------------------------------------
 
 def sc01_lead(lead):
-    short = lead.split("-")[1]
-    cases = (("zero", []),
-             ("irrelevant-only", irrelevant_runs(lead)),
-             ("two", [lead_run(lead), lead_run(lead, f"r2-{LEADS[lead][1]}")]))
+    """SC-01 for one lead; returns each refused scenario's (result, detail, record) by label,
+    so SC-03 judges the same dispatch's diagnostic instead of re-running it."""
+    short = LEADS[lead][1]
+    cases = (("zero", []), ("irrelevant-only", irrelevant_runs(lead)), ("two", two_open_runs(lead)))
+    refusals = {}
     for label, runs in cases:
-        result, held, detail, _record = lead_start(lead, runs)
+        result, held, detail, record = lead_start(lead, runs)
+        refusals[label] = (result, detail, record)
         check("startup", f"SC-01/{short}/{label}",
               f"{lead} with {label} matching open runs is refused before any claim",
               refused_before_claim(result, held), detail)
@@ -199,7 +220,8 @@ def sc01_lead(lead):
     result, held, detail, _record = lead_start(lead, [lead_run(lead), *irrelevant_runs(lead)])
     check("control", f"SC-01/{short}/one",
           f"{lead} with exactly one matching open run among irrelevant runs starts and claims",
-          result.returncode == 0 and len(held) == 1 and "harness_claim" in result.stdout, detail)
+          started(result, held), detail)
+    return refusals
 
 
 def sc01_unreadable_record():
@@ -220,40 +242,37 @@ def sc01_unregistered_feature():
 
 
 def sc01_non_lead_unchanged():
-    root = make_root([])
-    try:
+    with fixture_root([]) as root:
         result = dispatch(root, "harness-code-reviewer", "harness-validator-lead")
-        detail = outcome(result, root, "harness-code-reviewer")
-        check("control", "SC-01/non-lead",
-              "a non-lead dispatch needs no registered lead run of its own",
-              result.returncode == 0 and claims(root, "harness-code-reviewer"), detail)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+        held = claims(root, "harness-code-reviewer")
+    check("control", "SC-01/non-lead",
+          "a non-lead dispatch needs no registered lead run of its own",
+          result.returncode == 0 and held, outcome(result, held))
 
 
 # ---------------------------------------------------------------------------------------
 # SC-03: the refusal names the feature, the lead, the failure and the legitimate remedy.
 # ---------------------------------------------------------------------------------------
 
-def sc03_missing_run(lead):
-    short = lead.split("-")[1]
-    squad = LEADS[lead][0]
-    result, _held, detail, record = lead_start(lead, irrelevant_runs(lead))
+def sc03_missing_run(lead, refusal):
+    """`refusal`: sc01_lead's irrelevant-only scenario, the lead with no matching open run."""
+    squad, short = LEADS[lead]
+    result, detail, record = refusal
     command = f"feature-record.py run-start --file {record} --id "
     wanted = {"feature": FEATURE in result.stderr, "lead": lead in result.stderr,
               "binding error": BINDING_ERROR in result.stderr,
               "exactly-one remedy": "exactly one matching open" in result.stderr,
               "run-start command": command in result.stderr
               and f"--squad {squad} --agent {lead}" in result.stderr}
-    check("startup", f"SC-03/{short}/missing",
-          f"{lead} missing-run refusal names feature, lead, cause and the run-start remedy",
-          all(wanted.values()), f"missing={[k for k, v in wanted.items() if not v]} {detail}")
+    check_all("startup", f"SC-03/{short}/missing",
+              f"{lead} missing-run refusal names feature, lead, cause and the run-start remedy",
+              wanted, detail)
 
 
-def sc03_ambiguous_run(lead):
-    short = lead.split("-")[1]
-    runs = [lead_run(lead), lead_run(lead, f"r2-{LEADS[lead][1]}")]
-    result, _held, detail, record = lead_start(lead, runs)
+def sc03_ambiguous_run(lead, refusal):
+    """`refusal`: sc01_lead's two scenario, the lead with two matching open runs."""
+    short = LEADS[lead][1]
+    result, detail, record = refusal
     text = result.stderr
     wanted = {"feature": FEATURE in text, "lead": lead in text,
               "binding error": BINDING_ERROR in text,
@@ -261,9 +280,9 @@ def sc03_ambiguous_run(lead):
               "close surplus runs": "feature-record.py close-run" in text
               and "surplus" in text,
               "no claim release as remedy": "inflight_registry.py release" not in text}
-    check("startup", f"SC-03/{short}/ambiguous",
-          f"{lead} ambiguous-run refusal directs legitimate reconciliation to one open run",
-          all(wanted.values()), f"missing={[k for k, v in wanted.items() if not v]} {detail}")
+    check_all("startup", f"SC-03/{short}/ambiguous",
+              f"{lead} ambiguous-run refusal directs legitimate reconciliation to one open run",
+              wanted, detail)
 
 
 FORBIDDEN_PLAN_REMEDIES = ("toggle", "relabel", "approval.status: pending", "--revoke",
@@ -271,26 +290,23 @@ FORBIDDEN_PLAN_REMEDIES = ("toggle", "relabel", "approval.status: pending", "--r
 
 
 def sc03_plan_diagnostic(lead, status):
-    short = lead.split("-")[1]
-    root = make_root([lead_run(lead)])
-    try:
+    short = LEADS[lead][1]
+    with fixture_root([lead_run(lead)]) as root:
         write_plan(root, status)
         result = dispatch(root, lead, text=prompt(root, "plan"))
         text = result.stderr
-        detail = outcome(result, root, lead)
+        held = claims(root, lead)
+        detail = outcome(result, held)
         target = os.path.realpath(plan_path(root))
-        wanted = {"refused": result.returncode == 2 and not claims(root, lead),
+        wanted = {"refused": result.returncode == 2 and not held,
                   "target": target in text, "observed status": repr(status) in text,
                   "before signature": "before signature" in text,
                   "pending-plan phase": "pending-plan phase" in text,
                   "no toggle or relabel": not any(bad in text.lower()
                                                   for bad in FORBIDDEN_PLAN_REMEDIES)}
-        check("startup", f"SC-03/{short}/plan-{status}",
+    check_all("startup", f"SC-03/{short}/plan-{status}",
               f"{lead} plan refusal names target and status {status!r}, panels precede "
-              "signature, and directs to the pending-plan phase",
-              all(wanted.values()), f"missing={[k for k, v in wanted.items() if not v]} {detail}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+              "signature, and directs to the pending-plan phase", wanted, detail)
 
 
 # ---------------------------------------------------------------------------------------
@@ -328,17 +344,15 @@ def registry_bytes(root):
 
 def planned_start(plan, dispatcher, lead, mission=None):
     """Dispatch `lead` from `dispatcher` with one open run for it and `plan` on disk."""
-    root = make_root([lead_run(lead)])
-    try:
+    with fixture_root([lead_run(lead)]) as root:
         if plan is not None:
             with open(plan_path(root), "w") as handle:
                 handle.write(plan)
         before = registry_bytes(root)
         result = dispatch(root, lead, dispatcher, prompt(root, mission))
         unchanged = registry_bytes(root) == before
-        return result, claims(root, lead), unchanged, outcome(result, root, lead)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+        held = claims(root, lead)
+        return result, held, unchanged, outcome(result, held)
 
 
 def dec174_main_eng_lead_refused():
@@ -368,7 +382,7 @@ def dec174_controls():
                           ("harness-validator-lead", "validate"),
                           ("harness-validator-lead", "fix")):
         result, held, _unchanged, detail = planned_start(plan, "Main", lead, mission)
-        check("control", f"BUG-2141/main-{lead.split('-')[1]}/{mission}",
+        check("control", f"BUG-2141/main-{LEADS[lead][1]}/{mission}",
               f"Main -> {lead} ({mission}) on an all-direct plan still starts and claims",
               result.returncode == 0 and len(held) == 1, detail)
     result, held, _unchanged, detail = planned_start(plan, "harness-orchestrator",
@@ -439,10 +453,6 @@ def system_yaml_visible():
     return probe.returncode == 0
 
 
-def started(result, held):
-    return result.returncode == 0 and len(held) == 1 and "harness_claim" in result.stdout
-
-
 def bug2169_cases():
     lead = "harness-eng-lead"
     precondition = system_yaml_visible()
@@ -506,7 +516,7 @@ sys.stdout.write(harness_yaml.INSTALL_COMMAND)
 
 def _printed_advice(prefix, debian):
     result = subprocess.run(
-        [sys.executable, "-c", _ADVICE_PROBE, BIN_DIR, prefix, "1" if debian else "0"],
+        [sys.executable, "-c", _ADVICE_PROBE, str(BIN), prefix, "1" if debian else "0"],
         capture_output=True, text=True, timeout=30)
     return result.stdout if result.returncode == 0 else f"probe failed: {result.stderr}"
 
@@ -524,10 +534,9 @@ def bug2169_advice():
         return any("--user" in line for line in commands(advice))
 
     cellar = "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15"
-    brew = _printed_advice(cellar, debian=False)
-    both = _printed_advice(cellar, debian=True)
-    debian = _printed_advice("/usr", debian=True)
-    other = _printed_advice("/opt/python/3.14", debian=False)
+    platforms = ((cellar, False), (cellar, True), ("/usr", True), ("/opt/python/3.14", False))
+    with ThreadPoolExecutor(len(platforms)) as pool:  # one probe process per platform
+        brew, both, debian, other = pool.map(lambda args: _printed_advice(*args), platforms)
     check("startup", "BUG-2169/advice/debian",
           "Debian/Ubuntu's system python3 is told to apt install python3-yaml",
           any("apt install python3-yaml" in line for line in commands(debian))
@@ -549,23 +558,12 @@ def bug2169_advice():
 
 
 
-def report():
-    failed = 0
-    for kind, case_id, name, ok, detail in RESULTS:
-        print(f"{'PASS' if ok else 'FAIL'} [{kind}] {case_id}: {name}")
-        if not ok:
-            failed += 1
-            print(f"      | {detail}")
-    print(f"{len(RESULTS) - failed} of {len(RESULTS)} cases passed")
-    return 1 if failed else 0
-
-
 def main():
     try:
         for lead in LEADS:
-            sc01_lead(lead)
-            sc03_missing_run(lead)
-            sc03_ambiguous_run(lead)
+            refusals = sc01_lead(lead)
+            sc03_missing_run(lead, refusals["irrelevant-only"])
+            sc03_ambiguous_run(lead, refusals["two"])
         sc01_unreadable_record()
         sc01_unregistered_feature()
         sc01_non_lead_unchanged()
@@ -579,7 +577,7 @@ def main():
         bug2169_advice()
     finally:
         shutil.rmtree(_PRIVATE.get("holder", ""), ignore_errors=True)
-    return report()
+    return C.report()
 
 
 if __name__ == "__main__":

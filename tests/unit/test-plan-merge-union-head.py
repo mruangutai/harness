@@ -11,13 +11,11 @@ module's in-process entry point, below the CLI subprocess the integration cases 
 import importlib.util
 import os
 import sys
-from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
-sys.path.insert(0, str(BIN))
+from unit_support import BIN
+from check_support import Checks
 
 import plan_merge  # noqa: E402  the package must be importable before its union module loads
 import harness_merge  # noqa: E402
@@ -28,13 +26,8 @@ union = importlib.util.module_from_spec(_spec)
 sys.modules["plan_merge.union"] = union
 _spec.loader.exec_module(union)
 
-failures = []
-
-
-def check(name, ok, detail=""):
-    print("PASS" if ok else "FAIL", name, detail if not ok else "")
-    if not ok:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 HEAD = "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
@@ -80,5 +73,4 @@ for case in (case_inline_empty_base_takes_the_proposal_head,
              case_base_with_items_keeps_its_own_head):
     case()
 
-print("FAIL test-plan-merge-union-head.py" if failures else "PASS test-plan-merge-union-head.py")
-sys.exit(1 if failures else 0)
+sys.exit(C.report())

@@ -9,31 +9,26 @@ CHECK_PLAN_ROUTES_BIN, when set (mutation testing), names the checker whose bin 
 under test, else the sibling bin/.
 Runnable directly with python3, no pytest.
 """
-import ast
-import os
-import sys
-import tempfile
+from unit_support import BIN
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
+import ast  # noqa: E402
+import os  # noqa: E402
+import sys  # noqa: E402
+import tempfile  # noqa: E402
+
+from check_support import Checks  # noqa: E402
+
+BIN_DIR = str(BIN)
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(BIN_DIR, "check-plan-routes.py")
-sys.path.insert(0, BIN_DIR)
 AUDIT_DIR = os.path.dirname(os.path.abspath(SCRIPT))
 sys.path.insert(0, AUDIT_DIR)
-import structure_audit  # noqa: E402
+import structure_audit as mod  # noqa: E402
 
-failures = []
-
-
-def check(name, cond, detail=""):
-    print(f"{'PASS' if cond else 'FAIL'} {name} {'' if cond else detail}".rstrip())
-    if not cond:
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
-
-def _count(mod, source):
+def _count(source):
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as fh:
         fh.write(source)
     try:
@@ -52,13 +47,12 @@ def case_feat65_census_reads_executable_embedded_python():
     is a program the file runs through another interpreter; its broad catches count against
     the carrier file. Prose, docstrings and non-Python strings do not parse into a try and
     add nothing."""
-    mod = structure_audit
-    check("an embedded `-c` program's broad catch counts against its carrier",
-          _count(mod, _EMBEDDED) == 1, repr(_count(mod, _EMBEDDED)))
+    embedded = _count(_EMBEDDED)
+    check("an embedded `-c` program's broad catch counts against its carrier", embedded == 1, repr(embedded))
     check("an embedded program with a typed catch adds nothing",
-          _count(mod, _EMBEDDED.replace('except Exception:', 'except ValueError:')) == 0)
+          _count(_EMBEDDED.replace('except Exception:', 'except ValueError:')) == 0)
     check("a docstring that merely mentions `except Exception` adds nothing",
-          _count(mod, 'def f():\n    """the old code said except Exception: here"""\n') == 0)
+          _count('def f():\n    """the old code said except Exception: here"""\n') == 0)
     check("the live branch-create-gate.py config reader carries no broad catch",
           mod._broad_catch_count(os.path.join(BIN_DIR, 'branch-create-gate.py')) == 0)
 
@@ -66,22 +60,20 @@ def case_feat65_census_reads_executable_embedded_python():
 def case_broad_catch_count_counts_exactly_the_two_syntaxes():
     """`except Exception` and bare `except:` count; a typed catch, a tuple, and a SUBCLASS of
     Exception do not -- the census is about the catch that hides bugs, not every handler."""
-    mod = structure_audit
     src = ("try:\n    pass\nexcept Exception:\n    pass\n"
            "try:\n    pass\nexcept:\n    pass\n"
            "try:\n    pass\nexcept OSError:\n    pass\n"
            "try:\n    pass\nexcept (OSError, ValueError):\n    pass\n"
            "try:\n    pass\nexcept RuntimeError as e:\n    pass\n")
-    check("census counts except-Exception and bare except, and nothing typed", _count(mod, src) == 2)
+    check("census counts except-Exception and bare except, and nothing typed", _count(src) == 2)
     check("census counts a handler NESTED in a function or class",
-          _count(mod, "class A:\n    def f(self):\n        try:\n            pass\n        except Exception:\n            pass\n") == 1)
-    check("census of a clean file is zero", _count(mod, "x = 1\n") == 0)
+          _count("class A:\n    def f(self):\n        try:\n            pass\n        except Exception:\n            pass\n") == 1)
+    check("census of a clean file is zero", _count("x = 1\n") == 0)
     check("a file that does not parse counts as None (its own finding, never a pass)",
-          _count(mod, "def (:\n") is None)
+          _count("def (:\n") is None)
 
 
 def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
-    mod = structure_audit
     ceiling = mod.BROAD_CATCH_CEILINGS["harness_boundary.py"]
     check("at the ceiling is clean", mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", ceiling) is None)
     check("below the ceiling is clean (a reduction never fails the census)",
@@ -101,7 +93,6 @@ def case_broad_catch_finding_compares_a_file_to_its_own_ceiling():
 def case_feat64_wave4_ceilings_are_zero():
     """FEAT-64 (SC-04): the wave-4 libs and tools carry NO allowance -- absent from the table or
     explicitly zero -- and harness_boundary.py's two designed catches are the whole budget."""
-    mod = structure_audit
     for name in ("factory_decompose.py", "feature_record/schema.py", "gh_cost_log.py", "handoff_done_when.py",
                  "handoff_policy.py", "harness_yaml.py", "run_identity.py", "worktree_terminal.py",
                  "board-station.py", "check-omp-port.py", "check-plan-routes.py", "check-skill-weight.py",
@@ -125,7 +116,6 @@ def case_feat65_hooks_have_no_allowance():
     """FEAT-65 (SC-04): the ceiling table is exactly harness_boundary.py's two designed catches;
     every hook is unlisted, so its ceiling is the default zero and one catch is a finding;
     the live census of all eleven hooks is zero and of harness_boundary.py exactly two."""
-    mod = structure_audit
     check("FEAT-65: the ceiling table is exactly {harness_boundary.py: 2}",
           mod.BROAD_CATCH_CEILINGS == {"harness_boundary.py": 2}, repr(mod.BROAD_CATCH_CEILINGS))
     for name in _FEAT65_HOOKS:
@@ -136,9 +126,9 @@ def case_feat65_hooks_have_no_allowance():
         check(f"FEAT-65: {name} carries zero broad catches", live == 0, repr(live))
     check("FEAT-65: harness_boundary.py carries exactly its two designed catches",
           mod._broad_catch_count(os.path.join(BIN_DIR, "harness_boundary.py")) == 2)
+    third = mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""
     check("FEAT-65: a third harness_boundary.py catch is a finding naming 3 against 2",
-          " 3 " in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or "")
-          and "ceiling 2" in (mod._broad_catch_finding("bin/harness_boundary.py", "harness_boundary.py", 3) or ""))
+          " 3 " in third and "ceiling 2" in third, third)
 
 
 def _prologue_source(path):
@@ -160,8 +150,8 @@ def case_feat65_dec234_prologues_are_byte_identical():
     `(ModuleNotFoundError, ValueError)` tuple included; an independent mutation of any one
     copy is reported by name."""
     sources = {name: _prologue_source(os.path.join(BIN_DIR, name)) for name in _FEAT65_PROLOGUES}
-    check("FEAT-65: the five DEC-234 prologues are byte-identical",
-          _prologue_drift(sources) == [], repr(_prologue_drift(sources)))
+    drift = _prologue_drift(sources)
+    check("FEAT-65: the five DEC-234 prologues are byte-identical", drift == [], repr(drift))
     check("FEAT-65: the shared prologue catches exactly (ModuleNotFoundError, ValueError)",
           "except (ModuleNotFoundError, ValueError):" in sources["run-unit-tests.py"])
     for name in _FEAT65_PROLOGUES:
@@ -183,7 +173,6 @@ def case_spawn_resource_reads_git_and_gh_through_run_and_spawn():
     list` is git:worktree-list, `gh auth status` is gh:auth, a `gh api` endpoint is its last
     path segment, and the board module's query is gh:board. Both `subprocess.run` and the
     checker's own `ctx.spawn` are spawn callees (FEAT-63 T-01 moved every read behind spawn)."""
-    mod = structure_audit
     rows = (
         ('subprocess.run(["git", "-C", root, "show", f"{sha}:{p}"], capture_output=True)', "git:show"),
         ('ctx.spawn(["git", "-C", root, "status", "--porcelain=v1", "-z"], capture_output=True)', "git:status"),
@@ -203,8 +192,8 @@ def case_spawn_resource_reads_git_and_gh_through_run_and_spawn():
 def main():
     check("audit_modules_load_from_the_bin_under_test",
           all(os.path.dirname(os.path.abspath(m.__file__)) == AUDIT_DIR
-              for m in (structure_audit, sys.modules["canonical_reader_audit"])),
-          f"{structure_audit.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
+              for m in (mod, sys.modules["canonical_reader_audit"])),
+          f"{mod.__file__}, {sys.modules['canonical_reader_audit'].__file__}")
     case_broad_catch_count_counts_exactly_the_two_syntaxes()
     case_broad_catch_finding_compares_a_file_to_its_own_ceiling()
     case_feat64_wave4_ceilings_are_zero()
@@ -212,12 +201,8 @@ def main():
     case_feat65_census_reads_executable_embedded_python()
     case_feat65_dec234_prologues_are_byte_identical()
     case_spawn_resource_reads_git_and_gh_through_run_and_spawn()
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
+    sys.exit(C.report())

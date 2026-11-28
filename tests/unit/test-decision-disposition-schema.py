@@ -7,29 +7,24 @@ reason; absence stays legal so older plans keep loading. The writer half runs th
 plan-merge.py CLI: set-key and apply carry rows losslessly, and a refused malformed row leaves
 the plan byte-identical (no partial write).
 """
+import contextlib
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN_DIR)
+from unit_support import BIN
 
 import harness_yaml  # noqa: E402
 import yaml  # noqa: E402
+from check_support import Checks  # noqa: E402
 
-CLI = os.path.join(BIN_DIR, "plan-merge.py")
+CLI = str(BIN / "plan-merge.py")
 ENV = {k: v for k, v in os.environ.items()
        if k not in ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR", "HARNESS_AGENT_TYPE")}
-RESULTS = []
-
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, bool(ok)))
-    print(f"{'PASS' if ok else 'FAIL'} {name}" + ("" if ok else f" :: {detail}"))
+C = Checks()
+check = C.check
 
 
 TASK = {"id": "T-01", "title": "t", "change_type": "logic", "execution_mode": "main-session-direct",
@@ -43,9 +38,12 @@ def row(**over):
     return base
 
 
-def doc_with(value, present=True):
+_ABSENT = object()
+
+
+def doc_with(value=_ABSENT):
     doc = {"feature": "FEAT-99-fixture", "approval": {"status": "pending"}, "tasks": [dict(TASK)]}
-    if present:
+    if value is not _ABSENT:
         doc["decisions_affected"] = value
     return doc
 
@@ -69,7 +67,7 @@ def expect_illegal(name, doc, needle):
 
 
 def case_block_types():
-    expect_legal("absent decisions_affected stays legal (older plans load)", doc_with(None, False))
+    expect_legal("absent decisions_affected stays legal (older plans load)", doc_with())
     expect_legal("explicit empty list is a legal claim", doc_with([]))
     expect_illegal("a mapping block is refused", doc_with({"dec": "DEC-1"}), "decisions_affected")
     expect_illegal("a null block is refused", doc_with(None), "decisions_affected")
@@ -116,15 +114,18 @@ def case_reason_and_successor_values():
     expect_illegal("a non-string successor is refused", doc_with([row(successor=None)]), "successor")
 
 
+@contextlib.contextmanager
 def _plan_root():
-    root = tempfile.mkdtemp(prefix="disposition-schema-")
-    feat = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
-    os.makedirs(feat)
-    return root, os.path.join(feat, "plan.yaml")
+    with tempfile.TemporaryDirectory(prefix="disposition-schema-") as tmp:
+        root = Path(tmp)
+        feat = root / ".harness" / "harness" / "features" / "FEAT-99-fixture"
+        feat.mkdir(parents=True)
+        yield root, feat / "plan.yaml"
 
 
 def run(*argv):
-    return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True, env=ENV)
+    return subprocess.run([sys.executable, CLI, *map(str, argv)], capture_output=True, text=True,
+                          env=ENV)
 
 
 PLAN = ("schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n  status: pending\n"
@@ -137,49 +138,38 @@ ROWS = [row(clause="`quoted` **md**: x"),
 
 
 def case_set_key_round_trip():
-    root, plan = _plan_root()
-    try:
-        with open(plan, "w", encoding="utf-8") as fh:
-            fh.write(PLAN)
-        value = os.path.join(root, "value.yaml")
-        with open(value, "w", encoding="utf-8") as fh:
-            yaml.safe_dump(ROWS, fh, sort_keys=False)
+    with _plan_root() as (root, plan):
+        plan.write_text(PLAN, encoding="utf-8")
+        value = root / "value.yaml"
+        value.write_text(yaml.safe_dump(ROWS, sort_keys=False), encoding="utf-8")
         r = run("set-key", "--file", plan, "--key", "decisions_affected", "--value-file", value)
         check("set-key writes decisions_affected", r.returncode == 0, r.stdout + r.stderr)
-        loaded = harness_yaml.load_file(plan)
+        loaded = harness_yaml.load_file(str(plan))
         check("set-key round-trips every row losslessly", loaded.get("decisions_affected") == ROWS,
               loaded.get("decisions_affected"))
-        before = open(plan, "rb").read()
-        with open(value, "w", encoding="utf-8") as fh:
-            yaml.safe_dump([row(disposition="amend")], fh)
+        before = plan.read_bytes()
+        value.write_text(yaml.safe_dump([row(disposition="amend")]), encoding="utf-8")
         r = run("set-key", "--file", plan, "--key", "decisions_affected", "--value-file", value)
         check("set-key refuses a malformed row", r.returncode != 0, r.stdout + r.stderr)
-        check("a refused row leaves the plan byte-identical", open(plan, "rb").read() == before)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+        check("a refused row leaves the plan byte-identical", plan.read_bytes() == before)
 
 
 def case_apply_creation_round_trip():
-    root, plan = _plan_root()
-    try:
-        proposal = os.path.join(root, "proposal.yaml")
+    with _plan_root() as (root, plan):
+        proposal = root / "proposal.yaml"
         body = PLAN.replace("approval:\n  status: pending\n", "").replace(
             "drafted_at: '2026-11-21T00:00:00Z'\n", "")
-        with open(proposal, "w", encoding="utf-8") as fh:
-            fh.write(body + yaml.safe_dump({"decisions_affected": ROWS}, sort_keys=False))
+        proposal.write_text(body + yaml.safe_dump({"decisions_affected": ROWS}, sort_keys=False),
+                            encoding="utf-8")
         r = run("apply", "--file", plan, "--proposal", proposal)
         check("apply creates a plan carrying rows", r.returncode == 0, r.stdout + r.stderr)
-        loaded = harness_yaml.load_file(plan) if os.path.exists(plan) else {}
+        loaded = harness_yaml.load_file(str(plan)) if plan.exists() else {}
         check("apply creation round-trips every row losslessly",
               loaded.get("decisions_affected") == ROWS, loaded)
-        with open(proposal, "w", encoding="utf-8") as fh:
-            fh.write(body + yaml.safe_dump({"decisions_affected": ROWS}, sort_keys=False))
-        before = open(plan, "rb").read()
+        before = plan.read_bytes()
         r = run("apply", "--file", plan, "--proposal", proposal)
         check("re-applying the same rows is a no-op merge", r.returncode == 0
-              and open(plan, "rb").read() == before, r.stdout + r.stderr)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+              and plan.read_bytes() == before, r.stdout + r.stderr)
 
 
 def main():
@@ -190,10 +180,8 @@ def main():
     case_reason_and_successor_values()
     case_set_key_round_trip()
     case_apply_creation_round_trip()
-    failed = [name for name, ok in RESULTS if not ok]
-    print(f"{len(RESULTS) - len(failed)}/{len(RESULTS)} passed")
-    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
+    sys.exit(C.report())

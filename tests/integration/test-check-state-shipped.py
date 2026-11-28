@@ -31,6 +31,7 @@ sys.path.insert(0, str(BIN))
 sys.path.insert(0, str(HERE.parent))
 from harness_config_support import build_config  # noqa: E402
 import f58_sparse_fixture as F  # noqa: E402
+import git_support as G  # noqa: E402
 
 ACTIVE = "FEAT-1-alpha"              # landed by the fixture; no plan.yaml, so never shipped
 SHIPPED = "FEAT-5-shipped"
@@ -53,7 +54,7 @@ exit 0
 
 
 def check(checkout, *args, opens=None, env_extra=None):
-    env = dict(F.ENV, HARNESS_PROJECT_DIR=checkout)
+    env = dict(G.ENV, HARNESS_PROJECT_DIR=checkout)
     env.pop("HARNESS_AGENT_TYPE", None)
     env.update(env_extra or {})
     argv = [sys.executable, str(CHECK), *args]
@@ -101,7 +102,7 @@ class Case(unittest.TestCase):
     def sparse(self, name):
         wt = self.fx.add_worktree(name)
         proc = subprocess.run([sys.executable, str(BIN / "worktree-state.py"), "--repair",
-                               "--checkout", wt], env=F.ENV, capture_output=True, text=True)
+                               "--checkout", wt], env=G.ENV, capture_output=True, text=True)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         return wt
 

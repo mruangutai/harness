@@ -5,51 +5,38 @@ asserts the redirect took effect BEFORE asserting anything about file contents �
 skipped that check could silently pollute the real checkout's log directory instead of failing).
 
 The recorder is OPT-IN, default OFF (approval amendment 5, 2026-08-19): every case below that
-exercises recording sets HARNESS_GH_COST_LOG=1 explicitly, and cleans it up in a finally so it
-never leaks between cases. The SC-05 cases near the end assert the OFF state (variable unset)
-instead — those must NOT set it.
+exercises recording sets HARNESS_GH_COST_LOG=1 explicitly through log_case(), which restores the
+environment when the case ends so it never leaks between cases. The SC-05 cases near the end
+assert the OFF state (variable unset) instead — those must NOT set it.
 
     ./test-gh-cost-log.py    -> exit 0 all pass, 1 otherwise
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-import io
+from unit_support import BIN, TESTS
+
+import importlib
+import importlib.util as _ilu
 import json
 import os
 import subprocess
 import sys
 import tempfile
+from contextlib import contextmanager
+from unittest.mock import patch
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
+from check_support import Checks
 
-import gh_cost_log  # noqa: E402
-import harness_boundary  # noqa: E402
+import factory_gh as _fgh
+import gh_cost_log
+import harness_boundary
 
-FAILURES = []
-RAN = 0
-
-
-def check(name, cond, detail=""):
-    global RAN
-    RAN += 1
-    if cond:
-        print(f"PASS  {name}")
-    else:
-        print(f"FAIL  {name}{(' — ' + detail) if detail else ''}")
-        FAILURES.append(name)
-
+C = Checks()
+check = C.check
 
 _real_resolve_root = harness_boundary.resolve_root
 # Every gh launch — the counter read through factory_gh.launch_gh included — goes through the
 # one shared subprocess.run module attribute, so that is the one attribute every case patches.
 _real_subprocess_run = subprocess.run
+_VAR = "HARNESS_GH_COST_LOG"
 
 
 def restore():
@@ -68,6 +55,24 @@ def redirect(tmp):
     return resolved
 
 
+@contextmanager
+def log_case(value=None, run=None):
+    """One case: a tmp root behind redirect(), HARNESS_GH_COST_LOG set to value (None means
+    genuinely unset, not merely "0"), and subprocess.run replaced by run when given. Yields the
+    expected log path; the environment, resolve_root and subprocess.run are restored on exit."""
+    with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ):
+        path = redirect(tmp)
+        os.environ.pop(_VAR, None)
+        if value is not None:
+            os.environ[_VAR] = value
+        if run is not None:
+            subprocess.run = run
+        try:
+            yield path
+        finally:
+            restore()
+
+
 def read_lines(path):
     """Never raises — a mutation that drops the write on some path must redden the NAMED
     check that asserts on the returned (possibly empty) list, not crash the whole suite before
@@ -80,222 +85,162 @@ def read_lines(path):
         return []
 
 
-def counter_stub(values):
-    """A fake subprocess.run standing in for the counter's own `gh api rate_limit --jq ...`
-    call. `values` is an iterator of ints to return, one per call, via stdout."""
-    it = iter(values)
-
-    class R:
-        def __init__(self, out):
-            self.returncode = 0
-            self.stdout = str(out)
-            self.stderr = ""
-
-    def fake_run(argv, **kwargs):
-        return R(next(it))
-
-    return fake_run
+def invocation_lines(path):
+    """The recorded lines minus the one coverage line a fresh log file starts with."""
+    return [l for l in read_lines(path) if "coverage" not in l]
 
 
-def raising_run(argv, **kwargs):
-    # FEAT-64: an unreachable binary is an OSError — the class the boundary really raises.
-    # (Was RuntimeError, which pinned the over-broad catch rather than the contract.)
-    raise OSError("boom — the counter binary is unreachable")
+def first_or_empty(lines):
+    return lines[0] if lines else {}
+
+
+def raising(exc):
+    """A subprocess.run stand-in that raises exc on every call."""
+    def run(*a, **k):
+        raise exc
+    return run
+
+
+def completed(stdout, rc=0):
+    """A subprocess.run stand-in that returns one fixed result on every call."""
+    return lambda argv, **k: subprocess.CompletedProcess(argv, rc, stdout, "")
+
+
+def raised(exc_type, fn, *args):
+    """True when fn(*args) raises exc_type; any other exception propagates."""
+    try:
+        fn(*args)
+    except exc_type:
+        return True
+    return False
 
 
 # ---------------- record(): keys, cost, and the fresh-file coverage line ----------------
-# HARNESS_GH_COST_LOG=1 set explicitly — the recorder is opt-in, default OFF (amendment 5).
 
-with tempfile.TemporaryDirectory() as tmp:
+with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ):
     path = redirect(tmp)
     check("redirect took effect before any assertion about content",
           path.startswith(tmp + os.sep), path)
 
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        gh_cost_log.record(["issue", "view", "1"], 100, 105, 0)
-        lines = read_lines(path)
-        first = lines[0] if lines else {}
-        check("fresh log file's FIRST line is JSON carrying a coverage key",
-              len(lines) == 2 and "coverage" in first, f"lines={lines}")
-        check("coverage value mentions run_gh",
-              "run_gh" in first.get("coverage", ""), first)
-        check("coverage value mentions gh typed directly into Bash",
-              "Bash" in first.get("coverage", ""), first)
-        check("a successful invocation writes exactly one invocation line",
-              len(lines) == 2, f"lines={lines}")
-        rec = lines[1] if len(lines) > 1 else {}
-        check("recorded line has all six required keys",
-              set(rec.keys()) == {"ts", "argv", "before", "after", "cost", "rc"}, rec)
-        check("cost equals after minus before",
-              rec.get("cost") == 5, rec)
-        check("before/after/rc are recorded verbatim",
-              rec.get("before") == 100 and rec.get("after") == 105 and rec.get("rc") == 0, rec)
+    os.environ[_VAR] = "1"
+    gh_cost_log.record(["issue", "view", "1"], 100, 105, 0)
+    lines = read_lines(path)
+    first = first_or_empty(lines)
+    check("fresh log file's FIRST line is JSON carrying a coverage key",
+          len(lines) == 2 and "coverage" in first, f"lines={lines}")
+    check("coverage value mentions run_gh",
+          "run_gh" in first.get("coverage", ""), first)
+    check("coverage value mentions gh typed directly into Bash",
+          "Bash" in first.get("coverage", ""), first)
+    check("a successful invocation writes exactly one invocation line",
+          len(lines) == 2, f"lines={lines}")
+    rec = lines[1] if len(lines) > 1 else {}
+    check("recorded line has all six required keys",
+          set(rec.keys()) == {"ts", "argv", "before", "after", "cost", "rc"}, rec)
+    check("cost equals after minus before",
+          rec.get("cost") == 5, rec)
+    check("before/after/rc are recorded verbatim",
+          rec.get("before") == 100 and rec.get("after") == 105 and rec.get("rc") == 0, rec)
 
-        # appending a second invocation must NOT repeat the coverage line
-        gh_cost_log.record(["issue", "view", "2"], 105, 106, 0)
-        lines2 = read_lines(path)
-        check("appending a second invocation does not rewrite the coverage line",
-              sum(1 for l in lines2 if "coverage" in l) == 1, f"lines={lines2}")
-        check("appending a second invocation adds exactly one more line",
-              len(lines2) == 3, f"lines={lines2}")
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
+    # appending a second invocation must NOT repeat the coverage line
+    gh_cost_log.record(["issue", "view", "2"], 105, 106, 0)
+    lines2 = read_lines(path)
+    check("appending a second invocation does not rewrite the coverage line",
+          sum(1 for l in lines2 if "coverage" in l) == 1, f"lines={lines2}")
+    check("appending a second invocation adds exactly one more line",
+          len(lines2) == 3, f"lines={lines2}")
 restore()
 
 
 # ---------------- a failing invocation is STILL recorded ----------------
-# HARNESS_GH_COST_LOG=1 set explicitly — the recorder is opt-in, default OFF (amendment 5).
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        gh_cost_log.record(["issue", "create"], 200, 210, 1)
-        lines = read_lines(path)
-        non_cov = [l for l in lines if "coverage" not in l]
-        rec = non_cov[0] if non_cov else {}
-        check("a failing invocation (rc=1) is still recorded",
-              len(non_cov) == 1, f"lines={lines}")
-        check("the failing invocation's line carries rc 1",
-              rec.get("rc") == 1, rec)
-        check("the failing invocation's line carries its real cost",
-              rec.get("cost") == 10, rec)
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-restore()
+with log_case("1") as path:
+    gh_cost_log.record(["issue", "create"], 200, 210, 1)
+    non_cov = invocation_lines(path)
+    rec = first_or_empty(non_cov)
+    check("a failing invocation (rc=1) is still recorded",
+          len(non_cov) == 1, f"lines={read_lines(path)}")
+    check("the failing invocation's line carries rc 1",
+          rec.get("rc") == 1, rec)
+    check("the failing invocation's line carries its real cost",
+          rec.get("cost") == 10, rec)
 
 
 # ---------------- -f/-F value truncation ----------------
-# HARNESS_GH_COST_LOG=1 set explicitly — the recorder is opt-in, default OFF (amendment 5).
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        long_query = "query=" + ("x" * 200)
-        gh_cost_log.record(["api", "graphql", "-f", long_query, "-F", "owner=short"], 1, 1, 0)
-        lines = read_lines(path)
-        non_cov = [l for l in lines if "coverage" not in l]
-        rec = non_cov[0] if non_cov else {}
-        argv = rec.get("argv") or []
-        check("a -f value longer than 80 chars is truncated with an ellipsis",
-              len(argv) > 3 and len(argv[3]) < len(long_query) and argv[3].endswith("..."), argv)
-        check("a short -F value is left untouched",
-              len(argv) > 5 and argv[5] == "owner=short", argv)
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-restore()
+with log_case("1") as path:
+    long_query = "query=" + ("x" * 200)
+    gh_cost_log.record(["api", "graphql", "-f", long_query, "-F", "owner=short"], 1, 1, 0)
+    argv = first_or_empty(invocation_lines(path)).get("argv") or []
+    check("a -f value longer than 80 chars is truncated with an ellipsis",
+          len(argv) > 3 and len(argv[3]) < len(long_query) and argv[3].endswith("..."), argv)
+    check("a short -F value is left untouched",
+          len(argv) > 5 and argv[5] == "owner=short", argv)
 
 
 # ---------------- HARNESS_GH_COST_LOG=0 disables recording entirely ----------------
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    os.environ["HARNESS_GH_COST_LOG"] = "0"
-    try:
-        gh_cost_log.record(["issue", "view", "1"], 1, 1, 0)
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
+with log_case("0") as path:
+    gh_cost_log.record(["issue", "view", "1"], 1, 1, 0)
     check("HARNESS_GH_COST_LOG=0 writes no line at all",
           not os.path.exists(path), f"exists={os.path.exists(path)}")
-restore()
 
 
 # ---------------- measured(): a counter read that raises never propagates ----------------
-# HARNESS_GH_COST_LOG=1 set explicitly — the recorder is opt-in, default OFF (amendment 5).
+# FEAT-64: an unreachable binary is an OSError — the class the boundary really raises.
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    subprocess.run = raising_run
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        raised = False
-        try:
-            with gh_cost_log.measured(["issue", "view", "1"]) as m:
-                m.returncode = 0
-        except Exception:
-            raised = True
-        check("a counter read that raises does not propagate out of measured()",
-              not raised)
-        lines = read_lines(path)
-        non_cov = [l for l in lines if "coverage" not in l]
-        rec = non_cov[0] if non_cov else {}
-        check("a counter-read failure records null before/after/cost",
-              rec.get("before") is None and rec.get("after") is None and rec.get("cost") is None,
-              rec)
-        check("a counter-read failure still records the real returncode",
-              rec.get("rc") == 0, rec)
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-restore()
+def _measure_issue_view():
+    with gh_cost_log.measured(["issue", "view", "1"]) as m:
+        m.returncode = 0
+
+
+with log_case("1", run=raising(OSError("boom — the counter binary is unreachable"))) as path:
+    check("a counter read that raises does not propagate out of measured()",
+          not raised(Exception, _measure_issue_view))
+    rec = first_or_empty(invocation_lines(path))
+    check("a counter-read failure records null before/after/cost",
+          rec.get("before") is None and rec.get("after") is None and rec.get("cost") is None,
+          rec)
+    check("a counter-read failure still records the real returncode",
+          rec.get("rc") == 0, rec)
 
 
 # ---------------- measured(): the counter's own call is never wrapped (recursion guard) ----
 # HARNESS_GH_COST_LOG=1 set explicitly — proves the recursion guard itself excludes the
 # counter's own argv, not just that recording happens to be off (amendment 5).
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    subprocess.run = counter_stub([999])
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        with gh_cost_log.measured(gh_cost_log._COUNTER_ARGV) as m:
-            m.returncode = 0
-        check("measured() never records a line for the counter's own argv",
-              not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-restore()
+with log_case("1", run=completed("999")) as path:
+    with gh_cost_log.measured(gh_cost_log._COUNTER_ARGV) as m:
+        m.returncode = 0
+    check("measured() never records a line for the counter's own argv",
+          not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
 
 
 # ---------------- SC-05: opt-in default is OFF — variable UNSET writes nothing, both halves --
 
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    os.environ.pop("HARNESS_GH_COST_LOG", None)  # ensure genuinely unset, not merely "0"
-    gh_cost_log.record(["issue", "view", "1"], 100, 105, 0)
-    check("with HARNESS_GH_COST_LOG unset, a successful invocation creates no log file",
-          not os.path.exists(path), f"exists={os.path.exists(path)}")
-    check("with HARNESS_GH_COST_LOG unset, a successful invocation writes no line",
-          read_lines(path) == [], f"lines={read_lines(path)}")
-restore()
-
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    os.environ.pop("HARNESS_GH_COST_LOG", None)  # ensure genuinely unset
-    gh_cost_log.record(["issue", "create"], 200, 210, 1)  # a FAILING invocation, rc != 0
-    check("with HARNESS_GH_COST_LOG unset, a FAILING invocation creates no log file",
-          not os.path.exists(path), f"exists={os.path.exists(path)}")
-    check("with HARNESS_GH_COST_LOG unset, a FAILING invocation writes no line",
-          read_lines(path) == [], f"lines={read_lines(path)}")
-restore()
+for _label, _argv, _before, _after, _rc in (("a successful", ["issue", "view", "1"], 100, 105, 0),
+                                            ("a FAILING", ["issue", "create"], 200, 210, 1)):
+    with log_case() as path:
+        gh_cost_log.record(_argv, _before, _after, _rc)
+        check(f"with HARNESS_GH_COST_LOG unset, {_label} invocation creates no log file",
+              not os.path.exists(path), f"exists={os.path.exists(path)}")
+        check(f"with HARNESS_GH_COST_LOG unset, {_label} invocation writes no line",
+              read_lines(path) == [], f"lines={read_lines(path)}")
 
 
 # ---------------- WRAP SITES: factory_gh.run_gh and gh-sync.py's gh() -------------------
-# QA fix cycle 3 (T-03): `with gh_cost_log.measured(args)` at each wrap site was asserted by
-# NOTHING via the real wrapper — every case above calls record()/measured() directly, which
-# bypasses the interface. These four cases drive the REAL wrappers (factory_gh.run_gh and
-# gh-sync.py's gh()) through a fake gh — a counting subprocess.run double standing in for the
-# gh binary — parameterised on recorder state (ON/OFF), and assert BOTH the write AND the
-# subprocess call count. The call count is what proves the guard at gh_cost_log.py:157
-# (`if not _enabled() or is_counter_call(argv)`) actually short-circuits OFF to one call; every
-# existing OFF case above calls record() directly and only exercises record()'s OWN, separate
-# guard at :112.
-
-from unittest.mock import patch  # noqa: E402
-import importlib  # noqa: E402
-import importlib.util as _ilu  # noqa: E402
-
-import factory_gh as _fgh  # noqa: E402
+# These cases drive the REAL wrappers (factory_gh.run_gh and gh-sync.py's gh()) through a fake
+# gh — a counting subprocess.run double standing in for the gh binary — parameterised on
+# recorder state (ON/OFF), and assert BOTH the write AND the subprocess call count. The call
+# count pins measured()'s own guard (`if not _enabled() or is_counter_call(argv)`) short-
+# circuiting OFF to one call; the record() cases above only reach record()'s separate guard.
 
 
 def _load_gh_sync():
-    """gh-sync.py's hyphen blocks a plain import; loaded the same way test-gh-sync.py:890-891
-    already does for load_recorded. A fresh module each call, but `subprocess`, `gh_cost_log`
-    and `harness_boundary` are all resolved through sys.modules's cache, so patches on those
-    module objects apply here too without re-patching per module instance."""
-    spec = _ilu.spec_from_file_location("_ghs_t03_wrap_site", os.path.join(HERE, "gh-sync.py"))
+    """gh-sync.py's hyphen blocks a plain import. A fresh module each call, but `subprocess`,
+    `gh_cost_log` and `harness_boundary` are all resolved through sys.modules's cache, so
+    patches on those module objects apply here too without re-patching per module instance."""
+    spec = _ilu.spec_from_file_location("_ghs_t03_wrap_site", str(BIN / "gh-sync.py"))
     mod = _ilu.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -311,184 +256,83 @@ def _counting_fake(rc=0, stdout="ok"):
 
     def fake_run(argv, **kwargs):
         calls.append(list(argv))
-
-        class R:
-            pass
-
-        r = R()
-        if len(argv) >= 1 and list(argv[1:]) == gh_cost_log._COUNTER_ARGV:
-            r.returncode = 0
-            r.stdout = str(1000 + len(calls))
-            r.stderr = ""
-        else:
-            r.returncode = rc
-            r.stdout = stdout
-            r.stderr = "" if rc == 0 else "boom"
-        return r
+        if list(argv[1:]) == gh_cost_log._COUNTER_ARGV:
+            return subprocess.CompletedProcess(argv, 0, str(1000 + len(calls)), "")
+        return subprocess.CompletedProcess(argv, rc, stdout, "" if rc == 0 else "boom")
 
     return fake_run, calls
 
 
-# --- factory_gh.run_gh wrap site, ON ---
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
+def _wrap_site_case(label, call, on):
     fake_run, calls = _counting_fake()
-    subprocess.run = fake_run
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        _fgh.run_gh(["issue", "view", "1"])
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-    lines = read_lines(path)
-    non_cov = [l for l in lines if "coverage" not in l]
-    check("factory_gh.run_gh wrap site, ON: one line written for the wrapped invocation",
-          len(non_cov) == 1, f"lines={lines}")
-    check("factory_gh.run_gh wrap site, ON: three subprocess calls (counter, real, counter)",
-          len(calls) == 3, f"calls={calls}")
-restore()
+    with log_case("1" if on else None, run=fake_run) as path:
+        call(["issue", "view", "1"])
+        if on:
+            check(f"{label} wrap site, ON: one line written for the wrapped invocation",
+                  len(invocation_lines(path)) == 1, f"lines={read_lines(path)}")
+            check(f"{label} wrap site, ON: three subprocess calls (counter, real, counter)",
+                  len(calls) == 3, f"calls={calls}")
+        else:
+            check(f"{label} wrap site, OFF: no line written",
+                  not os.path.exists(path) or read_lines(path) == [],
+                  f"exists={os.path.exists(path)}")
+            check(f"{label} wrap site, OFF: exactly one subprocess call (the real call only)",
+                  len(calls) == 1, f"calls={calls}")
 
-# --- factory_gh.run_gh wrap site, OFF (genuinely unset, not merely "0") ---
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    fake_run, calls = _counting_fake()
-    subprocess.run = fake_run
-    os.environ.pop("HARNESS_GH_COST_LOG", None)
-    _fgh.run_gh(["issue", "view", "1"])
-    check("factory_gh.run_gh wrap site, OFF: no line written",
-          not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
-    check("factory_gh.run_gh wrap site, OFF: exactly one subprocess call (the real call only)",
-          len(calls) == 1, f"calls={calls}")
-restore()
 
-# --- gh-sync.py's gh() wrap site, ON ---
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    fake_run, calls = _counting_fake()
-    subprocess.run = fake_run
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        _ghs = _load_gh_sync()
-        _ghs.gh(["issue", "view", "1"])
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-    lines = read_lines(path)
-    non_cov = [l for l in lines if "coverage" not in l]
-    check("gh-sync.py gh() wrap site, ON: one line written for the wrapped invocation",
-          len(non_cov) == 1, f"lines={lines}")
-    check("gh-sync.py gh() wrap site, ON: three subprocess calls (counter, real, counter)",
-          len(calls) == 3, f"calls={calls}")
-restore()
+for _label, _call in (("factory_gh.run_gh", lambda a: _fgh.run_gh(a)),
+                      ("gh-sync.py gh()", lambda a: _load_gh_sync().gh(a))):
+    for _on in (True, False):
+        _wrap_site_case(_label, _call, _on)
 
-# --- gh-sync.py's gh() wrap site, OFF (genuinely unset, not merely "0") ---
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    fake_run, calls = _counting_fake()
-    subprocess.run = fake_run
-    os.environ.pop("HARNESS_GH_COST_LOG", None)
-    _ghs = _load_gh_sync()
-    _ghs.gh(["issue", "view", "1"])
-    check("gh-sync.py gh() wrap site, OFF: no line written",
-          not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
-    check("gh-sync.py gh() wrap site, OFF: exactly one subprocess call (the real call only)",
-          len(calls) == 1, f"calls={calls}")
-restore()
 
 # --- factory_gh.run_gh wrap site, ON, FAILING invocation: the recorded rc is the real one ---
-# T-03 cycle 4 (approval amendment 6): the four ON/OFF cases above all drive rc=0 via
-# _counting_fake()'s default, and none inspects the recorded "rc" value — only presence/count.
-# `_cost.returncode = r.returncode` at factory_gh.py:162 is asserted by NOTHING. This drives a
-# FAILING call (rc=1) through the real run_gh, catches the raised GhError (run_gh always raises
-# on non-zero rc — that is forced, not a design choice), and asserts the LOGGED RECORD'S rc
-# equals 1 — not that a record exists, not that GhError was raised.
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    fake_run, calls = _counting_fake(rc=1)
-    subprocess.run = fake_run
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        try:
-            _fgh.run_gh(["issue", "view", "1"])
-            raised = False
-        except _fgh.GhError:
-            raised = True
-    finally:
-        del os.environ["HARNESS_GH_COST_LOG"]
-    lines = read_lines(path)
-    non_cov = [l for l in lines if "coverage" not in l]
+# run_gh always raises GhError on non-zero rc (forced, not a design choice); this asserts the
+# LOGGED RECORD'S rc equals 1 — the line try_gh's `cost.returncode = ...` writes.
+fake_run, calls = _counting_fake(rc=1)
+with log_case("1", run=fake_run) as path:
+    gh_raised = raised(_fgh.GhError, _fgh.run_gh, ["issue", "view", "1"])
+    non_cov = invocation_lines(path)
     check("factory_gh.run_gh wrap site, FAILING: GhError was raised",
-          raised)
+          gh_raised)
     check("factory_gh.run_gh wrap site, FAILING: one line written for the wrapped invocation",
-          len(non_cov) == 1, f"lines={lines}")
+          len(non_cov) == 1, f"lines={read_lines(path)}")
     check("factory_gh.run_gh wrap site, FAILING: the recorded rc equals the real exit code (1)",
           len(non_cov) == 1 and non_cov[0].get("rc") == 1,
           f"non_cov={non_cov}")
-restore()
 
-# --- factory_gh.run_gh wrap site, OFF, FAILING invocation: the recorder stays fully out of the
-# way of a non-zero-rc call too, not just the rc=0 case already covered above ---
-# QA fix cycle (SC-05): every existing OFF case that drives the real wrapper (lines 335-346,
-# 367-379) uses _counting_fake()'s default rc=0. record()'s own guard at gh_cost_log.py:112
-# already forecloses a write for ANY rc once _enabled() is False, so this case cannot discover a
-# defect record() doesn't already prevent — what it DOES pin is measured()'s guard at :157 firing
-# on the non-zero-rc path specifically, closing the grading ambiguity SC-05's amended sentence
-# ("including for a failing invocation") named.
-with tempfile.TemporaryDirectory() as tmp:
-    path = redirect(tmp)
-    fake_run, calls = _counting_fake(rc=1)
-    subprocess.run = fake_run
-    os.environ.pop("HARNESS_GH_COST_LOG", None)  # ensure genuinely unset
-    try:
-        _fgh.run_gh(["issue", "view", "1"])
-        raised = False
-    except _fgh.GhError:
-        raised = True
+# --- factory_gh.run_gh wrap site, OFF, FAILING invocation ---
+# record()'s own guard already forecloses a write for any rc once _enabled() is False; this pins
+# measured()'s guard firing on the non-zero-rc path specifically (SC-05: "including for a
+# failing invocation").
+fake_run, calls = _counting_fake(rc=1)
+with log_case(run=fake_run) as path:
+    gh_raised = raised(_fgh.GhError, _fgh.run_gh, ["issue", "view", "1"])
     check("OFF, FAILING: GhError was still raised (the wrapper does not swallow the real error)",
-          raised)
+          gh_raised)
     check("OFF, FAILING: no log file is created",
           not os.path.exists(path), f"exists={os.path.exists(path)}")
     check("OFF, FAILING: no line is written",
           read_lines(path) == [], f"lines={read_lines(path)}")
     check("OFF, FAILING: exactly one subprocess call (the real call only, neither counter read)",
           len(calls) == 1, f"calls={calls}")
-restore()
 
 
 # FEAT-64 (SC-03): the counter and the log are BEST-EFFORT at their real boundaries — a
 # counter binary that is absent, fails, or prints junk is None; an unwritable log dir is a
 # silent return — but an unrelated programming defect escapes rather than reading as "the
 # counter could not be read".
-with tempfile.TemporaryDirectory() as tmp:
-    redirect(tmp)
-    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no gh"))
+with log_case():
+    subprocess.run = raising(FileNotFoundError("no gh"))
     check("FEAT-64: an absent counter binary reads None", gh_cost_log._read_counter() is None)
-    class _R:
-        returncode = 0
-        stdout = "not-a-number"
-    subprocess.run = lambda *a, **k: _R()
+    subprocess.run = completed("not-a-number")
     check("FEAT-64: a counter that prints junk reads None", gh_cost_log._read_counter() is None)
-    subprocess.run = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
-    try:
-        gh_cost_log._read_counter()
-        escaped = False
-    except RuntimeError:
-        escaped = True
-    check("FEAT-64: an unrelated RuntimeError escapes _read_counter", escaped)
-    restore()
-    redirect(tmp)
-    _real_dumps = gh_cost_log.json.dumps
-    gh_cost_log.json.dumps = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("unrelated"))
-    os.environ["HARNESS_GH_COST_LOG"] = "1"
-    try:
-        try:
-            gh_cost_log.record(["gh", "api"], 1, 2, 0)
-            escaped = False
-        except RuntimeError:
-            escaped = True
-    finally:
-        gh_cost_log.json.dumps = _real_dumps
-        del os.environ["HARNESS_GH_COST_LOG"]
-    check("FEAT-64: an unrelated RuntimeError escapes record", escaped)
-restore()
+    subprocess.run = raising(RuntimeError("unrelated"))
+    check("FEAT-64: an unrelated RuntimeError escapes _read_counter",
+          raised(RuntimeError, gh_cost_log._read_counter))
+with log_case("1"), patch.object(gh_cost_log.json, "dumps", side_effect=RuntimeError("unrelated")):
+    check("FEAT-64: an unrelated RuntimeError escapes record",
+          raised(RuntimeError, gh_cost_log.record, ["gh", "api"], 1, 2, 0))
 
 
 # ---------------- FEAT-2452 T-01: the counter reads through factory_gh.launch_gh -------------
@@ -496,7 +340,7 @@ restore()
 # accounting: launch_gh is never measured, and only try_gh (which run_gh adapts) measures, once.
 # Every case pins FACTORY_GH to one fake binary path and patches the shared subprocess.run, so
 # no real gh can start even if a case's own patch were missed.
-_T01_FAKE_GH = os.path.join(TESTS_DIR, "t01-fake-gh-never-installed")
+_T01_FAKE_GH = str(TESTS / "unit" / "t01-fake-gh-never-installed")
 _T01_OPERATION = ["issue", "view", "1"]
 
 
@@ -549,14 +393,10 @@ def t01_counter_failures_read_none():
 def _t01_measured_operation(fn, rc):
     """Drive fn over one operation with telemetry ON and the one fake binary; return the
     launches, the recorded lines and fn's result."""
-    with tempfile.TemporaryDirectory() as tmp:
-        path = redirect(tmp)
-        fake_run, calls = _counting_fake(rc=rc)
-        subprocess.run = fake_run
-        os.environ["HARNESS_GH_COST_LOG"] = "1"
+    fake_run, calls = _counting_fake(rc=rc)
+    with log_case("1", run=fake_run) as path:
         result = fn(_T01_OPERATION)
-        os.environ.pop("HARNESS_GH_COST_LOG", None)
-        lines = [l for l in read_lines(path) if "coverage" not in l]
+        lines = invocation_lines(path)
     return calls, lines, result
 
 
@@ -630,8 +470,4 @@ for _name, _fn in (
     t01_case(_name, _fn)
 
 
-if FAILURES:
-    print(f"\n{len(FAILURES)} of {RAN} FAILING.")
-    sys.exit(1)
-print(f"\n{RAN}/{RAN} checks passed")
-sys.exit(0)
+sys.exit(C.report())

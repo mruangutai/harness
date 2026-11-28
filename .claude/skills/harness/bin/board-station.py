@@ -27,14 +27,17 @@ EVERY line this tool prints, on stdout or stderr, carries the "board-station: " 
 environmental lines below included, matching `gh-sync.py`'s own universal prefix discipline.
 
 EXIT CONTRACT, scoped to what code can hold: 2 means EITHER a caller mistake — a missing or
-extra argument, or an issue number that is not a positive integer — OR an unusable board
+extra argument, an issue number that is not a positive integer, or a CLOSED issue named for any
+station other than `done` (#2639: a closed issue's card belongs at done) — OR an unusable board
 declaration (FEAT-24 T-04): `github.board` absent, present but not a mapping, or malformed in
 any field `factory_config.validate_board` checks. Both are refusals a human must fix, so they
 share one exit code and one stream: for the board case, one line on stderr, `str(exc)`
-verbatim, already carrying the offending key and the next step. Outside that scope the
-interpreter still owns the exit: a closed stdout ends in 120 at shutdown flush, which no guard
-in this file can prevent and none pretends to. The remaining environmental preconditions — no
-harness root, no harness.json, no github block, sync off, no repo pinned, or `github.board`
+verbatim, already carrying the offending key and the next step. An issue whose state cannot be
+read is a board failure, reported like the write's own (D-02 below) and written nowhere.
+Outside that scope the interpreter still owns the exit: a closed stdout ends in 120 at
+shutdown flush, which no guard in this file can prevent and none pretends to. The remaining
+environmental preconditions — no harness root, no harness.json, no github block, sync off, no
+repo pinned, or `github.board`
 declared as an EXPLICIT null — still print one plain line and exit 0 having written nothing;
 an explicit null is a project's own declaration that it has no board, never the same state as
 a misconfiguration. The board write itself is wrapped in a broad `except Exception`: a
@@ -78,11 +81,8 @@ def err(line):
     print(f"board-station: {line}", file=sys.stderr)
 
 
-def main(argv):
-    if len(argv) != 2:
-        err(USAGE)
-        return 2
-    issue_arg, station = argv
+def _issue_number(issue_arg):
+    """The positive ASCII issue number `issue_arg` names, or None."""
     # CATCH THE FAILURE, DO NOT ENUMERATE IT. int() refuses more inputs than any list
     # of predicates keeps up with: Unicode digit forms str.isdigit() accepts, and
     # anything past CPython's 4300-digit conversion cap. Two rounds of adding one more
@@ -100,12 +100,14 @@ def main(argv):
     try:
         issue_number = int(issue_arg)
     except ValueError:
-        err(USAGE)
-        return 2
+        return None
     if not (issue_arg.isascii() and issue_arg.isdigit()) or issue_number <= 0:
-        err(USAGE)
-        return 2
+        return None
+    return issue_number
 
+
+def _harness_root():
+    """The harness root above the working directory, or None."""
     # DEPTH-AGNOSTIC ROOT, the established root-probe convention (same walk-up gh-sync.py
     # uses): the first ancestor of the CURRENT WORKING DIRECTORY holding the manifest,
     # `.harness/team-config.yaml`. No fixed-depth climb.
@@ -114,10 +116,12 @@ def main(argv):
            and _d != os.path.dirname(_d)):
         _d = os.path.dirname(_d)
     if not os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")):
-        out("no harness root found above the current directory — nothing written")
-        return 0
-    root = _d
+        return None
+    return _d
 
+
+def _github(root):
+    """(the github block, None), or (None, exit code) once the outcome is already reported."""
     # VARIABLE-FIRST FORM (test-check-plan-routes.py case_20's escape): the path is assembled
     # into a variable on this line, and only the NEXT statement reads it. A missing or invalid
     # config is refused with its diagnosis (FEAT-2297) — never "nothing written".
@@ -126,11 +130,15 @@ def main(argv):
         github = artifact_accessors.load_harness_json(harness_json_path)["github"]
     except artifact_accessors.ArtifactAccessError as exc:
         err(f"harness.json could not be read — nothing written: {exc}")
-        return 2
+        return None, 2
     if not github["sync"]:
         out("github.sync is not enabled — nothing written")
-        return 0
+        return None, 0
+    return github, None
 
+
+def _board(root):
+    """(the board declaration, None), or (None, exit code) once the outcome is reported."""
     try:
         board = gh_board.load_board(root)
     except artifact_accessors.FleetError as exc:
@@ -139,11 +147,15 @@ def main(argv):
         # because it already carries the offending key and the next step from
         # factory_cli.body(what, value, next_step).
         err(str(exc))
-        return 2
+        return None, 2
     if board is None:
         out("no github.board configured — nothing written")
-        return 0
+        return None, 0
+    return board, None
 
+
+def _station_refusal(board, station):
+    """Exit 2, reported, for a station outside the board's declaration; else None."""
     # VALIDATED AGAINST THE BOARD'S OWN DECLARATION, IMMEDIATELY BEFORE THE WRITE (FEAT-41 T-02,
     # reversing D-05). D-05's reasoning was that resolving the option BY NAME at the board makes
     # a wrong value fail loudly there rather than silently against a stale local copy. That still
@@ -152,24 +164,79 @@ def main(argv):
     # factory_config.station_column, which raises FleetError on an unknown station. Refusing here
     # turns that into this tool's own exit-2 refusal, naming the six.
     #
-    # PLACED HERE, NOT AT ARGUMENT-PARSE TIME, AND THE POSITION IS LOAD-BEARING: every
-    # environmental no-op above — no harness root, sync off, no board — exits 0 having written
-    # nothing (a missing or invalid harness.json is a refusal, FEAT-2297), and that contract must not become an exit 2 just because
-    # the station argument was also wrong. A refusal is only owed when a write was actually about
-    # to happen.
+    # CALLED AFTER THE ENVIRONMENTAL NO-OPS, NOT AT ARGUMENT-PARSE TIME, AND THE ORDER IS
+    # LOAD-BEARING: every environmental no-op — no harness root, sync off, no board — exits 0
+    # having written nothing (a missing or invalid harness.json is a refusal, FEAT-2297), and that
+    # contract must not become an exit 2 just because the station argument was also wrong. A
+    # refusal is only owed when a write was actually about to happen.
     if station not in factory_config.station_names(board):
         err(f"{station!r} is not a station — expected one of: "
             + ", ".join(factory_config.station_names(board)))
         return 2
+    return None
 
+
+def _closed_refusal(repo, issue_number, station):
+    """An exit code, reported, when the card must not move because of the issue's state;
+    else None."""
+    # A CLOSED ISSUE'S CARD BELONGS AT DONE (#2639). The FEAT-2516 intake looped this tool over
+    # nine backlog issues, one already closed by an unrelated PR, and pulled that closed card
+    # from Done back to Plan, where it sat until a later ship audit flagged it. A closed issue
+    # named for any other station is a caller mistake: exit 2, nothing written, so a loop sees
+    # it. Moving a closed issue TO done stays allowed. An unreadable state is a board failure
+    # like the write's own (D-02): one ERROR line, exit 0, and the card stays where it was.
     try:
-        gh_board.set_station(board, github["repo"], issue_number, station)
+        state = factory_gh.issue_view(repo, issue_number, ["state"]).get("state")
+    except factory_gh.GhError as exc:
+        err(f"ERROR - #{issue_number} -> {station}: the issue's state could not be read, so "
+            f"nothing was written: {exc}")
+        return 0
+    if state == "CLOSED" and station != "done":
+        err(f"#{issue_number} is closed, so its card belongs at 'done'; refusing to move it to "
+            f"{station!r} — nothing written")
+        return 2
+    return None
+
+
+def _refusal(board, repo, issue_number, station):
+    """The station check, then the issue-state check: the first exit code owed, else None."""
+    code = _station_refusal(board, station)
+    return code if code is not None else _closed_refusal(repo, issue_number, station)
+
+
+def _write(board, repo, issue_number, station):
+    try:
+        gh_board.set_station(board, repo, issue_number, station)
     except (gh_board.BoardError, factory_gh.GhError) as exc:  # see module docstring, D-02
         err(f"ERROR - #{issue_number} -> {station}: {exc}")
         return 0
-
     out(f"#{issue_number} -> {station}")
     return 0
+
+
+def main(argv):
+    if len(argv) != 2:
+        err(USAGE)
+        return 2
+    issue_arg, station = argv
+    issue_number = _issue_number(issue_arg)
+    if issue_number is None:
+        err(USAGE)
+        return 2
+    root = _harness_root()
+    if root is None:
+        out("no harness root found above the current directory — nothing written")
+        return 0
+    github, code = _github(root)
+    if github is None:
+        return code
+    board, code = _board(root)
+    if board is None:
+        return code
+    code = _refusal(board, github["repo"], issue_number, station)
+    if code is not None:
+        return code
+    return _write(board, github["repo"], issue_number, station)
 
 
 if __name__ == "__main__":

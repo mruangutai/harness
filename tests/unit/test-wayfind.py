@@ -9,41 +9,29 @@ below is that fail-open, reproduced in a disposable tmp tree rather than against
 itself so the case is deterministic and never depends on this machine's real home
 directory.
 
-Idiom matches its siblings (see test-no-distribution.py): a module-level `failures`
-list, `check(name, cond, detail)`, plain `case_N_...` functions, and a `main` that
-exits 1 on any failure. Runnable directly with `python3`, no pytest.
+Idiom matches its siblings: check_support's `check(name, cond, detail)`, plain
+`case_N_...` functions, and a `main` that exits 1 on any failure. Runnable directly with `python3`, no pytest.
 
 FEAT-2452 T-04 adds the GitHub transport cases. Every one of them runs inside `offline`,
 which applies tests/offline_gh_support.offline_gh_env through patch.dict(os.environ,
 clear=True): ONE FACTORY_GH fake answers every migrated read and write, a gh sentinel sits
 first on PATH, and a sentinel hit is a FAIL, so no default-binary dispatch can reach GitHub.
 """
-import os as _anchor_os, sys as _anchor_sys
-_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
-_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
-_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
-_anchor_sys.path.insert(0, _anchor_bin)
-_anchor_sys.path.insert(0, _anchor_os.path.dirname(_anchor_tests))
-from harness_config_support import write_config  # noqa: E402
+import unit_support  # noqa: F401  (puts bin/ and tests/ on sys.path; must precede repo imports)
 import contextlib
 import io
 import json
 import os
-import shutil
 import sys
 import tempfile
 from unittest import mock
 
-from offline_gh_support import assert_sentinel_unused, offline_gh_env  # noqa: E402
-
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-HERE = BIN_DIR
-sys.path.insert(0, HERE)
-import wayfind as wf  # noqa: E402  (path insert must precede this import)
-import factory_gh  # noqa: E402
-import gh_issues as ghi  # noqa: E402
+from check_support import Checks
+from harness_config_support import write_config
+from offline_gh_support import assert_sentinel_unused, offline_gh_env
+import wayfind as wf
+import factory_gh
+import gh_issues as ghi
 
 REPO = "acme/widget"
 
@@ -65,15 +53,8 @@ for rule in rules:
         sys.exit(rule.get("status", 0))
 """
 
-failures = []
-
-
-def check(name, cond, detail=""):
-    if cond:
-        print(f"PASS {name}")
-    else:
-        print(f"FAIL {name} {detail}")
-        failures.append(name)
+C = Checks()
+check = C.check
 
 
 class Fake:
@@ -96,8 +77,7 @@ class Fake:
 def offline(name, rules, launchable=True):
     """Confine one case: FACTORY_GH is the fake (or a missing path when not launchable), the
     environment is cleared to offline_gh_env's, and a sentinel hit FAILs `<name>_offline`."""
-    tmp = tempfile.mkdtemp(prefix="wayfind-gh-")
-    try:
+    with tempfile.TemporaryDirectory(prefix="wayfind-gh-", ignore_cleanup_errors=True) as tmp:
         fake = os.path.join(tmp, "fake-gh")
         if launchable:
             _write(fake, FAKE_GH.format(python=sys.executable))
@@ -109,8 +89,6 @@ def offline(name, rules, launchable=True):
         with mock.patch.dict(os.environ, env, clear=True):
             yield Fake(env["WAYFIND_FAKE_LOG"])
         _check_offline(name, sentinel_log)
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def _check_offline(name, sentinel_log):
@@ -156,29 +134,19 @@ def _run_cfg_from(start_dir):
     Returns (repo_or_none, exit_code_or_none, stderr_text). The two env spellings this
     feature deletes are cleared for the duration so a real HARNESS_PROJECT_DIR or
     CLAUDE_PROJECT_DIR set on the runner's own machine cannot mask the probe under test
-    — the walk is supposed to start from cwd alone. Restores both cwd and env in a
-    `finally` so one case cannot corrupt the next.
+    — the walk is supposed to start from cwd alone. patch.dict and chdir restore env and
+    cwd on exit so one case cannot corrupt the next.
     """
-    prev_cwd = os.getcwd()
-    prev_env = {k: os.environ.get(k) for k in ("HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR")}
-    for k in prev_env:
-        os.environ.pop(k, None)
     stderr_buf = io.StringIO()
-    try:
-        os.chdir(start_dir)
+    with mock.patch.dict(os.environ), contextlib.chdir(start_dir):
+        for k in ("HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR"):
+            os.environ.pop(k, None)
         try:
             with contextlib.redirect_stderr(stderr_buf):
                 repo = wf.cfg()
             return repo, None, stderr_buf.getvalue()
         except SystemExit as se:
             return None, se.code, stderr_buf.getvalue()
-    finally:
-        os.chdir(prev_cwd)
-        for k, v in prev_env.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
 
 
 # ============================== Case 1 ==============================
@@ -187,16 +155,14 @@ def _run_cfg_from(start_dir):
 # against the real root, never the decoy.
 
 def case_1_wayfind_directory_probe():
-    tmp = tempfile.mkdtemp(prefix="f42-wayfind-real-")
-    try:
-        real_root = tmp
-        _write(os.path.join(real_root, ".harness", "team-config.yaml"), "# marker\n")
-        write_config(os.path.join(real_root, ".harness", "harness.json"),
+    with tempfile.TemporaryDirectory(prefix="f42-wayfind-real-", ignore_cleanup_errors=True) as tmp:
+        _write(os.path.join(tmp, ".harness", "team-config.yaml"), "# marker\n")
+        write_config(os.path.join(tmp, ".harness", "harness.json"),
                      {"github": {"sync": True, "repo": "acme/real-root"}})
 
         # The decoy: a directory NAMED .harness directly under `decoy_child`, holding
         # NO team-config.yaml — the bare-directory probe this case exists to defeat.
-        decoy_child = os.path.join(real_root, "decoy_child")
+        decoy_child = os.path.join(tmp, "decoy_child")
         os.makedirs(os.path.join(decoy_child, ".harness"), exist_ok=True)
 
         start = os.path.join(decoy_child, "nested", "start")
@@ -211,8 +177,6 @@ def case_1_wayfind_directory_probe():
             f"github.repo ('acme/real-root'); got repo={repo!r} exit_code={exit_code!r} "
             f"stderr={stderr_text!r}",
         )
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ============================== Case 2 ==============================
@@ -220,8 +184,7 @@ def case_1_wayfind_directory_probe():
 # never fail open by resolving something else.
 
 def case_2_wayfind_no_marker_dies():
-    tmp = tempfile.mkdtemp(prefix="f42-wayfind-none-")
-    try:
+    with tempfile.TemporaryDirectory(prefix="f42-wayfind-none-", ignore_cleanup_errors=True) as tmp:
         start = os.path.join(tmp, "a", "b", "c")
         os.makedirs(start, exist_ok=True)
         # deliberately NO .harness/team-config.yaml anywhere under `tmp`
@@ -235,8 +198,6 @@ def case_2_wayfind_no_marker_dies():
             f"the start point; got repo={repo!r} exit_code={exit_code!r} "
             f"stderr={stderr_text!r}",
         )
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ============================== T-04: migrated paths ==============================
@@ -299,7 +260,9 @@ READ_FAILURES = {
     "misleading_404": {"status": 1, "stderr": "gh: issue 404 is locked (HTTP 410)\nHTTP 4040\n"},
     "status0_malformed_with_404": {"status": 0, "stdout": "<html>", "stderr": "gh: Not Found (HTTP 404)\n"},
 }
+NOT_FOUND = {"status": 1, "stderr": "gh: Not Found (HTTP 404)\n"}  # the one confirmed-absence answer
 READERS = {"blockers": (wf.blockers, BLOCKED_BY), "parent": (wf.parent_of, PARENT)}
+RESOLVE_11 = ("resolve", "11", "--body", "done", "--gist", "g", "--apply")
 
 
 def case_6_reads_fail_closed():
@@ -316,10 +279,9 @@ def case_6_reads_fail_closed():
 
 
 def case_7_genuine_404_is_absence():
-    rule = {"status": 1, "stderr": "gh: Not Found (HTTP 404)\n"}
-    for reader, (fn, match), want in (("blockers", READERS["blockers"], []),
-                                      ("parent", READERS["parent"], None)):
-        with offline(f"case_7_{reader}", [dict(rule, match=match)]) as fake:
+    for reader, want in (("blockers", []), ("parent", None)):
+        fn, match = READERS[reader]
+        with offline(f"case_7_{reader}", [dict(NOT_FOUND, match=match)]) as fake:
             got = outcome(fn, REPO, 11)
             argvs = fake.argvs()
         check(f"case_7_{reader}_404_is_absence", got[:2] == ("value", want) and len(argvs) == 1,
@@ -344,15 +306,11 @@ def case_9_invalid_json_raises():
         check(f"case_9_{label}_raises_gh_error", is_gh_error(got), repr(got))
 
 
-FRONTIER_RULES = [{"match": f"repos/{REPO}/issues/3/sub_issues", "stdout": '[{"number": 11, "state": "open"}]'},
-                  dict(READ_FAILURES["401"], match=BLOCKED_BY),
-                  {"match": "issue view 11", "stdout": '{"number": 11, "title": "eligible?", "assignees": [], "labels": []}'}]
+OPEN_11 = '[{"number": 11, "state": "open"}]'
 
 
 def case_10_frontier_no_eligibility_on_failed_read():
-    with offline("case_10_frontier", FRONTIER_RULES) as fake:
-        got = run_cli("frontier", "3")
-        argvs = fake.argvs()
+    got, argvs = _frontier("case_10_frontier", OPEN_11, READ_FAILURES["401"], json.dumps(VIEW_11))
     check("case_10_frontier_exit_1", got[:2] == ("exit", 1), repr(got))
     check("case_10_frontier_prints_no_ticket", "#11" not in got[2] and "eligible?" not in got[2], repr(got))
     check("case_10_frontier_diagnostic", got[2].startswith("wayfind: ") and "Traceback" not in got[2]
@@ -363,13 +321,13 @@ def case_10_frontier_no_eligibility_on_failed_read():
 def case_11_resolve_no_writes_after_parent_uncertainty():
     rules = [dict(READ_FAILURES["500"], match=PARENT)]
     with offline("case_11_resolve", rules) as fake:
-        got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+        got = run_cli(*RESOLVE_11)
         argvs = fake.argvs()
     check("case_11_resolve_exit_1", got[:2] == ("exit", 1), repr(got))
     check("case_11_resolve_names_the_failure", "no parent map" not in got[2] and "HTTP 500" in got[2], repr(got))
     check("case_11_resolve_no_writes", argvs == [PARENT], repr(argvs))
-    with offline("case_11_resolve_404", [{"match": PARENT, "status": 1, "stderr": "gh: Not Found (HTTP 404)\n"}]):
-        got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+    with offline("case_11_resolve_404", [dict(NOT_FOUND, match=PARENT)]):
+        got = run_cli(*RESOLVE_11)
     check("case_11_resolve_404_means_no_parent", got[:2] == ("exit", 1) and "no parent map" in got[2], repr(got))
 
 
@@ -396,12 +354,8 @@ def case_8b_unusable_success_payloads_raise():
 
 def case_10b_frontier_no_eligibility_on_unusable_blockers():
     for label in ("null", "object"):
-        rules = [FRONTIER_RULES[0], {"match": BLOCKED_BY, "stdout": UNUSABLE_BLOCKERS[label]},
-                 FRONTIER_RULES[2]]
         name = f"case_10b_frontier_{label}"
-        with offline(name, rules) as fake:
-            got = run_cli("frontier", "3")
-            argvs = fake.argvs()
+        got, argvs = _frontier(name, OPEN_11, UNUSABLE_BLOCKERS[label], json.dumps(VIEW_11))
         check(f"{name}_exit_1", got[:2] == ("exit", 1), repr(got))
         check(f"{name}_prints_no_ticket", "eligible?" not in got[2] and "Traceback" not in got[2], repr(got))
         check(f"{name}_stops_reading", not any("issue view 11" in a for a in argvs), repr(argvs))
@@ -411,7 +365,7 @@ def case_11b_resolve_no_writes_on_unusable_parent():
     for label in ("empty_object", "number_false", "number_zero", "number_string", "null"):
         name = f"case_11b_resolve_{label}"
         with offline(name, [{"match": PARENT, "stdout": UNUSABLE_PARENTS[label]}]) as fake:
-            got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+            got = run_cli(*RESOLVE_11)
             argvs = fake.argvs()
         check(f"{name}_exit_1", got[:2] == ("exit", 1), repr(got))
         check(f"{name}_not_absence", "no parent map" not in got[2] and got[2].startswith("wayfind: "),
@@ -482,13 +436,12 @@ def case_8c_blocker_state_must_be_open_or_closed():
         with offline(name, [{"match": BLOCKED_BY, "stdout": text}]):
             got = outcome(wf.blockers, REPO, 11)
         check(f"{name}_raises_gh_error", is_gh_error(got), repr(got))
-    valid = [{"number": 3, "state": "OPEN"}, {"number": 4, "state": "closed"}]
-    with offline("case_8c_blockers_valid", [{"match": BLOCKED_BY, "stdout": json.dumps(valid)}]):
-        got = outcome(wf.blockers, REPO, 11)
-    check("case_8c_blockers_open_closed_any_case_valid", got[:2] == ("value", valid), repr(got))
-    with offline("case_8c_blockers_empty", [{"match": BLOCKED_BY, "stdout": "[]"}]):
-        got = outcome(wf.blockers, REPO, 11)
-    check("case_8c_blockers_empty_list_valid", got[:2] == ("value", []), repr(got))
+    for label, payload in (("valid", [{"number": 3, "state": "OPEN"}, {"number": 4, "state": "closed"}]),
+                           ("empty", [])):
+        with offline(f"case_8c_blockers_{label}", [{"match": BLOCKED_BY, "stdout": json.dumps(payload)}]):
+            got = outcome(wf.blockers, REPO, 11)
+        check(f"case_8c_blockers_{'open_closed_any_case_valid' if payload else 'empty_list_valid'}",
+              got[:2] == ("value", payload), repr(got))
 
 
 def case_10c_frontier_refuses_unusable_decision_fields():
@@ -512,12 +465,11 @@ def case_10d_frontier_valid_decisions_unchanged():
     """The controls: valid open/closed states in any case, the empty list, a confirmed 404 and a
     claimed or blocked ticket keep their meaning."""
     research = json.dumps(dict(VIEW_11, labels=[{"name": "wayfinder:research", "color": "1d76db"}]))
-    absent = {"status": 1, "stderr": "gh: Not Found (HTTP 404)\n"}
     for label, subs, blocked, view, want in (
             ("closed_blockers", '[{"number": 11, "state": "OPEN"}]', '[{"state": "CLOSED"}, {"state": "closed"}]',
              research, "#11\tresearch\teligible?"),
             ("empty_blockers", '[{"number": 11, "state": "open"}]', "[]", json.dumps(VIEW_11), "#11\t?\teligible?"),
-            ("blockers_404", '[{"number": 11, "state": "open"}]', absent, json.dumps(VIEW_11), "#11\t?\teligible?"),
+            ("blockers_404", '[{"number": 11, "state": "open"}]', NOT_FOUND, json.dumps(VIEW_11), "#11\t?\teligible?"),
             ("open_blocker", '[{"number": 11, "state": "open"}]', '[{"state": "Open"}]', json.dumps(VIEW_11),
              "(frontier empty)"),
             ("claimed", '[{"number": 11, "state": "open"}]', "[]",
@@ -541,7 +493,7 @@ def case_11c_resolve_refuses_unusable_title_and_body():
                         ("title_int", '{"title": 5}')):
         name = f"case_11c_resolve_title_{label}"
         with offline(name, head + [{"match": "issue view 11", "stdout": text}]) as fake:
-            got = run_cli("resolve", "11", "--body", "done", "--gist", "g", "--apply")
+            got = run_cli(*RESOLVE_11)
             argvs = fake.argvs()
         check(f"{name}_exit_1_typed", got[:2] == ("exit", 1) and "unusable payload" in got[2]
               and "Traceback" not in got[2], repr(got))
@@ -624,12 +576,7 @@ def main():
     case_12b_ticket_malformed_url()
     case_12c_ticket_dry_run()
     case_13_gh_bin_deleted()
-
-    if failures:
-        print(f"\n{len(failures)} FAILURE(S): {failures}")
-        return 1
-    print("\nALL PASS")
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":

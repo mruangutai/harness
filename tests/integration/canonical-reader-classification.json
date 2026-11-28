@@ -89,10 +89,10 @@
       "disposition": "canonical",
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/board-station.py",
-      "id": ".claude/skills/harness/bin/board-station.py::main::json_file#1",
+      "id": ".claude/skills/harness/bin/board-station.py::_github::json_file#1",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "main",
+      "symbol": "_github",
       "task": "T-03"
     },
     {
@@ -2109,6 +2109,32 @@
       "reason": "",
       "remedy": "feature_record.read.load_feature_json",
       "symbol": "_qa_policy",
+      "task": "none"
+    },
+    {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_carveout_plan::load_feature_json#1",
+      "reason": "",
+      "remedy": "feature_record.read.load_feature_json",
+      "symbol": "_carveout_plan",
+      "task": "none"
+    },
+    {
+      "artifact": "plan.yaml",
+      "category": "load_plan",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_carveout_plan::load_plan#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_plan",
+      "symbol": "_carveout_plan",
       "task": "none"
     },
     {

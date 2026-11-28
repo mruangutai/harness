@@ -6,18 +6,17 @@ object passes for each; a missing, an extra, a wrong-type and a near-miss-enum o
 Loader strictness (duplicate keys, malformed schema, duplicate $id), alias resolution and
 the validator CLI's object-input decoder are exercised on a temporary schema directory.
 """
-from pathlib import Path
+from unit_support import ROOT, BIN
 import copy
 import json
+from pathlib import Path
 import shutil
-import sys
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
-import digest_schema  # noqa: E402
+import digest_schema
+
+SCHEMA_DIR = BIN.parent / "schemas" / "digest"
 
 PERSONAS = (
     "harness-ai-dev", "harness-backend-dev", "harness-code-reviewer",
@@ -124,9 +123,13 @@ def _schema_nodes(node, at, common, seen=()):
             yield from _schema_nodes(child, f"{at}/{key}", common, seen)
 
 
-def _array_shape_violations(node, at):
+def _types(node):
     types = node.get("type")
-    types = types if isinstance(types, list) else [types]
+    return types if isinstance(types, list) else [types]
+
+
+def _array_shape_violations(node, at):
+    types = _types(node)
     out = []
     if len([kind for kind in types if kind not in (None, "null")]) > 1:
         out.append(f"{at}: type list {node['type']!r} — spell alternatives as anyOf")
@@ -137,18 +140,15 @@ def _array_shape_violations(node, at):
     return out
 
 
-def array_item_violations(node, at, common, seen=()):
-    """Every array without concrete `items`, and every multi-type `type` list, under `node`."""
-    return [bad for location, schema in _schema_nodes(node, at, common, seen)
-            for bad in _array_shape_violations(schema, location)]
+def _admits_null(node, types):
+    return "null" in types or ("const" in node and node["const"] is None) \
+        or None in (node.get("enum") or [])
 
 
 def _object_shape_violations(node, at):
-    types = node.get("type")
-    types = types if isinstance(types, list) else [types]
+    types = _types(node)
     out = []
-    if "null" in types or ("const" in node and node["const"] is None) \
-            or None in (node.get("enum") or []):
+    if _admits_null(node, types):
         out.append(f"{at}: JSON null")
     if "object" in types:
         keys = list(node.get("properties") or {})
@@ -159,15 +159,26 @@ def _object_shape_violations(node, at):
     return out
 
 
-def object_violations(node, at, common, seen=()):
-    """Every object schema that is open or leaves a property optional, and every JSON null."""
-    return [bad for location, schema in _schema_nodes(node, at, common, seen)
-            for bad in _object_shape_violations(schema, location)]
+def violations(check, node, at, common):
+    """Every violation `check` reports on a schema node under `node`, refs resolved.
+
+    _array_shape_violations: arrays without concrete `items`, multi-type `type` lists.
+    _object_shape_violations: open or partly required objects, and every JSON null."""
+    return [bad for location, schema in _schema_nodes(node, at, common)
+            for bad in check(schema, location)]
+
+
+def _schema_roots():
+    """Every common $def plus every persona schema, as (location, node), with the common $defs."""
+    common = digest_schema.common_defs()
+    roots = [(f"common.json#/$defs/{name}", node) for name, node in common.items()]
+    roots += [(f"{persona}.json#", digest_schema.load_schema(persona)) for persona in PERSONAS]
+    return common, roots
 
 
 class PersonaSchemas(unittest.TestCase):
     def test_exactly_sixteen_persona_files_plus_common(self):
-        names = sorted(p.name for p in (BIN.parent / "schemas" / "digest").glob("*.json"))
+        names = sorted(p.name for p in SCHEMA_DIR.glob("*.json"))
         self.assertEqual(names, sorted(["common.json"] + [f"{p}.json" for p in PERSONAS]))
         self.assertEqual(sorted(VALID), sorted(PERSONAS))
 
@@ -191,11 +202,9 @@ class PersonaSchemas(unittest.TestCase):
         """OpenAI strict requires every declared key and refuses undeclared ones, so every
         object schema (after $ref resolution, entry objects and anyOf branches included) is
         additionalProperties false with required == its property keys; JSON null never appears."""
-        common = digest_schema.common_defs()
-        roots = [(f"common.json#/$defs/{name}", node) for name, node in common.items()]
-        roots += [(f"{persona}.json#", digest_schema.load_schema(persona)) for persona in PERSONAS]
-        self.assertEqual([bad for at, node in roots for bad in object_violations(node, at, common)],
-                         [])
+        common, roots = _schema_roots()
+        self.assertEqual([bad for at, node in roots
+                          for bad in violations(_object_shape_violations, node, at, common)], [])
 
     def test_object_walk_flags_open_or_partly_required_objects(self):
         props = {"a": {"type": "string"}, "b": {"type": "string"}}
@@ -204,8 +213,9 @@ class PersonaSchemas(unittest.TestCase):
                       "properties": props},
                      {"items": {"type": "object", "additionalProperties": False, "required": []}},
                      {"anyOf": [{"type": "null"}]}, {"const": None}, {"enum": ["x", None]}):
-            self.assertTrue(object_violations(node, "#", {}), node)
-        self.assertEqual(object_violations(
+            self.assertTrue(violations(_object_shape_violations, node, "#", {}), node)
+        self.assertEqual(violations(
+            _object_shape_violations,
             {"type": "object", "additionalProperties": False, "required": ["a", "b"],
              "properties": props, "if": {"properties": {"a": {"const": "x"}}}}, "#", {}), [])
 
@@ -213,21 +223,19 @@ class PersonaSchemas(unittest.TestCase):
         """OpenAI strict rejects the whole yield tool on one array without `items` (measured on
         Codex: "array schema missing items"), and `items: {}`/`true` admits anything. Walked
         after $ref resolution, conditionals and unreferenced common $defs included."""
-        common = digest_schema.common_defs()
-        roots = [(f"common.json#/$defs/{name}", node) for name, node in common.items()]
-        roots += [(f"{persona}.json#", digest_schema.load_schema(persona)) for persona in PERSONAS]
-        self.assertEqual([bad for at, node in roots for bad in array_item_violations(node, at, common)],
-                         [])
+        common, roots = _schema_roots()
+        self.assertEqual([bad for at, node in roots
+                          for bad in violations(_array_shape_violations, node, at, common)], [])
 
     def test_array_walk_flags_untyped_items(self):
         for node in ({"type": "array"}, {"type": ["string", "array"], "items": {"type": "string"}},
                      {"type": "array", "items": {}}, {"type": "array", "items": True},
                      {"properties": {"x": {"anyOf": [{"type": "array"}]}}},
                      {"then": {"properties": {"x": {"type": "array", "items": {"pattern": "x"}}}}}):
-            self.assertTrue(array_item_violations(node, "#", {}), node)
-        self.assertEqual(array_item_violations(
-            {"type": "array", "items": {"$ref": "common.json#/$defs/text"}}, "#",
-            {"text": {"type": "string"}}), [])
+            self.assertTrue(violations(_array_shape_violations, node, "#", {}), node)
+        self.assertEqual(violations(
+            _array_shape_violations, {"type": "array", "items": {"$ref": "common.json#/$defs/text"}},
+            "#", {"text": {"type": "string"}}), [])
 
     def test_representative_valid_objects_pass(self):
         for persona in PERSONAS:
@@ -367,10 +375,10 @@ class PersonaSchemas(unittest.TestCase):
         for persona in PERSONAS:
             self.assertEqual(errors(lead, make(lead, expertise_update=[
                 {**write, "persona": persona}, {**drop, "persona": persona}])), [], persona)
-        without = lambda item: {key: value for key, value in item.items() if key != "persona"}
+        without = lambda item, drop_key="persona": {
+            key: value for key, value in item.items() if key != drop_key}
         for bad in ({**drop, "entry": "none"}, {**write, "op": "merge"},
-                    {**write, "section": "Rules"}, {key: value for key, value in write.items()
-                                                  if key != "why"},
+                    {**write, "section": "Rules"}, without(write, "why"),
                     without(write), without(drop),
                     {**write, "persona": "backend-dev"}, {**drop, "persona": "harness-scribe"},
                     {**write, "persona": "fable-advisor"}, {**write, "persona": None},
@@ -378,7 +386,7 @@ class PersonaSchemas(unittest.TestCase):
             self.assertTrue(errors(lead, make(lead, expertise_update=[bad])), bad)
 
     def test_expertise_persona_enum_is_the_canonical_sixteen(self):
-        common = json.loads((BIN.parent / "schemas" / "digest" / "common.json").read_text())["$defs"]
+        common = json.loads((SCHEMA_DIR / "common.json").read_text())["$defs"]
         for name in ("expertise_write", "expertise_drop"):
             node = common[name]
             self.assertIn("persona", node["required"], name)
@@ -458,11 +466,9 @@ class Resolution(unittest.TestCase):
 
 class LoaderStrictness(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="digest-schemas-test-"))
-        shutil.copytree(BIN.parent / "schemas" / "digest", self.tmp, dirs_exist_ok=True)
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
+        self.tmp = Path(self.enterContext(
+            tempfile.TemporaryDirectory(prefix="digest-schemas-test-")))
+        shutil.copytree(SCHEMA_DIR, self.tmp, dirs_exist_ok=True)
 
     def loader(self):
         return digest_schema.SchemaStore(self.tmp)

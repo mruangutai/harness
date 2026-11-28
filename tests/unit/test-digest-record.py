@@ -6,16 +6,12 @@ mapping wins, keys outside today's live schemas survive, a file with no such blo
 with an actionable message, and every read leaves the file byte-identical (sha256 before
 and after). The module must not reach for the live persona schemas at all.
 """
+import unit_support  # noqa: F401  (puts bin/ on sys.path)
 from pathlib import Path
 import hashlib
-import shutil
-import sys
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
 import digest_record  # noqa: E402
 
 HISTORICAL = """# Build digest
@@ -53,10 +49,9 @@ def sha(path):
 
 class DurableRecord(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="digest-record-test-"))
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
+        tmp = tempfile.TemporaryDirectory(prefix="digest-record-test-")
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
 
     def fixture(self, text):
         path = self.tmp / "digest.md"
@@ -123,7 +118,6 @@ class DurableRecord(unittest.TestCase):
     def test_unreadable_file_fails_actionably(self):
         with self.assertRaisesRegex(digest_record.DigestRecordError, "missing.md"):
             digest_record.load_record(self.tmp / "missing.md")
-
 
 
 if __name__ == "__main__":

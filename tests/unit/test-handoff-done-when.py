@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
-from pathlib import Path
+import contextlib
 import os
 import sys
 import tempfile
+from pathlib import Path
+from unittest import mock
 
-ROOT = Path(__file__).resolve().parents[2]
-BIN = ROOT / ".claude/skills/harness/bin"
-sys.path.insert(0, str(BIN))
+from unit_support import ROOT, BIN, TESTS  # noqa: F401  (puts bin/ and tests/ on sys.path)
+from check_support import Checks
+import artifact_accessors
 import handoff_done_when
 
-failures = []
-
-
-def check(name, condition, detail=""):
-    print(("PASS" if condition else "FAIL"), name, detail if not condition else "")
-    if not condition:
-        failures.append(name)
-
+C = Checks()
+check = C.check
 
 PLAN_TASK = (
     "tasks:\n"
@@ -30,17 +26,17 @@ PLAN_TASK = (
 )
 
 
+@contextlib.contextmanager
 def fixture():
-    td = tempfile.TemporaryDirectory()
-    root = Path(td.name)
-    feat = root / ".harness/harness/features/FEAT-90-fixture"
-    notes = feat / "notes"
-    notes.mkdir(parents=True)
-    (feat / "plan.yaml").write_text(PLAN_TASK)
-    (feat / "BRIEF.md").write_text("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
-    (notes / "review-fixture.md").write_text("Finding F-02 remains.\n")
-    rel = ".harness/harness/features/FEAT-90-fixture/notes/handoff-build.md"
-    return td, root, rel
+    with tempfile.TemporaryDirectory() as td_name:
+        root = Path(td_name)
+        feat = root / ".harness/harness/features/FEAT-90-fixture"
+        notes = feat / "notes"
+        notes.mkdir(parents=True)
+        (feat / "plan.yaml").write_text(PLAN_TASK)
+        (feat / "BRIEF.md").write_text("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+        (notes / "review-fixture.md").write_text("Finding F-02 remains.\n")
+        yield root, ".harness/harness/features/FEAT-90-fixture/notes/handoff-build.md"
 
 
 def note(body):
@@ -48,51 +44,39 @@ def note(body):
 
 
 def problems(body, resolve=True):
-    td, root, rel = fixture()
-    try:
+    with fixture() as (root, rel):
         return handoff_done_when.problems(rel, note(body), root, resolve)
-    finally:
-        td.cleanup()
 
 
-td, root, rel = fixture()
-try:
+with fixture() as (root, rel):
     missing = handoff_done_when.problems(rel, "## Next\nnext\n", root, True)
     check("missing section", len(missing) == 1 and "## Done when" in missing[0]
           and "templates/HANDOFF.md" in missing[0], repr(missing))
-finally:
-    td.cleanup()
 
 valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
-check("well formed", problems(valid) == [], repr(problems(valid)))
+got = problems(valid)
+check("well formed", got == [], repr(got))
 
 # `plan-task` authority must use load_plan, not merely parse YAML: an incomplete task that
 # happens to carry the pointed id and verify is not a valid authority-bearing plan.
-td, root, rel = fixture()
-try:
+with fixture() as (root, rel):
     feat = root / ".harness/harness/features/FEAT-90-fixture"
     (feat / "plan.yaml").write_text("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
     got = handoff_done_when.problems(
         rel, note("Scope: done\nAuthority: plan-task:T-03.verify"), root, True)
     check("plan authority rejects schema-invalid plan",
           len(got) == 1 and "unresolved" in got[0] and "title" in got[0], repr(got))
-finally:
-    td.cleanup()
 
-for name, malformed_note in [
+for name, malformed_body in [
     ("nested heading cannot truncate validation",
-     note("Scope: done\nAuthority: plan-task:T-03.verify\n"
-          "### hidden\nstray prose\nAuthority: plan-task:T-99.verify")),
+     "Scope: done\nAuthority: plan-task:T-03.verify\n"
+     "### hidden\nstray prose\nAuthority: plan-task:T-99.verify"),
     ("duplicate heading cannot truncate validation",
-     note("Scope: done\nAuthority: plan-task:T-03.verify\n"
-          "## Done when\nScope: hidden\nAuthority: plan-task:T-99.verify")),
+     "Scope: done\nAuthority: plan-task:T-03.verify\n"
+     "## Done when\nScope: hidden\nAuthority: plan-task:T-99.verify"),
 ]:
-    td, root, rel = fixture()
-    try:
-        got = handoff_done_when.problems(rel, malformed_note, root, True)
-        check(name, bool(got), repr(got))
-    finally:
-        td.cleanup()
+    got = problems(malformed_body)
+    check(name, bool(got), repr(got))
 
 shape_cases = [
     ("zero scope", "Authority: plan-task:T-03.verify", "Scope", "0"),
@@ -152,14 +136,14 @@ for value in ("docs:whatever", "check-domain.py:1523", "brief-perspective:SC-04"
                   ("plan-task:", "brief-sc:", "finding:", "approval:", "brief-perspective:")), repr(got))
 
 all_good = "Scope: done\n" + "\n".join(f"Authority: {good}" for _, good, _ in pointers)
-check("four authorities accepted", problems(all_good) == [], repr(problems(all_good)))
+got = problems(all_good)
+check("four authorities accepted", got == [], repr(got))
 one_bad = "Scope: done\n" + "\n".join(
     f"Authority: {bad if index == 2 else good}" for index, (_, good, bad) in enumerate(pointers))
 got = problems(one_bad)
 check("all authorities required", len(got) == 1 and pointers[2][2] in got[0], repr(got))
 
-td, root, rel = fixture()
-try:
+with fixture() as (root, rel):
     feat = root / ".harness/harness/features/FEAT-90-fixture"
     (feat / "bad-nospace.md").write_text("#Approval\n")
     (feat / "bad-seven.md").write_text("####### Approval\n")
@@ -168,16 +152,11 @@ try:
         got = handoff_done_when.problems(
             rel, note(f"Scope: done\nAuthority: {pointer}"), root, True)
         check(f"approval requires real ATX heading {name}", len(got) == 1, repr(got))
-finally:
-    td.cleanup()
 
 # resolve=False still enforces section, shape, and grammar.
-td, root, rel = fixture()
-try:
+with fixture() as (root, rel):
     got = handoff_done_when.problems(rel, "## Next\n", root, False)
     check("missing section without resolution", len(got) == 1 and "## Done when" in got[0], repr(got))
-finally:
-    td.cleanup()
 for name, body, first, second in shape_cases:
     got = problems(body, False)
     check(f"{name} without resolution",
@@ -229,18 +208,18 @@ with tempfile.TemporaryDirectory() as td_name:
 # hand-applied semantic test rather than on this module.
 
 
+@contextlib.contextmanager
 def satisfaction_fixture(task_status, approval_status):
     """A feature whose single task and single approval carry the given states."""
-    td = tempfile.TemporaryDirectory()
-    root = Path(td.name)
-    feat = root / ".harness/harness/features/FEAT-91-satisfaction"
-    (feat / "notes").mkdir(parents=True)
-    (feat / "plan.yaml").write_text(
-        PLAN_TASK + f"    status: {task_status}\n")
-    (feat / "BRIEF.md").write_text(
-        f"# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: {approval_status}\n")
-    rel = ".harness/harness/features/FEAT-91-satisfaction/notes/handoff-build.md"
-    return td, root, rel
+    with tempfile.TemporaryDirectory() as td_name:
+        root = Path(td_name)
+        feat = root / ".harness/harness/features/FEAT-91-satisfaction"
+        (feat / "notes").mkdir(parents=True)
+        (feat / "plan.yaml").write_text(
+            PLAN_TASK + f"    status: {task_status}\n")
+        (feat / "BRIEF.md").write_text(
+            f"# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: {approval_status}\n")
+        yield root, ".harness/harness/features/FEAT-91-satisfaction/notes/handoff-build.md"
 
 
 APPROVAL_POINTER = ("approval:.harness/harness/features/FEAT-91-satisfaction/"
@@ -269,8 +248,7 @@ for _name, _task, _appr, _pointers, _refuse in [
     ("satisfied task plus criterion still binds", "done", "approved",
      ["plan-task:T-03.verify", "brief-sc:SC-04"], False),
 ]:
-    _td, _root, _rel = satisfaction_fixture(_task, _appr)
-    try:
+    with satisfaction_fixture(_task, _appr) as (_root, _rel):
         _body = "Scope: do the thing\n" + "\n".join(
             f"Authority: {_pointer}" for _pointer in _pointers)
         _got = handoff_done_when.problems(_rel, note(_body), _root, True)
@@ -280,66 +258,49 @@ for _name, _task, _appr, _pointers, _refuse in [
                   and "templates/HANDOFF.md" in _got[0], repr(_got))
         else:
             check(f"satisfaction: {_name}", _got == [], repr(_got))
-    finally:
-        _td.cleanup()
 
 # A missing status field is INDETERMINATE, not satisfied — the pre-DEC-182 plans and any
 # hand-written task carry no station, and refusing those would be a false positive.
-_td, _root, _rel = satisfaction_fixture("done", "approved")
-try:
+with satisfaction_fixture("done", "approved") as (_root, _rel):
     _feat = _root / ".harness/harness/features/FEAT-91-satisfaction"
     (_feat / "plan.yaml").write_text(PLAN_TASK)
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
     check("satisfaction: stationless task is indeterminate", _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
 # Both terminal stations satisfy a task authority; rejected must not leave a successor
 # treating an already-terminal task as actionable.
-_td, _root, _rel = satisfaction_fixture("rejected", "pending")
-try:
+with satisfaction_fixture("rejected", "pending") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
     check("satisfaction: rejected task is terminal", len(_got) == 1 and "binds nothing" in _got[0],
           repr(_got))
-finally:
-    _td.cleanup()
 
 # FEAT-61 T-02: the station predicate is strict and RAISES on a status outside the vocabulary;
 # `_satisfied` absorbs that into indeterminate. The dead word `pending` neither satisfies nor
 # refuses, and no traceback escapes — a satisfaction check must never produce a false refusal.
-_td, _root, _rel = satisfaction_fixture("pending", "approved")
-try:
+with satisfaction_fixture("pending", "approved") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
     check("satisfaction: a task status outside the vocabulary is indeterminate, not a refusal",
           _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
 # The check is WRITE-TIME ONLY, exactly like resolution: the persisted-corpus pass must
 # never reopen targets, or every superseded note on disk turns the state gate red as its
 # tasks land.
-_td, _root, _rel = satisfaction_fixture("done", "approved")
-try:
+with satisfaction_fixture("done", "approved") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, False)
     check("satisfaction: silent when resolve is false", _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
 # An unresolved pointer must report ITS OWN error and nothing else — stacking a
 # "binds nothing" line on top would bury the line the author has to fix.
-_td, _root, _rel = satisfaction_fixture("done", "approved")
-try:
+with satisfaction_fixture("done", "approved") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-99.verify"), _root, True)
     check("satisfaction: unresolved wins over vacuity",
           len(_got) == 1 and "unresolved" in _got[0] and "binds nothing" not in _got[0],
           repr(_got))
-finally:
-    _td.cleanup()
 
 # ---------------------------------------------------------------------------
 # FEAT-59 SC-11: `brief-perspective:PATH#<name>` — the handoff's done is a pointer to the
@@ -370,18 +331,19 @@ status: {approval}
 """
 
 
+@contextlib.contextmanager
 def perspective_fixture(task_status="building", approval_status="pending", brief=None):
     """A FEAT-59-era feature: by-perspective BRIEF, one task, one approval."""
-    td = tempfile.TemporaryDirectory()
-    root = Path(td.name)
-    feat = root / ".harness/harness/features/FEAT-92-perspective"
-    (feat / "notes").mkdir(parents=True)
-    (feat / "plan.yaml").write_text(
-        PLAN_TASK + f"    status: {task_status}\n")
-    (feat / "BRIEF.md").write_text(
-        BY_PERSPECTIVE_BRIEF.format(approval=approval_status) if brief is None else brief)
-    rel = ".harness/harness/features/FEAT-92-perspective/notes/handoff-build.md"
-    return td, root, rel
+    with tempfile.TemporaryDirectory() as td_name:
+        root = Path(td_name)
+        feat = root / ".harness/harness/features/FEAT-92-perspective"
+        (feat / "notes").mkdir(parents=True)
+        (feat / "plan.yaml").write_text(
+            PLAN_TASK + f"    status: {task_status}\n")
+        (feat / "BRIEF.md").write_text(
+            BY_PERSPECTIVE_BRIEF.format(approval=approval_status) if brief is None else brief)
+        yield root, ".harness/harness/features/FEAT-92-perspective/notes/handoff-build.md"
+
 
 
 BRIEF_PATH = ".harness/harness/features/FEAT-92-perspective/BRIEF.md"
@@ -408,8 +370,7 @@ for _name, _pointers, _resolve, _needle in [
     ("perspective grammar is checked without resolution",
      ["brief-perspective:nothing"], False, "legal prefixes"),
 ]:
-    _td, _root, _rel = perspective_fixture()
-    try:
+    with perspective_fixture() as (_root, _rel):
         _body = "Scope: do the thing\n" + "\n".join(f"Authority: {p}" for p in _pointers)
         _got = handoff_done_when.problems(_rel, note(_body), _root, _resolve)
         if _needle is None:
@@ -417,13 +378,10 @@ for _name, _pointers, _resolve, _needle in [
         else:
             check(f"perspective: {_name}", len(_got) == 1 and _needle in _got[0]
                   and "templates/HANDOFF.md" in _got[0], repr(_got))
-    finally:
-        _td.cleanup()
 
 # The cited BRIEF exists but is the old shape: the pointer is unresolved, with the reason.
-_td, _root, _rel = perspective_fixture(
-    brief="# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: pending\n")
-try:
+with perspective_fixture(
+        brief="# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: pending\n") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note(f"Scope: do the thing\nAuthority: {PERSPECTIVE}"), _root, True)
     check("perspective: old-shape BRIEF has no perspective block",
@@ -432,82 +390,62 @@ try:
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
     check("perspective: old-shape BRIEF is unaffected", _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
 # A perspective is judged, so a done task plus a perspective still binds — the perspective
 # is never counted as satisfied.
-_td, _root, _rel = perspective_fixture(task_status="done", approval_status="approved")
-try:
+with perspective_fixture(task_status="done", approval_status="approved") as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note(f"Scope: do the thing\nAuthority: plan-task:T-03.verify\nAuthority: {PERSPECTIVE}"),
         _root, True)
     check("perspective: never already satisfied", _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
 # Unresolved wins: a note with a missing task AND no perspective reports the missing task
 # only, so the author fixes one line at a time.
-_td, _root, _rel = perspective_fixture()
-try:
+with perspective_fixture() as (_root, _rel):
     _got = handoff_done_when.problems(
         _rel, note("Scope: do the thing\nAuthority: plan-task:T-99.verify"), _root, True)
     check("perspective: unresolved wins over missing perspective",
           len(_got) == 1 and "unresolved" in _got[0] and "brief-perspective" not in _got[0],
           repr(_got))
-finally:
-    _td.cleanup()
 
 
 # FEAT-64 (SC-03, SC-06): the resolver and satisfaction boundaries are TYPED — a target that
 # cannot be read/parsed/shaped still fails closed or reads indeterminate, but an unrelated
 # programming defect escapes; and plan.yaml is parsed ONCE per note, the loaded document
 # carried from resolution to satisfaction rather than re-read.
-import artifact_accessors  # noqa: E402
-_td, _root, _rel = satisfaction_fixture("done", "approved")
-try:
+
+
+def _escapes(rel, body, root):
+    """True when `problems` lets a RuntimeError out instead of absorbing it."""
+    try:
+        handoff_done_when.problems(rel, body, root, True)
+    except RuntimeError:
+        return True
+    return False
+
+
+def _fleet_error(status):
+    raise artifact_accessors.FleetError("status", status, "fix")
+
+
+with satisfaction_fixture("done", "approved") as (_root, _rel):
     _body = note("Scope: do the thing\nAuthority: plan-task:T-03.verify")
-    _real_load = artifact_accessors.load_plan
-    _loads = []
-    def _counting(path):
-        _loads.append(str(path)); return _real_load(path)
-    artifact_accessors.load_plan = _counting
-    try:
+    with mock.patch.object(artifact_accessors, "load_plan",
+                           wraps=artifact_accessors.load_plan) as _load:
         handoff_done_when.problems(_rel, _body, _root, True)
-    finally:
-        artifact_accessors.load_plan = _real_load
     check("FEAT-64: plan.yaml is parsed once per note across resolution and satisfaction",
-          len(_loads) == 1, repr(_loads))
-    artifact_accessors.load_plan = lambda path: (_ for _ in ()).throw(RuntimeError("unrelated"))
-    try:
-        try:
-            handoff_done_when.problems(_rel, _body, _root, True)
-            _escaped = False
-        except RuntimeError:
-            _escaped = True
-    finally:
-        artifact_accessors.load_plan = _real_load
+          _load.call_count == 1, repr(_load.call_args_list))
+    with mock.patch.object(artifact_accessors, "load_plan", side_effect=RuntimeError("unrelated")):
+        _escaped = _escapes(_rel, _body, _root)
     check("FEAT-64: an unrelated RuntimeError in the plan loader escapes resolution", _escaped)
-    _real_finished = handoff_done_when.factory_config.is_finished
-    handoff_done_when.factory_config.is_finished = lambda s: (_ for _ in ()).throw(RuntimeError("unrelated"))
-    try:
-        try:
-            handoff_done_when.problems(_rel, _body, _root, True)
-            _escaped = False
-        except RuntimeError:
-            _escaped = True
-    finally:
-        handoff_done_when.factory_config.is_finished = _real_finished
+    with mock.patch.object(handoff_done_when.factory_config, "is_finished",
+                           side_effect=RuntimeError("unrelated")):
+        _escaped = _escapes(_rel, _body, _root)
     check("FEAT-64: an unrelated RuntimeError in satisfaction escapes", _escaped)
-    handoff_done_when.factory_config.is_finished = lambda s: (_ for _ in ()).throw(
-        artifact_accessors.FleetError("status", s, "fix"))
-    try:
+    with mock.patch.object(handoff_done_when.factory_config, "is_finished",
+                           side_effect=_fleet_error):
         _got = handoff_done_when.problems(_rel, _body, _root, True)
-    finally:
-        handoff_done_when.factory_config.is_finished = _real_finished
     check("FEAT-64: a FleetError from the station vocabulary is indeterminate, not a refusal",
           _got == [], repr(_got))
-finally:
-    _td.cleanup()
 
-raise SystemExit(1 if failures else 0)
+sys.exit(C.report())

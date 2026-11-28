@@ -8,35 +8,36 @@ things must hold or the index drifts from the rules it points at:
 3. Every leaf lands in at least one seat's section and every cited path exists — an index
    line pointing at a missing leaf is the drift this test exists to catch.
 """
+from unit_support import ROOT, BIN
+
+import importlib.util
 import os
 import subprocess
 import sys
 
-TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
-BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-sys.path.insert(0, BIN_DIR)
+from check_support import Checks
 
-import importlib.util
-
-spec = importlib.util.spec_from_file_location("gen_craft_index", os.path.join(BIN_DIR, "gen-craft-index.py"))
+GEN_PATH = BIN / "gen-craft-index.py"
+spec = importlib.util.spec_from_file_location("gen_craft_index", GEN_PATH)
 gen = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gen)
 
-failures = []
+C = Checks()
+check = C.check
 
 
-def check(name, cond, detail=""):
-    if cond:
-        print(f"ok   {name}")
-    else:
-        print(f"FAIL {name}: {detail}")
-        failures.append(name)
+def refuses(text):
+    """True when parse_frontmatter rejects text with LeafError; any other error propagates."""
+    try:
+        gen.parse_frontmatter("x.md", text)
+    except gen.LeafError:
+        return True
+    return False
 
 
 def main():
     os.chdir(ROOT)
-    proc = subprocess.run([sys.executable, os.path.join(BIN_DIR, "gen-craft-index.py"), "--check"],
+    proc = subprocess.run([sys.executable, str(GEN_PATH), "--check"],
                           capture_output=True, text=True)
     check("committed_index_matches_fresh_render", proc.returncode == 0, proc.stderr.strip())
 
@@ -44,7 +45,7 @@ def main():
         leaves = gen.load_leaves()
     except gen.LeafError as err:
         check("every_leaf_parses", False, str(err))
-        return 1
+        return C.report()
     check("every_leaf_parses", True)
     check("at_least_ten_leaves", len(leaves) >= 10, f"only {len(leaves)}")
 
@@ -54,26 +55,13 @@ def main():
         check(f"{leaf['slug']}_indexed", f"`references/{leaf['slug']}.md`" in block, "absent from index")
         check(f"{leaf['slug']}_exists", os.path.isfile(path), path)
 
-    bad = {"name": "x", "title": "X", "description": '"Never"', "seats": "[harness-qa]"}
-    text = "---\n" + "\n".join(f"{k}: {v}" for k, v in bad.items()) + "\n---\nbody\n"
-    try:
-        gen.parse_frontmatter("x.md", text)
-        check("description_must_start_with_apply", False, "accepted a non-Apply description")
-    except gen.LeafError:
-        check("description_must_start_with_apply", True)
+    text = '---\nname: x\ntitle: X\ndescription: "Never"\nseats: [harness-qa]\n---\nbody\n'
+    check("description_must_start_with_apply", refuses(text), "accepted a non-Apply description")
 
     text = '---\nname: x\ntitle: X\ndescription: "Apply when"\nseats: [harness-qa, harness-frontend-dev]\n---\nbody\n'
-    try:
-        gen.parse_frontmatter("x.md", text)
-        check("seats_must_be_canonical_order", False, "accepted [harness-qa, harness-frontend-dev]")
-    except gen.LeafError:
-        check("seats_must_be_canonical_order", True)
+    check("seats_must_be_canonical_order", refuses(text), "accepted [harness-qa, harness-frontend-dev]")
 
-    if failures:
-        print(f"\n{len(failures)} failure(s): {failures}")
-        return 1
-    print("\nall checks passed")
-    return 0
+    return C.report()
 
 
 if __name__ == "__main__":

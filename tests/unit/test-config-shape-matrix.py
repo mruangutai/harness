@@ -14,27 +14,28 @@ dropping the `when` clause or its provenance entry, or a `signed` reference
 that points at a decision that was never actually written.
 """
 import json
-import os
 import sys
 
-HERE = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-PROJECT_CONFIG = os.path.join(ROOT, ".harness", "harness.json")
-TEMPLATE_CONFIG = os.path.join(ROOT, ".claude", "skills", "harness", "templates", "harness.json")
-DECISIONS_MD = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS.md")
-VERIFICATION_SKILL = os.path.join(
-    ROOT, ".claude", "skills", "harness-verification-rules", "SKILL.md")
+from unit_support import ROOT
+from check_support import Checks
 
-RESULTS = []
+PROJECT_CONFIG = ROOT / ".harness" / "harness.json"
+TEMPLATE_CONFIG = ROOT / ".claude" / "skills" / "harness" / "templates" / "harness.json"
+DECISIONS_MD = ROOT / ".harness" / "harness" / "docs" / "DECISIONS.md"
+VERIFICATION_SKILL = ROOT / ".claude" / "skills" / "harness-verification-rules" / "SKILL.md"
 
-
-def check(name, ok, detail=""):
-    RESULTS.append((name, ok, detail))
+C = Checks()
+check = C.check
 
 
 def _load(path):
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _decision_body(text, heading, n):
+    """The n characters after `heading`, or None when the heading is absent."""
+    i = text.find(heading)
+    return None if i < 0 else text[i + len(heading):i + len(heading) + n]
 
 
 def _config_has_shape_predicate(doc, label):
@@ -63,14 +64,10 @@ def _config_has_bugfix_predicates(doc, label):
           when == expected, f"when={when!r}")
 
 
-def case_project_config_binds_shape_to_integration():
-    doc = _load(PROJECT_CONFIG)
-    _config_has_shape_predicate(doc, "project harness.json")
-
+def case_project_config_shape_provenance(doc):
     provenance = doc.get("_matrix_provenance", {}).get("config")
-    check("project harness.json: _matrix_provenance.config exists",
-          isinstance(provenance, dict), f"{provenance!r}")
-    if isinstance(provenance, dict):
+    if check("project harness.json: _matrix_provenance.config exists",
+             isinstance(provenance, dict), f"{provenance!r}"):
         check("project harness.json: _matrix_provenance.config.added "
               "names integration",
               provenance.get("added") == ["integration"], f"{provenance!r}")
@@ -78,15 +75,10 @@ def case_project_config_binds_shape_to_integration():
               provenance.get("signed") == "DEC-212", f"{provenance!r}")
 
 
-
-def case_project_config_routes_bugfix_kinds_by_surface():
-    doc = _load(PROJECT_CONFIG)
-    _config_has_bugfix_predicates(doc, "project harness.json")
-
+def case_project_config_bugfix_provenance(doc):
     provenance = doc.get("_matrix_provenance", {}).get("bugfix")
-    check("project harness.json: _matrix_provenance.bugfix exists",
-          isinstance(provenance, dict), f"{provenance!r}")
-    if isinstance(provenance, dict):
+    if check("project harness.json: _matrix_provenance.bugfix exists",
+             isinstance(provenance, dict), f"{provenance!r}"):
         check("project harness.json: bugfix provenance records moved and added kinds",
               provenance.get("removed") == ["unit"]
               and provenance.get("added") == ["unit", "integration"],
@@ -94,33 +86,32 @@ def case_project_config_routes_bugfix_kinds_by_surface():
         check("project harness.json: bugfix provenance is signed DEC-217",
               provenance.get("signed") == "DEC-217", f"{provenance!r}")
 
-def case_template_config_binds_shape_to_integration():
-    doc = _load(TEMPLATE_CONFIG)
-    _config_has_shape_predicate(doc, "templates/harness.json")
+
+def case_configs_bind_shape_and_route_bugfix():
+    project = _load(PROJECT_CONFIG)
+    _config_has_shape_predicate(project, "project harness.json")
+    case_project_config_shape_provenance(project)
+    _config_has_bugfix_predicates(project, "project harness.json")
+    case_project_config_bugfix_provenance(project)
+
+    template = _load(TEMPLATE_CONFIG)
+    _config_has_shape_predicate(template, "templates/harness.json")
+    _config_has_bugfix_predicates(template, "templates/harness.json")
 
 
-def case_template_config_routes_bugfix_kinds_by_surface():
-    _config_has_bugfix_predicates(_load(TEMPLATE_CONFIG), "templates/harness.json")
-
-
-def case_decision_212_exists_and_is_named_correctly():
-    with open(DECISIONS_MD, encoding="utf-8") as f:
-        text = f.read()
+def case_decision_212_exists_and_is_named_correctly(text):
+    body = _decision_body(text, "## DEC-212", 200)
     check("DECISIONS.md declares ## DEC-212",
-          "## DEC-212" in text, "no DEC-212 heading found")
+          body is not None, "no DEC-212 heading found")
     check("DEC-212's heading names touches_config_shape's purpose",
-          "config-shape change" in text.split("## DEC-212", 1)[-1][:200],
+          "config-shape change" in (body or ""),
           "DEC-212 heading text does not describe a config-shape change")
 
 
-def case_decision_217_exists_and_defines_bugfix_predicates():
-    with open(DECISIONS_MD, encoding="utf-8") as f:
-        text = f.read()
-    decision = text.split("## DEC-217", 1)
-    check("DECISIONS.md declares ## DEC-217",
-          len(decision) == 2, "no DEC-217 heading found")
-    if len(decision) == 2:
-        body = decision[-1][:2500]
+def case_decision_217_exists_and_defines_bugfix_predicates(text):
+    body = _decision_body(text, "## DEC-217", 2500)
+    if check("DECISIONS.md declares ## DEC-217",
+             body is not None, "no DEC-217 heading found"):
         check("DEC-217 defines both bugfix predicates",
               "touches_runtime_code" in body
               and "fix_confined_to_tests_and_contract_docs" in body,
@@ -128,31 +119,19 @@ def case_decision_217_exists_and_defines_bugfix_predicates():
 
 
 def case_skills_teach_the_new_predicate():
-    with open(VERIFICATION_SKILL, encoding="utf-8") as f:
-        verification = f.read()
+    verification = VERIFICATION_SKILL.read_text(encoding="utf-8")
     check("harness-verification-rules/SKILL.md mentions touches_config_shape",
           "touches_config_shape" in verification,
           "predicate name absent from skill prose")
 
 
 def main():
-    case_project_config_binds_shape_to_integration()
-    case_project_config_routes_bugfix_kinds_by_surface()
-    case_template_config_routes_bugfix_kinds_by_surface()
-    case_template_config_binds_shape_to_integration()
-    case_decision_212_exists_and_is_named_correctly()
-    case_decision_217_exists_and_defines_bugfix_predicates()
+    case_configs_bind_shape_and_route_bugfix()
+    decisions = DECISIONS_MD.read_text(encoding="utf-8")
+    case_decision_212_exists_and_is_named_correctly(decisions)
+    case_decision_217_exists_and_defines_bugfix_predicates(decisions)
     case_skills_teach_the_new_predicate()
-
-    fails = 0
-    for name, ok, detail in RESULTS:
-        if ok:
-            print(f"ok    {name}")
-        else:
-            fails += 1
-            print(f"FAIL  {name}\n      | {detail}")
-    print(f"\n{len(RESULTS) - fails}/{len(RESULTS)} cases passed.")
-    return 1 if fails else 0
+    return C.report()
 
 
 if __name__ == "__main__":
