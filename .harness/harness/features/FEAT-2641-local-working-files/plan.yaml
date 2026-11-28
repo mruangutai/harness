@@ -868,11 +868,12 @@ tasks:
     - .omp/agents/harness-validator-lead.md
     - README.md
     - .harness/harness/docs/SPEC.md
+    - .claude/skills/harness-verification-rules/SKILL.md
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"
-      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md README.md .harness/harness/docs/SPEC.md"
-      if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts|Committed with the run|ordinary tracked files|committed with the feature|\*\*committed\*\* with the feature" $F; then exit 1; fi
+      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md README.md .harness/harness/docs/SPEC.md .claude/skills/harness-verification-rules/SKILL.md"
+      if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts|Committed with the run|ordinary tracked files|committed with the feature|\*\*committed\*\* with the feature|receipts for main to commit" $F; then exit 1; fi
       grep -q "feature-record.py project-note" .claude/skills/harness/SKILL.md
       grep -q "gh-sync.py skip-distill" .omp/commands/harness.md
       grep -q "feature-worktree.py clean" .claude/skills/harness/references/distillation.md
@@ -1090,6 +1091,7 @@ tasks:
     - tests/integration/test-merge-gitignore.py
     - tests/integration/test-feature-worktree.py
     - tests/integration/test-check-domain-grant.py
+    - tests/integration/test-harness-yaml.py
     verify: |
       set -e
       cd "$(git rev-parse --show-toplevel)"

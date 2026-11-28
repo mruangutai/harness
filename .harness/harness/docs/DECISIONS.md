@@ -2500,7 +2500,7 @@ persona `teams/plan.yaml` declares for that step, a reader member (`scope`, `sho
 `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team digest attributes to it
 matches exactly one row of that feature's `plan.yaml` `panel.findings` by recomputed PF id,
 carrying the same reader string; every on-disk row attributed to it is `disposition: resolved`
-or, under the practicality rule (DEC-262), open with both the row and the team digest's current
+or, under the practicality rule (DEC-260), open with both the row and the team digest's current
 finding with its id discounted at a non-gating severity; and the team's `must_fix` is empty. An
 open row that is not so discounted, a discounted row whose current finding is omitted or not
 discounted, a non-empty team `must_fix`, an absent, mismatched, unattributable or ambiguous
@@ -6806,7 +6806,7 @@ will not rate, and the lead TRANSCRIBES an absence rather than inventing a value
 **Shape versus content is the line the lead may not cross.** The lead owns SHAPE — schema
 conformance, finding identity, de-duplication, ranking, and roll-up. The lead never owns CONTENT —
 whether a defect exists at all — and never raises the severity the reader judged; it may lower a
-finding to at most `med`, or drop it, only when the practicality rule (DEC-262) discounts it, with
+finding to at most `med`, or drop it, only when the practicality rule (DEC-260) discounts it, with
 a one-line reason beside the finding. A lead that supplies a severity
 the reader did not emit has manufactured evidence and put its own judgement behind the reader's name,
 which is the one failure an unvalidated return makes easy and invisible.
@@ -8894,13 +8894,14 @@ the operator) is unmeasured.
 operator on 2026-11-28. Executed main-session-direct (DEC-174). Amends DEC-206 and DEC-123. Refs:
 DEC-31, DEC-123, DEC-174, DEC-206, DEC-228, DEC-230, DEC-237.
 
-## DEC-261 — Verification output is scratch; only its summary is committed
+## DEC-261 — Verification output is scratch; only a local summary is kept
 
 **Chose:** raw verification output is scratch: runner logs, measurement stores, divergence
 ledgers, generated receipts, receipt scripts and captured stdout/stderr. It is written under the
 feature's git-ignored `scratch/` (`.harness/<segment>/features/<id>/scratch/`), never committed,
-and removed with the feature's other local working files (DEC-262). A feature commits one short
-summary per check: what ran, at which commit, the verdict, the counts and any operator rulings.
+and removed with the feature's other local working files (DEC-262). A feature keeps one short
+summary per check in its local notes or receipts, also never committed (DEC-262): what ran, at
+which commit, the verdict, the counts and any operator rulings.
 PR CI is the independent proof that tests pass at merge. `runs/` records and QA manifests
 (`runs/<id>/qa/manifest-*.json`) are local working files under DEC-262, never committed.
 

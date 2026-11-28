@@ -78,7 +78,8 @@ route around it. The steps and who commits what:
 run is the installed control-plane one, not the candidate at the pin. Record the host launcher's
 path, version and hash beside the candidate's source pin, prove candidate behavior only with
 tests run from `review_sha`, and never claim the installed hook behaved as the candidate does.
-You still produce candidate receipts for main to commit; the host is not redeployed mid-run.
+Your candidate receipts stay in the local run record, never committed (DEC-262); the host is not
+redeployed mid-run.
 
 ## Resolve each kind to exactly one of five states
 

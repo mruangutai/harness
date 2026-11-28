@@ -166,6 +166,27 @@
       "kind": "amendment",
       "decision": "T-12.intent",
       "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T15:27:13.649253+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "OQ-SC14 operator ruling (notes/answers-fix-c1.md): .claude/skills/harness-verification-rules/SKILL.md joins T-07 so its 'candidate receipts for main to commit' line aligns with DEC-262."
+    },
+    {
+      "at": "2026-11-28T15:27:15.558397+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "OQ-SC14 operator ruling (notes/answers-fix-c1.md): T-07 grep widened to the verification-rules skill and its 'receipts for main to commit' phrase."
+    },
+    {
+      "at": "2026-11-28T15:27:17.400580+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-12.files",
+      "reason": "OQ-YAML operator ruling (notes/answers-fix-c1.md): tests/integration/test-harness-yaml.py joins T-12; its COLLECT_FIXTURE gains the scratch rows T-12's grants add."
     }
   ],
   "mission": "plan",
