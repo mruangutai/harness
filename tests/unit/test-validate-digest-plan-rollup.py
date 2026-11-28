@@ -139,8 +139,9 @@ def other_lead_digest(lead, feature, run):
             "artifact": str(feature / "runs" / run / "digest.md")}
 
 
-def errors_of(persona, obj, feature):
-    return vd.validate(persona, obj, feature_dir=str(feature))
+def errors_of(persona, obj, feature, live=None):
+    """validate()'s errors; `live` is the hook's live dispatch mission, None offline."""
+    return vd.validate(persona, obj, feature_dir=str(feature), mission=live)
 
 
 def joined(errors):
@@ -176,22 +177,24 @@ F1 = finding("first fixture finding")
 F2 = finding("second fixture finding")
 
 
-def accepted(verdict="PASS", findings=(F1, F2), disk=None, **build_kw):
+def accepted(verdict="PASS", findings=(F1, F2), disk=None, member_list=None, live=None,
+             **build_kw):
     """A case expecting no errors at all."""
     def body(root):
         feature = build(root, [row(f) for f in findings] if disk is None else disk, **build_kw)
-        errors = errors_of(PRODUCT, product_digest(feature, verdict, findings), feature)
+        errors = errors_of(PRODUCT, product_digest(feature, verdict, findings,
+                                                   member_list=member_list), feature, live)
         return not errors, joined(errors)
     return in_fixture(body)
 
 
 def denied(reason=None, naming=None, findings=(F1, F2), disk=None, member_list=None,
-           team="plan", alternatives=(), **build_kw):
+           team="plan", alternatives=(), live=None, **build_kw):
     """A case expecting the worst-member refusal and, with `reason`, the not-applied text."""
     def body(root):
         feature = build(root, [row(f) for f in findings] if disk is None else disk, **build_kw)
         errors = errors_of(PRODUCT, product_digest(feature, "PASS", findings, team, member_list),
-                           feature)
+                           feature, live)
         ok = worst_error(errors, naming)
         if reason is not None:
             ok = ok and any(not_applied(errors, text) for text in (reason, *alternatives))
@@ -204,45 +207,54 @@ def relief_with_reader(reader):
     return accepted(findings=items)
 
 
-@in_fixture
-def case_producer_witness(root):
-    feature = build(root, with_panel=False)
-    plan = feature / "plan.yaml"
-    items = (finding("first fixture finding", "code-reviewer"),
-             finding("second fixture finding", "code-reviewer"))
+WITNESS_FINDINGS = (finding("first fixture finding", "code-reviewer"),
+                    finding("second fixture finding", "code-reviewer"))
+
+
+def write_fan_in(feature):
+    """The lead's reader fan-in, as panel-c1.md, carrying the two witness findings."""
     fan_in = {"DIGEST": {
-        "readers": [{"reader": "scope", "status": "ran", "persona": SCOPE_READER,
-                     "reason": "fixture"},
-                    {"reader": "should-not-exist", "status": "ran", "persona": "fable-advisor",
-                     "reason": "fixture"},
-                    {"reader": "design", "status": "ran", "persona": "harness-ui-reviewer",
-                     "reason": "fixture"}],
+        "readers": [{"reader": step, "status": "ran", "persona": persona, "reason": "fixture"}
+                    for step, persona in (("scope", SCOPE_READER),
+                                          ("should-not-exist", "fable-advisor"),
+                                          ("design", "harness-ui-reviewer"))],
         "findings": [{key: item[key] for key in ("reader", "severity", "kind", "summary")}
-                     for item in items]}}
+                     for item in WITNESS_FINDINGS]}}
     panel_md = feature / "runs" / RUN / "panel-c1.md"
     panel_md.write_text("# Plan panel fan-in, fixture\n\n```yaml\n"
                         + yaml.safe_dump(fan_in, sort_keys=False) + "```\n")
+    return panel_md
+
+
+def plan_merge(root, stdin_text, *argv):
     env = dict(os.environ, HARNESS_PROJECT_DIR=str(root))
     env.pop("HARNESS_AGENT_TYPE", None)
+    return subprocess.run([sys.executable, str(BIN / "plan-merge.py"), *argv],
+                          input=stdin_text, cwd=root, env=env, capture_output=True,
+                          text=True, timeout=60)
 
-    def plan_merge(stdin_text, *argv):
-        return subprocess.run([sys.executable, str(BIN / "plan-merge.py"), *argv],
-                              input=stdin_text, cwd=root, env=env, capture_output=True,
-                              text=True, timeout=60)
 
-    recorded = plan_merge("", "record-panel", "--file", str(plan), "--digest", str(panel_md),
-                          "--cycle", "1")
-    if recorded.returncode != 0:
-        return False, f"record-panel exit={recorded.returncode} {recorded.stderr.strip()}"
+def resolved_panel(plan):
     panel = yaml.safe_load(plan.read_text())["panel"]
     for item in panel["findings"]:
         item["disposition"] = "resolved"
         item["resolved_by"] = "T-01"
-    resolved = plan_merge(yaml.safe_dump(panel, sort_keys=False), "set-panel", "--file",
-                          str(plan), "--value-file", "/dev/stdin")
+    return yaml.safe_dump(panel, sort_keys=False)
+
+
+@in_fixture
+def case_producer_witness(root):
+    feature = build(root, with_panel=False)
+    plan = feature / "plan.yaml"
+    recorded = plan_merge(root, "", "record-panel", "--file", str(plan), "--digest",
+                          str(write_fan_in(feature)), "--cycle", "1")
+    if recorded.returncode != 0:
+        return False, f"record-panel exit={recorded.returncode} {recorded.stderr.strip()}"
+    resolved = plan_merge(root, resolved_panel(plan), "set-panel", "--file", str(plan),
+                          "--value-file", "/dev/stdin")
     if resolved.returncode != 0:
         return False, f"set-panel exit={resolved.returncode} {resolved.stderr.strip()}"
-    errors = errors_of(PRODUCT, product_digest(feature, "PASS", items), feature)
+    errors = errors_of(PRODUCT, product_digest(feature, "PASS", WITNESS_FINDINGS), feature)
     return not errors, joined(errors)
 
 
@@ -258,13 +270,47 @@ def case_apply_prompt_resolves():
     return ok, f"verb positions {spots}, missing {missing}"
 
 
-def other_lead(lead, run):
+def other_lead(lead, run, member_list=None, team="build"):
     @in_fixture
     def body(root):
         feature = build(root, [row(F1), row(F2)])
-        errors = errors_of(lead, other_lead_digest(lead, feature, run), feature)
+        obj = other_lead_digest(lead, feature, run)
+        if member_list is not None:
+            obj["DIGEST"]["members"] = member_list
+            obj["DIGEST"]["steps_run"] = len(member_list)
+        obj["DIGEST"]["team"] = team
+        errors = errors_of(lead, obj, feature)
         return worst_error(errors), joined(errors)
     return body
+
+
+def case_reader_personas_match_team_file():
+    team = yaml.safe_load((ROOT / ".claude/skills/harness/teams/plan.yaml").read_text())
+    declared = {s["id"]: s.get("persona") for s in team["steps"]
+                if s.get("id") in vd.PLAN_READER_STEPS}
+    return declared == vd.PLAN_READER_PERSONAS, f"team file {declared!r}"
+
+
+def without_step(step):
+    return [m for m in members() if m["step"] != step]
+
+
+def wrong_scope_persona():
+    """The scope slot reported under a persona the team file does not declare for it."""
+    member_list = members()
+    next(m for m in member_list if m["step"] == "scope")["persona"] = "harness-security-reviewer"
+    return member_list
+
+
+SLOT_FINDINGS = (finding("first fixture finding", "scope"),
+                 finding("second fixture finding", "scope"))
+
+
+def skipped_advisor():
+    member_list = without_step("should-not-exist")
+    member_list.insert(2, {"step": "should-not-exist", "persona": "fable-advisor",
+                           "status": "skipped", "reason": "fixture: the persona did not resolve"})
+    return member_list
 
 
 @in_fixture
@@ -279,57 +325,97 @@ def case_duplicate_step(root):
     return ok, joined(errors)
 
 
-def main():
-    run_case("bug2582-control-fail-verdict-valid", accepted(verdict="FAIL"))
-    run_case("bug2582-relief-resolved", accepted())
-    run_case("bug2582-relief-reader-code-reviewer", relief_with_reader("code-reviewer"))
-    run_case("bug2582-relief-reader-slot", relief_with_reader("scope"))
-    run_case("bug2582-producer-witness", case_producer_witness)
-    run_case("bug2582-apply-prompt-resolves", case_apply_prompt_resolves)
+def relief_cases():
+    return [
+        ("bug2582-control-fail-verdict-valid", accepted(verdict="FAIL")),
+        ("bug2582-relief-resolved", accepted()),
+        ("bug2582-relief-reader-code-reviewer", relief_with_reader("code-reviewer")),
+        ("bug2582-relief-reader-slot", relief_with_reader("scope")),
+        ("bug2582-relief-dispatch-mission-plan", accepted(live="plan")),
+        ("bug2582-relief-skipped-advisor", accepted(member_list=skipped_advisor())),
+        ("bug2582-producer-witness", case_producer_witness),
+        ("bug2582-apply-prompt-resolves", case_apply_prompt_resolves),
+        ("bug2582-reader-personas-match-team-file", case_reader_personas_match_team_file),
+    ]
 
-    run_case("bug2582-deny-open-on-disk",
-             denied("is not resolved", disk=[row(F1), row(F2, "open")]))
-    run_case("bug2582-deny-historical-open",
-             denied("is not resolved",
-                    disk=[row(F1), row(F2), row(finding("an earlier fixture finding"), "open")]))
-    run_case("bug2582-deny-absent-from-plan",
-             denied("absent from plan.yaml panel.findings", disk=[row(F1)]))
-    run_case("bug2582-deny-mismatched-row",
-             denied("has no matching plan.yaml panel row",
-                    disk=[row(F1), row(F2, reader="fable-advisor")]))
-    run_case("bug2582-deny-folded-disposition",
-             denied("panel.findings malformed", alternatives=("plan.yaml missing or unloadable",),
-                    disk=[row(F1), row(F2, disposition="Resolved")]))
+
+def disk_denials():
     malformed = row(F2)
     del malformed["summary"]
-    run_case("bug2582-deny-malformed-row",
-             denied("panel.findings malformed", alternatives=("plan.yaml missing or unloadable",),
-                    disk=[row(F1), malformed]))
-    run_case("bug2582-deny-no-findings",
-             denied("no findings attributed to scope", findings=(), disk=[]))
-    run_case("bug2582-deny-unattributable",
-             denied("matches no member or more than one",
-                    findings=(F1, F2, finding("a stray fixture finding", "someone-else"))))
-    run_case("bug2582-deny-ambiguous",
-             denied("matches no member or more than one",
-                    disk=[row(F1), row(F2), row(finding("a pm fixture finding", "harness-pm"))]))
-    run_case("bug2582-deny-duplicate-step", case_duplicate_step)
-    run_case("bug2582-deny-no-plan", denied("plan.yaml missing or unloadable", with_plan=False))
-    run_case("bug2582-deny-unloadable-plan",
-             denied("plan.yaml missing or unloadable",
-                    plan_text=f"schema: plan/1\nfeature: {FEATURE}\nstatus: plan\ntasks: []\n"))
-    run_case("bug2582-deny-mission-patch", denied("mission is not plan", mission="patch"))
-    run_case("bug2582-deny-team-build", denied(team="build"))
-    for step in ("draft", "apply", "goalcheck"):
-        run_case(f"bug2582-deny-nonreader-{step}",
-                 denied(member_list=members(scope="PASS", **{step: "FAIL"})))
-    for verdict in ("ESCALATE", "BLOCKED"):
-        run_case(f"bug2582-deny-{verdict.lower()}",
-                 denied(naming=verdict, member_list=members(scope=verdict)))
-    run_case("bug2582-other-lead-eng",
-             other_lead("harness-eng-lead", "2026-11-27-02-build-engineering"))
-    run_case("bug2582-other-lead-validator",
-             other_lead("harness-validator-lead", "2026-11-27-02-validate-validator"))
+    either = ("plan.yaml missing or unloadable",)
+    return [
+        ("bug2582-deny-open-on-disk", denied("is not resolved", disk=[row(F1), row(F2, "open")])),
+        ("bug2582-deny-historical-open",
+         denied("is not resolved",
+                disk=[row(F1), row(F2), row(finding("an earlier fixture finding"), "open")])),
+        ("bug2582-deny-absent-from-plan",
+         denied("absent from plan.yaml panel.findings", disk=[row(F1)])),
+        ("bug2582-deny-mismatched-row",
+         denied("has no matching plan.yaml panel row",
+                disk=[row(F1), row(F2, reader="fable-advisor")])),
+        ("bug2582-deny-folded-disposition",
+         denied("panel.findings malformed", alternatives=either,
+                disk=[row(F1), row(F2, disposition="Resolved")])),
+        ("bug2582-deny-malformed-row",
+         denied("panel.findings malformed", alternatives=either, disk=[row(F1), malformed])),
+        ("bug2582-deny-no-plan", denied("plan.yaml missing or unloadable", with_plan=False)),
+        ("bug2582-deny-unloadable-plan",
+         denied("plan.yaml missing or unloadable",
+                plan_text=f"schema: plan/1\nfeature: {FEATURE}\nstatus: plan\ntasks: []\n")),
+        ("bug2582-deny-mission-patch", denied("mission is not plan", mission="patch")),
+    ]
+
+
+def attribution_denials():
+    return [
+        ("bug2582-deny-no-findings",
+         denied("no findings attributed to scope", findings=(), disk=[])),
+        ("bug2582-deny-unattributable",
+         denied("matches no member or more than one",
+                findings=(F1, F2, finding("a stray fixture finding", "someone-else")))),
+        ("bug2582-deny-ambiguous",
+         denied("matches no member or more than one",
+                disk=[row(F1), row(F2), row(finding("a pm fixture finding", "harness-pm"))])),
+    ]
+
+
+def roster_denials():
+    return [
+        ("bug2582-deny-duplicate-step", case_duplicate_step),
+        ("bug2582-deny-missing-slot",
+         denied("reader step design missing", member_list=without_step("design"))),
+        ("bug2582-deny-persona-swap",
+         denied("is not the team's", findings=SLOT_FINDINGS, member_list=wrong_scope_persona())),
+        ("bug2582-deny-dispatch-mission-patch",
+         denied("dispatch mission is not plan", live="patch")),
+    ]
+
+
+def rank_denials():
+    return ([("bug2582-deny-team-build", denied(team="build"))]
+            + [(f"bug2582-deny-nonreader-{step}",
+                denied(member_list=members(scope="PASS", **{step: "FAIL"})))
+               for step in ("draft", "apply", "goalcheck")]
+            + [(f"bug2582-deny-{verdict.lower()}",
+                denied(naming=verdict, member_list=members(scope=verdict)))
+               for verdict in ("ESCALATE", "BLOCKED")])
+
+
+def other_lead_cases():
+    return [
+        ("bug2582-other-lead-eng", other_lead("harness-eng-lead", "2026-11-27-02-build-engineering")),
+        ("bug2582-other-lead-validator",
+         other_lead("harness-validator-lead", "2026-11-27-02-validate-validator")),
+        ("bug2582-guard-eng-lead-plan-steps",
+         other_lead("harness-eng-lead", "2026-11-27-02-build-engineering",
+                    member_list=members(), team="plan")),
+    ]
+
+
+def main():
+    for name, body in (relief_cases() + disk_denials() + attribution_denials()
+                       + roster_denials() + rank_denials() + other_lead_cases()):
+        run_case(name, body)
     sys.exit(1 if failures else 0)
 
 

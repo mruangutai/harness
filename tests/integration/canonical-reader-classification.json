@@ -2126,6 +2126,32 @@
       "task": "none"
     },
     {
+      "artifact": "feature.json",
+      "category": "load_feature_json",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_carveout_plan::load_feature_json#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_feature_json",
+      "symbol": "_carveout_plan",
+      "task": "none"
+    },
+    {
+      "artifact": "plan.yaml",
+      "category": "load_plan",
+      "dec174_category": "validator",
+      "disposition": "canonical",
+      "execution_route": "main-session-direct",
+      "file": ".claude/skills/harness/bin/validate-digest.py",
+      "id": ".claude/skills/harness/bin/validate-digest.py::_carveout_plan::load_plan#1",
+      "reason": "",
+      "remedy": "artifact_accessors.load_plan",
+      "symbol": "_carveout_plan",
+      "task": "none"
+    },
+    {
       "artifact": "harness.json",
       "category": "json_file",
       "dec174_category": "none",

@@ -2491,14 +2491,16 @@ masked `FAIL` ships.
 `validate-digest.py` computes the roll-up and rejects a return that reports better than its worst
 member, with one exception, the plan-team reader carve-out (BUG-2582). In a
 `harness-product-lead` digest with `team: plan`, for a feature whose `feature.json` records
-`mission: plan` and carrying exactly one member entry per reader step, a reader member (`scope`,
-`should-not-exist` or `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team
-digest attributes to it matches exactly one row of that feature's `plan.yaml` `panel.findings` by
-recomputed PF id, carrying the same reader string and `disposition: resolved`, and every other
-on-disk row attributed to it is `resolved`. An open, absent, mismatched, unattributable or
-ambiguous finding, a malformed panel row, a duplicated reader step, an unloadable plan, `ESCALATE`
-or `BLOCKED`, and every other team or mission keep worst-wins. Reporting **worse** stays legal: a
-lead may know something its members could not see.
+`mission: plan`, under a live dispatch whose mission is `plan` (offline, `feature.json` decides
+alone), and carrying exactly one member entry per reader step (a skipped one counts) with the
+persona `teams/plan.yaml` declares for that step, a reader member (`scope`, `should-not-exist` or
+`design`) at `verdict: FAIL` ranks as `PASS` when every finding the team digest attributes to it
+matches exactly one row of that feature's `plan.yaml` `panel.findings` by recomputed PF id,
+carrying the same reader string and `disposition: resolved`, and every other on-disk row
+attributed to it is `resolved`. An open, absent, mismatched, unattributable or ambiguous finding, a
+malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan dispatch, an
+unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep worst-wins.
+Reporting **worse** stays legal: a lead may know something its members could not see.
 Every member that ran therefore needs its own `verdict:`. Only the optional external
 `fable-advisor` may instead record `status: skipped`, its persona, and the host reason; a skip
 makes no claim about unperformed work and is excluded from worst-wins. At least one member must

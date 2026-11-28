@@ -20,6 +20,21 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T02:13:26+00:00"
+    },
+    {
+      "id": "2026-11-27-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T02:33:50+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-02-validate-validator/digest.md",
+        "sha256": "5c5e2f8de1bbd6b6d228409943059af31648b9c1c6e07395fa9a6f06cc9483a6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T02:53:46+00:00"
     }
   ],
   "judgements": [
@@ -29,6 +44,20 @@
       "kind": "mission",
       "decision": "plan",
       "reason": "changes the plan loader/apply route, a check-state remedy and validate-digest's roll-up: enforcement surfaces (grilling 2026-11-27)"
+    },
+    {
+      "at": "2026-11-28T02:33:50+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup/.harness/harness/features/BUG-2582-plan-station-and-rollup/notes/answers-2026-11-27-signoff.md",
+      "reason": "run 01's FAIL is the DEC-123 forced roll-up over reader findings all resolved in plan.yaml (defect 2 itself); operator signed the plan accepting pm's resolution (OQ-1a)"
+    },
+    {
+      "at": "2026-11-28T03:00:06.438393+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "validate run 02 MF-3 (operator ruling notes/answers-2026-11-27-validate-c1.md): the canonical-reader inventory must register _carveout_plan's two reader call sites"
     }
   ],
   "mission": "plan",

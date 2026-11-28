@@ -1980,7 +1980,8 @@ plan-team reader carve-out (DEC-123) is the one exception: in a feature with mis
 `harness-product-lead` `team: plan` digest may rank a reader member's FAIL as PASS only when every
 finding attributed to that reader is recorded in the feature's `plan.yaml` `panel.findings` with
 `disposition: resolved`, checked on disk; the check fails closed, keeping worst-wins, on any open,
-absent, mismatched or unattributable finding, a duplicated reader step or an unloadable plan.
+absent, mismatched or unattributable finding, a missing, duplicated or mislabelled reader step, a
+non-plan dispatch or an unloadable plan.
 
 `adequacy_notes` qualifies a PASS. It neither gates like `must_fix` nor reaches the user like
 `open_questions`; it prevents a green verdict from being read more broadly than the work performed.

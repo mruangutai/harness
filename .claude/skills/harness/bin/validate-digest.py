@@ -1574,7 +1574,7 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
     err = [error for field in _GATED if field in seen
            for error in _gate_field_errors(field, seen[field], seen, family, mission, passing,
                                            qa)]
-    err += _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa)
+    err += _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa, mission)
     if canonical == "harness-code-reviewer":
         err += _reviewer_errors(seen, artifact, verdict, family, mission,
                                 config_path=config_path, feature_dir=feature_dir,
@@ -1584,14 +1584,14 @@ def _semantic_errors(canonical, family, verdict, seen, artifact, mission, *,
     return err
 
 
-def _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa):
+def _family_errors(canonical, family, verdict, seen, artifact, feature_dir, qa, mission=None):
     if family == "qa":
         return _qa_errors(seen, verdict, feature_dir, qa)
     if family in ("dev", "dev-ops"):
         return _dev_receipt_errors(seen, verdict, artifact, feature_dir)
     if family == "lead":
-        return _lead_rollup_errors(seen, verdict,
-                                   _plan_reader_carveout(canonical, seen, artifact, feature_dir))
+        return _lead_rollup_errors(
+            seen, verdict, _plan_reader_carveout(canonical, seen, artifact, feature_dir, mission))
     return []
 
 
@@ -2016,8 +2016,13 @@ def _lead_rollup_errors(seen, top, carveout):
     return err
 
 
-# The plan team's reader slots: panel_findings.PANEL_READERS minus goalcheck, which is pm's.
-PLAN_READER_STEPS = ("scope", "should-not-exist", "design")
+# The plan team's reader slots and the persona `teams/plan.yaml` declares for each (its own
+# spelling): panel_findings.PANEL_READERS minus goalcheck, which is pm's. The roster a lead reports
+# is bound to this, never to the lead's own pairing (validate run 02 MF-1b), and
+# tests/unit/test-validate-digest-plan-rollup.py fails when the team file drifts from it.
+PLAN_READER_PERSONAS = {"scope": "code-reviewer", "should-not-exist": "fable-advisor",
+                        "design": "ui-reviewer"}
+PLAN_READER_STEPS = tuple(PLAN_READER_PERSONAS)
 
 
 # BUG-2582 (D-02; DEC-123 as amended): THE PLAN-TEAM READER CARVE-OUT.
@@ -2037,7 +2042,10 @@ PLAN_READER_STEPS = ("scope", "should-not-exist", "design")
 #   evidence; the hook's check_artifact_file binds the artifact to the registered run.
 # - Every unresolvable or malformed case (no feature, another mission, no loadable plan, a bad
 #   panel row, an unattributable finding) keeps worst-wins.
-def _plan_reader_carveout(canonical, seen, artifact, feature_dir):
+# - The roster is the team's (validate run 02 MF-1): exactly one entry per reader slot, a skipped
+#   one included, each carrying the persona the team file declares; and a live dispatch whose
+#   mission is not plan gets no relief. Offline (no live mission), feature.json decides alone.
+def _plan_reader_carveout(canonical, seen, artifact, feature_dir, mission=None):
     """{member index: None (relief applies) or the reason it does not} for every plan-team
     reader member at FAIL; {} when there is no such member."""
     members = seen.get("members")
@@ -2045,7 +2053,7 @@ def _plan_reader_carveout(canonical, seen, artifact, feature_dir):
     if not candidates:
         return {}
     findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
-    rows, reason = _carveout_rows(findings, members, artifact, feature_dir)
+    rows, reason = _carveout_rows(findings, members, artifact, feature_dir, mission)
     if reason:
         return {index: reason for index in candidates}
     return {index: _candidate_reason(index, members, findings, rows) for index in candidates}
@@ -2060,42 +2068,52 @@ def _carveout_candidates(canonical, seen, members):
             and _member_verdict(member)[0] == "FAIL"]
 
 
-def _carveout_rows(findings, members, artifact, feature_dir):
+def _carveout_rows(findings, members, artifact, feature_dir, mission):
     """(plan.yaml panel.findings rows, None), or (None, why the carve-out cannot apply)."""
-    plan, reason = _carveout_plan(artifact, feature_dir)
+    plan, reason = _carveout_plan(artifact, feature_dir, mission)
     if reason:
         return None, reason
     rows = _panel_rows(plan)
     if rows is None:
         return None, "plan.yaml panel.findings malformed"
-    duplicate = _duplicated_reader_step(members)
-    if duplicate:
-        return None, f"duplicated reader step {duplicate}"
+    roster = _roster_reason(members)
+    if roster:
+        return None, roster
     if any(len(_matching_members(item.get("reader"), members)) != 1
            for item in findings + rows):
         return None, "a finding matches no member or more than one"
     return rows, None
 
 
-def _carveout_plan(artifact, feature_dir):
+def _carveout_plan(artifact, feature_dir, mission):
     """(the feature's loaded plan, None), or (None, why not). Any failure fails closed."""
-    fdir, _error = _resolve_feature_dir(artifact, feature_dir)
-    if not fdir:
-        return None, "feature directory unresolved"
+    fdir, reason = _carveout_feature_dir(artifact, feature_dir, mission)
+    if reason:
+        return None, reason
     try:
         doc = artifact_accessors.load_feature_json(os.path.join(fdir, "feature.json"))
-    except Exception:  # noqa: BLE001  an unreadable record keeps worst-wins
+    except (artifact_accessors.FeatureJsonError, OSError):
         doc = None
     if not isinstance(doc, dict) or doc.get("mission") != "plan":
         return None, "feature.json mission is not plan"
     path = os.path.join(fdir, "plan.yaml")
     try:
         plan = artifact_accessors.load_plan(path) if os.path.isfile(path) else None
-    except Exception:  # noqa: BLE001  an unloadable plan keeps worst-wins
+    except (harness_yaml.YamlParseError, OSError):
         plan = None
     if not isinstance(plan, dict):
         return None, "plan.yaml missing or unloadable"
     return plan, None
+
+
+def _carveout_feature_dir(artifact, feature_dir, mission):
+    """(the feature directory, None), or (None, why the carve-out cannot look at it)."""
+    if mission is not None and mission != "plan":
+        return None, "dispatch mission is not plan"
+    fdir, _error = _resolve_feature_dir(artifact, feature_dir)
+    if not fdir:
+        return None, "feature directory unresolved"
+    return fdir, None
 
 
 def _panel_rows(plan):
@@ -2113,10 +2131,24 @@ def _panel_rows(plan):
     return rows
 
 
-def _duplicated_reader_step(members):
-    steps = [m.get("step") for m in members
-             if isinstance(m, dict) and m.get("step") in PLAN_READER_STEPS]
-    return next((step for step in PLAN_READER_STEPS if steps.count(step) > 1), None)
+def _roster_reason(members):
+    """Why the reported reader roster is not the plan team's, or None."""
+    reasons = (_slot_reason(slot, members) for slot in PLAN_READER_STEPS)
+    return next((reason for reason in reasons if reason), None)
+
+
+def _slot_reason(slot, members):
+    """Why one reader slot is not exactly one entry carrying the team's persona, or None."""
+    entries = [m for m in members if isinstance(m, dict) and m.get("step") == slot]
+    if len(entries) > 1:
+        return f"duplicated reader step {slot}"
+    if not entries:
+        return f"reader step {slot} missing"
+    persona = str(entries[0].get("persona"))
+    if not _same_persona(persona, PLAN_READER_PERSONAS[slot]):
+        return (f"reader step {slot} persona {persona!r} is not the team's "
+                f"{PLAN_READER_PERSONAS[slot]!r}")
+    return None
 
 
 def _matching_members(reader, members):
@@ -2127,11 +2159,15 @@ def _matching_members(reader, members):
 
 
 def _reader_names(reader, member):
-    if reader in (member.get("step"), member.get("persona")):
+    return reader == member.get("step") or _same_persona(reader, str(member.get("persona")))
+
+
+def _same_persona(left, right):
+    """The same persona: equal spellings, or the same canonical harness persona."""
+    if left == right:
         return True
     try:
-        return (digest_schema.canonical_persona(reader)
-                == digest_schema.canonical_persona(str(member.get("persona"))))
+        return digest_schema.canonical_persona(left) == digest_schema.canonical_persona(right)
     except digest_schema.DigestSchemaError:
         return False
 

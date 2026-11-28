@@ -227,8 +227,9 @@ tasks:
     execution_reason: DEC-174 - changes validate-digest.py's lead roll-up, the gate that validates this feature's own digests, with its test.
     depends_on: [T-05]
     files:
-      - .claude/skills/harness/bin/validate-digest.py#_lead_rollup_errors
-      - tests/unit/test-validate-digest-plan-rollup.py
+    - .claude/skills/harness/bin/validate-digest.py#_lead_rollup_errors
+    - tests/unit/test-validate-digest-plan-rollup.py
+    - tests/integration/canonical-reader-classification.json
     verify: |
       set -eu
       env -u HARNESS_AGENT_TYPE python3 tests/unit/test-validate-digest-plan-rollup.py

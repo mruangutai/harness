@@ -52,3 +52,25 @@ Under DEC-174 the main session ran the four angles itself, read-only, over `e696
 - `_ranked_member_verdict`.
 
 Every changed function now grades 4 or 5. After the last edit, the T-01, T-02 and T-04 literal verifies all exit 0.
+
+## Fix round 1 (validate run 2026-11-27-02, ESCALATE)
+
+The operator's rulings are in `notes/answers-2026-11-27-validate-c1.md`.
+
+- **MF-1, fixed in full (the operator's choice).** All three parts are in `validate-digest.py`:
+  - (a) `_slot_reason` requires exactly one entry per reader slot; a skipped one counts.
+  - (b) Each slot's persona must match `PLAN_READER_PERSONAS`, the team file's own spellings. `bug2582-reader-personas-match-team-file` fails if `teams/plan.yaml` drifts from it. A constant was chosen over a live team-file read: no `bin/` code reads team files, and the canonical-reader inventory has no exemption class for one.
+  - (c) `_carveout_feature_dir` refuses relief when the hook's live `harness_mission` is set and is not `plan`. Offline, `feature.json` decides alone (OQ-3).
+  - The new cases `deny-missing-slot`, `deny-persona-swap` and `deny-dispatch-mission-patch` are each red against the c1171867 validator (accepted with no errors) and green now. The first persona-swap fixture was refused at c1171867 for a different reason, so it was replaced by a wrong-persona scope slot with slot-spelled findings, which c1171867 accepted.
+- **MF-2.** Both catches are narrowed: `(FeatureJsonError, OSError)` and `(YamlParseError, OSError)`. `PlanSchemaError` subclasses `YamlParseError`.
+- **MF-3.** The ledgered amendment `T-02.files` adds `tests/integration/canonical-reader-classification.json`. Two canonical rows were added: `_carveout_plan::load_feature_json#1` and `_carveout_plan::load_plan#1`.
+- **MF-4.** The DEC-123 index ruling is now 28 words and still names the carve-out. DEC-123 and SPEC now state MF-1's roster and mission conditions.
+- **MF-5.** The test's `main()` is split into case tables. `case_producer_witness` (grade 2) and `_carveout_plan` (grade 3, after MF-1c added a branch) were split too.
+- **Advisory added.** `bug2582-guard-eng-lead-plan-steps`: an eng-lead digest with plan reader steps is still refused. It was first named `other-lead-eng-plan-steps`, which collided with the T-02 verify's prefix match on `PASS bug2582-other-lead-eng`, so it was renamed.
+
+After the last edit:
+- `test-validate-digest-plan-rollup.py`: 34 of 34 pass.
+- The T-02 literal verify exits 0, with "red-first ok" and ALL PASSED.
+- `test-check-plan-routes.py`, `test-broad-catch-census.py`, `test-checker-structure-locks.py` and `test-gen-decisions-index.py` all exit 0.
+- The T-03 verify prints "decisions ok".
+- Every changed function meets its grade bar. The only sub-bar function in `validate-digest.py` is the untouched, pre-existing `reviewed_python_change` (grade 2).
