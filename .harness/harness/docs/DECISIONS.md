@@ -1397,22 +1397,25 @@ same 30 seconds as `validate-digest.py`'s `HOOK_HANG_BUDGET_S`, with no `harness
 environment override. A process still running at the budget is killed with its whole process
 group, and the timeout resolves exactly as any other failure to run, below:
 
-- **Gates that fire on every write, Bash call, dispatch or return fail open, visibly.** For
-  `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py` and `validate-digest.py` an own
-  failure exits 0 and prints one standalone stdout line,
+- **Gates that fire on every write, Bash call and dispatch fail open, visibly; the yield is refused.**
+  For the four broad gates — `check-domain.py`, `bash-write-guard.py`, `dispatch-guard.py` and
+  `validate-digest.py` — an own failure exits 0 and prints one standalone stdout line,
   `{"decision": "unavailable", "gate": "<script stem>", "reason": "<diagnostic>"}`, through
   `harness_boundary.emit_unavailable` (`hook_guard(..., script=)`); diagnostics stay on stderr. The
   OMP extension's `classifyPolicyRun` synthesizes the same outcome when the gate cannot print one:
   an exit other than 0 or 2, termination by signal, a failure before the guard loads, a missing gate
-  or interpreter, a spawn error, or a kill at the 30-second budget. The call proceeds, and the
-  agent receives passive
+  or interpreter, a spawn error, or a kill at the 30-second budget. For the write, Bash and dispatch
+  gates the call proceeds, and the agent receives passive
   `additionalContext` — `Harness: <gate> (<phase>) could not run; nothing was checked. <reason>` —
-  on every occurrence, tagged by phase (pre, post, dispatch, yield) and never deduplicated or
-  cached; the tool result is not marked an error. A refusal outranks it: exit 2 or a structured
-  deny blocks even when the same output also carries an unavailable line. Beside a refusal the
-  notices are not lost: omp discards `additionalContext` on a blocked call, so they follow the
-  denial in the refusal reason. Failing these gates closed stays refused — one gate's bug would
-  wedge every agent.
+  on every occurrence, tagged by phase (pre, post, dispatch) and never deduplicated or cached; the
+  tool result is not marked an error. Since BUG-2565 (D-05, D-02) the yield phase alone turns
+  `validate-digest.py`'s unavailable outcome into a refusal: a yield the validator cannot check is
+  refused, never passed, with a fixed reason that names the failure, says the object was not
+  checked and the fault is Harness's, and tells the child to yield once more and then stop. A
+  refusal outranks an unavailable line: exit 2 or a structured deny blocks even when the same
+  output also carries one. Beside a refusal the notices are not lost: omp discards
+  `additionalContext` on a blocked call, so they follow the denial in the refusal reason. Failing
+  the write, Bash and dispatch gates closed stays refused — one gate's bug would wedge every agent.
 - **The narrow command gates fail closed, for the command they guard only.** `gh-close-gate.py`,
   `branch-create-gate.py` and `plan-sign-gate.py` decide applicability from the payload command
   with the standard library, before root resolution or any library or config load, so an unrelated
@@ -2673,11 +2676,12 @@ this project keeps paying for.
 ## DEC-126 — Canonical persona schemas own the live return shape; examples are not contracts
 
 Each of the sixteen runtime Harness personas has one closed JSON Schema under
-`.claude/skills/harness/bin/digest-schemas/`; shared definitions live in `common.json` and are
+`.claude/skills/harness/schemas/digest/`; shared definitions live in `common.json` and are
 reached by external references. The files own field names, types, enums, required sets, nested
 entry shapes and `additionalProperties: false`. `digest_schema.py` validates the same files in
-Python, while the OMP adapter resolves and projects them into the strict provider bundle injected
-at dispatch. There is no second hand-authored field table.
+Python, and since BUG-2565 `digest_projection.py` projects them into the provider schema that
+`gen-agent-output.py` writes into each harness agent's frontmatter and `check-omp-port.py`
+drift-checks (D-01). There is no second hand-authored field table.
 
 Agent and skill prose carries a schema pointer and may carry one complete YieldTool example so a
 reader can see how to call the tool. That example is explanatory: no validator parses it, no
@@ -2718,9 +2722,10 @@ suite (DEC-101, DEC-110, DEC-119, DEC-124's own re-statement of the shape).
    raised an uncaught `TypeError` inside `validate()`; in `--hook` mode that meant exit 1, and only
    exit 2 blocks (DEC-100/DEC-122) — so the digest shipped completely unvalidated with no signal.
    Guarded the membership test on `isinstance(val, list)` (reported as a real violation, not skipped),
-   and wrapped `hook_mode()`'s `validate()` call so an own exception returns 0 — fail OPEN, on our own
-   bug, matching `check-domain.py`'s precedent — and visibly: the hook's guard prints DEC-100's
-   unavailable line, so the agent is told nothing was checked.
+   and wrapped `hook_mode()`'s `validate()` call so an own exception still returns 0 with DEC-100's
+   unavailable line, matching `check-domain.py`'s precedent. That was fail open on our own bug;
+   since BUG-2565 the yield carrying it is refused, never passed, so the agent is told nothing was
+   checked and cannot complete unchecked.
 3. **Hook-mode test coverage, landed with 1–2, not after.** `test-validate-digest.py` gained a
    `--hook` runner that asserts the **exact** exit code (2 reject / 1 crash / 0 pass are three
    different outcomes — asserting "nonzero == rejected" would let the fail-open crash masquerade as a
@@ -6320,8 +6325,9 @@ copied into `AGENTS.md`.
 **Enforcement reuses policy and replaces delivery.** The OMP extension converts native `write`,
 hash-anchored `edit`, `bash`, `task`, and `yield` events into the tested script contracts.
 `tool_call` denies before execution; `tool_result` reports post-write shape failures; `task`
-receives the persona's strict schema; and `yield` validates the returned object directly. The
-TypeScript layer derives digest structure from the canonical schemas and owns no second contract
+carries no schema: each harness agent definition carries its digest schema in frontmatter,
+projected in Python by `digest_projection.py` and written by `gen-agent-output.py` (BUG-2565);
+and `yield` validates the returned object directly. The TypeScript layer owns no digest contract
 (DEC-237).
 
 **The control plane expands.** `.agents/**`, `.omp/**`, and `AGENTS.md` are Harness-owned paths in
@@ -6331,7 +6337,8 @@ location, because this port changes runtime discovery, not DEC-193's worktree pl
 
 **`check-omp-port.py` is the port gate.** It rejects a reversed or broken `.agents/skills` link,
 concrete provider IDs in canonical agents, a role whose `thinking-level` disagrees with its `model`
-alias, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
+alias, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery. Since BUG-2565
+it also fails when an agent's frontmatter `output:` drifts from its persona schema.
 
 **Cost accepted:** OMP runs require an explicit provider overlay and the OMP extension is a maintained
 host adapter. The alternative is cheaper only by keeping provider coupling and silently losing
@@ -6765,8 +6772,8 @@ under lead authority, not an exception granted case by case. Origin:
 that is not one of the sixteen harness personas.
 
 **It is a precedent needing a signature because the reader's return is structurally unvalidated.**
-Three facts, in this order. One, the task hook injects strict schemas only for `harness-*` personas;
-an external reader carries no canonical Harness schema, so its own return is not graded as a Harness
+Three facts, in this order. One, only `harness-*` agent definitions carry a digest schema, in
+frontmatter (BUG-2565); an external reader carries no canonical Harness schema, so its own return is not graded as a Harness
 digest. Two, digest coverage therefore comes from the wrapping lead's yielded object, graded against
 the lead schema: the reader's findings are validated as part of that object, or not at all. Three,
 the compensating control is contractual rather than mechanical. The reader's prompt requires a
@@ -6813,8 +6820,10 @@ schema, a missing claim registry — exits 0 visibly unavailable (DEC-100). The 
 written for the retired `last_assistant_message` text contract, where absence was our gap and
 present-but-empty the persona's. Measurement: five structured returns came back empty or null in
 FEAT-45, recovered only because leads re-measured by hand, because `or ""` collapsed all three
-states into one branch. Failing closed on our own gap was rejected in one clause: it would wedge
-every subagent in the project. Refines DEC-127's fail-open inside the DEC-122 hook.
+states into one branch. The script's posture is unchanged, but since BUG-2565 the yield is refused
+on it: the operator reversed the earlier rejection of failing closed for the yield, because an
+unchecked return reaching a dispatcher is worse than one child that stops naming the cause.
+Refines DEC-127's fail-open inside the DEC-122 hook.
 
 **2. A governed agent's feature-artifact write is bound to that feature's worktree.** The feature id
 is derived from the TARGET PATH, and the target must sit in the checkout git has registered as that
@@ -8046,7 +8055,7 @@ no parser, template-echo selection, last-message fallback, issue-1676 hollow-yie
 deprecation window.
 
 **Canonical schemas and the 2026-09-29 build ruling.** The sixteen closed persona schemas under
-`.claude/skills/harness/bin/digest-schemas/`, plus their external shared definitions, are the one
+`.claude/skills/harness/schemas/digest/`, plus their external shared definitions, are the one
 structural authority for Python validation and provider projection. Declared live properties are
 required except the backend development schema's optional non-negative integer `DIGEST.cycles_used`:
 DEC-174 main-session-direct receipts use that schema, and new/changed direct-run attribution
@@ -8057,25 +8066,25 @@ Minimal list-entry forms remain closed objects with their required keys present 
 keys refused. This narrow optional property restores neither optional Markdown tiers nor loose
 live-return parsing.
 
-**Dispatch owns schema delivery.** Before any claim side effect, the OMP task hook refuses
-dispatcher-supplied `outputSchema` or `schemaMode` and names the forbidden field and its `tasks[]`
-location. The one exception is a flat Harness call or an individual Harness `tasks[]` item that
-carries both fields, with `outputSchema` structurally equal (key order aside) to the bundle the hook
-would inject for that same target and `schemaMode: strict`; that unchanged copy is accepted and
-the canonical bundle re-injected in its place. A changed schema, any other mode, either field
-alone, any batch-top-level control and any control on a non-Harness target stay refused, and an
-accepted copy never masks another item's refusal. The hook loads the target Harness persona's
-canonical schema, resolves and projects a ref-free provider bundle, and injects that bundle with
-`schemaMode: strict`. A missing persona, unreadable or malformed schema, unresolved reference,
-directory escape, cycle, or unsupported projection keyword refuses the dispatch; there is no loose
-fallback. Non-Harness dispatches retain their own contract.
+**Agent definitions own schema delivery (BUG-2565).** Each Harness agent definition carries
+`structured: true` and an `output:` generated from its persona schema plus `common.json` by
+`.claude/skills/harness/bin/gen-agent-output.py`, never hand-edited, and `check-omp-port.py` fails
+on drift. Global `task.structured` stays at OMP's default (off), so the task tool exposes no
+schema parameter: a dispatcher has nothing to supply, copy or be refused for, and the task hook
+neither refuses nor revises one. The BUG-2305 exact-copy exception is gone with the refusal it
+qualified. Agent frontmatter cannot set strict mode, so the yield hook is the barrier: a yield
+with no data is refused whatever its type, and the validator gates every other yield. A schema
+that cannot be projected fails generation and the port gate; there is no loose fallback.
+Non-Harness dispatches retain their own contract.
 
 **Yield owns live validation.** The hook passes YieldTool `data` directly to
 `validate-digest.py --hook`. The validator applies the canonical schema and then the existing
 semantic and cross-file rules: verdict gates, member roll-up, claims and live children, artifact
 ownership, task receipts, review pins and code grade, suite evidence and repository state. Invalid
 shape or semantics refuses the tool call with the actionable violations; it does not inspect
-assistant text or synthesize a replacement result.
+assistant text or synthesize a replacement result. Since BUG-2565 a validator that cannot run
+refuses the yield, never passes it: the refusal names the failure, says the object was not checked
+and the fault is Harness's, and tells the child to yield the same object once more and then stop.
 
 **Only the validator renders a durable digest.** A lead first writes its human assessment to an
 existing regular `digest.md`. The hook binds its runtime child and parent ids to its exact feature,

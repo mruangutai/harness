@@ -8,6 +8,7 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 
+import json
 import shutil
 import os
 import re
@@ -201,16 +202,16 @@ def case_task_wall_clock_limit_fails():
         td.cleanup()
 
 
-def case_task_structured_required():
-    """BUG-2171: OMP 18.10.2 made `task.structured` native and default-off; with it off a child
-    gets no `yield` tool and OMP strips the hook's injected digest schema, so no lead return
-    reaches `runs/<id>/digest.md`. The gate requires the boolean `true` — never a truthy look-alike."""
+def case_task_structured_off():
+    """BUG-2565: each harness agent's frontmatter carries `structured: true` and its digest
+    schema, so global `task.structured` stays at OMP's default (off) and the task tool exposes
+    no schema parameter. Absent or boolean false passes; true and every truthy look-alike fail."""
     variants = (
-        ("absent", None, False),
-        ("boolean false", "false", False),
+        ("absent", None, True),
+        ("boolean false", "false", True),
+        ("boolean true", "true", False),
         ("string 'true'", '"true"', False),
         ("integer 1", "1", False),
-        ("boolean true", "true", True),
     )
     rows = []
     for label, value, accepted in variants:
@@ -230,6 +231,53 @@ def case_task_structured_required():
                 rows.append((f"task.structured {label} fails",
                              result.returncode == 1 and "task.structured" in result.stderr,
                              result.stderr))
+        finally:
+            td.cleanup()
+    return rows
+
+
+def _replace_under_output(path: Path, old: str, new: str) -> None:
+    text = path.read_text(encoding="utf-8")
+    start = text.index("\noutput:")
+    at = text.index(old, start)
+    path.write_text(text[:at] + new + text[at + len(old):], encoding="utf-8")
+
+
+def _schema_gains_field(root: Path) -> None:
+    schema = root / ".claude/skills/harness/schemas/digest/harness-qa.json"
+    data = artifact_accessors.load_json_mapping(schema)
+    data["properties"]["DIGEST"]["properties"]["probe_field"] = {"type": "string"}
+    schema.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def case_agent_output_drift():
+    """BUG-2565: an agent's generated `output:` must stay equal to the projection of its persona
+    schema, with `structured: true` beside it. Equality is typed, so 0 never stands in for false
+    (in Python `{"a": False} == {"a": 0}` is True, the blind spot the last fixture guards)."""
+    fixtures = (
+        ("schema changed without regenerating", _schema_gains_field, ".omp/agents/harness-qa.md"),
+        ("output hand-edited to additionalProperties true",
+         lambda root: _replace_under_output(root / ".omp/agents/harness-pm.md",
+                                            "additionalProperties: false", "additionalProperties: true"),
+         ".omp/agents/harness-pm.md"),
+        ("structured: true removed",
+         lambda root: (root / ".omp/agents/harness-ui-reviewer.md").write_text(
+             (root / ".omp/agents/harness-ui-reviewer.md").read_text(encoding="utf-8")
+             .replace("structured: true\n", "", 1), encoding="utf-8"),
+         ".omp/agents/harness-ui-reviewer.md"),
+        ("output additionalProperties 0 instead of false",
+         lambda root: _replace_under_output(root / ".omp/agents/harness-pm.md",
+                                            "additionalProperties: false", "additionalProperties: 0"),
+         ".omp/agents/harness-pm.md"),
+    )
+    rows = []
+    for label, mutate, named in fixtures:
+        td, root = fixture()
+        try:
+            mutate(root)
+            result = run(root)
+            rows.append((f"agent output drift: {label} fails naming {named}",
+                         result.returncode == 1 and named in result.stderr, result.stderr))
         finally:
             td.cleanup()
     return rows
@@ -378,7 +426,8 @@ CASES = (
     case_thinking_level_disagrees_with_alias_fails,
     case_missing_async_enablement_fails,
     case_task_wall_clock_limit_fails,
-    case_task_structured_required,
+    case_task_structured_off,
+    case_agent_output_drift,
     case_missing_lifecycle_wiring_fails,
     case_lifecycle_on_the_wrong_bus_fails,
     case_missing_sign_gate_wiring_fails,

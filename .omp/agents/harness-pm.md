@@ -22,6 +22,205 @@ autoloadSkills:
 - harness-spec-driven
 - harness-craft
 - harness-brief
+structured: true
+output:
+  type: object
+  additionalProperties: false
+  required:
+  - VERDICT
+  - DIGEST
+  - artifact
+  properties:
+    VERDICT:
+      enum:
+      - PASS
+      - FAIL
+      - BLOCKED
+      - ESCALATE
+    DIGEST:
+      type: object
+      additionalProperties: false
+      required:
+      - headline
+      - open_questions
+      - files_touched
+      - expertise_update
+      - feasibility
+      - surface
+      - recommend
+      - risk
+      - tasks
+      - decisions
+      - needs_approval
+      - flags
+      - sc_status
+      properties:
+        headline:
+          type: string
+        open_questions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - question
+            - blocking
+            properties:
+              id:
+                type: string
+              question:
+                type: string
+              blocking:
+                type: boolean
+        files_touched:
+          type: array
+          items:
+            type: string
+        expertise_update:
+          type: array
+          items:
+            anyOf:
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - entry
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - add
+                  - replace
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                entry:
+                  type: string
+                why:
+                  type: string
+            - type: object
+              additionalProperties: false
+              required:
+              - op
+              - target
+              - section
+              - why
+              - persona
+              properties:
+                persona:
+                  enum:
+                  - harness-ai-dev
+                  - harness-backend-dev
+                  - harness-code-reviewer
+                  - harness-data-engineer
+                  - harness-dev-ops
+                  - harness-documentor
+                  - harness-eng-lead
+                  - harness-frontend-dev
+                  - harness-orchestrator
+                  - harness-pm
+                  - harness-product-lead
+                  - harness-qa
+                  - harness-security-reviewer
+                  - harness-ui-reviewer
+                  - harness-validator-lead
+                  - harness-visual-designer
+                op:
+                  enum:
+                  - drop
+                target:
+                  type: string
+                section:
+                  enum:
+                  - Patterns
+                  - Gotchas
+                  - Outcomes
+                  - Open
+                why:
+                  type: string
+        feasibility:
+          enum:
+          - clear
+          - risky
+          - blocked
+        surface:
+          anyOf:
+          - enum:
+            - S
+            - M
+            - L
+          - type: string
+        recommend:
+          enum:
+          - proceed
+          - spike
+          - reframe
+          - halt
+        risk:
+          anyOf:
+          - enum:
+            - low
+            - med
+            - high
+          - type: string
+        tasks:
+          type: integer
+        decisions:
+          type: integer
+        needs_approval:
+          type: boolean
+        flags:
+          type: array
+          items:
+            type: string
+        sc_status:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - id
+            - verdict
+            - method
+            - evidence
+            properties:
+              id:
+                type: string
+              verdict:
+                type: string
+              method:
+                type: string
+              evidence:
+                type: string
+    artifact:
+      type: string
 ---
 
 HARNESS_AGENT_ID: harness-pm
