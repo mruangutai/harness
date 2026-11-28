@@ -1,0 +1,423 @@
+schema: plan/1
+feature: BUG-2582-plan-station-and-rollup
+approval:
+  date: '2026-11-27'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-28T01:51:07Z'
+status: ready
+source_issues: [2582]
+
+panel:
+  last_run: 2026-11-27-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: returned FAIL carrying 5 findings; note at notes/review-harness-code-reviewer-plan-c1.md
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: resolved and returned one finding inline
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: self-scoped out (no user-facing surface); PASS with no findings
+  findings:
+  - id: PF-c53be1d223134c6f36f75b74c717f09f
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 fixes the writer but leaves the ordinary plan start blocked.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-f5d2a4fbc948ed0b21a6ecf04c08cc37
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-02 keys rank relief by step, not by the exact FAIL member.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-73efff43dcb1289c9982f92cdee7cd59
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-02 does not prove the corresponding on-disk finding is resolved.
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-3a3ee8e7dcbb5c6ea8b100108f346013
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-01/T-02 baseline substitutions are viable, but named failures do not prove the intended baseline behavior.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-5c2cc6aa8a60e1e47e24e1c3153605c7
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: T-03 leaves an unqualified worst-wins statement and understates carve-out conditions in summary docs.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-24cd87012d506fd28972915da1cfd573
+    severity: high
+    reader: should-not-exist
+    kind: substance
+    summary: 'T-02''s carve-out ships without its only trigger — no shipped step ever writes disposition: resolved — so do not build it in this shape: either put the one-line set-panel requirement in teams/plan.yaml apply (with DEC-228 flipped to amend and a lanes row for the team file) in this feature, or defer T-02 and its T-03 doc amendments together (OQ-1: answer yes)'
+    disposition: resolved
+    resolved_by: T-05
+lanes:
+  resolved_at: e69608659e313e9c176560098c5d94f87482fe1f
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: DEC-174 - plan-merge apply, check-state INV-34 and validate-digest's roll-up are the gates this feature changes.
+  - surface: tests/unit/test-plan-merge-station-convert.py
+    lane: main-session-direct
+    reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+  - surface: tests/unit/test-validate-digest-plan-rollup.py
+    lane: main-session-direct
+    reason: Granted to backend-dev, dev-ops and qa; DEC-174 keeps a gate's test with its gate.
+  - surface: tests/integration/test-lead-start-return.py
+    lane: main-session-direct
+    reason: Granted to qa; it drives the real dispatch guard and plan-merge apply, and DEC-174 keeps a gate's witness with the gates it exercises.
+  - surface: .claude/skills/harness/teams/plan.yaml
+    lane: main-session-direct
+    reason: NOBODY owns it; the plan team's apply step is the producer of the dispositions validate-digest reads, and the operator routed every task main-session-direct.
+  - surface: .claude/skills/harness/references/**
+    lane: main-session-direct
+    reason: NOBODY owns plan-phase.md and panel-recording.md; the operator routed every task of this feature main-session-direct.
+  - surface: .harness/harness/docs/**
+    lane: main-session-direct
+    reason: Owner harness-documentor; the operator routed every task of this feature main-session-direct.
+  - surface: .claude/skills/harness-team/SKILL.md
+    lane: main-session-direct
+    reason: NOBODY owns it; the operator routed every task of this feature main-session-direct.
+
+decisions:
+  - id: D-01
+    choice: When apply or add-tasks merges a proposal that adds tasks onto a station-only record (station_only true, empty tasks) whose station is not finished, and the proposal does not itself carry station_only, the writer converts the record in the same locked write - it drops the station_only key, seeds approval status pending when the base has no approval mapping, and stamps drafted_at from its own UTC clock when the base has none. A finished-station record (done, abandoned, rejected) is still refused with exit 5.
+    because: The loader pair stays intact (FEAT-41 MF-3 and HIGH-1), and a record that only lost its marker would read to INV-3 as a plan with no approval block and would escape DEC-254's decisions_affected check for lack of a drafted_at stamp. Rejected alternatives - relaxing _validate_station_only (reopens HIGH-1), a set-key route that nulls station_only (the same forgery route HIGH-1 closed, and it leaves approval and drafted_at unseeded), a separate convert verb (a second route pm must know to call), and not firing INV-34 before the first plan run (operator put INV-34 timing out of scope).
+    dec: DEC-254
+  - id: D-02
+    choice: validate-digest ranks a plan-team reader member's FAIL as PASS only in a harness-product-lead digest with team plan for a feature whose feature.json records mission plan, and only for that exact member entry. The digest must carry exactly one member per reader step; a finding is attributed to the member whose step or persona equals its reader, persona spellings compared through digest_schema.canonical_persona; each team-digest finding attributed to the member must match exactly one plan.yaml panel.findings row by recomputed PF id, that row carrying the same reader string and disposition exactly resolved, and every other on-disk row attributed to the member must be exactly resolved too. A finding that matches no member or more than one, a duplicated reader step or a malformed panel row denies the carve-out to every reader in that digest, and only a raw FAIL is ever re-ranked.
+    because: Observed reader values differ across runs (code-reviewer and should-not-exist in BUG-2566, harness-code-reviewer in BUG-2565), so attribution tolerates spellings; but panel_findings.finding_id hashes the exact reader string, so the matched row must carry that string, and checking presence and disposition separately let a stale id on another member's row stand in for the failing reader's own record (plan c1 scope finding 3). Keying relief by step let a duplicated step re-rank a second member, even one at ESCALATE (scope finding 2). Rejected alternatives - trusting the lead's statement, requiring every panel finding resolved (holds one reader's FAIL on another reader's open info finding), tying through the panel.readers slot alone (findings do not carry the slot), and case-folding the disposition (accepts a value the writer refuses).
+    dec: DEC-123
+
+  - id: D-03
+    choice: The plan team's apply step, after record-panel and before check, runs plan-merge.py set-panel marking resolved exactly the findings whose remedy pm applied in that step, with resolved_by naming the task that carries the remedy where one exists; a scope mission finding, a finding pm did not remedy and every earlier disposition stay as they are.
+    because: record-panel writes every new finding open and the shipped apply prompt never resolved one, so without this step D-02 has no trigger and Destination 2 is not delivered (plan c1 should-not-exist finding and scope OQ-1). The resolution is pm's own record of its own apply, the trust the BRIEF discloses; sign-approval and INV-32 already read resolved the same way. Rejected alternatives - record-panel writing resolved itself (it cannot know what was applied), the lead resolving findings (it does not apply them), and deferring D-02 with its docs (leaves Destination 2 undelivered).
+    dec: DEC-228
+  - id: D-04
+    choice: No dispatch-guard change. A station-only record written through plan-merge.py apply, the route INV-34 prescribes, is created by _seed_new_plan with approval status pending and a drafted_at stamp, so _plan_preflight already admits the product plan lead on it; a hand-written record without approval stays refused for every plan-panel start, as at base.
+    because: Measured at e6960865 with the private-bin dispatch fixture of tests/integration/test-lead-start-return.py - an apply-written stub starts the product lead, the validator lead and the scope reader, and a hand-written stub with no approval refuses all three (notes/research-plan-c1-apply.md). Scope finding 1 held only for the hand-written shape. Rejected alternatives - a guard allowance for a non-finished station-only record (widens an enforcement surface for a shape the remedy never produces) and an explicit approval block in INV-34's stub text (_seed_new_plan refuses a creating proposal that carries approval, exit 8).
+    dec: none
+
+decisions_affected:
+- dec: DEC-123
+  disposition: amend
+  clause: '`validate-digest.py` now computes the roll-up and rejects a return that reports better than its
+
+    worst member.'
+  successor: D-02
+  reason: The worst-member rule gains one exception, a plan-team reader FAIL whose findings are all resolved in plan.yaml, so the clause no longer states the whole rule.
+- dec: DEC-254
+  disposition: amend
+  clause: Ordinary edits neither stamp an undated legacy plan nor change an existing stamp.
+  successor: D-01
+  reason: Converting a station-only record is an apply edit that now stamps drafted_at on an undated record, so the sentence must name that one creation case.
+- dec: DEC-228
+  disposition: amend
+  clause: 'records the panel with `plan-merge.py
+
+    record-panel` and runs `plan-merge.py check`'
+  successor: D-03
+  reason: The plan team's apply step gains set-panel between record-panel and check, marking resolved only the findings pm applied in that step, so the sequence the clause states is no longer whole.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful
+  successor: none
+  reason: This feature changes plan-merge, check-state and validate-digest; it is planned through Harness and every task executes main-session-direct, as DEC-174 rules.
+- dec: DEC-229
+  disposition: keep
+  clause: '`sign-approval` stays the only writer of `approved`.'
+  successor: none
+  reason: Conversion seeds only status pending, the same mapping apply already seeds on plan creation, and set-panel writes dispositions only; approved is still written by sign-approval alone.
+- dec: DEC-191
+  disposition: keep
+  clause: A feature's station belongs only to `plan.yaml`;
+  successor: none
+  reason: Conversion keeps the base status key, so the station stays in plan.yaml unchanged.
+
+tasks:
+  - id: T-01
+    title: Convert a station-only record on apply and name the conversion in INV-34's remedy
+    traces: [SC-01, SC-02, SC-03, SC-04, SC-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - changes plan-merge apply and check-state INV-34, gates that police this build, with their test.
+    depends_on: []
+    files:
+      - .claude/skills/harness/bin/plan_merge/union.py#apply_merge
+      - .claude/skills/harness/bin/check_state/plan.py#inv_34
+      - tests/unit/test-plan-merge-station-convert.py
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-plan-merge-station-convert.py
+      git diff --quiet e69608659e313e9c176560098c5d94f87482fe1f -- .claude/skills/harness/bin/harness_yaml.py
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import os, subprocess, sys, tempfile
+      base = "e69608659e313e9c176560098c5d94f87482fe1f"
+      src = subprocess.run(["git", "show", base + ":.claude/skills/harness/bin/plan_merge/union.py"], check=True, capture_output=True, text=True).stdout
+      with tempfile.TemporaryDirectory() as tmp:
+          path = os.path.join(tmp, "union.py")
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write(src)
+          env = dict(os.environ, PLAN_MERGE_UNION=path, CHECK_STATE_REV=base)
+          run = subprocess.run([sys.executable, "tests/unit/test-plan-merge-station-convert.py"], env=env, capture_output=True, text=True)
+      lines = (run.stdout + run.stderr).splitlines()
+      def line(prefix):
+          hits = [l for l in lines if l.startswith(prefix)]
+          return hits[0] if len(hits) == 1 else ""
+      bad = [n for n in ("bug2582-convert-apply", "bug2582-convert-add-tasks") if "code 5" not in line("FAIL " + n + ":") or "on a record with an EMPTY" not in line("FAIL " + n + ":")]
+      if "remedy present, conversion sentence absent" not in line("FAIL bug2582-inv34-remedy-line:"):
+          bad.append("bug2582-inv34-remedy-line")
+      bad += [n for n in ("bug2582-loader-pair-unchanged", "bug2582-marker-in-proposal-refused") if not line("PASS " + n)]
+      if run.returncode == 0 or bad:
+          print("red-first not shown:", run.returncode, bad)
+          print("\n".join(lines[-40:]))
+          sys.exit(1)
+      print("red-first ok")
+      PY
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-harness-yaml.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-state-plans.py
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup; every relative-path edit stays inside it. Main owns this task under DEC-174 and DEC-179, with no engineering-lead dispatch. Source issue 2582. Read this feature's BRIEF.md (SC-01 to SC-04, SC-09), plan.yaml decisions D-01 and D-04, notes/research-plan-station-and-rollup.md and notes/research-plan-c1-apply.md first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them. .harness/harness/docs/SPEC.md and DECISIONS.md (DEC-254, DEC-229, DEC-191) are the governing descriptions. Do not edit .claude/skills/harness/bin/harness_yaml.py: the _validate_station_only pair stays byte-identical, and the verify checks it. Do not edit dispatch-guard.py (D-04).
+
+      Tests first. Create tests/unit/test-plan-merge-station-convert.py, modelled on tests/unit/test-plan-merge-union-head.py: put BIN (.claude/skills/harness/bin under the repository root) on sys.path, import plan_merge and harness_merge, and load the union module from the path in environment variable PLAN_MERGE_UNION (default BIN/plan_merge/union.py) through importlib exactly as that file does, registering it as sys.modules entry plan_merge.union. Each case prints exactly one line, PASS name or FAIL name: detail, and the file exits 1 when any case failed, else 0. Every case wraps its body so that nothing crashes the file and it runs to the end against the base union.py too: a harness_merge.MergeRefusal is reported as FAIL name: MergeRefusal code N: followed by the refusal's lines joined with single spaces (so a base-tree red names its exit code and the loader's diagnostic); an AttributeError or any other Exception is reported as FAIL name: followed by the exception class and text. Fixtures: BASE is the text schema: plan/1, feature: BUG-99-fixture, status: plan, station_only: true, tasks: [] (one key per line). PROPOSAL is schema: plan/1, feature: BUG-99-fixture, status: plan, and a tasks block with one task T-01 carrying title, change_type bugfix, execution_mode main-session-direct, execution_reason fixture, files [x.py], verify true and intent fixture, so it satisfies harness_yaml.REQUIRED_TASK_FIELDS. Cases, each name verbatim:
+      bug2582-convert-apply - union.apply_merge(BASE bytes, PROPOSAL, "apply") raises nothing; the output reloads through harness_yaml.load_str and harness_yaml.validate_plan_doc without error; the reloaded mapping has no station_only key, tasks ids equal [T-01], approval equals the mapping with status pending only, drafted_at is a string matching the pattern of four digits, dash, two digits, dash, two digits, T, hh:mm:ss, Z, and status equals plan; result.reset is False; union._print_apply_receipt(result) captured with contextlib.redirect_stdout has a line starting CONVERTED and no line starting APPROVAL-RESET.
+      bug2582-convert-add-tasks - the same assertions with verb add-tasks.
+      bug2582-convert-keeps-base-approval-and-stamp - BASE plus an approval mapping with status pending and drafted_at 2026-11-20T00:00:00Z (quoted), the shape plan-merge.py apply writes when it creates the stub: conversion succeeds, the output has exactly one approval key and one drafted_at key, and both reload equal to the base values.
+      bug2582-marker-in-proposal-refused - PROPOSAL plus a station_only: true line raises MergeRefusal with code 5.
+      bug2582-finished-done, bug2582-finished-abandoned, bug2582-finished-rejected - BASE with status set to that station raises MergeRefusal with code 5.
+      bug2582-empty-proposal-stays-station-only - a proposal of schema, feature, status plan and tasks: [] leaves station_only true, adds no approval key and no drafted_at key.
+      bug2582-loader-pair-unchanged - harness_yaml.validate_plan_doc raises harness_yaml.PlanSchemaError for the mapping parsed from BASE with the station_only line removed, and for the mapping parsed from BASE with its tasks replaced by PROPOSAL's task list.
+      bug2582-inv34-remedy-line - materialize check-state.py the way tests/unit/test-check-state-inv35.py materialize_checker does (git archive of the CHECK_STATE_REV revision when that environment variable is set, else the repository's own .claude/skills/harness/bin/check-state.py); build a fixture root in a temporary directory with .harness/team-config.yaml (agents: {}), .harness/harness.json from tests/harness_config_support.write_config, and .harness/harness/features/FEAT-TEST/feature.json containing {} and no plan.yaml; run python3 on the checker with cwd at the root and HARNESS_PROJECT_DIR set to it; capture its WHOLE stdout and stderr, unfiltered (the INV-34 message spans several lines). First, when the capture lacks either station_only: true or FIRST CHECK WHETHER A REAL PLAN WAS DELETED, report FAIL bug2582-inv34-remedy-line: remedy absent. Otherwise, when it lacks converts this record into the plan, report FAIL bug2582-inv34-remedy-line: remedy present, conversion sentence absent. Else PASS.
+
+      Run the file against the unchanged tree and confirm bug2582-convert-apply and bug2582-convert-add-tasks fail with MergeRefusal code 5 and the loader text on a record with an EMPTY, bug2582-inv34-remedy-line fails with remedy present, conversion sentence absent, while bug2582-loader-pair-unchanged and bug2582-marker-in-proposal-refused pass; the verify repeats this red proof against the base revision and checks each detail.
+
+      Implementation in .claude/skills/harness/bin/plan_merge/union.py. Import factory_config. Add a function _convert_station_only(text, base_doc, prop_doc, added_task_ids) returning (text, converted). It converts only when base_doc station_only is True, base_doc tasks is empty, station_only is not a key of prop_doc, added_task_ids is non-empty, and the stripped base status is not in factory_config.FINISHED_STATIONS; otherwise it returns (text, False) unchanged, and the existing schema check then refuses the illegal results exactly as today. To convert: locate the station_only top-level key with plan_merge.text._index_top_keys and delete that key's own line or lines (keep any trailing blank or comment line that belongs to the next key); then, mirroring _seed_new_plan, insert after the line matching FEATURE_LINE_RE the lines approval:, two-space status: pending (only when approval is not a key of base_doc) and the drafted_at line written as DRAFTED_AT colon quoted _creation_instant() (only when DRAFTED_AT is not a key of base_doc). Return (new text, True). In apply_merge call it right after _merge_keys and before _maybe_reset_approval, passing the added task ids that _merge_keys reports as changed tasks. Store the flag on MergeResult as a new attribute converted (constructor keyword, default False). In the PRESERVE_BASE_BYTES off path, _dump_merged applies the same conversion to its merged mapping when converted is True (pop station_only, set approval to status pending only if absent, set drafted_at only if absent). In _print_apply_receipt print, before the APPROVAL_RESET_LINE check, the line CONVERTED station-only record: station_only dropped, approval pending seeded when absent, drafted_at stamped when absent - when merged.converted is True. Above _convert_station_only add a comment block naming BUG-2582 and D-01: the writer converts because the loader pair (FEAT-41 MF-3, HIGH-1) must never relax; seeding approval and drafted_at when absent makes the result the same record _seed_new_plan would create, so INV-3 sees a pending plan and DEC-254's era check applies; a finished-station record is never converted because INV-44 and the reject path own that shape. Update the module docstring line if it lists apply's behaviours.
+
+      In .claude/skills/harness/bin/check_state/plan.py function inv_34, insert into the remedy message, right after the sentence ending an emptied plan is not a station-only record and before the FIRST CHECK paragraph, the sentence: Written through apply, the record carries a pending approval, so the first plan run can start on it; a later plan-merge.py apply or add-tasks whose proposal carries tasks converts this record into the plan: it drops station_only, and seeds a pending approval and stamps drafted_at where either is absent. Format station_only with backticks as the surrounding message already formats its keys. Extend the INV-34 comment block above inv_34 with one line naming BUG-2582 and the conversion.
+
+      Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-01.
+  - id: T-02
+    title: Rank a plan-team reader FAIL as PASS when its exact findings are resolved on disk
+    traces: [SC-05, SC-06, SC-07, SC-09, SC-11]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - changes validate-digest.py's lead roll-up, the gate that validates this feature's own digests, with its test.
+    depends_on: [T-05]
+    files:
+      - .claude/skills/harness/bin/validate-digest.py#_lead_rollup_errors
+      - tests/unit/test-validate-digest-plan-rollup.py
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-validate-digest-plan-rollup.py
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import os, subprocess, sys, tempfile
+      base = "e69608659e313e9c176560098c5d94f87482fe1f"
+      src = subprocess.run(["git", "show", base + ":.claude/skills/harness/bin/validate-digest.py"], check=True, capture_output=True, text=True).stdout
+      with tempfile.TemporaryDirectory() as tmp:
+          path = os.path.join(tmp, "validate-digest.py")
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write(src)
+          run = subprocess.run([sys.executable, "tests/unit/test-validate-digest-plan-rollup.py"], env=dict(os.environ, VALIDATE_DIGEST=path), capture_output=True, text=True)
+      lines = (run.stdout + run.stderr).splitlines()
+      def line(prefix):
+          hits = [l for l in lines if l.startswith(prefix)]
+          return hits[0] if len(hits) == 1 else ""
+      bad = [n for n in ("bug2582-relief-resolved", "bug2582-relief-reader-code-reviewer", "bug2582-relief-reader-slot", "bug2582-producer-witness") if "worst member verdict" not in line("FAIL " + n + ":").lower()]
+      bad += [n for n in ("bug2582-control-fail-verdict-valid", "bug2582-deny-escalate", "bug2582-deny-blocked", "bug2582-other-lead-eng", "bug2582-other-lead-validator") if not line("PASS " + n)]
+      if run.returncode == 0 or bad:
+          print("red-first not shown:", run.returncode, bad)
+          print("\n".join(lines[-40:]))
+          sys.exit(1)
+      print("red-first ok")
+      PY
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-digest.py
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup; every relative-path edit stays inside it. Main owns this task under DEC-174 and DEC-179, with no engineering-lead dispatch. Source issue 2582. Read this feature's BRIEF.md (SC-05 to SC-07, SC-09, SC-11), plan.yaml decisions D-02 and D-03, notes/research-plan-station-and-rollup.md and notes/research-plan-c1-apply.md first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them. .harness/harness/docs/SPEC.md (the lead roll-up paragraph) and DECISIONS.md DEC-123 are the governing descriptions. BLOCKED, ESCALATE and FAIL ranks and the reporting-worse rule are unchanged; only a qualifying reader member's raw FAIL changes rank. T-05 lands first: its teams/plan.yaml apply prompt is read by one case here.
+
+      Tests first. Create tests/unit/test-validate-digest-plan-rollup.py, modelled on tests/unit/test-validate-digest-run-pool-lines.py: put BIN (.claude/skills/harness/bin under the repository root) on sys.path, import harness_boundary, panel_findings and yaml, and load the validator with harness_boundary.load_repo_module from the path in environment variable VALIDATE_DIGEST (default BIN/validate-digest.py). Each case prints exactly one line, PASS name or FAIL name: detail, and the file exits 1 when any case failed, else 0; every case catches any Exception and reports FAIL with its class and text. On a FAIL the detail is the validator's returned error list joined with a vertical bar, so a base-tree red names the worst-member error. A worst-member error is one whose lowercased text contains worst member verdict (the validator spells WORST in capitals); match case-insensitively everywhere. Fixture builder: in a temporary directory create the feature directory .harness/harness/features/BUG-99-fixture with a feature.json that artifact_accessors.load_feature_json accepts (derive the minimal key set from feature_schema.py and this feature's own feature.json; include mission plan and its matching mission judgement) and a plan.yaml that artifact_accessors.load_plan accepts (schema, feature, status plan, approval status pending, one legal task T-01, and a panel whose findings list is the case's on-disk findings, each with id, severity, reader, kind, summary, disposition and, when resolved, resolved_by T-01). The digest is a full harness-product-lead object valid against schemas/digest/harness-product-lead.json: VERDICT PASS, artifact the absolute path feature-dir/runs/2026-11-27-01-plan-product/digest.md, team plan, members draft (harness-pm PASS), scope (harness-code-reviewer FAIL), should-not-exist (fable-advisor PASS), design (harness-ui-reviewer PASS), apply (harness-pm PASS), goalcheck (harness-pm PASS), and findings with two scope findings (reader harness-code-reviewer, kind substance, scope none, severity high, distinct summaries, a why). On-disk ids are panel_findings.finding_id(reader, summary) of the same values. Call validate("harness-product-lead", obj, feature_dir=feature-dir) and read the returned error list. Cases, each name verbatim:
+      bug2582-control-fail-verdict-valid - the qualifying fixture with VERDICT FAIL returns no errors (proves the fixture is valid apart from the roll-up).
+      bug2582-relief-resolved - both scope findings resolved on disk: VERDICT PASS returns no errors.
+      bug2582-relief-reader-code-reviewer - the same with reader code-reviewer in the digest and on disk: no errors.
+      bug2582-relief-reader-slot - the same with reader scope: no errors.
+      bug2582-producer-witness - the record, resolve, validate chain through the real verbs. Write feature-dir/runs/2026-11-27-01-plan-product/panel-c1.md holding a prose line and one fenced yaml block whose DIGEST carries readers entries for scope, should-not-exist and design (status ran, persona, reason) and findings the two scope findings with reader code-reviewer, shaped like this feature's runs/2026-11-27-01-plan-product/panel-c1.md; start from the plan.yaml with no panel key. Run python3 BIN/plan-merge.py record-panel --file plan.yaml --digest that file --cycle 1, then read the recorded panel back from plan.yaml, set both findings to disposition resolved with resolved_by T-01, and pass that mapping to python3 BIN/plan-merge.py set-panel --file plan.yaml --value-file /dev/stdin on stdin; run both with cwd the fixture root, HARNESS_PROJECT_DIR the fixture root and HARNESS_AGENT_TYPE removed from the environment, and require exit 0 from each. Then the digest whose scope findings use reader code-reviewer with VERDICT PASS: no errors.
+      bug2582-apply-prompt-resolves - yaml.safe_load the repository's .claude/skills/harness/teams/plan.yaml; in the whitespace-collapsed prompt of the step with id apply, plan-merge.py record-panel, plan-merge.py set-panel and plan-merge.py check all occur and in that order, and the prompt contains disposition: resolved, resolved_by and scope: mission.
+      Denials, each asserting a worst-member error; where marked (R) also asserting an error containing plan-team reader carve-out not applied (case-insensitive) and the named reason text:
+      bug2582-deny-open-on-disk - one scope finding open on disk (R, is not resolved).
+      bug2582-deny-historical-open - both digest findings resolved on disk plus a third on-disk row, reader harness-code-reviewer, another summary, disposition open, absent from the digest (R, is not resolved).
+      bug2582-deny-absent-from-plan - one digest finding missing from panel.findings (R, absent from plan.yaml panel.findings).
+      bug2582-deny-mismatched-row - the on-disk row carrying one digest finding's PF id has reader fable-advisor (attributed to should-not-exist) and is resolved; no row with that id carries the scope reader (R, has no matching plan.yaml panel row).
+      bug2582-deny-folded-disposition - one scope row with disposition Resolved: refused, and an error contains plan-team reader carve-out not applied, or the plan fails to load with the not-applied text naming plan.yaml missing or unloadable.
+      bug2582-deny-malformed-row - one scope row missing its summary key: refused with plan-team reader carve-out not applied (either panel.findings malformed or plan.yaml missing or unloadable).
+      bug2582-deny-no-findings - digest findings empty and on-disk findings empty (R, no findings attributed to scope).
+      bug2582-deny-unattributable - an extra digest finding with reader someone-else (R, matches no member or more than one).
+      bug2582-deny-ambiguous - an extra resolved on-disk finding with reader harness-pm, which matches draft, apply and goalcheck (R, matches no member or more than one).
+      bug2582-deny-duplicate-step - a second member entry with step scope, persona harness-security-reviewer and verdict ESCALATE beside the scope FAIL, findings resolved: refused with a worst-member error naming ESCALATE (R, duplicated reader step).
+      bug2582-deny-no-plan - plan.yaml absent (R, plan.yaml missing or unloadable).
+      bug2582-deny-unloadable-plan - plan.yaml text that load_plan refuses (R, plan.yaml missing or unloadable).
+      bug2582-deny-mission-patch - feature.json mission patch with its matching judgement (R, mission is not plan).
+      bug2582-deny-team-build - DIGEST team build, findings otherwise qualifying.
+      bug2582-deny-nonreader-draft, bug2582-deny-nonreader-apply, bug2582-deny-nonreader-goalcheck - scope PASS and that step FAIL, findings resolved.
+      bug2582-deny-escalate, bug2582-deny-blocked - scope at that verdict with findings resolved: VERDICT PASS is refused with a worst-member error naming that verdict.
+      bug2582-other-lead-eng - a schema-valid harness-eng-lead digest (team build, artifact under the same feature's runs directory) with one member at FAIL under VERDICT PASS, the same resolved plan.yaml on disk: refused with a worst-member error.
+      bug2582-other-lead-validator - the same with a schema-valid harness-validator-lead digest: refused.
+      Run the file against the unchanged validator and confirm the three relief cases and bug2582-producer-witness fail with a worst-member error, while the control, the escalate and blocked denials and the two other-lead cases pass; the verify repeats this red proof against the base revision and checks each detail.
+
+      Implementation in .claude/skills/harness/bin/validate-digest.py. Import panel_findings. Add the module constant PLAN_READER_STEPS = (scope, should-not-exist, design) as strings, with a comment that these are the plan team's reader slots (panel_findings.PANEL_READERS minus goalcheck). Pass the canonical persona from _semantic_errors into _family_errors (new first parameter), and in the lead branch call _lead_rollup_errors(seen, verdict, _plan_reader_carveout(canonical, seen, artifact, feature_dir)). Add _plan_reader_carveout returning a dict keyed by the member's INDEX in the members list (never by step) to None (carve-out applies) or a reason string (refused), holding only candidate members: a member is a candidate when canonical is harness-product-lead, str(seen team).strip() is plan, the member is a mapping whose step is in PLAN_READER_STEPS and whose verdict, normalized exactly as _worst_member normalizes it, is FAIL. With no candidates return an empty dict. Otherwise, in order, the first failing check gives every candidate the same reason: _resolve_feature_dir(artifact, feature_dir) yields no directory - reason feature directory unresolved; artifact_accessors.load_feature_json of its feature.json raises or its mission is not plan - reason feature.json mission is not plan; artifact_accessors.load_plan of its plan.yaml raises or the file is absent - reason plan.yaml missing or unloadable; the plan's panel is present but not a mapping, its findings is present but not a list, or any row has non-empty panel_findings.shape_faults(row, the plan's task ids) - reason plan.yaml panel.findings malformed (an absent panel or findings key is an empty list); two or more member entries (ran or skipped) share a step in PLAN_READER_STEPS - reason duplicated reader step STEP; any finding in seen findings or in panel.findings whose reader matches zero or more than one member - reason a finding matches no member or more than one. A finding's reader matches a member when it equals the member's step, equals its persona, or when digest_schema.canonical_persona of both resolve (catch DigestSchemaError) and are equal. Then per candidate, with D its attributed team-digest findings and R its attributed on-disk rows: D empty - reason no findings attributed to STEP; for each finding in D compute PFID = panel_findings.finding_id(str(reader), str(summary)) with the exact reader string; no row in panel.findings has id PFID - reason finding PFID absent from plan.yaml panel.findings; the rows with id PFID are not exactly one, or that row's reader string differs from the digest finding's reader string, or panel_findings.finding_id(row reader, row summary) differs from PFID - reason finding PFID has no matching plan.yaml panel row; that row's disposition is not exactly the string resolved - reason finding PFID is not resolved; then any row in R whose disposition is not exactly resolved - reason finding ROWID is not resolved; else None. Never case-fold the disposition. Change _lead_rollup_errors(seen, top, carveout) to pass carveout to _member_rank_errors and _worst_member; _worst_member ranks the member at index i as PASS only when i is a key of carveout mapping to None. When _member_rank_errors reports the worst-member error, append for each candidate with a reason the text  Plan-team reader carve-out not applied: STEP: REASON. Add a comment block above _plan_reader_carveout naming BUG-2582, D-02 and DEC-123 as amended: why attribution accepts slot or persona spellings (observed values) while PF identity binds the exact reader string; why relief is keyed by member index and a duplicated reader step denies (a step-keyed relief re-ranked a second member); why the PF id is recomputed from the team digest (the lead's word is not evidence; the hook's check_artifact_file binds the artifact to the registered run); and that every unresolvable or malformed case keeps worst-wins.
+
+      Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-02.
+  - id: T-03
+    title: Amend DEC-123, DEC-254 and DEC-228 and state the carve-out in SPEC and harness-team
+    traces: [SC-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The operator routed every task of this feature main-session-direct (DEC-174); the decision record documents the gates T-01 and T-02 change and the team step T-05 changes.
+    depends_on: [T-01, T-02, T-05]
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/docs/SPEC.md
+      - .claude/skills/harness-team/SKILL.md
+    verify: |
+      set -eu
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 - <<'PY'
+      import re, sys
+      text = open(".harness/harness/docs/DECISIONS.md", encoding="utf-8").read()
+      def section(dec):
+          found = re.search(r"(?ms)^## " + dec + r" .*?(?=^## DEC-|\Z)", text)
+          return found.group(0) if found else ""
+      bad = []
+      s123, s254, s228 = section("DEC-123"), section("DEC-254"), section("DEC-228")
+      if "now computes the roll-up and rejects a return that reports better than its\nworst member." in s123:
+          bad.append("DEC-123 clause still present")
+      if "Ordinary edits neither stamp an undated legacy plan nor change an existing stamp." in s254:
+          bad.append("DEC-254 clause still present")
+      if re.search(r"record-panel.{0,2} and runs", s228):
+          bad.append("DEC-228 clause still present")
+      for dec, body, tokens in (("DEC-123", s123, ("BUG-2582", "plan-team reader carve-out", "panel.findings", "resolved", "Since BUG-2582 the rule has one exception")), ("DEC-254", s254, ("BUG-2582", "station_only", "drafted_at")), ("DEC-228", s228, ("BUG-2582", "set-panel"))):
+          bad += [dec + " lacks " + t for t in tokens if t not in body]
+      rows = [l for l in open(".harness/harness/docs/DECISIONS-INDEX.md", encoding="utf-8") if l.startswith("- DEC-123 ")]
+      if len(rows) != 1 or "plan-team reader FAIL whose findings are all resolved" not in rows[0]:
+          bad.append("DEC-123 index ruling names no carve-out")
+      for path in (".harness/harness/docs/SPEC.md", ".claude/skills/harness-team/SKILL.md"):
+          body = open(path, encoding="utf-8").read()
+          bad += [path + " lacks " + t for t in ("plan-team reader carve-out (DEC-123)", "mission plan", "attributed to", "fails closed") if t not in body]
+      print("decisions ok" if not bad else "; ".join(bad))
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup; every relative-path edit stays inside it. Main owns this task, with no documentor dispatch. Source issue 2582. Read this feature's BRIEF.md SC-08, plan.yaml decisions D-01, D-02 and D-03 and decisions_affected, and the T-01, T-02 and T-05 commits first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them. Write only what T-01, T-02 and T-05 shipped.
+
+      1. .harness/harness/docs/DECISIONS.md, DEC-123. (a) In the opening paragraph, right after the sentence that states the rank chain BLOCKED, ESCALATE, FAIL, PASS, insert: Since BUG-2582 the rule has one exception, the plan-team reader carve-out stated below. (b) Replace the two-line sentence that begins validate-digest.py now computes the roll-up and ends worst member. (the amend clause in decisions_affected) with a sentence that begins validate-digest.py computes the roll-up and rejects a return that reports better than its worst member, with one exception, the plan-team reader carve-out (BUG-2582), and then states it: in a harness-product-lead digest with team plan for a feature whose feature.json records mission plan, carrying exactly one member entry per reader step, a reader member (scope, should-not-exist or design) at verdict FAIL ranks as PASS when every finding the team digest attributes to it matches exactly one row of that feature's plan.yaml panel.findings by recomputed PF id, carrying the same reader string and disposition resolved, and every other on-disk row attributed to it is resolved; an open, absent, mismatched, unattributable or ambiguous finding, a malformed panel row, a duplicated reader step, an unloadable plan, ESCALATE or BLOCKED, and every other team or mission keep worst-wins. Use the literal phrase plan-team reader carve-out. Format code names with backticks as the entry already does. Keep the rest of the entry, and add at its end a line recording the amendment by BUG-2582 (2026-11-27) with refs DEC-228 and DEC-229.
+      2. DECISIONS.md, DEC-254. Replace the sentence Ordinary edits neither stamp an undated legacy plan nor change an existing stamp. with: Apart from one case, ordinary edits never stamp an undated legacy plan and never change an existing stamp. The case (BUG-2582): when apply or add-tasks converts a station-only record (station_only true, empty tasks, a non-finished station) into a task-bearing plan, that conversion is plan creation - the writer drops station_only, seeds approval status pending when absent and stamps drafted_at from its own clock when absent. Format code names with backticks as the entry does.
+      3. DECISIONS.md, DEC-228. Replace the clause records the panel with plan-merge.py record-panel and runs plan-merge.py check (it wraps across a line break; the amend clause in decisions_affected) with: records the panel with plan-merge.py record-panel, marks resolved with plan-merge.py set-panel each finding whose remedy it applied in that step (BUG-2582; resolved_by names the carrying task where one exists, and a scope: mission finding and any finding it did not remedy stay open), and runs plan-merge.py check. Keep the entry's backtick formatting of the verbs and of scope: mission.
+      4. .harness/harness/docs/DECISIONS-INDEX.md. Run python3 .claude/skills/harness/bin/gen-decisions-index.py to regenerate it (anchors shift), then hand-edit only the ruling text after the double colon on the DEC-123 row to: validate-digest.py computes the team verdict roll-up BLOCKED, ESCALATE, FAIL, PASS and rejects a lead return that reports better than its worst member, except a plan-team reader FAIL whose findings are all resolved in plan.yaml (BUG-2582). Keep the existing backtick formatting of validate-digest.py and of the rank chain on that row. Re-run the generator with --stdout and diff it against the file; they must match.
+      5. .harness/harness/docs/SPEC.md, the lead roll-up paragraph that says validate-digest.py rejects a team verdict better than its worst member. Append one sentence: The plan-team reader carve-out (DEC-123) is the one exception: in a feature with mission plan, a harness-product-lead team plan digest may rank a reader member's FAIL as PASS only when every finding attributed to that reader is recorded in the feature's plan.yaml panel.findings with disposition resolved, checked on disk; the check fails closed, keeping worst-wins, on any open, absent, mismatched or unattributable finding, a duplicated reader step or an unloadable plan.
+      6. .claude/skills/harness-team/SKILL.md, the a. roll up table row. Append inside the same cell: except the plan-team reader carve-out (DEC-123) - in a feature with mission plan, the product lead's team plan digest may rank a reader's FAIL as PASS only when every finding attributed to that reader is resolved in plan.yaml, checked by validate-digest.py on disk; it fails closed to worst-wins otherwise. Keep the row one table row.
+
+      Run the literal verify from the repository root; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-03.
+  - id: T-04
+    title: Witness the first plan run starting on an apply-written station-only record and converting it
+    traces: [SC-10]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - the cases drive the real dispatch guard and plan-merge apply from a private bin; main owns the gate witness with the gates (D-04).
+    depends_on: [T-01]
+    files:
+      - tests/integration/test-lead-start-return.py#private_bin
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-lead-start-return.py
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import os, subprocess, sys, tempfile
+      base = "e69608659e313e9c176560098c5d94f87482fe1f"
+      src = subprocess.run(["git", "show", base + ":.claude/skills/harness/bin/plan_merge/union.py"], check=True, capture_output=True, text=True).stdout
+      with tempfile.TemporaryDirectory() as tmp:
+          path = os.path.join(tmp, "union.py")
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write(src)
+          run = subprocess.run([sys.executable, "tests/integration/test-lead-start-return.py"], env=dict(os.environ, LEAD_START_UNION=path), capture_output=True, text=True)
+      out = run.stdout + run.stderr
+      need = ["PASS [control] BUG-2582/stub-plan-start", "FAIL [startup] BUG-2582/stub-convert-after-start", "apply exit=5", "on a record with an EMPTY", "PASS [startup] BUG-2582/stub-hand-written-refused"]
+      missing = [n for n in need if n not in out]
+      if run.returncode == 0 or missing:
+          print("red-first not shown:", run.returncode, missing)
+          print(out[-3000:])
+          sys.exit(1)
+      print("red-first ok")
+      PY
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup; every relative-path edit stays inside it. Main owns this task under DEC-174 and DEC-179. Source issue 2582. Read this feature's BRIEF.md SC-10, plan.yaml decision D-04 and notes/research-plan-c1-apply.md first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them. Do not edit dispatch-guard.py or any bin file; this task only adds a witness to tests/integration/test-lead-start-return.py, which already drives the real dispatch guard from a private copy of the bin tree.
+
+      1. In private_bin(), right after isolated_bin(holder) returns, when environment variable LEAD_START_UNION names a file, copy it with shutil.copyfile over the private bin's plan_merge/union.py, so the cases can be red-proved against another union.py; without the variable nothing changes. Mention the variable in the module docstring's usage lines.
+      2. Add module constants STUB, the text schema: plan/1, feature: FEATURE, status: plan, station_only: true, tasks: [] (one key per line, FEATURE the module's fixture id), and PROPOSAL, schema: plan/1, feature: FEATURE, status: plan and a tasks block with one task T-01 carrying title, change_type bugfix, execution_mode main-session-direct, execution_reason fixture, files [fixture.py], verify true and intent fixture. Add a helper plan_merge(root, stdin_text, *argv) running [sys.executable, the private bin's plan-merge.py, *argv] with input stdin_text, cwd root, timeout 30, capture_output and text, and env os.environ plus HARNESS_PROJECT_DIR root with HARNESS_AGENT_TYPE removed.
+      3. Add function bug2582_station_stub(), called from main() right after sc02_scope_reader(), recording three cases with check():
+      control BUG-2582/stub-plan-start - name: a product plan start on a station-only record written through plan-merge.py apply is admitted. root = make_root([lead_run(PRODUCT)], None); plan_merge(root, STUB, apply, --file, plan_path(root), --proposal, -) must exit 0; then dispatch(root, PRODUCT, prompt(root, plan)) must satisfy started(). Detail: the apply exit code and outcome(...).
+      startup BUG-2582/stub-convert-after-start - name: the started plan run's apply converts the record into the plan. On the same root, after the started dispatch, plan_merge(root, PROPOSAL, apply, --file, plan_path(root), --proposal, -); ok when it exits 0 and yaml.safe_load of plan.yaml has no station_only key, task ids [T-01], approval equal to the mapping with status pending only, and status plan. Detail on failure: apply exit=N followed by its stdout and stderr, whitespace-collapsed, so a base-tree red names exit 5 and the loader's diagnostic. Remove the root in a finally block.
+      startup BUG-2582/stub-hand-written-refused - name: a hand-written station-only record with no approval still refuses the product plan start before any claim. make_root([lead_run(PRODUCT)], None), write STUB directly to plan_path(root), dispatch PRODUCT with prompt(root, plan); ok when refused_before_claim() holds and stderr names the realpath of plan.yaml and None.
+      Add a short comment above bug2582_station_stub naming BUG-2582 and D-04: the INV-34 remedy writes the stub through apply, which seeds approval pending, so no guard change is needed, and this group proves the whole path from start to conversion.
+
+      Run the file against the unchanged union.py (LEAD_START_UNION set to the base revision's copy, as the verify does) and confirm stub-plan-start and stub-hand-written-refused pass while stub-convert-after-start fails with apply exit=5. Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0. Commit on the feature branch with a message naming BUG-2582 T-04.
+  - id: T-05
+    title: Make the plan team's apply step resolve the findings pm applied
+    traces: [SC-11]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: The operator routed every task of this feature main-session-direct (DEC-174); the apply prompt produces the dispositions the T-02 gate reads.
+    depends_on: [T-04]
+    files:
+      - .claude/skills/harness/teams/plan.yaml
+      - .claude/skills/harness/references/plan-phase.md
+      - .claude/skills/harness/references/panel-recording.md
+    verify: |
+      set -eu
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import os, subprocess, sys, yaml
+      base = "e69608659e313e9c176560098c5d94f87482fe1f"
+      rel = ".claude/skills/harness/teams/plan.yaml"
+      def apply_prompt(text):
+          steps = {s.get("id"): s for s in yaml.safe_load(text).get("steps", [])}
+          return " ".join(str((steps.get("apply") or {}).get("prompt", "")).split())
+      now = apply_prompt(open(rel, encoding="utf-8").read())
+      old = apply_prompt(subprocess.run(["git", "show", base + ":" + rel], check=True, capture_output=True, text=True).stdout)
+      bad = [] if old and "set-panel" not in old else ["base apply prompt already names set-panel, or is missing"]
+      spots = [now.find(t) for t in ("plan-merge.py record-panel", "plan-merge.py set-panel", "plan-merge.py check")]
+      if -1 in spots or spots != sorted(spots):
+          bad.append("apply prompt does not order record-panel, set-panel, check: " + repr(spots))
+      bad += ["apply prompt lacks " + t for t in ("disposition: resolved", "resolved_by", "scope: mission", "stay open") if t not in now]
+      for doc in (".claude/skills/harness/references/plan-phase.md", ".claude/skills/harness/references/panel-recording.md"):
+          body = open(doc, encoding="utf-8").read()
+          bad += [doc + " lacks " + t for t in ("set-panel", "BUG-2582") if t not in body]
+      run = subprocess.run([sys.executable, "tests/integration/test-lead-start-return.py", "--check-producers"], capture_output=True, text=True)
+      fails = sorted(l.split(":")[0] for l in run.stdout.splitlines() if l.startswith("FAIL "))
+      known = ["FAIL [producer] producers/.claude/skills/harness/SKILL.md/lead header complies with the authority", "FAIL [producer] producers/.claude/skills/harness/references/plan-phase.md/plan and patch recipes carry their missions"]
+      if fails != known:
+          bad.append("producer check FAIL set differs from the e6960865 baseline: " + repr(fails))
+      print("apply step ok" if not bad else "; ".join(bad))
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup; every relative-path edit stays inside it. Main owns this task, with no documentor dispatch. Source issue 2582. Read this feature's BRIEF.md SC-11 and its disclosed choices under Constraints, plan.yaml decision D-03, DECISIONS.md DEC-228 and DEC-229, and notes/research-plan-c1-apply.md first. PRODUCT docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout; do not invent or substitute them. The operator may strike this task at signature (OQ-1); if struck, do not run it.
+
+      1. .claude/skills/harness/teams/plan.yaml, step apply, its prompt (a folded scalar; keep it folded and keep the file's backtick formatting of commands and keys). Replace the sentence that begins Then run plan-merge.py record-panel and ends both must exit 0 before you return. with three sentences: Then run plan-merge.py record-panel --file <plan.yaml> --digest <run_dir>/panel-c{{cycle}}.md --cycle {{cycle}}. Next mark resolved, in one plan-merge.py set-panel --file <plan.yaml> --value-file /dev/stdin whose stdin is the recorded panel with only these dispositions changed, every finding whose remedy you applied in this step - a form fix, an applied substance finding, a trimmed scope: task finding - setting disposition: resolved and resolved_by: T-NN naming the task that carries the remedy when one exists (a remedy that lives only in the BRIEF carries no resolved_by); every scope: mission finding, every finding you did not remedy and every earlier disposition stay open or as they were, and your digest names each finding left open and why. Then run plan-merge.py check --file <plan.yaml> --root <checkout root>; all three must exit 0 before you return. Keep the closing sentence Do not write approval:. Keep the literal phrase stay open in the prompt.
+      2. .claude/skills/harness/references/plan-phase.md, the bullet that begins pm applies: after the record-panel command, add that pm then runs plan-merge.py set-panel marking resolved each finding whose remedy it applied in that step, resolved_by naming the carrying task where one exists, leaving scope: mission and unremedied findings open (BUG-2582, DEC-228), before plan-merge.py check. Change nothing else in that section; tests/integration/test-lead-start-return.py --check-producers reads it, and at e6960865 its plan-phase.md check already fails on reviewed field history - leave that baseline as it is.
+      3. .claude/skills/harness/references/panel-recording.md, replace the bullet that begins A form finding you fixed in the same run with: A finding whose remedy you applied in the same run - form, substance or scope: task - is set resolved by plan-merge.py set-panel right after record-panel, with resolved_by: T-NN naming the task that carries the remedy when one exists; a scope: mission finding and any finding you did not remedy stay open (BUG-2582, DEC-228). Use the file's backtick formatting for commands and keys.
+
+      Run the literal verify from the repository root with HARNESS_AGENT_TYPE unset; it must exit 0 (its producer check expects exactly the two FAIL lines observed at e6960865, no more). Commit on the feature branch with a message naming BUG-2582 T-05.

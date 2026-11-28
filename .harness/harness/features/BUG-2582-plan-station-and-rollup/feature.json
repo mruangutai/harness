@@ -1,0 +1,78 @@
+{
+  "feature_id": "BUG-2582-plan-station-and-rollup",
+  "branch": "feat/BUG-2582-plan-station-and-rollup",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-27-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "started_at": "2026-11-28T01:35:24+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-27-01-plan-product/digest.md",
+        "sha256": "4d02716db968d87fccff1d9a34158ca66556f4a2f03a49f7a868924dae5284a9"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T02:13:26+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T01:35:31+00:00",
+      "by": "operator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "changes the plan loader/apply route, a check-state remedy and validate-digest's roll-up: enforcement surfaces (grilling 2026-11-27)"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 2,
+    "wall_clock_minutes": 90,
+    "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-2582-plan-station-and-rollup/.harness/harness/features/BUG-2582-plan-station-and-rollup/notes/answers-2026-11-27-signoff.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "6ae2b15feb74f99b41499d673534a51e08e6f56fb025866342e601845e829d7d",
+    "T-02": "29917ec55e17b9ad3cfd08d4247922ccc83fb99c98d1cb4f90e0cbb3134d1f6b",
+    "T-03": "d9ee40618ac9e32a36610a3b1ccc640761298182afa6d1ea039112fe602d9c1d",
+    "T-04": "b5cef852c440cf9209745e98723f3cad6330429f40e028acc9d422a8df28711a",
+    "T-05": "89649850de85ba4649e19bfd8ee6019861b28df9fd880e6a090159687d7db6c1"
+  },
+  "github": {
+    "milestone": 146,
+    "parent": 2630,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 2631,
+      "T-02": 2632,
+      "T-03": 2633,
+      "T-04": 2634,
+      "T-05": 2635
+    },
+    "source_issues": [
+      2582
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}
