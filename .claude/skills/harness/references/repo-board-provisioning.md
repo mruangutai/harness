@@ -26,13 +26,10 @@ repository's default branch through `harness-add-repo` step 1.
 3. Provisioning works only for a **USER-OWNED board**. Every primitive queries `user(login:)`;
    an organization-owned project is refused with "organization-owned board not supported".
    Create and configure that by hand; `provision` exits 2 rather than doing something partial.
-   Both repositories in the fleet today happen to be user-owned, so nothing else would surface this.
 4. Run `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/board_lifecycle.py audit` and show the operator
    the WORKFLOW findings **verbatim**.
 5. **All three workflows are a HARD GATE you cannot automate**: `Item closed`,
-   `Auto-close issue`, and `Pull request merged`. No API enables them: all 31 ProjectV2
-   mutations include `deleteProjectV2Workflow` and none creates or enables one, and
-   `ProjectV2Workflow` exposes neither its trigger nor its action. **Only a click in the
+   `Auto-close issue`, and `Pull request merged`. No API enables them. **Only a click in the
    project's web UI turns them on.** Ask the operator to do it, then re-run the audit.
    Registration is not finished until it reports all three enabled.
 

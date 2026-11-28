@@ -34,7 +34,7 @@ idempotent no-op; never call `open` again to discover or replace a receipt.
 Non-null `factory.repo` binds the feature to its declared fleet entry and the target's remote
 default-branch `product_config`/`board_for`. Missing, malformed, undeclared, sync-disabled or
 mismatched target configuration refuses; never fall back to Harness or an ancestor's config.
-Unbound sync-off/null-board behavior is unchanged. Nonempty active receipts need matching
+Nonempty active receipts need matching
 `github.repo`; an old `opened` marker or `factory.claims` is not ownership proof.
 
 No command repairs an invalid mapping, because no tool can prove which repository a recorded
@@ -91,8 +91,7 @@ success on state they could not read.
   `gh` can hang every consolidated operator path above.
 - The enforcement executors (`branch-create-gate.py`, `merge-gate.py`, and the check-state auth
   read) do not use this transport. They keep their private `GH_BIN` and deadline semantics, and
-  this table does not describe them. The backlog ticket about their unverified reads is not
-  their fix.
+  this table does not describe them.
 
 ## Who writes each station — one writer per column
 

@@ -83,11 +83,8 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
 
 ### 2. Interview — technical
 
-One batched `AskUserQuestion` call:
-
-- **Project type** — web app · API/service · CLI · library · data pipeline
-- **Frontend framework** (if any) and **backend framework/language**
-- **Does this project have a user-facing UI?**
+Ask the batched question of `harness-init` § 3. Interview — technical; its version is the
+complete one.
 
 Spawn `harness-dev-ops` with the answers. Before detection, MUST read and follow
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-init/SKILL.md`
@@ -117,17 +114,6 @@ Before mirror-on provisioning or auditing, MUST read and follow
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/repo-board-provisioning.md`
 (DEC-158).
 
-**Provision only USER-OWNED boards**; organization-owned boards require manual creation
-and configuration, not partial provisioning. **Record a newly created project's number in
-the repository's `harness.json` `github.board.number` BEFORE retrying or doing any other work**,
-including when a follow-up write failed: the project exists, and retrying without its number
-creates a duplicate. Land the config through step 1.
-**New-board options may be replaced only on a board created in that run; existing-board
-changes are additive only**, so no existing card loses its column.
-**Show audit WORKFLOW findings verbatim. Registration is incomplete until all three
-workflows — `Item closed`, `Auto-close issue`, `Pull request merged` — audit as enabled.**
-Only the operator's clicks in the project's web UI can enable them; no API can.
-
 ## Next: plan the first feature
 
 The repository is registered. Its first BRIEF, that BRIEF's approval, and any design pass are
@@ -137,6 +123,4 @@ The repository is registered. Its first BRIEF, that BRIEF's approval, and any de
 
 | Thought | Reality |
 |---|---|
-| "dev-ops filled the cmd, the `_reason` is harmless" | It says "unset — dev-ops has not run detection yet" next to a working command. Delete it |
-| "`npm test` is the obvious command here" | Run it. An unverified `cmd` turns a hard gate into a silent no-op |
 | "The repo is in fleet.yaml, so the factory can serve it" | Not until its `harness.json` is on its default branch. `product_config` has no fallback; run `--check-product-configs` |

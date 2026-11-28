@@ -24,10 +24,6 @@ Every persona carries `headline` (one line, the conclusion — not what you did)
 harness-expertise), plus your role's fields — see your role rule. `artifact` is the path to what
 you wrote. Durable fenced YAML in a digest.md is validator-owned output, never yours to write.
 
-Close every prose code fence before returning a lead object. The validator refuses an append
-that the durable reader cannot select, without changing existing bytes; correct the human
-assessment's unfinished fence and retry the object.
-
 | VERDICT | Means |
 |---|---|
 | `PASS` | done. May carry advisory notes |
@@ -36,9 +32,6 @@ assessment's unfinished fence and retry the object.
 | `ESCALATE` | needs the tier above (lead → orchestrator → user) |
 
 **Never invent a verdict** — undeterminable is `BLOCKED`, with why.
-
-**A dispatcher never yields with a live child:** the host holds its `task` call until the child is
-terminal (DEC-204), and the digest gate refuses a return with children in flight (DEC-233).
 
 ## Harness-owned paths — anchored, never relative
 

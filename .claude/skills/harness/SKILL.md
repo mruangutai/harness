@@ -65,11 +65,9 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    you sequence (DEC-118). Pass paths, never content; pin `review_sha` with
    `feature-record.py pin-review` before any validator run over code (INV-6). A dispatch asking
    a question names where the answer belongs:
-   `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key. Other header
-   lines follow `harness-zero-micro-management`'s dispatch header: `HARNESS-MISSION: <actual
-   phase>` only on product and validator starts, after the lead's `feature-record.py run-start`
-   registration; the guard refuses, before any claim, a lead with no or several open registered
-   runs or a plan panel on a plan that is not `pending`, naming the remedy.
+   `adequacy_notes`, a step's `evidence`, or the digest — never a new digest key. Register the
+   lead's run with `feature-record.py run-start` (`ledger.md`) before the dispatch; the other
+   header lines and the guard's refusals are `harness-zero-micro-management`'s dispatch header.
 4. **Let the host supervise the nested dispatch at the tool boundary.** Every lead and member is
    declared `blocking: true`; the `task` call remains in the host while your model is inactive,
    and returns only when the child is terminal. Do not poll, sleep, emit heartbeats, or invent
@@ -92,9 +90,6 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    `ledger.md`. **Three writes are separate, after close-run:** REPLACE `STATE.md`'s `## Current`
    (values, never narrative, DEC-150); the phase handoff note at a seam; the commit. Then route
    (below).
-   New/changed attribution, including zero, needs hash-bound digest evidence and its exact integer
-   count; FAIL is not itself a cycle. Historical `record-cycle-evidence`/`record-refusal` require
-   immutable target-local authorization and never manufacture an accepted return (`ledger.md`).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**
    Each wake advances the plan by exactly one step. **There is no waiting anywhere in this loop.**
    The goal-check grades the SCs **twice per feature and never per cycle** (SC-09): inside the
@@ -133,24 +128,14 @@ byte-verified before any commit.
   proportionality finding no reader opposes downgrades the mission to `patch` by your own hand
   (SC-03); `scope: task` findings never do, however many (DEC-228). Procedure:
   `plan-phase.md`.
-- **Build** — require the signature-created `github.build_entry` plus valid repository provenance.
-  Compatible missing/partial receipts may use main-owned `open`; invalid mappings refuse and need a
-  hand fix of the `github` block, never ordinary `open` (`github-mirror.md`). Compatible
-  `recovery-required` may continue but gates merge. Run
-  `gh-sync.py status <feature-dir> building` before task dispatch, then send the
-  `build` team to `harness-eng-lead` (single-squad, DEC-118). **A `PASS` carrying `amendments:` is
-  transcribed FIRST** — `plan-merge.py record-amendments --file <plan.yaml> --digest <lead
+- **Build** — build entry, the `build` team to `harness-eng-lead` (single-squad, DEC-118),
+  SIMPLIFY, pin `review_sha`, ONE `validate` to `harness-validator-lead`, then the `fix` loop
+  inside the rework ruling, each boundary with its `gh-sync.py status` write. `qa` enforces the
+  `test_matrix` gate with `fail_first` evidence; a qa FAIL is a `loop_back` to the owning dev
+  through a `fix` run, never a second qa run over the same sha. **A `PASS` carrying
+  `amendments:` is transcribed FIRST** — `plan-merge.py record-amendments --file <plan.yaml> --digest <lead
   digest.md>`, same run, no re-dispatch, no `cycles_used` increment (no gate failed, DEC-157); a
-  lead that could not amend returns `BLOCKED`, routed below. SIMPLIFY last; then pin `review_sha`
-  (`feature-record.py pin-review --file <feature.json> --sha <seam-commit>`) and run
-  `gh-sync.py status <feature-dir> review` before the `validate` dispatch to
-  `harness-validator-lead` over that sha — `qa` enforces the `test_matrix` gate with `fail_first`
-  evidence; a qa FAIL is a `loop_back` to the owning dev through a `fix` run, never a second qa
-  run over the same sha — beside `code`, `security`, `ui`, `goalcheck`, fanned in to one must-fix
-  list. On `must_fix`, run `gh-sync.py status <feature-dir> building` before each `fix` dispatch
-  to the validator lead naming the owning dev; re-pin on return (`feature-record.py pin-review`) and run
-  `gh-sync.py status <feature-dir> review` at the next validation boundary. The loop stays inside
-  the rework ruling. Procedure: `build-phase.md`.
+  lead that could not amend returns `BLOCKED`, routed below. Procedure: `build-phase.md`.
 - **Ship** — the briefing (`briefing.md`); the merge is the user's.
 
 ## Routing a lead's return

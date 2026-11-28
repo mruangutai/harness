@@ -23,7 +23,7 @@ List `name` + `purpose` from both directories and stop — the filesystem is the
 
 Seed `state.yaml` — `schema_version: 2`, run identity, one `pending` step per team step — before
 the first dispatch. A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion
-rule; with `steps_from:`, expand FIRST (below), then seed.
+rule, never both; with `steps_from:`, expand FIRST (below), then seed.
 
 **No shell means no clock**: `dispatched_at`, `completed_at` and their re-dispatch siblings are
 ordering markers (`seq-1`, `seq-2`, …), never invented wall-clock times; anything needing a shell
@@ -55,8 +55,7 @@ Nested objects are refused, and a value that must be read rather than matched st
 
 ## Expanding `steps_from:`
 
-A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule, never both.
-With `steps_from:`, expand it into concrete steps FIRST, then seed exactly as above:
+Expand into concrete steps, then seed exactly as above:
 
 1. **Read the source it names.** `plan_tasks` =
    `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<feat>/plan.yaml`'s `tasks:` list, loaded
@@ -74,12 +73,9 @@ With `steps_from:`, expand it into concrete steps FIRST, then seed exactly as ab
    not a topological order**.
 6. **Templates.** Substitute `{{task_id}}`/`{{persona}}` into the `id` and `outputs` templates.
 
-From there the algorithm is unchanged.
-
 ## `loop_back` bookkeeping
 
-Only a `FAIL` triggers `on_fail`; `BLOCKED` and `ESCALATE` stop the branch and go up. For
-`loop_back`:
+When `on_fail` fires and when it stops: `harness-team` step 3f. For `loop_back`:
 
 | What | Do |
 |---|---|
@@ -92,19 +88,11 @@ Only a `FAIL` triggers `on_fail`; `BLOCKED` and `ESCALATE` stop the branch and g
 | **outputs** | resolve `{{cycle}}` in any path that re-runs, else cycle 2's PASS overwrites the evidence for why cycle 1 was spent (DEC-117) |
 | **at `max_cycles`** | take `then:` — `escalate` or `halt`. An unbounded fix loop is what the counter exists to prevent |
 
-If the same step fails twice with the same reason, more cycles will not help — say so in the
-escalation rather than spending the budget to prove it.
-
 ## Close out
 
-Set `status: complete` (or `failed` / `blocked`), then write your team report (prose) to
-`<run_dir>/digest.md` and report it as your `artifact:`.
+Status, the `digest.md` report and its validator-appended block: `harness-team` §5.
 
 **The team digest is a digest of digests**: a member's shape plus `members:`, the union of
 `must_fix`, `steps_run`, cycles spent and your assessment. You return it as an object through
-YieldTool (shape and schema: `harness-team` §Reporting up), never as fenced YAML. **Durable fenced
-YAML in `digest.md` is validator-owned output only:** after the object passes every live check,
-validate-digest.py compares it with the file's last fenced mapping and, if they differ, appends a
-`yaml.safe_dump` fenced block below your prose, so the last block wins (DEC-156) — the file, not
-your transcript, is what a successor context reads. Never write or edit that block. Report
+YieldTool (shape and schema: `harness-team` §Reporting up), never as fenced YAML. Report
 per-step verdicts and the run dir path — the artifacts' paths, not their contents.

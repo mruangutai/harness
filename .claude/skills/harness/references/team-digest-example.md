@@ -2,8 +2,6 @@
 
 Read before preparing your first lead return. Collation and field semantics live in `harness-team`;
 the injected lead persona schema is the field authority (DEC-126, DEC-237).
-Schema: `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/schemas/digest/harness-eng-lead.json`;
-product-lead and validator-lead have their own `harness-<persona>.json` with the same fields.
 
 ```js
 yield({data: {
