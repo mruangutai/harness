@@ -24,6 +24,10 @@ panel:
     status: ran
     persona: harness-ui-reviewer
     reason: self-scoped out (no user-facing surface); PASS with no findings
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: graded the plan once per perspective; note at notes/research-FEAT-2622-practicality-rule-goalcheck-plan.md
   findings:
   - id: PF-c51b7a74168599b06fadfe46ca7cd9e9
     severity: high
