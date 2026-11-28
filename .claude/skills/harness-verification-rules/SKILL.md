@@ -105,11 +105,7 @@ a file path.
 
 **Need the tree at the pin?** MUST read
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/review-checkout.md` before creating
-it. Use only `pinned-checkout.py`, never a bare `git worktree add`; each reader gets its own
-feature/run/persona-keyed pin. Do not alter the primary checkout or its dirty changes to reach it.
-Copy evidence to the feature's `runs/<run-id>/` before removal; remove your pin on **every return**,
-including external fleet repositories — sibling isolation and cleanup cannot rely on a fleet hook
-(DEC-238, #1994).
+it. Use only `pinned-checkout.py`; remove your pin on **every return** (DEC-238).
 
 **A pin holds only the feature it is keyed on (FEAT-1559).** Read any other feature by absolute
 path under the control-plane root, by its concrete id — for example

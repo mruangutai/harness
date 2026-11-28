@@ -1,4 +1,4 @@
-<!-- TEMPLATE — instantiated at .harness/features/<FEAT>/STATE.md, ONE PER FLOW, owned by that
+<!-- TEMPLATE — instantiated at <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/STATE.md, ONE PER FLOW, owned by that
      feature's orchestrator (DEC-120). Per-feature because N concurrent flows would otherwise give
      a single project-level file N writers.
 
@@ -14,7 +14,7 @@
 ## Current
 
 - feature: <FEAT-NN or none>
-- run: <.harness/features/<feat>/runs/<run-id>/state.yaml — a POINTER, never a copy>
+- run: <<HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<feat>/runs/<run-id>/state.yaml — a POINTER, never a copy>
 - squad: <product | eng | validator | none>
 - status: <idle | in-flight | awaiting-user | blocked>
 
@@ -22,7 +22,7 @@
 
 <The channel from subagents to the user. A non-empty entry is an ACTIVE ROUTING
 SIGNAL, not a note: the orchestrator surfaces it, the MAIN SESSION asks the user and writes
-the answers to .harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates the
+the answers to <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/notes/answers-<runid>.md, and re-delegates the
 orchestrator with that exact path — the only answers file it will trust (issue #671). Clear
 each entry when it is answered.>
 

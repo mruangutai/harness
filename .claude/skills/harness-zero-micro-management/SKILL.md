@@ -53,9 +53,9 @@ opens **each task's own `task` text**; the guard never sees the shared `context`
 `harness-validator-lead` starts and the plan team's scope reader, whose line is
 `HARNESS-MISSION: plan`: exactly one line, in each task's own text after the first line, naming
 the actual phase being dispatched (`plan`, `patch`, `validate`, `fix`, `distill`), never the
-feature's intake mission or a phase guessed from prose. A `harness-eng-lead` start needs no
-`HARNESS-MISSION` line and is never refused for lacking one; mission forwarding and `distill`
-behave as before. Separately, the guard requires for all three leads exactly one open
+feature's intake mission or a phase guessed from prose. A `harness-eng-lead` start outside a distill run needs no
+`HARNESS-MISSION` line and is never refused for lacking one; every dispatch bound to a registered
+`distill-*` run, an engineering lead's included, carries `HARNESS-MISSION: distill`. Separately, the guard requires for all three leads exactly one open
 registered run — the `feature-record.py run-start --file <feature.json> --id <run-id> --squad
 <squad> --agent <lead>` entry made before the dispatch — because the lead's return can bind its
 digest to nothing else. Both refuse at exit 2 before any claim: register the missing run, or

@@ -24,8 +24,7 @@ until `--apply`. GitHub is the canonical tracker store, never accompanied by a m
    (`wayfind.py block <n> --by <n> --apply`).
 5. **Fire the research tickets in parallel** — they need no user, so they run now while the map is
    fresh.
-6. **Stop.** Charting resolves nothing; a session that charts and then starts resolving has spent
-   its context on both and done neither well.
+6. **Stop** — charting resolves nothing (`harness-wayfinding` § Charting and working — read before either).
 
 ## Working the map (each later session)
 
@@ -46,10 +45,5 @@ until `--apply`. GitHub is the canonical tracker store, never accompanied by a m
    The tool writes the resolution comment, closes the ticket, and appends the pointing gist to the
    map's `## Decisions so far`. Markdown: write `## Resolution` in the ticket file, mark it `closed`, then
    add **one gisted line** pointing at it in the map's `## Decisions so far`.
-5. **Graduate the fog the answer sharpened** into new tickets, clearing those patches from
-   `## Not yet specified`. If the answer puts something past the destination, close it into
-   `## Out of scope` with the reason — never resolve it on the route.
-6. **One THREAD per session, then stop** — even if you feel fine: the next session starts fresh and
-   cheap, and a long session writes worse answers (DEC-159). A thread is either one ticket explored
-   deeply, **or one frontier round**. Sessions are contexts, not calendar days: running six
-   back to back in an afternoon is the intended use, and costs only a map reload each.
+5. **Graduate the fog the answer sharpened** (`harness-wayfinding` § Fog, and out of scope).
+6. **One THREAD per session, then stop** (`harness-wayfinding` § Charting and working — read before either).

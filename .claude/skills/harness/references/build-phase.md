@@ -12,10 +12,8 @@ station per boundary are `github-mirror.md`'s table.
 
 **Every lead run here opens with `feature-record.py run-start`** before its dispatch —
 `--squad engineering --agent harness-eng-lead` for build and SIMPLIFY, `--squad validator --agent
-harness-validator-lead` for validate and fix — because the lead's return binds its digest to that
-one open registered run. `dispatch-guard.py` refuses at exit 2, before any claim, a lead with no
-or several matching open runs; register the missing run, or close surplus ones with their real
-outcome. Header declarations follow `harness-zero-micro-management`'s dispatch header.
+harness-validator-lead` for validate and fix. Header declarations and the guard's one-open-run
+refusal are `harness-zero-micro-management`'s dispatch header.
 
 1. **Build entry.** Require the signature-created `github.build_entry` and the shared binding
    and provenance proof. Ordinary Build never creates the mirror. Compatible absence or partial

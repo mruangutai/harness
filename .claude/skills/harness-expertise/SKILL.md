@@ -52,7 +52,5 @@ When unsure: if a human would want to *sign off* on it, it is a decision.
 
 ## Distillation — not here, and not now
 
-**Only an explicit distill dispatch authorizes Expertise writes** (DEC-145). Then read
-`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first: you apply your own
-ops with the `expertise_apply` tool, which preserves earlier entries (DEC-125). Format, ops and caps load at that seam, never on
-ordinary spawns (DEC-158); until then, leave both injected Expertise layers untouched.
+Only an explicit distill dispatch authorizes Expertise writes (DEC-145); it reads
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first, never on ordinary spawns (DEC-158).

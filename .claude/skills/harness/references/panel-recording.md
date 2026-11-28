@@ -14,8 +14,8 @@ It writes the top-level `panel` key from the lead's fenced DIGEST block — the 
 in the digest.md that loads to a mapping (a later block is a correction; unfenced text is refused):
 one `panel.readers` entry
 for EVERY named reader, `skipped` ones included with the persona and the lead's reason, every
-finding with its `kind` and severity carried byte for byte. A run whose only work is copying one
-file into another is the zero-value run FEAT-59 removed (DEC-229) — the verb does the copy.
+finding with its `kind` and severity carried byte for byte. The verb does the copy; no run is
+spent copying one file into another (DEC-229).
 
 Dispositions are written with `plan-merge.py set-panel`, and only in the template's shape: a
 finding carries `id severity reader kind summary disposition`, plus `scope` on a proportionality

@@ -149,6 +149,9 @@ carried by your agent definition, owns the required fields (DEC-121, DEC-237), e
 product-lead and validator-lead have their own `harness-<persona>.json` with the same fields.
 **Before your first lead return, read
 `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/team-digest-example.md`.**
+Close every prose code fence before returning a lead object. The validator refuses an append
+that the durable reader cannot select, without changing existing bytes; correct the human
+assessment's unfinished fence and retry the object.
 - `members`: `{step, persona, verdict, headline, files_touched}` for every member that ran;
   only `fable-advisor` may use `{step, persona, status: skipped, reason: "<host reason>"}`.
   Apply the roll-up and unions in §4; `branch` is `none` if the team mutated no repo.
