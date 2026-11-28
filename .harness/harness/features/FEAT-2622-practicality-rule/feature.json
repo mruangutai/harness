@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2622-practicality-rule",
   "branch": "feat/FEAT-2622-practicality-rule",
   "pr": null,
-  "review_sha": "edcda5be091e5b1aa6dcc7021e410aae56de0222",
+  "review_sha": "0ce1c841f4534e3720e95927d61f43a162aa6a13",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
@@ -51,6 +51,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T05:45:25+00:00"
+    },
+    {
+      "id": "2026-11-28-04-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T05:59:03+00:00"
     }
   ],
   "judgements": [
@@ -67,6 +74,13 @@
       "kind": "regate",
       "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-validate-c1.md",
       "reason": "validate run 02 FAIL: MF-1..MF-5 fixed main-session-direct, re-pinned; rework round 1 of 2"
+    },
+    {
+      "at": "2026-11-28T05:59:03+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2622-practicality-rule/.harness/harness/features/FEAT-2622-practicality-rule/notes/answers-2026-11-28-validate-c2.md",
+      "reason": "validate run 03 FAIL: MF-1..MF-4 fixed main-session-direct, re-pinned; rework round 2 of 2"
     }
   ],
   "mission": "plan",
