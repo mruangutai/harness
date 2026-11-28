@@ -12,7 +12,10 @@ D-03) holds one owner-checkout harness_merge lock from start until the synchrono
 completes or fails. Inside it: current main, the exact PR head, replay --check, check-expertise,
 committed-blob equality, and the same owner/binding/mirror-receipt policy the hook enforces
 (DEC-220); main and head are rechecked immediately before merging at the exact head commit. It
-never rebases, applies, re-judges, opens or recovers mirrors.
+never rebases, applies, re-judges, opens or recovers mirrors. After the merge, still under the
+lock, it removes the feature's local working files (DEC-260); exit 0 merged and cleaned, 3 refused
+before any merge (nothing removed), 5/6/9 the lock refused, 4 merged but the cleanup failed - the
+stderr line names the clean command to retry alone.
 
 WAS A .sh WRAPPER (issue #1674). This native entry point preserves the wrapper's
 isolated root resolution, refusal behavior and hook stream contracts while
@@ -88,6 +91,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import artifact_accessors
 import feature_corpus
 import harness_merge
+import working_files
 BIN = os.path.dirname(os.path.abspath(__file__))
 EXPERTISE_PATH_RE = re.compile(r"^\.harness/(?:[^/]+/)?expertise/[^/]+\.md$")
 DISTILL_COMMAND = ("python3 .claude/skills/harness/bin/merge-gate.py merge-distill "
@@ -532,7 +536,38 @@ def merge_distill(root, feature, number):
     root = os.path.realpath(root)
     lock_path = os.path.join(feature_corpus.owner_root(root), DISTILL_LOCK)
     with harness_merge.acquire(lock_path):
-        return _verified_merge(root, feature, number)
+        evidence = _verified_merge(root, feature, number)
+        removed, error, retry = _clean_after_merge(root, feature)
+        evidence["cleaned"] = removed
+        if error is not None:
+            evidence["cleanup_error"] = error
+            evidence["cleanup_retry"] = retry
+        return evidence
+
+
+def _clean_after_merge(root, feature):
+    """Remove the merged feature's working files (DEC-260). (removed, None, None) on success;
+    (removed so far, error text, retry command) on any failure - never raises, so a post-merge
+    failure is never reported as a refusal of a merge that has landed."""
+    removed, feature_dir = [], None
+    try:
+        feature_dir = working_files.feature_directory(root, feature)
+        owner = feature_corpus.owner_root(root)
+        working_files.clean(feature_dir, owner, emit=lambda line: removed.append(line.split(" ", 1)[1]))
+    except (working_files.WorkingFilesError, feature_corpus.CorpusError, OSError) as exc:
+        return removed, str(exc), _cleanup_retry(feature_dir, feature)
+    return removed, None, None
+
+
+def _cleanup_retry(feature_dir, feature):
+    fallback = ("python3 .claude/skills/harness/bin/feature-worktree.py clean --repo <repo> "
+                f"--id {feature} --yes")
+    if feature_dir is None:
+        return fallback
+    try:
+        return working_files.retry_command(feature_dir)
+    except (working_files.WorkingFilesError, OSError):
+        return fallback
 
 
 def _pr_number(text):
@@ -562,6 +597,11 @@ def distill_main(argv):
         print(f"merge-distill: REFUSED {args.feature} PR #{args.pr}: {exc}", file=sys.stderr)
         return 3
     print(json.dumps(evidence, sort_keys=True))
+    if "cleanup_error" in evidence:
+        print(f"merge-distill: MERGED {args.feature} PR #{args.pr}, but working-file cleanup failed: "
+              f"{evidence['cleanup_error']}; retry the cleanup alone with: {evidence['cleanup_retry']} "
+              f"- do not re-run merge-distill; the merge has landed", file=sys.stderr)
+        return 4
     return 0
 
 
