@@ -263,13 +263,19 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
     ignored_approval = _refuse_approval_conflict(base_doc, prop_doc)
     out_order, out_text, added_ids, preserved_ids, replaced, changed_tasks, ignored = _merge_keys(
         base_text, proposal_text, base_doc, prop_doc)
-    out_text, converted = _convert_station_only(out_text, base_doc, prop_doc, changed_tasks)
-    spliced_text, reset = _maybe_reset_approval(out_text, base_doc, verb, changed_tasks)
-    changes = _replaced_fields(replaced)
+    spliced_text, reset, converted = _convert_then_reset(out_text, base_doc, prop_doc, verb,
+                                                         changed_tasks)
     out_bytes = _final_bytes(spliced_text, base_doc, prop_doc, out_order, added_ids, replaced,
                              converted)
-    return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval, changes, reset, ignored,
-                       converted)
+    return MergeResult(out_bytes, added_ids, preserved_ids, ignored_approval,
+                       _replaced_fields(replaced), reset, ignored, converted)
+
+
+def _convert_then_reset(out_text, base_doc, prop_doc, verb, changed_tasks):
+    """(text, reset, converted): the station-only conversion, then the approval reset."""
+    converted_text, converted = _convert_station_only(out_text, base_doc, prop_doc, changed_tasks)
+    spliced_text, reset = _maybe_reset_approval(converted_text, base_doc, verb, changed_tasks)
+    return spliced_text, reset, converted
 
 
 # BUG-2582 (D-01): A STATION-ONLY RECORD BECOMES A PLAN WHEN A PROPOSAL ADDS TASKS TO IT.
@@ -285,29 +291,48 @@ def apply_merge(base_bytes, proposal_text, verb="apply"):
 def _convert_station_only(text, base_doc, prop_doc, added_task_ids):
     """(text, converted): `text` with the station-only marker dropped and a pending approval and
     creation stamp seeded where absent, when this merge turns a station-only record into a plan."""
-    if not (base_doc.get("station_only") is True and not base_doc.get("tasks")
-            and "station_only" not in prop_doc and added_task_ids
-            and str(base_doc.get("status") or "").strip()
-            not in factory_config.FINISHED_STATIONS):
+    if not _converts(base_doc, prop_doc, added_task_ids):
         return text, False
+    lines = _without_top_key(text, "station_only")
+    if lines is None:
+        return text, False
+    return _seeded_after_feature(text, lines, _creation_seed(base_doc))
+
+
+def _converts(base_doc, prop_doc, added_task_ids):
+    """Whether this merge takes a non-finished station-only record to a task-bearing plan."""
+    station = str(base_doc.get("status") or "").strip()
+    return all((base_doc.get("station_only") is True, not base_doc.get("tasks"),
+                "station_only" not in prop_doc, bool(added_task_ids),
+                station not in factory_config.FINISHED_STATIONS))
+
+
+def _without_top_key(text, key):
+    """`text`'s lines without top-level `key` and its own continuation lines, or None when the
+    key is absent. A blank or comment line before the next key stays."""
     lines, _order, ranges, _preamble = _index_top_keys(text)
-    if "station_only" not in ranges:
-        return text, False
-    start, end = ranges["station_only"]
+    if key not in ranges:
+        return None
+    start, end = ranges[key]
     stop = start + 1
-    # The key's own continuation lines only; a blank or comment line before the next key stays.
     while stop < end and lines[stop].strip() and lines[stop][:1] in " \t":
         stop += 1
-    del lines[start:stop]
-    seeded = []
-    if "approval" not in base_doc:
-        seeded += ["approval:\n", "  status: pending\n"]
+    return lines[:start] + lines[stop:]
+
+
+def _creation_seed(base_doc):
+    """The lines `_seed_new_plan` writes on creation that `base_doc` does not already carry."""
+    seeded = [] if "approval" in base_doc else ["approval:\n", "  status: pending\n"]
     if DRAFTED_AT not in base_doc:
         seeded.append(f"{DRAFTED_AT}: '{_creation_instant()}'\n")
+    return seeded
+
+
+def _seeded_after_feature(text, lines, seeded):
+    """(lines joined with `seeded` after the top-level feature: line, True), or (text, False)."""
     for index, line in enumerate(lines):
         if FEATURE_LINE_RE.match(line):
-            lines[index + 1:index + 1] = seeded
-            return "".join(lines), True
+            return "".join(lines[:index + 1] + seeded + lines[index + 1:]), True
     return text, False
 
 
@@ -673,12 +698,18 @@ def _dump_merged(base_doc, prop_doc, out_order, converted=False):
     _carry_plain_keys(merged_doc, prop_doc)
     if "approval" in base_doc:
         merged_doc["approval"] = base_doc.get("approval")
-    if converted:
-        merged_doc.pop("station_only", None)
-        merged_doc.setdefault("approval", {"status": "pending"})
-        merged_doc.setdefault(DRAFTED_AT, _creation_instant())
+    _mark_converted(merged_doc, converted)
     dumped = yaml.safe_dump(merged_doc, sort_keys=False, allow_unicode=True).encode("utf-8")
     return dumped
+
+
+def _mark_converted(merged_doc, converted):
+    """The station-only conversion on the safe_dump path's mapping, in place."""
+    if not converted:
+        return
+    merged_doc.pop("station_only", None)
+    merged_doc.setdefault("approval", {"status": "pending"})
+    merged_doc.setdefault(DRAFTED_AT, _creation_instant())
 
 
 def _merged_union_list(base_list, prop_list):

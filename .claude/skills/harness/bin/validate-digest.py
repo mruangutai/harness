@@ -2044,10 +2044,10 @@ def _plan_reader_carveout(canonical, seen, artifact, feature_dir):
     candidates = _carveout_candidates(canonical, seen, members)
     if not candidates:
         return {}
-    rows, reason = _carveout_rows(seen, members, artifact, feature_dir)
+    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
+    rows, reason = _carveout_rows(findings, members, artifact, feature_dir)
     if reason:
         return {index: reason for index in candidates}
-    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
     return {index: _candidate_reason(index, members, findings, rows) for index in candidates}
 
 
@@ -2060,7 +2060,7 @@ def _carveout_candidates(canonical, seen, members):
             and _member_verdict(member)[0] == "FAIL"]
 
 
-def _carveout_rows(seen, members, artifact, feature_dir):
+def _carveout_rows(findings, members, artifact, feature_dir):
     """(plan.yaml panel.findings rows, None), or (None, why the carve-out cannot apply)."""
     plan, reason = _carveout_plan(artifact, feature_dir)
     if reason:
@@ -2071,7 +2071,6 @@ def _carveout_rows(seen, members, artifact, feature_dir):
     duplicate = _duplicated_reader_step(members)
     if duplicate:
         return None, f"duplicated reader step {duplicate}"
-    findings = [f for f in seen.get("findings") or [] if isinstance(f, dict)]
     if any(len(_matching_members(item.get("reader"), members)) != 1
            for item in findings + rows):
         return None, "a finding matches no member or more than one"
@@ -2139,18 +2138,19 @@ def _reader_names(reader, member):
 
 def _candidate_reason(index, members, findings, rows):
     """None when every finding attributed to member `index` is resolved on disk, else why not."""
-    step = members[index].get("step")
     mine = [f for f in findings if _matching_members(f.get("reader"), members) == [index]]
     if not mine:
-        return f"no findings attributed to {step}"
-    for item in mine:
-        reason = _digest_finding_reason(item, rows)
-        if reason:
-            return reason
-    for row in rows:
-        if (_matching_members(row.get("reader"), members) == [index]
-                and row.get("disposition") != "resolved"):
-            return f"finding {row.get('id')} is not resolved"
+        return f"no findings attributed to {members[index].get('step')}"
+    reasons = ([_digest_finding_reason(item, rows) for item in mine]
+               + [_open_row_reason(row, index, members) for row in rows])
+    return next((reason for reason in reasons if reason), None)
+
+
+def _open_row_reason(row, index, members):
+    """Why an on-disk row attributed to member `index` blocks relief, or None."""
+    if (_matching_members(row.get("reader"), members) == [index]
+            and row.get("disposition") != "resolved"):
+        return f"finding {row.get('id')} is not resolved"
     return None
 
 
@@ -2204,20 +2204,24 @@ def _member_rank_errors(members, top, carveout):
 
 
 def _worst_member(members, carveout):
-    """(worst verdict, its entry's head, errors) over the members that actually ran. A member
-    whose index the carve-out relieves (maps to None) ranks as PASS."""
+    """(worst verdict, its entry's head, errors) over the members that actually ran."""
     err = []
     worst, worst_src = None, None
     for index, item in enumerate(members):
-        v, error = _member_verdict(item)
+        v, error = _ranked_member_verdict(index, item, carveout)
         if error:
             err.append(error)
-            continue
-        if v is not None and index in carveout and carveout[index] is None:
-            v = "PASS"
-        if _outranks(v, worst):
+        elif _outranks(v, worst):
             worst, worst_src = v, str(item)[:60]
     return worst, worst_src, err
+
+
+def _ranked_member_verdict(index, item, carveout):
+    """`_member_verdict`, except a member the carve-out relieves (index maps to None) is PASS."""
+    v, error = _member_verdict(item)
+    if v is not None and carveout.get(index, "") is None:
+        return "PASS", error
+    return v, error
 
 
 def _outranks(v, worst):
