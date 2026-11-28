@@ -178,9 +178,9 @@ def residue(args):
     if not positive: print("positive control empty"); return 1
     bad=0; used=set()
     for path,n,line in matches:
-        hit=next((e for e in RESIDUE_EXEMPTIONS if path==e[0] and e[1] in line),None)
-        print(f"{'covered' if hit else 'LIVE'} {path}:{n}:{line}")
-        if hit: used.add(hit)
+        hits=[e for e in RESIDUE_EXEMPTIONS if path==e[0] and e[1] in line]
+        print(f"{'covered' if hits else 'LIVE'} {path}:{n}:{line}")
+        if hits: used.update(hits)
         else: bad+=1
     for p,frag in RESIDUE_EXEMPTIONS:
         if (p,frag) not in used: print(f"stale exemption: {p} {frag}"); bad+=1

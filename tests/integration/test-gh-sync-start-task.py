@@ -359,7 +359,7 @@ def _terminal_exemption_from_plan():
         edits = _item_edits(tmp)
         check("T-07 NEGATIVE CONTROL: a live plan.yaml station does NOT exempt — the parent rule "
               "still runs and writes",
-              r.returncode == 0 and edits,
+              r.returncode == 0 and _wrote(edits, "ITEM_40"),
               f"exit {r.returncode}; edits={edits}")
 
 
