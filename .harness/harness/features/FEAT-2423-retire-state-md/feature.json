@@ -1,0 +1,27 @@
+{
+  "feature_id": "FEAT-2423-retire-state-md",
+  "branch": "feat/FEAT-2423-retire-state-md",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-11-28-01-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T15:26:18+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T15:26:17+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "removes check-state INV-2/5/23 and a check-domain budget (enforcement layer, DEC-174); strikes DEC-45; spans skills, agents, bin, tests, 39 feature dirs"
+    }
+  ],
+  "mission": "plan"
+}
