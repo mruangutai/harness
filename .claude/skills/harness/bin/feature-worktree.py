@@ -426,9 +426,6 @@ def _behind_one(owner_root, dest, default_branch):
     return 6
 
 
-_TERMINAL = ("done", "abandoned", "rejected")
-
-
 def _id_matches(name, fid):
     return name == fid or name.startswith(fid + "-") or fid.startswith(name + "-")
 
@@ -463,11 +460,12 @@ def _clean_copies(args):
 
 def cmd_clean(args):
     """Remove a feature's working files once its landed or worktree record is terminal."""
+    import factory_config
     from check_state import ctx as check_ctx
     owner, owner_copy, wt_copy = _clean_copies(args)
     stations = [check_ctx.lenient_station(c) if c and os.path.isdir(c) else None
                 for c in (owner_copy, wt_copy)]
-    if not any(s in _TERMINAL for s in stations):
+    if not any(s in factory_config.FINISHED_STATIONS for s in stations):
         landed, worktree = (s or "absent" for s in stations)
         print(f"REFUSED clean: {args.id} is at no terminal station (landed record: {landed}; "
               f"worktree record: {worktree}); working files are cleaned only at a terminal station")
