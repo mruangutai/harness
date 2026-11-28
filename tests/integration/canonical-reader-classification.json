@@ -89,10 +89,10 @@
       "disposition": "canonical",
       "execution_route": "team",
       "file": ".claude/skills/harness/bin/board-station.py",
-      "id": ".claude/skills/harness/bin/board-station.py::main::json_file#1",
+      "id": ".claude/skills/harness/bin/board-station.py::_github::json_file#1",
       "reason": "",
       "remedy": "artifact_accessors.load_harness_json",
-      "symbol": "main",
+      "symbol": "_github",
       "task": "T-03"
     },
     {
