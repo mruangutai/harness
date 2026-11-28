@@ -78,7 +78,7 @@ success on state they could not read.
 | `gh-sync.py` merged-PR list at ship | One line, no PR write, and ship continues to its status write | Same shape as zero results. |
 | `gh-sync.py` issue-type capability query fails | One line, run downgraded to labels only; never `SKIP`, never an exit | Nothing is typed this run. |
 | `gh-sync.py` board projection (`BoardError`) | One stderr line per card; later cards are attempted; exit unchanged | The card is left where it was. |
-| `board-station.py` write fails (`BoardError` or `GhError`) | One stderr diagnostic, exit 0 | The card is left where it was. Its only nonzero exit is its own exit-2 refusal of a bad argument. |
+| `board-station.py` write fails (`BoardError` or `GhError`), or the issue's state cannot be read | One stderr diagnostic, exit 0 | The card is left where it was. Its only nonzero exit is its own exit-2 refusal of a bad argument, or of a closed issue named for any station other than `done` (#2639). |
 | `factory` tools (`factory_land`, `factory_decompose`, `factory_claim`) `GhError` | One stderr line, exit 2 | Exit 2 may follow irreversible remote writes, such as `factory_land`'s push and PR create or `factory_decompose`'s created issues and recorded receipt. Read the receipt before re-running. |
 | `board_lifecycle.py` audit fails to read | Exit 4; never 1 (findings), never a silent empty report | Read-only. |
 | `board_lifecycle.py` provision fails after creating or linking a project | Exit 4, not 2, since something was created | stderr names what exists. |
