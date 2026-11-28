@@ -69,6 +69,13 @@
       "cycles_used": 0,
       "ended_at": "2026-11-27T18:55:16+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-11-27-01-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T00:49:20+00:00"
     }
   ],
   "judgements": [
@@ -134,6 +141,13 @@
       "kind": "amendment",
       "decision": "T-01.intent",
       "reason": "Signature ruling PF-42a75f8f: the stale only-language names D-01's remedy and test exceptions; no scope change."
+    },
+    {
+      "at": "2026-11-28T00:49:20+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "proceed to validate",
+      "reason": "Plan panel FAIL was escalated and the operator signed with rulings; build complete, receipts PASS at the pin."
     }
   ],
   "mission": "plan",
