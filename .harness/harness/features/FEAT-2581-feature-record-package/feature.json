@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2581-feature-record-package",
   "branch": "feat/FEAT-2581-feature-record-package",
   "pr": null,
-  "review_sha": "a03103b0d85128217401dc84157bfa97827f8a96",
+  "review_sha": "c039c32dea25d26e3235ee90e1343d7280ddfd4e",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -99,6 +99,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T01:33:11+00:00"
+    },
+    {
+      "id": "2026-11-27-03-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T01:34:42+00:00"
     }
   ],
   "judgements": [
@@ -171,6 +178,13 @@
       "kind": "regate",
       "decision": "proceed to validate",
       "reason": "Plan panel FAIL was escalated and the operator signed with rulings; build complete, receipts PASS at the pin."
+    },
+    {
+      "at": "2026-11-28T01:34:42+00:00",
+      "by": "harness-orchestrator",
+      "kind": "regate",
+      "decision": "fix round 2 then re-validate",
+      "reason": "Validate 02 FAIL on the SEC-1 residual (ledger parent accepted unchecked, med); fixed with CR-3 and CR-4 at c039c32d, T-03 verify PASS, full-range code grade exit 0; last round of the 2-round ruling."
     }
   ],
   "mission": "plan",
