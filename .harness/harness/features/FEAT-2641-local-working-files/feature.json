@@ -141,15 +141,16 @@
   },
   "signed_task_hashes": {
     "T-01": "164c12b18b7260faa1d0447e33c160335e90d4bf74e7b302fd1f5567eddbc67c",
-    "T-02": "8dbcf4efc1a80dd085eb1316eced105000902378cf54a7f8bdee4b13ee2305ad",
+    "T-02": "acd33be9c0013f02db49f4e4a9e4928f8b5fc5306bea0d029391ab26047baf4b",
     "T-03": "b81b2cae689c744be19088a45fd7f4dfbf2c78964cc9154b409154b96d08f776",
     "T-04": "a027d116ba133adf0f23b39bb9b73e09a2299c936e07cb4e86d18820f537a030",
-    "T-05": "7ad4f74b1371b661e9542f726ceac922dc30755c89863e85582192bb1f56a216",
-    "T-06": "28728accef0260cb71dcc415758044b6b69e3db9a934305a208a2a4487a7be5e",
-    "T-07": "b7e39ee4099df78cf7b8439ee3881b81aaaceb57dc9c185d2d7a83fa6653b1f8",
+    "T-05": "2f94f74430b89497afe8e9baefedd1b01070155dc9eba0e722bf81845fb0a967",
+    "T-06": "e2a7556a27a745b5e9e7ce601181fb7aa0938afd95ebeb072885677905fb581b",
+    "T-07": "edfd6a4a49a4a46a9bf79e12debfda57d35d802d7de29c78c3c89c40c5848cef",
     "T-08": "b0ff88cabad8fe82b065c5a320ca6a72f481981f1404fa5417e2a9aefc83418b",
-    "T-09": "f189b097236ce51add193bf11e46539876405db59ecb40085cc2fc9deabb7a7e",
-    "T-10": "b6f6340b9073b80c477ed995f81c6e96b14941cec363a3e95a62723b02a2ad39"
+    "T-09": "655b5f4db2cfb68d5db56311fba5b0574a46acb90bd84286ca35f0b72354e575",
+    "T-10": "b6f6340b9073b80c477ed995f81c6e96b14941cec363a3e95a62723b02a2ad39",
+    "T-11": "ea074095956286d72a8a215aa24ec5993343711a3df4f8e78f5506eb2a76866a"
   },
   "github": {
     "milestone": 148,
@@ -164,7 +165,8 @@
       "T-07",
       "T-08",
       "T-09",
-      "T-10"
+      "T-10",
+      "T-11"
     ],
     "issues": {
       "T-01": 2656,
@@ -176,7 +178,8 @@
       "T-07": 2662,
       "T-08": 2663,
       "T-09": 2664,
-      "T-10": 2665
+      "T-10": 2665,
+      "T-11": 2686
     },
     "source_issues": [
       2641
@@ -192,6 +195,7 @@
       "T-08": true,
       "T-09": true,
       "T-10": true,
+      "T-11": true,
       "parent": true
     },
     "build_entry": "opened",
