@@ -3,7 +3,7 @@ feature: FEAT-2516-stamp-sweep-hardening
 approval:
   status: pending
 drafted_at: '2026-11-27T03:10:49Z'
-status: plan
+status: abandoned
 source_issues:
 - 2524
 
