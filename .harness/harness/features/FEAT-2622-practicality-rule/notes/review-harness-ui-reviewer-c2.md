@@ -1,0 +1,1 @@
+Mode B — out of scope: the pinned diff `3e979ae3cd303fdf65746bf13c8c8e041dac4964..edcda5be091e5b1aa6dcc7021e410aae56de0222` changes 57 paths, 0 of them rendered or interactive UI; no feature `DESIGN.md` exists at the pin, and visual accessibility and light/dark parity do not apply.
