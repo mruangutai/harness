@@ -2,7 +2,7 @@
   "feature_id": "FEAT-2581-feature-record-package",
   "branch": "feat/FEAT-2581-feature-record-package",
   "pr": null,
-  "review_sha": "62da450182282b05b25a127528f9223ac90fc6c8",
+  "review_sha": "a03103b0d85128217401dc84157bfa97827f8a96",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "runs": [
@@ -84,6 +84,13 @@
       "cycles_used": 0,
       "tokens": null,
       "ended_at": "2026-11-28T01:01:32+00:00"
+    },
+    {
+      "id": "2026-11-27-02-validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PENDING",
+      "started_at": "2026-11-28T01:22:12+00:00"
     }
   ],
   "judgements": [
