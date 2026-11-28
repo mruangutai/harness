@@ -54,7 +54,7 @@ if __name__ == "__main__":
     if _bootstrap_boundary is not None:
         _bootstrap_sys.exit(_bootstrap_boundary.run_hook_body(__file__, "bash-write-guard", "bash_write_guard_body"))
 
-import sys, os, re, json, shlex, ast
+import sys, os, re, json, shlex, ast, subprocess
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
 # behaviour: the two-launch version reached the absent-manifest fail-open in BASH,
@@ -859,10 +859,38 @@ def _working_counts(worktree, working_files):
     return [entry for entry in found if entry[2]]
 
 
+def _listed_worktrees(where):
+    """The worktree paths `git [-C <where>] worktree list --porcelain -z` prints, the main one
+    first. A list git cannot produce refuses: the removal's target is then unresolvable."""
+    argv = ["git"] + (["-C", where] if where else []) + ["worktree", "list", "--porcelain", "-z"]
+    try:
+        listed = subprocess.run(argv, capture_output=True)
+    except OSError as exc:
+        _refuse_native_remove(f"`git worktree list` could not run ({exc}), so the worktree a "
+                              "`git worktree remove` names cannot be resolved.")
+    if listed.returncode != 0:
+        _refuse_native_remove(f"`git worktree list` failed ({os.fsdecode(listed.stderr).strip()}), "
+                              "so the worktree a `git worktree remove` names cannot be resolved.")
+    return [os.fsdecode(field[len(b"worktree "):]) for field in listed.stdout.split(b"\0")
+            if field.startswith(b"worktree ")]
+
+
+def _suffix_names(path, operand):
+    """Whether <operand> names the listed worktree at path the way git's find_worktree_by_suffix
+    does: a path suffix starting at a directory boundary. Compared case-insensitively and without
+    git's uniqueness test, so the matches are a superset of git's pick; git's other rule, the
+    same real path, is the operand's own directory."""
+    start = len(path) - len(operand)
+    at_boundary = start == 0 or (start > 0 and path[start - 1] == "/")
+    return bool(operand) and at_boundary and path[start:].lower() == operand.lower()
+
+
 def _remove_target(args):
-    """(operand, absolute worktree path) for `git [-C <dir>] worktree remove <worktree>`, the
-    relative operand resolved against -C, else the hook's cwd; None for any other git call. No
-    determinable operand refuses (DEC-151's undecidable direction)."""
+    """(operand, worktree paths) for `git [-C <dir>] worktree remove <worktree>`; None for any
+    other git call. The paths are the operand's directory, resolved against -C, else the hook's
+    cwd, and every linked worktree git's own list says the operand can name (an identifier or a
+    unique path suffix); git refuses to remove the main worktree. No determinable operand
+    refuses (DEC-151's undecidable direction)."""
     where, rest = _git_effective_args(args)
     if rest[:2] != ["worktree", "remove"]:
         return None
@@ -870,28 +898,39 @@ def _remove_target(args):
     if operand is None:
         _refuse_native_remove("`git worktree remove` with no worktree operand this guard can "
                               "determine, so it cannot tell whether working files would be lost.")
-    return operand, os.path.abspath(os.path.join(where, operand))
+    lexical = os.path.abspath(os.path.join(where, operand))
+    named = ([lexical] if os.path.isdir(lexical) else []) + [
+        path for path in _listed_worktrees(where)[1:] if _suffix_names(path, operand)]
+    worktrees = {}
+    for path in named:
+        worktrees.setdefault(os.path.realpath(path), path)
+    return operand, list(worktrees.values())
 
 
-def _counted_or_refuse(operand, worktree):
-    """(_working_counts, each counted feature's retry command); any failure refuses."""
+def _counted_or_refuse(operand, worktrees):
+    """(_working_counts over every worktree, each counted feature's retry command); a failure to
+    load working_files or to count refuses (DEC-151)."""
     try:
         import working_files
-        counted = _working_counts(worktree, working_files)
+    except (ImportError, SyntaxError) as exc:
+        _refuse_native_remove(f"`git worktree remove {operand}`: working_files.py could not be "
+                              f"loaded ({type(exc).__name__}: {exc}).")
+    try:
+        counted = [entry for wt in worktrees for entry in _working_counts(wt, working_files)]
         return counted, [working_files.retry_command(feature) for feature, _rel, _c in counted]
-    except Exception as exc:  # fail closed: any failure to count is a refusal (DEC-151)
+    except (OSError, ImportError, working_files.WorkingFilesError) as exc:
         _refuse_native_remove(f"`git worktree remove {operand}`: its working files could not be "
                               f"counted ({type(exc).__name__}: {exc}).")
 
 
 def _native_remove_gate(args):
-    """Refuse `git [-C <dir>] worktree remove <worktree>` when <worktree> holds untracked feature
-    working files; a non-directory operand is git's to refuse."""
+    """Refuse `git [-C <dir>] worktree remove <worktree>` when any worktree git could take
+    <worktree> for holds untracked feature working files."""
     target = _remove_target(args)
-    if target is None or not os.path.isdir(target[1]):
+    if target is None:
         return
-    operand, worktree = target
-    counted, retries = _counted_or_refuse(operand, worktree)
+    operand, worktrees = target
+    counted, retries = _counted_or_refuse(operand, worktrees)
     if not counted:
         return
     print(f"bash-write-guard: BLOCKED — `git worktree remove {operand}` would delete untracked "

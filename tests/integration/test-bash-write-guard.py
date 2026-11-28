@@ -840,6 +840,42 @@ def run_native_remove_retention():
     _record(results)
 
 
+_NATIVE_COUNTS = ("notes/ (1 files)", "runs/ (1 files)", "feature-worktree.py")
+
+
+def _native_identifier_cases(root, tmp):
+    """(name, command, wanted exit, hook cwd, stderr needles) for the identifier operands."""
+    return [
+        ("T-11 (f): `git worktree remove FEAT-91` (a bare worktree identifier, cwd the owner "
+         "checkout) exits 2 with the counts", "git worktree remove FEAT-91", 2, root, _NATIVE_COUNTS),
+        ("T-11 (g): a unique multi-component suffix `harness/FEAT-91` exits 2",
+         "git worktree remove harness/FEAT-91", 2, root, _NATIVE_COUNTS),
+        ("T-11 (h): `git -C <root> worktree remove FEAT-91` from outside any repository resolves "
+         "through -C and exits 2", f"git -C {root} worktree remove FEAT-91", 2, tmp, _NATIVE_COUNTS),
+        ("T-11 (i): an identifier that cannot be resolved (no repository at the cwd) is refused",
+         "git worktree remove FEAT-91", 2, tmp, ("git worktree list",)),
+        ("T-11 (j): the identifier of a worktree without working files is left to git (exit 0)",
+         "git worktree remove FEAT-92", 0, root, ()),
+    ]
+
+
+def run_native_remove_identifier():
+    """FEAT-2641 T-11 (fix c1 must_fix 1): git also takes a worktree by a unique path-suffix
+    identifier, resolved in the repository the cwd or -C addresses, so the guard resolves the
+    operand as git's find_worktree does; an operand it cannot resolve is refused."""
+    tmp, root, worktrees, feature = _native_remove_fixture()
+    results = []
+    for name, cmd, want, cwd, needles in _native_identifier_cases(root, tmp):
+        r = fire(root, cmd, cwd=cwd)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+    kept = [os.path.join(feature, "notes", "x.md"), os.path.join(feature, "runs", "r", "digest.md")]
+    results.append(("T-11 (f)-(i): the worktree and both working files survive",
+                    os.path.isdir(worktrees["FEAT-91"]) and all(map(os.path.exists, kept)), feature))
+    shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
 FEAT50_MANIFEST = """schema_version: 1
 teams:
   - name: build
@@ -1818,6 +1854,7 @@ def main():
     run_worktree_deep()
     run_head_move()
     run_native_remove_retention()
+    run_native_remove_identifier()
     run_feat50_checkout_binding()
     run_feat61_feature_checkout_adapter()
     run_feat65_guard_cases()

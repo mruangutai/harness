@@ -2495,14 +2495,17 @@ def _decline_recorded(feature_json):
 
 
 def _feature_worktree(argv, owner):
-    """feature-worktree.py through the absolute bin path, bound to the owner checkout: cwd and
-    HARNESS_PROJECT_DIR both name it, so a stale override in the caller's environment cannot
-    point the child at another checkout's copy of the feature. Its lines are relayed prefixed
-    `gh-sync: `. Returns its exit code, or None after reporting that it could not be launched."""
+    """feature-worktree.py through the absolute bin path, bound to the owner checkout: its cwd and
+    the resolver's override (harness_boundary.PROJECT_DIR_ENV, set through the resolver's own
+    constant as check-plan-routes.py does) both name it, so a stale override in the caller's
+    environment cannot point the child at another checkout's copy of the feature. Its lines are
+    relayed prefixed `gh-sync: `. Returns its exit code, or None after reporting that it could
+    not be launched."""
+    env = dict(os.environ)
+    env[harness_boundary.PROJECT_DIR_ENV] = owner
     try:
         r = subprocess.run([sys.executable, os.path.join(_BIN_DIR, "feature-worktree.py")] + argv,
-                           cwd=owner, env=dict(os.environ, HARNESS_PROJECT_DIR=owner),
-                           capture_output=True, text=True)
+                           cwd=owner, env=env, capture_output=True, text=True)
     except OSError as exc:
         print(f"gh-sync: feature-worktree.py could not be launched: {exc}", file=sys.stderr)
         return None

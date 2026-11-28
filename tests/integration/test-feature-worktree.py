@@ -1542,51 +1542,63 @@ def case_create_cuts_from_origin(fx):
         git(fx["repoA"], "reset", "-q", "--hard", pushed)
         git(fx["repoA"], "remote", "remove", "origin")
 
+
+# Every case in run order, with the fixture values it takes: "fx" the fixture, "root" the temp
+# root, "created" create_four's worktrees, "tips" the branch tips read before create_four.
+_CASES = (
+    (case_layout, ("created",)),
+    (case_conflation_guard, ("fx", "created")),
+    (case_isolation, ("created",)),
+    (case_branch_isolation, ("created",)),
+    (case_cut_point, ("created", "tips")),
+    (case_concurrent_isolation, ("fx", "created", "tips")),
+    (case_shared_checkout_negative, ("root",)),
+    (case_clone_not_moved, ("fx",)),
+    (case_refuse_existing, ("fx", "created")),
+    (case_list, ("fx", "created")),
+    (case_undeclared_repo, ("fx",)),
+    (case_remove_dirty_untracked, ("fx",)),
+    (case_remove_dirty_tracked, ("fx",)),
+    (case_landed_refuse_then_allow, ("fx",)),
+    (case_landed_differs, ("fx",)),
+    (case_no_artifact_directory, ("fx",)),
+    (case_gitignored_artifact_does_not_block, ("fx",)),
+    (case_gitignored_does_not_mask_a_real_miss, ("fx",)),
+    (case_remove_refuses_aborted_run_evidence, ("fx",)),
+    (case_gate_2b_refuses_ignored_working_files, ("fx",)),
+    (case_gate_2b_ignores_committed_notes, ("fx",)),
+    (case_clean_refuses_without_terminal_station, ("fx",)),
+    (case_clean_at_terminal_stations, ("fx",)),
+    (case_clean_refuses_directory_note, ("fx",)),
+    (case_clean_short_id_and_root, ("root",)),
+    (case_gate_2b_counts_unignored_working_files, ("fx",)),
+    (case_gate_2b_counts_scratch, ("fx",)),
+    (case_clean_refuses_symlinked_ancestor, ("fx",)),
+    (case_clean_reads_landed_claims, ("fx",)),
+    (case_clean_refuses_failed_worktree_list, ("fx",)),
+    (case_short_id_resolves_to_the_flow_directory, ("fx",)),
+    (case_short_id_ambiguous_refuses, ("fx",)),
+    (case_behind_default_branch, ("fx",)),
+    (case_behind_sees_origin, ("fx",)),
+    (case_fleet_feature_has_two_worktrees, ("fx",)),
+    (case_fleet_create_is_all_or_nothing, ("fx",)),
+    (case_create_cuts_from_origin, ("fx",)),
+)
+
+
+def _run_cases(fx, root):
+    values = {"fx": fx, "root": root, "tips": _tips(fx)}
+    values["created"] = create_four(fx)
+    for case, names in _CASES:
+        case(*(values[name] for name in names))
+
+
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
     try:
         fx = build_fixture(root)
-
         if run_guard(fx, root):
-            tips_before = _tips(fx)
-            created = create_four(fx)
-            case_layout(created)
-            case_conflation_guard(fx, created)
-            case_isolation(created)
-            case_branch_isolation(created)
-            case_cut_point(created, tips_before)
-            case_concurrent_isolation(fx, created, tips_before)
-            case_shared_checkout_negative(root)
-            case_clone_not_moved(fx)
-            case_refuse_existing(fx, created)
-            case_list(fx, created)
-            case_undeclared_repo(fx)
-            case_remove_dirty_untracked(fx)
-            case_remove_dirty_tracked(fx)
-            case_landed_refuse_then_allow(fx)
-            case_landed_differs(fx)
-            case_no_artifact_directory(fx)
-            case_gitignored_artifact_does_not_block(fx)
-            case_gitignored_does_not_mask_a_real_miss(fx)
-            case_remove_refuses_aborted_run_evidence(fx)
-            case_gate_2b_refuses_ignored_working_files(fx)
-            case_gate_2b_ignores_committed_notes(fx)
-            case_clean_refuses_without_terminal_station(fx)
-            case_clean_at_terminal_stations(fx)
-            case_clean_refuses_directory_note(fx)
-            case_clean_short_id_and_root(root)
-            case_gate_2b_counts_unignored_working_files(fx)
-            case_gate_2b_counts_scratch(fx)
-            case_clean_refuses_symlinked_ancestor(fx)
-            case_clean_reads_landed_claims(fx)
-            case_clean_refuses_failed_worktree_list(fx)
-            case_short_id_resolves_to_the_flow_directory(fx)
-            case_short_id_ambiguous_refuses(fx)
-            case_behind_default_branch(fx)
-            case_behind_sees_origin(fx)
-            case_fleet_feature_has_two_worktrees(fx)
-            case_fleet_create_is_all_or_nothing(fx)
-            case_create_cuts_from_origin(fx)
+            _run_cases(fx, root)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:
