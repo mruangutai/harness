@@ -546,7 +546,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - merge-gitignore.py and the ignore contract are Harness enforcement surfaces, and .gitignore resolves to NOBODY (DEC-179).
     depends_on: []
-    status: ready
+    status: done
     files:
       - .gitignore
       - .claude/skills/harness/templates/gitignore.snippet
@@ -594,7 +594,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 - check-state.py is a CI gate and its tests grade it; the change is executed directly, never through the gate it changes.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.py
       - .claude/skills/harness/bin/check_state/*.py
@@ -637,7 +637,7 @@ tasks:
     execution_reason: DEC-174 - feature-worktree.py remove is a refusing gate the post-merge hook calls; the routine is shared by gh-sync and merge-gate.
     depends_on:
     - T-01
-    status: ready
+    status: done
     files:
       - {path: .claude/skills/harness/bin/working_files.py, create: true}
       - .claude/skills/harness/bin/feature-worktree.py
@@ -685,7 +685,7 @@ tasks:
     depends_on:
     - T-02
     - T-03
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/feature-record.py
     - .claude/skills/harness/bin/feature_record/budget.py
@@ -733,7 +733,7 @@ tasks:
     - T-03
     - T-04
     - T-10
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/gh-sync.py
     - .claude/skills/harness/bin/prune-run-evidence.py
@@ -782,7 +782,7 @@ tasks:
     depends_on:
     - T-01
     - T-03
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/merge-gate.py
     - .claude/skills/harness/bin/expertise-merge.py
@@ -828,7 +828,7 @@ tasks:
     - T-05
     - T-06
     - T-10
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/references/distillation.md
     - .claude/skills/harness/references/checkout-upgrade.md
@@ -887,7 +887,7 @@ tasks:
     - T-06
     - T-07
     - T-10
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -935,7 +935,7 @@ tasks:
     - T-07
     - T-08
     - T-10
-    status: ready
+    status: done
     files:
       - tests/integration/canonical-reader-classification.json
       - tests/integration/integration-durations.json
@@ -966,7 +966,7 @@ tasks:
     execution_reason: DEC-174 - plan-merge.py is the plan's one write route and the station verb gh-sync reject and the reject procedure call; its tests change with it.
     depends_on:
     - T-03
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/plan_merge/stations.py
     - .claude/skills/harness/bin/plan-merge.py
