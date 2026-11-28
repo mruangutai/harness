@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-2566-stale-hook-detection",
   "branch": "feat/BUG-2566-stale-hook-detection",
-  "pr": null,
+  "pr": 2623,
   "review_sha": "f4048ad3f9fbe9326d9799485fb97d87547d27be",
   "cycles_used": 0,
   "max_total_cycles": 10,
