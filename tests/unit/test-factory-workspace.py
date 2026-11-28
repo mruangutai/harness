@@ -15,7 +15,6 @@ git, with no network.
 """
 from unit_support import ROOT  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import contextlib
-import io
 import json
 import os
 import sys
@@ -24,7 +23,7 @@ from unittest import mock
 
 import artifact_accessors
 from check_support import Checks
-from factory_support import write_fleet
+from factory_support import invoke, write_fleet
 from git_support import checked_git, commit_files, git, init_repo
 
 import factory_workspace as fw
@@ -109,15 +108,10 @@ def run_main(rec, extra_args, workspace_root):
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = write_fleet(fleet_dir, good_fleet_dict(workspace_root))
     argv = ["factory_workspace.py", "--fleet", fleet_path] + extra_args
-    out, err = io.StringIO(), io.StringIO()
-    code = None
-    with mock.patch.object(sys, "argv", argv), mock.patch.object(fw, "run_git", rec), \
-            contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-        try:
-            fw.factory_cli.run("workspace", fw._main, expected=(artifact_accessors.FleetError,))
-        except SystemExit as e:
-            code = e.code
-    return code, out.getvalue(), err.getvalue()
+    with mock.patch.object(fw, "run_git", rec):
+        result = invoke(lambda: fw.factory_cli.run(
+            "workspace", fw._main, expected=(artifact_accessors.FleetError,)), argv=argv)
+    return result.code, result.out, result.err
 
 
 def checkout_path(workspace_root):

@@ -7,22 +7,19 @@ base_order, ops) directly: a PURE function, no IO, no sys.exit, no CLI subproces
 nothing under the bin directory.
 """
 import copy
-import importlib.util
 import json
 import os
 import sys
 import tempfile
 from unittest import mock
 
-from unit_support import BIN
+from unit_support import BIN, load_script
 from check_support import Checks
-from git_support import git
+from git_support import git_out
 
 MODULE_PATH = os.environ.get("EXPERTISE_MERGE_BIN") or str(BIN / "expertise-merge.py")
 
-_spec = importlib.util.spec_from_file_location("expertise_merge_ops_under_test", MODULE_PATH)
-expertise_merge = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(expertise_merge)
+expertise_merge = load_script("expertise-merge.py", path=MODULE_PATH)
 
 resolve_ops = expertise_merge.resolve_ops
 compute_union = expertise_merge.compute_union
@@ -706,7 +703,7 @@ def case_u43_write_chain():
 
 
 def _git(repo, *args):
-    return git(repo, *args).stdout.strip()
+    return git_out(repo, *args, timeout=30)
 
 
 def _branch_repo(repo):

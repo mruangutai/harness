@@ -8,7 +8,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from git_support import git as isolated_git
+from git_support import git as isolated_git, write_files
 
 HERE = BIN
 SCRIPT = Path(os.environ.get("MERGE_GITIGNORE_BIN", HERE / "merge-gitignore.py")).resolve()
@@ -166,7 +166,7 @@ PREVIOUS_HEADER = (
 def git(repo, *args):
     """Isolated git (git_support ENV: no system/global config, fixed identity) that also blanks
     core.excludesFile, so a developer's XDG ignore file cannot hide or expose run files."""
-    return isolated_git(repo, "-c", "core.excludesFile=", *args).stdout
+    return isolated_git(repo, "-c", "core.excludesFile=", *args, timeout=30).stdout
 
 
 def z_paths(repo, *args):
@@ -181,10 +181,7 @@ def git_repo(path):
 
 
 def require_record_tracked_and_working_files_excluded(repo, label):
-    for rel in WORKING_FILES + RECORD_FILES:
-        path = repo / rel
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(("content %s\n" % rel).encode())
+    write_files(repo, {rel: ("content %s\n" % rel).encode() for rel in WORKING_FILES + RECORD_FILES})
     git(repo, "add", "--", ".harness")
     staged = z_paths(repo, "diff", "--cached", "--name-only")
     missing = sorted(set(RECORD_FILES) - staged)

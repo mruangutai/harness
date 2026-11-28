@@ -11,7 +11,6 @@ import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json
 import os
 import re
-import subprocess
 import sys
 import tempfile
 
@@ -20,7 +19,6 @@ from gh_sync_support import (
     moved_to_done, read_feature_json, read_plan_station, report, run, ship_env, stage_ship,
     write_validate_handoff)
 from git_support import commit_all, git, git_out, init_repo
-from offline_gh_support import assert_sentinel_unused, offline_gh_env
 
 
 def _committed_ship(tmp, feat_name):
@@ -266,12 +264,9 @@ def main():
                     "def boom(*a, **k): raise RuntimeError('unrelated defect')\n"
                     "board_lifecycle.audit_findings = boom\n"
                     f"runpy.run_path({os.path.realpath(SYNC)!r}, run_name='__main__')\n")
-        env, sentinelSC = offline_gh_env(os.path.join(tmpSC, "gh"), tmpSC)
-        env["FAKE_LOG"] = os.path.join(tmpSC, "calls.log")
-        env.update(ship_env(tmpSC, "40=Review 41=Review", children={40: [41]}))
-        rSC = subprocess.run([sys.executable, shim, "ship", featSC], capture_output=True,
-                             text=True, env=env)
-        assert_sentinel_unused(sentinelSC)
+        rSC = run(["ship", featSC], tmpSC,
+                  ship_env(tmpSC, "40=Review 41=Review", children={40: [41]}),
+                  argv0=[sys.executable, shim])
         check("FEAT-64: an unrelated RuntimeError inside the audit escapes ship (traceback, "
               "not 'the board audit could not run')",
               rSC.returncode != 0 and "RuntimeError: unrelated defect" in rSC.stderr
@@ -370,18 +365,13 @@ def main():
     # It then returns WITHOUT committing, at exit 0. Measured on FEAT-41's real ship: relative left
     # plan.yaml dirty and reported success; absolute committed as b3e943ca.
     #
-    # `run()` sets no cwd, so this case drives the subprocess directly with cwd=tmp — that is the whole
-    # point, since the defect only exists when the pathspec is resolved somewhere other than the repo
-    # root. Same fixture, same assertions, one changed argument.
+    # This case runs with cwd=tmp — that is the whole point, since the defect only exists when the
+    # pathspec is resolved somewhere other than the repo root. Same fixture, same assertions, one
+    # changed argument.
     with tempfile.TemporaryDirectory() as tmpR:
         featR = _committed_ship(tmpR, "FEAT-52-relative-dir")
-        _envR, sentinelR = offline_gh_env(os.path.join(tmpR, "gh"), tmpR)
-        _envR["FAKE_LOG"] = os.path.join(tmpR, "calls.log")
-        _envR.update(ship_env(tmpR, "40=Review 41=Review"))
         _relR = os.path.relpath(featR, tmpR)
-        rR = subprocess.run([SYNC, "ship", _relR], cwd=tmpR, capture_output=True, text=True,
-                            env=_envR)
-        assert_sentinel_unused(sentinelR)
+        rR = run(["ship", _relR], tmpR, ship_env(tmpR, "40=Review 41=Review"), cwd=tmpR)
         planR = os.path.join(featR, "plan.yaml")
         dirtyR = git_out(tmpR, "status", "--porcelain", "--", planR)
         check("BUG-1114: a ship given a RELATIVE feature dir still COMMITS the station",

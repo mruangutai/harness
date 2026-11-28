@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 """Hand-derived contract tests for code_grade.py."""
-from unit_support import ROOT, BIN
+from unit_support import ROOT, BIN, load_script
 import ast
-import importlib.util
 import itertools
 import json
 import operator
 from pathlib import Path
 import re
-import subprocess
 import sys
 import tempfile
 from check_support import Checks
-from git_support import checked_git, init_repo
+from git_support import checked_git, git, init_repo
 C = Checks()
-GRADER = ("grader@example.test", "Code Grader")
-spec = importlib.util.spec_from_file_location("code_grade", BIN / "code_grade.py")
-code_grade = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = code_grade
-spec.loader.exec_module(code_grade)
-CLI_SPEC = importlib.util.spec_from_file_location("code_grade_cli", BIN / "code-grade.py")
-code_grade_cli = importlib.util.module_from_spec(CLI_SPEC)
-CLI_SPEC.loader.exec_module(code_grade_cli)
+code_grade = load_script("code_grade.py", register=True)
+code_grade_cli = load_script("code-grade.py", module_name="code_grade_cli")
 
 
 
@@ -126,12 +118,10 @@ DIRECTION_PAIRS = [
 
 def check_commit_resolution():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "sample.py", "def sample():\n    pass\n")
         head_ref = _commit(repo_root, "base")
-        blob = subprocess.run(["git", "-C", str(repo_root), "hash-object", "-w", "--stdin"],
-                              input="not a commit", text=True, capture_output=True,
-                              check=True).stdout.strip()
+        blob = git(repo_root, "hash-object", "-w", "--stdin", input="not a commit").stdout.strip()
         failures = 0
         for position in ("base", "head"):
             for existing in (True, False):
@@ -392,7 +382,7 @@ FEAT2337_MUTANT_EXPECTED = {"check_mutant": "FAIL", "check_edited": "PASS"}
 
 
 def _mutant_repository(directory):
-    repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+    repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
     for path, before, _after in FEAT2337_MUTANT_FILES:
         if before is not None:
             _write(repo_root, path, before)
@@ -458,7 +448,7 @@ def _commit(repo_root, message):
 
 def check_changed_function_resolution():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "main.py", '''\
 def worsened():
     pass
@@ -636,7 +626,7 @@ def check_base_source_rename_fallback():
     """A rename-only file resolves its pre-image through old_path, and a file with no
     old_path never falls back to one."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "old.py", "def kept():\n    return 1\n")
         base_ref = _commit(repo_root, "base")
         _git(repo_root, "mv", "old.py", "new.py")
@@ -656,7 +646,7 @@ def check_base_source_absent_from_worktree():
     dropping `--literal-pathspecs` cannot make a present path read as absent; and a
     genuine git failure still raises rather than reading as absence."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "old.py", "def kept():\n    return 1\n")
         base_ref = _commit(repo_root, "base")
         _write(repo_root, "added.py", "def added():\n    return 2\n")
@@ -685,7 +675,7 @@ def check_base_source_absent_from_worktree():
 
 def check_nul_safe_changed_files():
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         old_path = "odd\told\nname.py"
         new_path = "odd\tnew\nname.py"
         _write(repo_root, old_path, "def retained():\n    return 1\n")
@@ -712,7 +702,7 @@ def check_docstring_only_rename_not_gated():
     docstring-only edit under a rename must still resolve by body hash and land
     informational, never gated."""
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "main.py", '''\
 def documented():
     """Original text."""
@@ -752,7 +742,7 @@ class Beta:
         return "beta"
 '''
     with tempfile.TemporaryDirectory() as directory:
-        repo_root = Path(init_repo(directory, None, GRADER, git=checked_git))
+        repo_root = Path(init_repo(directory, None, identity=None, git=checked_git))
         _write(repo_root, "main.py", source("run"))
         base_ref = _commit(repo_root, "base")
         _write(repo_root, "main.py", source("dispatch"))

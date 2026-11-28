@@ -6,6 +6,7 @@ computes the three anchors once and puts bin/ and tests/ on sys.path (bin/ first
 then import any bin module and any shared tests/*_support.py module.
 
     from unit_support import ROOT, BIN, TESTS   # pathlib.Path, absolute
+    from unit_support import load_script        # a bin script no plain import reaches
 
     ROOT   the repository root (the checkout holding tests/)
     BIN    ROOT/.claude/skills/harness/bin
@@ -24,3 +25,17 @@ BIN = ROOT / ".claude" / "skills" / "harness" / "bin"
 
 sys.path.insert(0, str(TESTS))
 sys.path.insert(0, str(BIN))
+
+
+def load_script(name, path=None, module_name=None, register=False):
+    """Load a bin script a plain import cannot reach (a hyphenated name, or a copy an override
+    variable names) and return it as a fresh module: `ws = load_script("worktree-state.py")`.
+
+    `path` replaces BIN/name; `module_name` defaults to the file stem with hyphens as underscores;
+    `register=True` binds the module in sys.modules before exec, which a script declaring
+    dataclasses or a package submodule needs. harness_boundary.load_repo_module does the load, so
+    a failed exec raises its RepoModuleError carrying the original exception.
+    """
+    from harness_boundary import load_repo_module
+    module_name = module_name or Path(name).stem.replace("-", "_")
+    return load_repo_module(module_name, path or BIN / name, register)

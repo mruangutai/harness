@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Behavior tests for the write-once run identity witness (BUG-1305 T-01)."""
-from unit_support import BIN
+from unit_support import BIN, load_script
 
-import importlib.util
 import os
 import re
 import sys
@@ -22,10 +21,7 @@ check = C.check
 
 
 def module():
-    spec = importlib.util.spec_from_file_location("_run_identity_under_test", SCRIPT)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    return load_script("run_identity.py", path=SCRIPT, module_name="_run_identity_under_test")
 
 
 def case_seed_is_write_once(mod):

@@ -11,10 +11,9 @@ assert the OFF state (variable unset) instead — those must NOT set it.
 
     ./test-gh-cost-log.py    -> exit 0 all pass, 1 otherwise
 """
-from unit_support import BIN, TESTS
+from unit_support import TESTS, load_script
 
 import importlib
-import importlib.util as _ilu
 import json
 import os
 import subprocess
@@ -240,10 +239,7 @@ def _load_gh_sync():
     """gh-sync.py's hyphen blocks a plain import. A fresh module each call, but `subprocess`,
     `gh_cost_log` and `harness_boundary` are all resolved through sys.modules's cache, so
     patches on those module objects apply here too without re-patching per module instance."""
-    spec = _ilu.spec_from_file_location("_ghs_t03_wrap_site", str(BIN / "gh-sync.py"))
-    mod = _ilu.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    return load_script("gh-sync.py")
 
 
 def _counting_fake(rc=0, stdout="ok"):

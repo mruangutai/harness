@@ -10,7 +10,7 @@ block driver live in check_domain_support.py, which also carries the family's WH
 import integration_support  # noqa: F401  (puts bin/ and tests/ on sys.path)
 import json, os, re, shutil, subprocess, sys, tempfile
 from isolated_bin import isolated_bin
-from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env,
+from check_domain_support import (FIXTURE_MANIFEST, HERE, HOOK, ROOT, _env, _invoke,
     _legal_feature_json, _run_block_captured, drive, fire, fixture, fixture_fleet,
     make_linked_worktree)
 import inflight_registry
@@ -590,19 +590,11 @@ shared:
             )
             repository_identities[key] = (child, parent)
         child, parent = repository_identities[key]
-        return subprocess.run(
-            [HOOK],
-            input=json.dumps({
-                "agent_type": agent,
-                "harness_feature": "FEAT-fleet-test",
-                "harness_agent_id": child,
-                "harness_parent_agent_id": parent,
-                "tool_name": "Write",
-                "tool_input": {"file_path": abspath, "content": "x"},
-            }),
-            capture_output=True, text=True,
-            env=_env(root),
-        )
+        return fire(root, abspath, agent=agent, extra={
+            "harness_feature": "FEAT-fleet-test",
+            "harness_agent_id": child,
+            "harness_parent_agent_id": parent,
+        })
 
     # (f) THE PRODUCT BASE, as a discriminating pair from ONE fixture. Either half
     # alone is what a broken guard produces: an allow-all passes the granted write, a
@@ -980,9 +972,7 @@ def run_resolve():
     def hook_env(path, agent, resolve_value):
         payload = {"agent_type": agent, "tool_name": "Write",
                    "tool_input": {"file_path": path, "content": "x"}}
-        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=_env(ROOT,
-                                                  HARNESS_RESOLVE_PATH=resolve_value))
+        return _invoke(ROOT, payload, env={"HARNESS_RESOLVE_PATH": resolve_value})
     # EXIT 2 ALONE IS NOT ENOUGH, and the delta review caught this. There are five distinct
     # exit-2 sites in this script and FOUR of them are inside the resolve branch (missing
     # manifest, duplicate key, parse error, unreadable root). A reimplementation that still
