@@ -39,7 +39,8 @@ feature-close write seam; `harness-curate` also authorizes out-of-band distillat
    lessons the same way, consolidates the active ops exactly as applied, and returns PASS when
    no real refusal remains. **You confirm and never apply** a member's or lead's ops; your own
    log you distill into your own file the same way. A refusal returns through the lead to the
-   **original member** to re-judge (`harness-distill`), never to the lead or you.
+   **original member**, who re-judges and re-applies with `supersedes` (`harness-distill`), never
+   to the lead or you.
    **Before merge, in the still-live worktree:** fetch and rebase onto current `main`; run
    `expertise-merge.py replay --root <wt> --feature <id> --base <main sha>`; run
    `check-expertise`; commit and push the reconstructed files with the original applied
