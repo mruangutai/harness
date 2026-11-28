@@ -17,8 +17,8 @@ The open is composed like the close (#1881): `run-start` derives what the new ru
 record — a FAIL run it follows owes a `regate`; a handoff note at `seq-N` it succeeds owes a
 `succession` — and **refuses** unless you supply the matching decision and reason, in which case the run and
 the judgement land in one write. A reason for a judgement the open does not owe is refused too.
-You never write those two kinds with `judgement` after the fact; INV-43 grades a late succession
-as retrospective forever.
+You never write those two kinds with `judgement` after the fact; `feature-record.py run-start`
+refuses the successor run without its succession.
 After every return, ONE command: `feature-record.py close-run`, its flags as the playbook's step 6
 spells them (`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/SKILL.md`) — in order: the digest is validated against the run's recorded persona; `run-end`; the task
 station when `--task`/`--station` are paired; the judgement, recorded as you; `spend`. **The first
@@ -62,8 +62,7 @@ attribution and measured tokens; a conflicting count or token figure is refused 
 and no prior non-BLOCKED terminal verdict can be closed as refused. A run already closed
 `BLOCKED` without provenance is historical: `close-run` refuses it and `record-refusal` below is
 its only path. A frozen legacy `return_disposition: refused` marker, written before provenance
-existed, has no writer; INV-15/INV-46 still read it as grandfathered data with its closed BLOCKED
-identity, and an entry never carries both it and `refusal`.
+existed, has no writer, and an entry never carries both it and `refusal`.
 
 **Historical proof without rewritten returns.**
 
@@ -74,8 +73,7 @@ Only an existing closed run can receive historical metadata:
 
 Both preserve original digest bytes, verdicts, timestamps, tokens, counts and the feature's legacy
 residual. Identical replay changes nothing; conflicting metadata or changed evidence refuses.
-Historical refusal provenance satisfies the evidenced-refused branch of INV-15/INV-46, never live
-return acceptance. Missing authentic history or authorization is a blocker, not permission to
+Missing authentic history or authorization is a blocker, not permission to
 manufacture a record.
 
 The shared `evidence_ref` is exactly `{path, sha256}`. Paths normalize under the target feature;
@@ -130,10 +128,8 @@ the fact, from the reason line, never by ruling in-flight (SC-21).
 
 **The seam has an order (DEC-159, BUG-1723).** The outgoing orchestrator writes the handoff note
 BEFORE any run of the later phase exists; the successor appends its `succession` judgement before
-or with its first run. INV-43 reports a `succession` whose `at` is later than the `started_at` of
-the first run after that handoff's `seq-N` — a retrospective correction — at every station, `done`
-included. It grades only successions after harness.json `seam_era_start`; earlier ones report as
-notes (DEC-227). An unreadable `at` or `started_at` is CANNOT VERIFY, never a pass.
+or with its first run; `feature-record.py run-start` refuses the successor run without its
+succession. An unreadable `at` or `started_at` is CANNOT VERIFY, never a pass.
 
 ## Spend
 

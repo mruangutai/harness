@@ -104,6 +104,31 @@ case("the pre-move docs path is REFUSED after the migration",
      f"{ROOT}/docs/harness/guide.md", 2)
 
 
+# FEAT-2641 T-12 (D-13, SC-19): a member that runs a verify or a suite writes its raw output to
+# the feature's git-ignored scratch/, so the Write route admits it there. Fixture roots carry a
+# verbatim copy of each real manifest, so a live session's worktree claims cannot decide them.
+SCRATCH_MANIFESTS = (
+    ("authored", os.path.join(ROOT, ".harness", "team-config.yaml"),
+     ".harness/harness/features/FEAT-0-probe/scratch/run.log"),
+    ("template", os.path.join(ROOT, ".claude", "skills", "harness", "templates", "team-config.yaml"),
+     ".harness/features/FEAT-0-probe/scratch/run.log"),
+)
+
+
+def run_t12_scratch_grant():
+    rows = []
+    for convention, manifest, probe in SCRATCH_MANIFESTS:
+        with open(manifest, encoding="utf-8") as handle:
+            root = fixture(handle.read())
+        for agent in ("harness-qa", "harness-backend-dev"):
+            result = fire(root, probe, content="raw output\n", agent=agent)
+            rows.append((f"[{convention}] {agent} writes raw output to the feature's scratch/",
+                         result.returncode == 0,
+                         f"exit {result.returncode}: {(result.stdout + result.stderr).strip()[:200]}"))
+        shutil.rmtree(root, ignore_errors=True)
+    return _tally(rows, "T-12 scratch-grant")
+
+
 # ================= T-12: the manifest is PARSED, not skimmed ==================
 # These use a FIXTURE repo rather than the live one, so a malformed manifest can be
 # exercised without touching the manifest that governs this session.

@@ -1,8 +1,0 @@
-# command: bun run typecheck (real tree, BEFORE filling test_kinds.typecheck.cmd)
-# HEAD a716db699719f12611b6aea9503b366cfee864f2; bun 1.3.14; Version 7.0.2; sources:
-100644 f36701b6b7bda133bd5efa48ba1ca27b747b7f3f 0	.omp/extensions/digest-schema.ts
-100644 cbcb58215e2e38ff5fafa83fcea61f31200293a0 0	.omp/extensions/harness-hooks.ts
-100644 e8df5c44b0ef8e3172e5c3055d6b0b6a2b26291d 0	tests/manual/probe-session-accessors.ts
-100644 d0e6221ede11d603cd8c3fedd33b600606bc80a9 0	tests/unit/omp-hooks.test.ts
-$ tsc --noEmit -p tsconfig.json
-# rc=0

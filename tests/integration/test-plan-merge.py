@@ -949,6 +949,75 @@ def case_illegal_station_exit_4():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _2641_working_files_fixture():
+    """A git-initialised owner checkout carrying the harness marker, with FEAT-0-probe's plan,
+    a feature.json claiming .harness/notes/claimed.md, and every working-file class on disk."""
+    root = tempfile.mkdtemp(prefix="plan-merge-2641-")
+    subprocess.run(["git", "init", "-q", root], check=True)
+    os.makedirs(os.path.join(root, ".harness", "notes"))
+    write(os.path.join(root, ".harness", "team-config.yaml"), "segments: {}\n")
+    write_config(os.path.join(root, ".harness", "harness.json"))
+    feature = os.path.join(root, ".harness", "harness", "features", "FEAT-0-probe")
+    for sub in ("notes", os.path.join("runs", "r"), "observations"):
+        os.makedirs(os.path.join(feature, sub))
+    plan = os.path.join(feature, "plan.yaml")
+    write(plan, render_plan(ids(1, 1)))
+    write(os.path.join(feature, "feature.json"),
+          '{"project_notes": [".harness/notes/claimed.md"]}\n')
+    removable = [os.path.join(feature, "notes"), os.path.join(feature, "runs"),
+                 os.path.join(feature, "observations"),
+                 os.path.join(root, ".harness", "notes", "claimed.md")]
+    write(os.path.join(feature, "notes", "x.md"), "x\n")
+    write(os.path.join(feature, "runs", "r", "digest.md"), "d\n")
+    write(os.path.join(feature, "observations", "a.md"), "a\n")
+    write(removable[3], "claimed\n")
+    write(os.path.join(root, ".harness", "notes", "unclaimed.md"), "unclaimed\n")
+    return root, plan, removable
+
+
+def case_2641_rejected_station_cleans_working_files():
+    """FEAT-2641 T-10 (D-05): writing rejected removes the feature's working files and its
+    claimed project notes; every other station, and every refused write, removes nothing."""
+    root, plan, removable = _2641_working_files_fixture()
+    unclaimed = os.path.join(root, ".harness", "notes", "unclaimed.md")
+    try:
+        r = run_verb("set-feature-station", "--file", plan, "--station", "rejected")
+        check("2641: set-feature-station rejected exits 0 after cleaning", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("2641: the plan reads rejected",
+              yaml.safe_load(read(plan)).get("status") == "rejected", read(plan)[:300])
+        check("2641: notes/, runs/, observations/ and the claimed note are gone",
+              not any(os.path.lexists(p) for p in removable), repr(removable))
+        check("2641: an unclaimed project note survives", os.path.isfile(unclaimed))
+        removed_lines = [ln for ln in r.stdout.splitlines() if ln.startswith("plan-merge: removed ")]
+        check("2641: stdout names each removed path",
+              all(any(ln.endswith(os.path.relpath(p, root)) for ln in removed_lines)
+                  for p in removable) and len(removed_lines) == len(removable), r.stdout)
+        again = run_verb("set-feature-station", "--file", plan, "--station", "rejected")
+        check("2641: a second rejected on the cleaned feature exits 0 with the no-files line",
+              again.returncode == 0
+              and "plan-merge: no working files to clean for FEAT-0-probe" in again.stdout,
+              f"rc={again.returncode} {again.stdout!r} {again.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    for label, station, mutate, code in (
+            ("building", "building", False, 0),
+            ("bogus", "bogus", False, 4),
+            ("on a plan with no feature: key", "rejected", True, 5)):
+        root, plan, removable = _2641_working_files_fixture()
+        try:
+            if mutate:
+                write(plan, read(plan).replace("feature: FEAT-99-fixture\n", ""))
+            r = run_verb("set-feature-station", "--file", plan, "--station", station)
+            check(f"2641: set-feature-station {label} exits {code}", r.returncode == code,
+                  f"rc={r.returncode} {r.stderr!r}")
+            check(f"2641: set-feature-station {label} removes nothing",
+                  all(os.path.lexists(p) for p in removable), repr(removable))
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
 def case_sign_approval():
     root, plan = fixture_root()
     try:
@@ -6044,6 +6113,7 @@ CASES = (
     case_set_panel_replaces_mapping_and_validates_shape,
     case_amend_structured_list_field,
     case_illegal_station_exit_4,
+    case_2641_rejected_station_cleans_working_files,
     case_sign_approval,
     case_sign_approval_preserves_existing_rulings,
     case_1157_sign_approval_records_validated_overrules,

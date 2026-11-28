@@ -21,6 +21,14 @@
                                            any recorded parent if given, THEN records the pr
                                            (T-03, FEAT-26). It closes NO issue: GitHub's
                                            Auto-close issue workflow does that (DEC-203)
+  gh-sync.py skip-distill <feature-dir> --reason-file <path> [--yes]  a shipped feature's
+                                           distill declined (FEAT-2641 D-11) -> WITHOUT --yes
+                                           prints the judgement it would record and the
+                                           working files it would remove; WITH --yes appends
+                                           one feature.json `distill: declined` judgement,
+                                           commits feature.json alone, then runs
+                                           feature-worktree.py clean --yes. Makes no GitHub
+                                           write and reads no GitHub config, so it never SKIPs
   gh-sync.py recover-terminal <feature-dir> [--parent <n>] [--yes]  operator-approved
                                            recovery for an already-merged feature whose
                                            mirror was never opened, or opened only in
@@ -98,7 +106,6 @@ call time, is the only binary override (tests point it at a fake that logs calls
 import json
 import os
 import re
-import shutil
 import subprocess
 import tempfile
 import sys
@@ -121,6 +128,8 @@ import github.board
 import harness_yaml
 import harness_boundary
 import handoff_policy
+import feature_corpus
+import working_files
 
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
@@ -704,13 +713,36 @@ def _record_station(feat_dir, station):
          "--file", plan_path, "--station", station],
         capture_output=True, text=True,
     )
+    if r.returncode == 10:
+        _exit_station_cleanup_failed(r, station, feat_dir)
     if r.returncode != 0:
         detail = (r.stderr or r.stdout).strip().splitlines()
         print(f"gh-sync: FAILED — station not recorded, plan-merge.py set-feature-station "
               f"exited {r.returncode}: {detail[-1] if detail else '(no output)'} ({plan_path})")
         return False
     print(f"gh-sync: plan.yaml station -> {station}")
+    _relay_removals(r.stdout)
     return True
+
+
+def _relay_removals(stdout):
+    """set-feature-station removes the working files once it has written `rejected` (T-10);
+    its removal lines are relayed so the operator sees what reject's station write deleted."""
+    for line in stdout.splitlines():
+        if line.startswith("plan-merge: removed "):
+            print(f"gh-sync: {line}")
+
+
+def _exit_station_cleanup_failed(r, station, feat_dir):
+    """Exit 4 on set-feature-station's exit 10 (T-10): it wrote `rejected` and then failed to
+    clean the working files. The station landed, so this is neither a FAILED station nor a
+    reason to re-run the verb that wrote it (DEC-262 D-05)."""
+    for line in (r.stdout + r.stderr).splitlines():
+        print(f"gh-sync: {line}", file=sys.stderr)
+    print(f"gh-sync: station {station} was recorded, but working-file cleanup failed - "
+          f"retry the cleanup alone with: {_retry_command(feat_dir)} - do not re-run "
+          f"reject; its GitHub writes and station have landed", file=sys.stderr)
+    sys.exit(4)
 
 
 def _git_detail(r):
@@ -728,7 +760,7 @@ def _git_detail(r):
     return lines[-1] if lines else "(no output)"
 
 
-def _commit_terminal_station(feat_dir):
+def _commit_terminal_station(feat_dir, paths=None, message=None):
     """Commit what ship just wrote — `_record_station`'s plan.yaml and `_record_pr`'s
     feature.json — in the checkout they belong to.
 
@@ -769,8 +801,16 @@ def _commit_terminal_station(feat_dir):
     # The `-C` argument was already absolute. Only the pathspec was not, so the two disagreed
     # about which directory they were talking about.
     feat_abs = os.path.abspath(feat_dir)
-    paths = [os.path.join(feat_abs, "plan.yaml"), os.path.join(feat_abs, "feature.json")]
     feat_id = os.path.basename(feat_abs)
+    # THE DEFAULTS ARE SHIP'S, and ship's printed lines stay byte-identical for them. skip-distill
+    # (FEAT-2641 D-11) passes its own absolute pathspec and subject, so a dirty plan.yaml or any
+    # other path is never part of its commit. Returns True when it committed or found the paths
+    # clean, False after printing its WARNING; ship ignores the value.
+    shipping = paths is None
+    if shipping:
+        paths = [os.path.join(feat_abs, "plan.yaml"), os.path.join(feat_abs, "feature.json")]
+    if message is None:
+        message = f"{feat_id}: station done at ship"
 
     def _git(args):
         return subprocess.run(["git", "-C", feat_abs] + args, capture_output=True, text=True)
@@ -779,22 +819,30 @@ def _commit_terminal_station(feat_dir):
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station committed nowhere, git status failed in "
               f"{feat_dir}: {_git_detail(r)}", file=sys.stderr)
-        return
+        return False
     if not r.stdout.strip():
         # ALREADY COMMITTED IS NOT A FAILURE. ship is idempotent, so a re-run finds the station
         # already recorded and already landed. Saying nothing here would be worse than a line:
         # the reader is looking for the commit this function promises to print.
-        print(f"gh-sync: station already committed — {feat_id}'s plan.yaml and feature.json "
-              f"are clean against HEAD")
-        return
+        if shipping:
+            print(f"gh-sync: station already committed — {feat_id}'s plan.yaml and feature.json "
+                  f"are clean against HEAD")
+        else:
+            print(f"gh-sync: already committed — "
+                  f"{', '.join(os.path.basename(p) for p in paths)} clean against HEAD")
+        return True
 
-    r = _git(["commit", "-q", "-m", f"{feat_id}: station done at ship", "--"] + paths)
+    r = _git(["commit", "-q", "-m", message, "--"] + paths)
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station recorded but NOT committed in {feat_dir}: "
               f"{_git_detail(r)}", file=sys.stderr)
-        return
+        return False
     h = _git(["rev-parse", "--short", "HEAD"])
-    print(f"gh-sync: station done committed as {h.stdout.strip() or '(unknown)'}")
+    if shipping:
+        print(f"gh-sync: station done committed as {h.stdout.strip() or '(unknown)'}")
+    else:
+        print(f"gh-sync: {message} committed as {h.stdout.strip() or '(unknown)'}")
+    return True
 
 
 def _merged_pull_requests(repo, branch):
@@ -1747,7 +1795,8 @@ def _report_abandon_dry_run(feat_dir, plan, already_abandoned):
         print(f"gh-sync: would {line}")
     if not already_abandoned:
         print("gh-sync: would record the feature station abandoned")
-    _prune_abandoned_runs(feat_dir, dry_run=True)
+    for path in _working_targets(feat_dir):
+        print(f"gh-sync: would remove {path}")
     print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
           "close the issues listed above")
 
@@ -1769,9 +1818,10 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
 
     AN UNOPENED OR ALREADY-ABANDONED RECORD STILL FINALIZES LOCALLY (BUG-2161, D-02). With no
     parent, milestone or tasks there is nothing to close on GitHub, but the feature is still
-    abandoned: under `--yes` the station is recorded and `runs/` pruned (INV-51). A station that
-    already reads `abandoned` is not rewritten; `runs/` is still pruned and sources are still
-    disposed when asked.
+    abandoned: under `--yes` the station is recorded and the feature's local working files -
+    notes/, runs/, observations/, scratch/ and every project note feature.json lists - are
+    removed (DEC-262 D-05). A station that already reads `abandoned` is not rewritten; the
+    working files are still removed and sources are still disposed when asked.
 
     THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
     branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
@@ -1804,9 +1854,9 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
     The ticket survives, labelled and closed, for the operator to clean up later.
 
     `_record_station(feat_dir, "abandoned")` is the last DECISION of the successful path and runs
-    only under `--yes`. It is gated on the station already reading abandoned, and `runs/` is pruned
-    only when that station reads abandoned or the write just landed (F1): a refused write reports a
-    gap and keeps the evidence.
+    only under `--yes`. It is gated on the station already reading abandoned, and the working
+    files are removed only when that station reads abandoned or the write just landed (F1): a
+    refused write reports a gap and keeps them.
 
     WITHOUT `--close-sources`, A plan.yaml SOURCE GETS ZERO WRITES EVEN WHEN IT IS ALSO A TASK ISSUE
     OR THE PARENT (GC-01): `_hold_back_sources` removes it from the acting record and the skip is
@@ -1862,21 +1912,21 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False, close_sources=Fal
 
     # LAST DECISION of the successful path (T-01/FEAT-23) — structural, not re-gated on the
     # milestone or issues (an unopened record abandons too, BUG-2161). The only guard is a read
-    # of the station itself: a re-entry at abandoned must not rewrite it. The prune that
+    # of the station itself: a re-entry at abandoned must not rewrite it. The cleanup that
     # follows is local disk only and, like cmd_ship's trailing commit, cannot undo it.
     # SPELLED, NOT DERIVED, on purpose (FEAT-1714 T-03): this is the ONE abandoned-specific write,
     # and `reject` writes its own station the same way. TERMINAL_STATIONS is for generic consumers.
-    # F1 (BUG-2161 c1): prune ONLY when the station reads abandoned — already did, or
+    # F1 (BUG-2161 c1): clean ONLY when the station reads abandoned — already did, or
     # `_record_station` just returned True. A refused write (plan.yaml absent, set-feature-station
-    # non-zero) leaves a feature whose station is not abandoned, and its evidence must survive it.
+    # non-zero) leaves a feature whose station is not abandoned, and its files must survive it.
     if already_abandoned or _record_station(feat_dir, "abandoned"):
         # After the station, never before: the station is the record every reader keys on, and a
-        # prune that raises (symlinked runs/, a writer mid-flight) must not leave closed issues
-        # with no station. INV-51 catches a prune that did not happen.
-        _prune_abandoned_runs(feat_dir)
+        # cleanup that fails (a symlinked notes parent, a writer mid-flight) must not leave closed
+        # issues with no station. A failure exits 4 naming the clean command (DEC-262 D-05).
+        _clean_after_terminal(feat_dir, "abandoned", "abandon")
     else:
-        print("gh-sync: FAILED — runs/ not pruned: the station was not recorded abandoned, "
-              "so the evidence is kept")
+        print("gh-sync: FAILED - working files not removed: the station was not recorded "
+              "abandoned, so they are kept")
 
 
 def _label_abandoned(repo, num, label_gap):
@@ -1932,19 +1982,53 @@ def _report_abandon_gaps(failed, plan, rec, held=()):
         print("gh-sync: no milestone recorded — nothing to close")
 
 
-def _prune_abandoned_runs(feat_dir, dry_run=False):
-    """#1996: an abandoned feature's `runs/` evidence has no reader left. FEAT-53's 380 WebPs
-    (49 MB) rode on its successor's branch for a week because abandon recorded the decision and
-    kept the artifacts. Every `runs/<id>/` goes; notes and digests that cite them stay. The dry
-    run names them, as it names every other write."""
-    runs_dir = os.path.join(feat_dir, "runs")
-    if not os.path.isdir(runs_dir):
-        return
-    verb = "would remove" if dry_run else "removed"
-    for name in sorted(os.listdir(runs_dir)):
-        print(f"gh-sync: {verb} runs/{name}")
-    if not dry_run:
-        shutil.rmtree(runs_dir)
+def _retry_command(feat_dir):
+    """working_files.retry_command, or a sentence naming why none resolves - a report printed
+    after a station landed must never become a traceback."""
+    try:
+        return working_files.retry_command(feat_dir)
+    except working_files.WorkingFilesError as exc:
+        return f"feature-worktree.py clean (no command resolves: {exc})"
+
+
+def _working_targets(feat_dir):
+    """The working files cleanup would remove (working_files.targets), resolving the owner root
+    only when feature.json lists a project note. A lookup failure is a caller-visible refusal:
+    nothing has been written when this runs."""
+    try:
+        owner_root = (feature_corpus.owner_root(feat_dir)
+                      if working_files.project_notes(feat_dir) else None)
+        return working_files.targets(feat_dir, owner_root)
+    except (working_files.WorkingFilesError, feature_corpus.CorpusError) as exc:
+        die(f"the feature's working files could not be listed: {exc}")
+
+
+def _clean_after_terminal(feat_dir, station, verb):
+    """Remove the feature's local working files once `station` has landed (DEC-262 D-05).
+
+    Runs only after the terminal write succeeded. Any failure - a refused layout, an owner root
+    that does not resolve, an OSError mid-removal - is reported with what was already removed
+    and the clean command, then exits 4: the station and the GitHub writes have landed, so the
+    operator retries the cleanup alone and never the verb."""
+    removed = []
+
+    def emit(line):
+        print(f"gh-sync: {line}")
+        if line.startswith("removed "):
+            removed.append(line[len("removed "):])
+
+    try:
+        owner_root = (feature_corpus.owner_root(feat_dir)
+                      if working_files.project_notes(feat_dir) else None)
+        working_files.clean(feat_dir, owner_root, emit=emit)
+    except (working_files.WorkingFilesError, feature_corpus.CorpusError, OSError) as exc:
+        print(f"gh-sync: station {station} was recorded, but working-file cleanup failed: {exc}",
+              file=sys.stderr)
+        for path in removed:
+            print(f"gh-sync: removed before the failure: {path}", file=sys.stderr)
+        print(f"gh-sync: retry the cleanup alone with: {_retry_command(feat_dir)} - do not re-run "
+              f"{verb}; its GitHub writes and station have landed", file=sys.stderr)
+        sys.exit(4)
 
 
 def _reject_successor(value):
@@ -2091,29 +2175,65 @@ def _run_reject_steps(steps):
         landed.append(line)
 
 
+_REJECT_NONE_KEEPS = ("gh-sync: working files are kept by this command: plan-merge.py "
+                      "set-feature-station removes them when you record station rejected")
+
+
 def cmd_reject(feat_dir, repo, board, successor_arg, reason_file, yes=False):
     """Reject only the recorded parent (or, on a first-sync record, dispose the source
     tickets); a numeric successor owns the final station write, as the last mutation and
-    only after every GitHub mutation landed."""
+    only after every GitHub mutation landed.
+
+    WORKING FILES (DEC-262 D-05). The station write is what removes them: plan-merge.py
+    set-feature-station cleans notes/, runs/, observations/, scratch/ and the listed project
+    notes once it has written `rejected` (T-10). So a numeric successor's preview lists one
+    remove line per working file after the station line, and `--yes` relays plan-merge's
+    removal lines and runs no cleanup of its own; a set-feature-station exit 10 (station
+    landed, cleanup failed) exits 4 naming the clean command. `--superseded-by none` writes no
+    station, so it removes nothing and says so as its last line, preview and `--yes` alike."""
     successor = _reject_successor(successor_arg)
     comment_file = _reject_reason_file(reason_file, successor)
     try:
         rec = load_recorded(feat_dir)
         steps = _reject_steps(feat_dir, rec, successor, repo, board, comment_file)
-        lines = [line for line, _ in steps]
-        if successor is not None:
-            lines.append("record feature station rejected")
-        if not yes:
-            for line in lines:
-                print(f"gh-sync: would {line}")
-            print("gh-sync: reject is a decision the operator makes — re-run with --yes to "
-                  "perform the mutations listed above")
-            return
-        _run_reject_steps(steps)
-        if successor is not None and not _record_station(feat_dir, "rejected"):
-            sys.exit(1)
+        # Listed in both modes: a working-file lookup failure refuses before any write.
+        lines = _reject_lines(feat_dir, steps, successor)
+        if yes:
+            _execute_reject(feat_dir, steps, successor)
+        else:
+            _preview_reject(lines, successor)
     finally:
         os.unlink(comment_file)
+
+
+def _reject_lines(feat_dir, steps, successor):
+    """Every step reject would run; a numeric successor adds the station write and one remove
+    line per working file that write deletes."""
+    lines = [line for line, _ in steps]
+    if successor is not None:
+        lines.append("record feature station rejected")
+        lines += [f"remove {path}" for path in _working_targets(feat_dir)]
+    return lines
+
+
+def _preview_reject(lines, successor):
+    for line in lines:
+        print(f"gh-sync: would {line}")
+    print("gh-sync: reject is a decision the operator makes — re-run with --yes to "
+          "perform the mutations listed above")
+    if successor is None:
+        print(_REJECT_NONE_KEEPS)
+
+
+def _execute_reject(feat_dir, steps, successor):
+    """Run the GitHub steps, then - for a numeric successor only - the station write, which
+    removes the working files; `none` writes no station and removes nothing."""
+    _run_reject_steps(steps)
+    if successor is None:
+        print(_REJECT_NONE_KEEPS)
+    elif not _record_station(feat_dir, "rejected"):
+        sys.exit(1)
+
 
 def _backlog_receipt_path(feat_dir):
     return os.path.join(feat_dir, "backlog-issues.json")
@@ -2292,6 +2412,200 @@ def cmd_backlog(feat_dir, repo, items, issue_types=None):
         _backlog_apply_type(feat_dir, repo, key, nature, issue_types, declared)
 
 
+_VALIDATE_RUN_ID = re.compile(r"(?:^|-)(?:validate|fix)-")
+
+
+def _validate_pass_recorded(feat_dir):
+    """True when feature.json's runs hold a validator-squad validate or fix run at PASS
+    (case-insensitive) - the precondition ship reads from the committed ledger (DEC-262 D-07)."""
+    try:
+        doc = record_read.load_feature_json(os.path.join(feat_dir, "feature.json")) or {}
+    except record_read.FeatureJsonError as exc:
+        die(f"validation incomplete: feature.json could not be read ({exc}). No GitHub state "
+            f"was changed.")
+    return any(isinstance(run, dict) and run.get("squad") == "validator"
+               and _VALIDATE_RUN_ID.search(str(run.get("id", "")))
+               and str(run.get("verdict", "")).upper() == "PASS"
+               for run in doc.get("runs") or [])
+
+
+def _refuse_worktree_feature_dir(feat_dir, verb):
+    """Exit 1 when feat_dir resolves under .claude/worktrees/: a terminal record written there
+    would not survive the worktree's removal. Shared by ship and skip-distill (D-11)."""
+    # DEFECT TWO OF FEAT-41 T-10: A FEATURE DIR INSIDE A WORKTREE THAT IS ABOUT TO BE DELETED.
+    # post-merge-sweep.py runs ship and then REMOVES the worktree, so a terminal station written
+    # to a feature dir under .claude/worktrees/ is written to a directory with minutes to live.
+    #
+    # A REFUSAL, NOT A SKIP, and that is the whole point of putting it here. `skip()` exits 0,
+    # and the sweep's positive-signal gate reads a SKIP as "nothing went wrong" — it would then
+    # delete the worktree, taking the station with it. Exit 1 is what stops that.
+    #
+    # THE REASON COMES FIRST, THEN THE PATH. A refusal that says only what to use instead is
+    # indistinguishable from a stuck gate, and an agent that reads it as one retries ship from
+    # somewhere else rather than moving the write. Same convention as T-09's denial.
+    _resolved = os.path.realpath(os.path.abspath(feat_dir))
+    if harness_boundary.WORKTREES_SEGMENT in _resolved.replace(os.sep, "/"):
+        _owner = harness_boundary.worktree_owner(_resolved)
+        _hint = ""
+        if _owner and _owner[1]:
+            # The same path under the OWNER root: everything up to the worktree root is
+            # replaced, so the tail below WORKTREES_SEGMENT is dropped rather than reused.
+            _tail = _resolved.replace(os.sep, "/").split(harness_boundary.WORKTREES_SEGMENT, 1)[1]
+            _tail = "/".join(_tail.strip("/").split("/")[2:])
+            _hint = f" The same feature directory in the main checkout is {os.path.join(_owner[1], _tail)}."
+        die(f"this feature directory resolves inside a worktree which is about to be deleted, "
+            f"so a terminal station written here would not survive: {_resolved}.{_hint} "
+            f"Run {verb} against the main checkout's copy — or, when the main checkout is busy "
+            f"(another session, detached or dirty), against a plain `git clone` of the merged "
+            f"default branch OUTSIDE .claude/worktrees/, then commit and push the station (#1986).")
+
+
+_DECLINE_REASON_MAX = 240
+
+
+def _skip_distill_refuse(msg):
+    print(f"skip-distill: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def _skip_distill_reason(reason_file):
+    """The reason file's text, whitespace runs collapsed and stripped; exit 1 when it is empty,
+    unreadable or longer than the judgement ledger's 240 characters."""
+    if reason_file is None:
+        _skip_distill_refuse("--reason-file is required. Nothing was written or removed.")
+    try:
+        with open(reason_file, encoding="utf-8") as source:
+            reason = " ".join(source.read().split())
+    except (OSError, UnicodeDecodeError) as exc:
+        _skip_distill_refuse(f"{reason_file} is unreadable ({exc}). Nothing was written or removed.")
+    if not reason or len(reason) > _DECLINE_REASON_MAX:
+        _skip_distill_refuse(f"the reason must be 1 to {_DECLINE_REASON_MAX} characters once "
+                             f"whitespace is collapsed, got {len(reason)}. Nothing was written "
+                             f"or removed.")
+    return reason
+
+
+def _decline_recorded(feature_json):
+    try:
+        doc = record_read.load_feature_json(feature_json) or {}
+    except record_read.FeatureJsonError as exc:
+        _skip_distill_refuse(f"{exc}. Nothing was written or removed.")
+    return any(isinstance(e, dict) and str(e.get("kind", "")).strip() == "distill"
+               and str(e.get("decision", "")).strip() == "declined"
+               for e in doc.get("judgements") or [])
+
+
+def _feature_worktree(argv, owner):
+    """feature-worktree.py through the absolute bin path, bound to the owner checkout: its cwd and
+    the resolver's override (harness_boundary.PROJECT_DIR_ENV, set through the resolver's own
+    constant as check-plan-routes.py does) both name it, so a stale override in the caller's
+    environment cannot point the child at another checkout's copy of the feature. Its lines are
+    relayed prefixed `gh-sync: `. Returns its exit code, or None after reporting that it could
+    not be launched."""
+    env = dict(os.environ)
+    env[harness_boundary.PROJECT_DIR_ENV] = owner
+    try:
+        r = subprocess.run([sys.executable, os.path.join(_BIN_DIR, "feature-worktree.py")] + argv,
+                           cwd=owner, env=env, capture_output=True, text=True)
+    except OSError as exc:
+        print(f"gh-sync: feature-worktree.py could not be launched: {exc}", file=sys.stderr)
+        return None
+    for line in (r.stdout + r.stderr).splitlines():
+        print(f"gh-sync: {line}")
+    return r.returncode
+
+
+def _record_decline(feat_abs, feat_id, feature_json, reason):
+    """Append the distill declined judgement through feature-record.py, the one feature.json
+    write route, after refusing a feature.json that carries uncommitted changes."""
+    st = subprocess.run(["git", "-C", feat_abs, "status", "--porcelain", "--", feature_json],
+                        capture_output=True, text=True)
+    if st.returncode != 0:
+        _skip_distill_refuse(f"git status failed for {feat_id}'s feature.json: {_git_detail(st)}. "
+                             f"Nothing was written or removed.")
+    if st.stdout.strip():
+        _skip_distill_refuse(f"{feat_id}'s feature.json has uncommitted changes; commit or "
+                             f"discard them first. Nothing was written or removed.")
+    r = subprocess.run([sys.executable, os.path.join(_BIN_DIR, "feature-record.py"), "judgement",
+                        "--file", feature_json, "--by", "operator", "--kind", "distill",
+                        "--decision", "declined", "--reason", reason],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        lines = (r.stderr + r.stdout).strip().splitlines()
+        print(f"gh-sync: FAILED - decline not recorded: {lines[-1] if lines else '(no output)'}; "
+              f"nothing was removed", file=sys.stderr)
+        sys.exit(1)
+    for line in r.stdout.splitlines():
+        print(f"gh-sync: {line}")
+
+
+def _skip_distill_inputs(feat_dir, reason_file):
+    """(absolute feature dir, reason, decline already recorded, owner root, clean argv) once
+    every refusal has passed: the worktree refusal, the `done` station, the reason, a readable
+    feature.json and a resolvable owner and clean command. Nothing has been written."""
+    _refuse_worktree_feature_dir(feat_dir, "skip-distill")
+    from check_state import ctx as check_ctx
+    feat_abs = os.path.abspath(feat_dir)
+    station = check_ctx.lenient_station(feat_abs)
+    if station != "done":
+        _skip_distill_refuse(f"{os.path.basename(feat_abs)} is at {station or 'no station'}, not "
+                             f"done; a distill is declined only after ship. Nothing was written "
+                             f"or removed.")
+    reason = _skip_distill_reason(reason_file)
+    declined = _decline_recorded(os.path.join(feat_abs, "feature.json"))
+    try:
+        owner = feature_corpus.owner_root(feat_abs)
+        clean_argv = working_files.clean_argv(feat_abs)
+    except (feature_corpus.CorpusError, working_files.WorkingFilesError) as exc:
+        _skip_distill_refuse(f"{exc}. Nothing was written or removed.")
+    return feat_abs, reason, declined, owner, clean_argv
+
+
+def _commit_decline(feat_abs, reason, declined):
+    """Record the decline unless one already is, then commit feature.json alone; a failed
+    commit exits 1 with nothing removed."""
+    feat_id = os.path.basename(feat_abs)
+    feature_json = os.path.join(feat_abs, "feature.json")
+    if declined:
+        print("gh-sync: decline already recorded")
+    else:
+        _record_decline(feat_abs, feat_id, feature_json, reason)
+    if not _commit_terminal_station(feat_abs, paths=[feature_json],
+                                    message=f"{feat_id}: distill declined"):
+        print("gh-sync: FAILED - decline recorded in feature.json but not committed; nothing was "
+              "removed. Fix the cause and re-run skip-distill --yes, which commits the recorded "
+              "decline without recording a second", file=sys.stderr)
+        sys.exit(1)
+
+
+def cmd_skip_distill(feat_dir, reason_file, yes=False):
+    """Record a declined distill on a shipped feature, commit it, then clean (FEAT-2641 D-11).
+
+    Each step runs only after the one before succeeded: the worktree refusal and the `done`
+    station check; the reason; then, under --yes, one feature.json `distill: declined`
+    judgement (none when one is already recorded), a commit of feature.json alone in its own
+    checkout (never pushed), and only then feature-worktree.py clean --yes, bound to that
+    checkout, which removes the retained worktree's copy when one exists. A failed commit exits
+    1 with nothing removed and a re-run commits the recorded decline; a clean that fails or
+    cannot be launched exits 4 naming the clean command. Without --yes it prints what it would
+    record and remove and changes nothing. No GitHub write, ever."""
+    feat_abs, reason, declined, owner, clean_argv = _skip_distill_inputs(feat_dir, reason_file)
+    if not yes:
+        print("gh-sync: decline already recorded" if declined else
+              f"gh-sync: would record judgement distill: declined ({reason})")
+        _feature_worktree([a for a in clean_argv if a != "--yes"], owner)
+        print("gh-sync: re-run with --yes to record the decline and remove them")
+        return
+    _commit_decline(feat_abs, reason, declined)
+    code = _feature_worktree(clean_argv, owner)
+    if code != 0:
+        failure = "could not be launched" if code is None else f"exited {code}"
+        print(f"gh-sync: distill decline was recorded, but working-file cleanup failed "
+              f"(feature-worktree.py clean {failure}) - retry the cleanup alone with: "
+              f"{_retry_command(feat_abs)} - do not re-run skip-distill", file=sys.stderr)
+        sys.exit(4)
+
+
 def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     """Terminal state: lands every recorded card at the board's DONE STATION, and closes no
     issue at all. GitHub's own `Auto-close issue` workflow turns each station write into a
@@ -2318,54 +2632,27 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     ORDER: `_record_pr` runs before `_record_station(feat_dir, "done")`, and that status write
     stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
     `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
-    # DEFECT TWO OF FEAT-41 T-10: A FEATURE DIR INSIDE A WORKTREE THAT IS ABOUT TO BE DELETED.
-    # post-merge-sweep.py runs ship and then REMOVES the worktree, so a terminal station written
-    # to a feature dir under .claude/worktrees/ is written to a directory with minutes to live.
-    #
-    # A REFUSAL, NOT A SKIP, and that is the whole point of putting it here. `skip()` exits 0,
-    # and the sweep's positive-signal gate reads a SKIP as "nothing went wrong" — it would then
-    # delete the worktree, taking the station with it. Exit 1 is what stops that.
-    #
-    # THE REASON COMES FIRST, THEN THE PATH. A refusal that says only what to use instead is
-    # indistinguishable from a stuck gate, and an agent that reads it as one retries ship from
-    # somewhere else rather than moving the write. Same convention as T-09's denial.
-    _resolved = os.path.realpath(os.path.abspath(feat_dir))
-    if harness_boundary.WORKTREES_SEGMENT in _resolved.replace(os.sep, "/"):
-        _owner = harness_boundary.worktree_owner(_resolved)
-        _hint = ""
-        if _owner and _owner[1]:
-            # The same path under the OWNER root: everything up to the worktree root is
-            # replaced, so the tail below WORKTREES_SEGMENT is dropped rather than reused.
-            _tail = _resolved.replace(os.sep, "/").split(harness_boundary.WORKTREES_SEGMENT, 1)[1]
-            _tail = "/".join(_tail.strip("/").split("/")[2:])
-            _hint = f" The same feature directory in the main checkout is {os.path.join(_owner[1], _tail)}."
-        die(f"this feature directory resolves inside a worktree which is about to be deleted, "
-            f"so a terminal station written here would not survive: {_resolved}.{_hint} "
-            f"Run ship against the main checkout's copy — or, when the main checkout is busy "
-            f"(another session, detached or dirty), against a plain `git clone` of the merged "
-            f"default branch OUTSIDE .claude/worktrees/, then commit and push the station (#1986).")
+    # DEFECT TWO OF FEAT-41 T-10: a feature dir inside a worktree about to be deleted is refused
+    # (exit 1, never a SKIP) before anything is written; see _refuse_worktree_feature_dir.
+    _refuse_worktree_feature_dir(feat_dir, "ship")
 
-    # BUG-1129: SHIP IS THE WRITER OF IRREVERSIBLE TERMINAL STATE, so the validate handoff is
+    # BUG-1129: SHIP IS THE WRITER OF IRREVERSIBLE TERMINAL STATE, so the validate PASS is
     # checked HERE, not only in the sweep that happens to call it. A `git pull` fires the
     # post-merge sweep the moment a feature's PR merges — while its validate may still be in
     # flight — and the cards it moves to Done and the milestone it closes cannot be unwritten.
-    # Under DEC-252 a shipped feature is never an INV-17 subject (SEAM_NOTES['done'] is
-    # empty), so check-state never asks for notes/handoff-validate.md after done. This check
-    # is therefore the sole, preventive prerequisite: it refuses before the first irreversible
-    # write. The DEC-174 main-session-direct exemption is the shared handoff_policy predicate,
-    # imported rather than restated.
+    # This check is the sole, preventive prerequisite: it refuses before the first irreversible
+    # write. DEC-262: it reads the committed ledger, feature.json's runs, never a notes/ file -
+    # ship runs in the main checkout or a plain clone, where an untracked note never exists.
+    # The DEC-174 main-session-direct exemption is the shared handoff_policy predicate.
     #
     # A REFUSAL (exit 1), NOT A SKIP, for the reason given above the worktree check: the sweep
     # reads a SKIP as "nothing went wrong" and removes the worktree.
-    _handoff = os.path.join(feat_dir, "notes", "handoff-validate.md")
-    if not os.path.isfile(_handoff):
-        _why, _detail = handoff_policy.exempt_reason(feat_dir)
-        if not _why:
-            die(f"validation incomplete: {_handoff} does not exist{_detail}, so this feature "
-                f"has not reached the validate seam and ship would record a terminal station "
-                f"for work never validated. No GitHub state was changed. Land the validate "
-                f"handoff (or, for a plan built entirely main-session-direct, mark every task "
-                f"execution_mode: main-session-direct) and ship again.")
+    if not _validate_pass_recorded(feat_dir) and not handoff_policy.exempt_reason(feat_dir)[0]:
+        die("validation incomplete: feature.json records no validator validate or fix run at "
+            "PASS, so ship would record a terminal station for work never validated. No GitHub "
+            "state was changed. Close the validate run PASS (or, for a plan built entirely "
+            "main-session-direct, mark every task execution_mode: main-session-direct) and ship "
+            "again.")
 
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
@@ -2631,14 +2918,14 @@ def main():
         close_sources_flag = True
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
-        die("usage: gh-sync.py open|start-task|abandon|reject|ship|backlog|record-pr|"
-            "status|recover-terminal "
+        die("usage: gh-sync.py open|start-task|abandon|reject|ship|skip-distill|backlog|"
+            "record-pr|status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--superseded-by <positive integer|none>] [--reason-file <path>] "
             "[--body-file <path>] [--pr <n>] [--close-sources] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
-    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal"):
-        die(f"--yes is only accepted by abandon, reject and recover-terminal, "
+    if yes_flag and cmd not in ("abandon", "reject", "recover-terminal", "skip-distill"):
+        die(f"--yes is only accepted by abandon, reject, recover-terminal and skip-distill, "
             f"not {cmd!r}")
     if close_sources_flag and cmd != "abandon":
         die(f"--close-sources is only accepted by abandon, not {cmd!r}")
@@ -2651,6 +2938,11 @@ def main():
         _d = os.path.dirname(_d)
     root = _d if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")) else (
         os.path.dirname(os.path.dirname(os.path.dirname(_abs))))
+    if cmd == "skip-distill":
+        # D-11: DISPATCHED BEFORE load_config. skip-distill makes no GitHub write, so github
+        # config, github.sync and gh auth are never read and can never turn it into a SKIP.
+        cmd_skip_distill(feat_dir, reason_file, yes_flag)
+        return
     if cmd == "open":
         _BUILD_ENTRY["feat_dir"] = feat_dir
     try:

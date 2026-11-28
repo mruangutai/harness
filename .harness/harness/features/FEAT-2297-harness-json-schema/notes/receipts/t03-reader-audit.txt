@@ -1,4 +1,0 @@
-# T-03 canonical-reader audit after load_json_mapping recognition + classification reconciliation
-$ python3 .agents/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
-0 unresolved reader site(s) across 101 Python file(s)
-exit=0

@@ -77,8 +77,6 @@ import sys, os, re, glob, json, subprocess
 sys.path.insert(0, sys.argv[2])
 import harness_yaml
 import artifact_accessors
-import handoff_policy
-import run_identity
 import harness_boundary
 
 # Review finding 1: `require_or_die` is the module's documented gate for exactly

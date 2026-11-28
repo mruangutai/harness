@@ -1,11 +1,14 @@
 """`set-task-station` / `set-feature-station`, station classification, and the approval reset/resume family. (FEAT-70)"""
+import os
 import re
 import sys
 from datetime import datetime
 from datetime import timezone
 
 import factory_config
+import feature_corpus
 import harness_merge
+import working_files
 from plan_merge.text import (
     ITEM_ID_RE, _approval_span, _field_lines, _index_top_keys, _sub_key_lines,
 )
@@ -366,4 +369,45 @@ def cmd_set_feature_station(args):
         sys.exit(refusal.code)
     print(f"STATION {resolved} -> {args.station}")
     print(f"APPLIED {resolved}")
+    if args.station == "rejected":
+        sys.exit(_clean_rejected(resolved))
     sys.exit(0)
+
+
+def _clean_rejected(plan_path):
+    """Remove the feature's local working files once `rejected` has landed (FEAT-2641 D-05,
+    DEC-262). 0 when clean or nothing to clean; 10 when the station is recorded but cleanup
+    failed, with the paths already removed and the retry command."""
+    feature_dir = os.path.dirname(plan_path)
+    removed = []
+
+    def emit(line):
+        print(f"plan-merge: {line}")
+        if line.startswith("removed "):
+            removed.append(line[len("removed "):])
+
+    try:
+        notes = working_files.project_notes(feature_dir)
+        owner_root = feature_corpus.owner_root(feature_dir) if notes else None
+        if not working_files.targets(feature_dir, owner_root):
+            print(f"plan-merge: no working files to clean for {os.path.basename(feature_dir)}")
+            return 0
+        working_files.clean(feature_dir, owner_root, emit=emit)
+        return 0
+    except (working_files.WorkingFilesError, feature_corpus.CorpusError, OSError) as exc:
+        print(f"plan-merge: station rejected was recorded in {plan_path}, but working-file "
+              f"cleanup failed: {exc}", file=sys.stderr)
+        for path in removed:
+            print(f"plan-merge: removed before the failure: {path}", file=sys.stderr)
+        print(f"plan-merge: retry the cleanup alone with: {_retry_command(feature_dir)} - do "
+              f"not write the station again", file=sys.stderr)
+        return 10
+
+
+def _retry_command(feature_dir):
+    """working_files.retry_command, or a sentence naming why none resolves: this report runs
+    after the station landed, so a lookup failure must not turn exit 10 into a traceback."""
+    try:
+        return working_files.retry_command(feature_dir)
+    except working_files.WorkingFilesError as exc:
+        return f"feature-worktree.py clean (no command resolves: {exc})"

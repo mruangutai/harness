@@ -1,6 +1,0 @@
-# B1/B3 regex timing probe: near-miss inputs, fullmatch wall time
-long host near-miss: len=400021 match=False 9.0 ms
-long dotted host near-miss: len=400021 match=False 15.2 ms
-long owner near-miss: len=1000031 match=False 1.7 ms
-long repo near-miss: len=1000031 match=False 1.8 ms
-long port: len=1000023 match=False 0.0 ms

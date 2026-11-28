@@ -149,30 +149,6 @@ def case_k():
         check(f"case (k) {label}: no cost violation", not hit, f"output was: {out.strip()[:200]}")
 
 
-
-def case_t():
-    """A crash shape: exit 1 with EMPTY stdout.
-
-    The /harness gate reads a non-zero exit as "violations found" and prints nothing for the
-    operator to act on, and every invariant after the raise never runs. A plain FILE named
-    `runs` under a feature dir: glob matches files as well as directories, and os.listdir on
-    a file raises NotADirectoryError.
-
-    The assertion is diagnosis-shaped, not exit-code-shaped: exit 1 is the CORRECT outcome
-    once it is reported, so only non-empty output distinguishes a report from a crash.
-    """
-    with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{}', "  parent: 40")
-        fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-CRASH")
-        os.makedirs(fdir, exist_ok=True)
-        with open(os.path.join(fdir, "runs"), "w") as f:   # a FILE, not a directory
-            f.write("not a directory\n")
-        _code, out = run(tmp)
-    check("case (t): a plain file named `runs` does not crash INV-18 (empty stdout means the "
-          "checker crashed)", out.strip() != "" and "Traceback" not in out,
-          f"stdout: {out.strip()[:200]!r}")
-
-
 FLEET_YAML = """schema: factory-fleet/1
 repos:
   - name: acme/widget
@@ -373,38 +349,11 @@ def case_o():
     ok_all &= counts_journal
     checks.append(f"feature.json counting rule shared: {counts_journal}")
 
-    # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
-    va = set(re.findall(r'"([a-z_]+)"',
-                         re.search(r"ALLOWED = \{(.*?)\}", dom, re.S).group(1)))
-    vb = set(re.findall(r'"([a-z_]+)"',
-                         re.search(r"CHECKPOINT_KEYS = \{(.*?)\n\}", sta, re.S).group(1)))
-    vgood = bool(va) and va == vb
-    ok_all &= vgood
-    checks.append(f"checkpoint keys: {len(va)} vs {len(vb)}, "
-                  f"diff {sorted(va ^ vb) or 'none'}")
-
-    # The handoff contract, in THREE copies — the two scripts plus the template a human
-    # fills in. The template is the one that matters most and is the one no gate reads:
-    # rename a heading there and every future handoff is written to a shape check-domain
-    # rejects, with the rejection pointing at templates/HANDOFF.md as the authority.
-    # Compared case-insensitively, because check-state lowercases and check-domain does not.
-    tpl = open(os.path.join(HERE, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
-    ha = {h.lower() for h in re.findall(r'"(## [^"]+)"',
-          re.search(r'required = \[(.*?)\]', dom, re.S).group(1))}
-    hb_ordered = [h.lower() for h in re.findall(r'"(## [^"]+)"',
-                  re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, re.S).group(1))]
-    hb = set(hb_ordered)
-    narrative_is_prefix = bool(re.search(
-        r"HANDOFF_NARRATIVE_HEADINGS\s*=\s*HANDOFF_SECTIONS\[:4\]", sta))
-    hc = {h.strip().lower() for h in re.findall(r"^(## .+)$", tpl, re.M)}
-    hgood = (bool(ha) and ha == hb and ha <= hc and narrative_is_prefix
-             and hb_ordered[-1:] == ["## done when"])
-    ok_all &= hgood
-    checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
-                  f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
-
-    check("case (o): check-domain.py, check-state.py and HANDOFF.md agree on every duplicated "
-          "budget, key and heading", ok_all, "\n".join(f"| {c}" for c in checks))
+    # The checkpoint vocabulary and the handoff headings are no longer duplicated: the rows that
+    # read run checkpoints (INV-16) and handoff notes (INV-17) retired (DEC-262), so check-domain
+    # is their one reader.
+    check("case (o): check-domain.py and check-state.py agree on every duplicated budget",
+          ok_all, "\n".join(f"| {c}" for c in checks))
 
 
 def case_no_root_replays_resolver_stderr():
@@ -468,7 +417,6 @@ def main():
     case_k()
     case_o()
     case_s()
-    case_t()
     case_no_root_replays_resolver_stderr()
     case_canonical_reader_rejects_duplicate_harness_json()
     check(f"exit code unchanged by INV-21 (a: {code_a}, b: {code_b})", code_a == code_b)

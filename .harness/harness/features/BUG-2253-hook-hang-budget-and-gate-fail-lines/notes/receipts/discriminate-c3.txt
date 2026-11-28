@@ -1,4 +1,0 @@
-subject: clean detached checkout of the cycle-1 fix 6cbdc417da0084dce7904bd7fc9aeac5a7617fc4 (the gate validate cycle 1 failed); test file: tests/integration/test-validate-digest.py from fix b228c3a225fd2baaf5e2a12ec704a5b7f2aeb276, sha256 5c29a2ebf665315638cf2769ced7d263960dab04020d4323c121867277348c59
-tree status:  M tests/integration/test-validate-digest.py 
-command: python3 tests/integration/test-validate-digest.py --only run_bug2253_cases
-exit: 1  duration: 10.92s  streams: discriminate-c3.stdout, discriminate-c3.stderr

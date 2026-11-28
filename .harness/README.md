@@ -22,7 +22,7 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `efforts/<slug>/` | A pre-feature **wayfinding map** (`MAP.md` + `tickets/`): a vague idea being taken to plannable clarity across sittings. Local markdown, never the issue tracker (DEC-165). Retired or archived once its effort hands off to `/harness-plan` | the **main session** |
 | `notes/grilling-*.md` | A single-sitting dialog-to-clarity record: destination, settled decisions, fog, out-of-scope, facts verified — pm's BRIEF input (DEC-164) | the **main session** |
 | `features/<FEAT>/notes/` | That feature's durable artifacts: `research-*`, `review-<persona>-c<cycle>.md`, `qa-*`, `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `mockups/`, `prototypes/` — **the path carries the feature id** (DEC-130) | the owning agent |
-| `notes/` | **Project-scoped** durable artifacts only (cross-feature research, docs sweeps). Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
+| `notes/` | **Project-scoped** artifacts only (cross-feature research, docs sweeps), local working files. Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
 | `features/<FEAT>/feature.json` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
@@ -30,8 +30,11 @@ below). A fleet member gets no such directory — only its own `harness.json`, l
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. | **you** (main session) |
 
-**Committed**, except run UI (`features/*/runs/*/ui/**`: screenshots and traces), which is
-git-ignored. Every other run record is retained evidence, committed with its feature (DEC-257).
+**Committed**, except each feature's `notes/`, `runs/`, `observations/` and `scratch/` and the
+project `.harness/notes/`, which are git-ignored local working files removed at distill or by
+abandon, reject or clean (DEC-262). A feature's `scratch/` is where raw verification output
+lives (runner logs, captured output, measurements); notes and receipts carry only its summary
+(DEC-261).
 
 ## Who writes what
 

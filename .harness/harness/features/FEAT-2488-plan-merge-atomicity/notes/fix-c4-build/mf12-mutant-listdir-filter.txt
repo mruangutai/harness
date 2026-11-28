@@ -1,4 +1,0 @@
-# mutant: the ruling's literal listdir filter (entry == JOURNAL_PAIR[0] + JOURNAL_SUFFIX) in a temp copy of bin/, case-folding FS (APFS)
-FAIL - case: recover_journals rolls the pending pair forward ((('ok', False), {'Plan.yaml.harness-merge.journal': b'{"members": [{"after_b64": "cGxhbjogYW1lbmRlZAo=", "after_sha256": "643b14837156f94346a5539ac3d7c1fe79505b5ab623650bf63e2298b62a2c45", "before_sha256": "e2d50b171db8502785d5273861c07decf50bf071e267f2271928298ad51435c1", "name": "plan.yaml"}, {"after_b64": "eyJsZWRnZXIiOiBbImEiXX0K", "after_sha256": "dac2ef156782e6f4cc40c9ca0e0b8ad18e74dc0b495a724b6a8b4bd1fb9085e2", "before_sha256": "9f9f1a971e0b8177de14a1eb2156fd50c9bbf4d543c601fc695ae749559e32af", "name": "feature.json"}], "schema": "harness-merge-journal/1"}', 'feature.json': b'{"ledger": []}\n', 'plan.yaml': b'plan: amended\n'}))
-FAIL - 1/202 checks failed
-exit=1

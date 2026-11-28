@@ -1,9 +1,0 @@
-PASS - the instruction scope is non-empty
-PASS - at least the measured number of station-argument occurrences are found
-PASS - harness-plan.md is among the swept occurrence files
-PASS - github-mirror.md is among the swept occurrence files
-PASS - SKILL.md is among the swept occurrence files
-PASS - every station argument in the instruction scope is an accepted station
-PASS - the unmutated scratch copy reports no offender
-PASS - the sweep reddens on a reintroduced capital
-exit=0

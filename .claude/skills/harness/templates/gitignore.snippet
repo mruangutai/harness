@@ -1,11 +1,12 @@
 # --- harness ---
-# Run UI (screenshots, traces) is read from disk by the gate and never committed. Every other
-# run record (digest.md, state.yaml, .run-identity.json, panels, qa manifests) is retained
-# evidence (DEC-238) and is committed with its feature, like everything else under .harness/:
-# BRIEF, PLAN, STATE, notes, logs, expertise and features/*/feature.json are the record of
-# what shipped, and reviewers auditing the PR diff need to see plan and state changes. The
-# dirty-tree halt (SPEC 8.6) whitelists .harness/**, so tracked records cannot deadlock a run.
-.harness/*/features/*/runs/*/ui/**
+# A feature's notes/ (prototypes, mockups and screenshots included), runs/, observations/ and
+# scratch/ (raw verification output, DEC-261), and project notes under .harness/notes/, are local
+# working files kept only for distill and expertise and never committed (DEC-262).
+.harness/*/features/*/notes/
+.harness/*/features/*/runs/
+.harness/*/features/*/observations/
+.harness/*/features/*/scratch/
+.harness/notes/
 # Merge locks beside the harness's records; a committed lock would be shared state.
 .harness/**/*.lock
 # The one-session PyYAML bootstrap marker (DEC-171). Written by the write hooks

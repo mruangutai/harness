@@ -1,1 +1,0 @@
-Mode A is out of scope: `plan.yaml` T-01 and T-02 change enforcement code and tests; the only operator-facing output is plain-text post-merge diagnostics (T-02 §B), so no visual design contract, theme, or UI accessibility review applies.

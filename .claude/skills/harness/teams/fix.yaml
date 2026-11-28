@@ -90,8 +90,10 @@ steps:
       fail-first evidence is `FAIL` (SC-17). Run each satisfied active unit/integration
       kind ONCE from a checkout of that fixed tip, clean outside the feature's own directory
       (DEC-255), with DEC-255's production runner command, recording its runner receipt in
-      THIS fix run's absolute `runs/<fix-run-id>/qa/manifest-<kind>.json`; keep the tested
-      commit and full output in your note. A refusal names each bad runner receipt and the
+      THIS fix run's absolute `runs/<fix-run-id>/qa/manifest-<kind>.json`; keep in your note
+      one summary per suite (what ran, at which commit, the verdict, the pass/fail/skip
+      counts) and write the raw output to the feature's `scratch/`, never into the note
+      (DEC-261). A refusal names each bad runner receipt and the
       command that repairs it — run that command; never hand-edit a runner receipt. Author
       nothing.
 

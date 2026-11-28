@@ -1,11 +1,9 @@
-"""feature.json is internally consistent and matches disk: INV-1/2/6/7/8/12/18/22/23/33 and the ledger INV-39/40/43/47. (FEAT-69)"""
-import glob, os, re
-import digest_record
+"""feature.json is internally consistent and matches disk: INV-1/2/6/7/22/23/33 and the ledger INV-39/40. (FEAT-69)"""
+import os
 import harness_boundary
 import harness_yaml
 from check_state.brief import _FEAT59_KEYS, _brief_is_by_perspective
-from check_state.ctx import FINISHED_STATIONS, _int_field, _iso_instant, approved, has_approval_block, read
-from check_state.run_state import _inv15_digest_verdict
+from check_state.ctx import FINISHED_STATIONS, _int_field, approved, has_approval_block, read
 def inv_1(ctx, feat):
     """INV-1: the feature's goal of record (BRIEF.md) is signed before its flows run."""
     bad, warn = [], []
@@ -203,19 +201,11 @@ def inv_7(ctx, feat):
     doc, _, _, _errors = ctx.record(feat)
     if doc is None:
         return bad, warn
-    try:
-        record_evidence = harness_boundary.load_repo_module("feature_record.evidence")
-    except harness_boundary.RepoModuleError as error:
-        return [f"INV-7 CANNOT RUN for {feat}: {error}"], warn
-    directory = os.path.dirname(ctx.path(feat, "feature.json"))
     total = doc.get("cycles_used")
     if isinstance(total, bool) or not isinstance(total, int) or total < 0:
         return [f"{feat}: cycle attribution requires a nonnegative integer total."], warn
     attributed = 0
     for run in doc.get("runs", []):
-        bad.extend(f"{feat}: run {run['id']} cycle/refusal evidence: {problem}"
-                   for problem in record_evidence.run_evidence_problems(
-                       directory, doc.get("feature_id", feat), run, doc.get("runs", [])))
         count = run.get("cycles_used")
         if count is None:
             warn.append(f"{feat}: run {run['id']} has unknown historical cycle attribution.")
@@ -224,8 +214,6 @@ def inv_7(ctx, feat):
             bad.append(f"{feat}: run {run['id']} has invalid cycle attribution.")
             continue
         attributed += count
-        if not run.get("cycle_evidence"):
-            warn.append(f"{feat}: run {run['id']} has historical cycle attribution without evidence.")
     if attributed > total:
         bad.append(f"{feat}: per-run cycle attribution {attributed} exceeds total {total}.")
     return bad, warn
@@ -327,70 +315,6 @@ def inv_22(ctx, feat):
     warn.extend(_inv22_count(feat, runs, val, _budget, _why))
     return bad, warn
 
-def inv_8(ctx, feat):
-    bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
-    if doc is None:
-        return bad, warn
-    fy = ctx.path(feat, 'feature.json')
-    def val(k):
-        """A scalar field as a string, or None. JSON returns typed values, so
-        consumers that compare textual placeholders normalize them here."""
-        v = doc.get(k)
-        return None if v is None else str(v)
-
-    # INV-8: a referenced run dir must exist, or resume has nothing to read.
-    recorded = set()
-    for rid, _, _ in runs:
-        recorded.add(rid)
-        d = os.path.join(os.path.dirname(fy), "runs", rid)
-        if not os.path.isdir(d):
-            warn.append(f"{feat}: run {rid} is referenced but its dir is absent "
-                        f"(pruned, or never created).")
-    return bad, warn
-
-def inv_12(ctx, feat):
-    bad, warn = [], []
-    H, root, fpath = ctx.H, ctx.root, ctx.fpath
-    doc, runs, code_reviewing_runs, _errors = ctx.record(feat)
-    if doc is None:
-        return bad, warn
-    fy = ctx.path(feat, 'feature.json')
-    def val(k):
-        """A scalar field as a string, or None. JSON returns typed values, so
-        consumers that compare textual placeholders normalize them here."""
-        v = doc.get(k)
-        return None if v is None else str(v)
-    recorded = {rid for rid, _, _ in runs}
-    # INV-12: the INVERSE — a run dir nothing records. Observed live (DEC-131): an
-    # interrupt killed the orchestrator's view while its orphaned subtree ran on and
-    # wrote a whole run. Work on disk that no orchestrator knows about is invisible
-    # to resume unless something surfaces it.
-    for d in glob.glob(os.path.join(os.path.dirname(fy), "runs", "*")):
-        rid = os.path.basename(d)
-        if os.path.isdir(d) and rid not in recorded:
-            warn.append(f"{feat}: run dir {rid} exists on disk but feature.json does not "
-                        f"record it — orphaned work (interrupted flow?). A resume must "
-                        f"reconcile it, not rediscover it by luck.")
-    return bad, warn
-
-# --- INV-18 (DEC-160): a feature with run dirs but no feature.json is invisible to
-# every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
-# Observed live: FEAT-03's plan phase ran to completion before feature.json existed.
-def inv_18(ctx, feat):
-    bad, warn = [], []
-    rd = ctx.path(feat, 'runs')
-    fdir = ctx.feature_dir(feat)
-    # isdir FIRST: glob matches a plain file named `runs` too, and os.listdir on it raises
-    # NotADirectoryError — exit 1, empty stdout, every later invariant skipped.
-    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.json")):
-        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.json — the feature is "
-                   f"invisible to run reconciliation and phase checks; instantiate it from "
-                   f".agents/skills/harness/templates/feature.json (the playbook's first-cycle "
-                   f"duty).")
-    return bad, warn
-
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.py enforces the same numbers on a WRITE payload, which is
 # where they can still be prevented; this reads the file as it actually is, so no tool and
@@ -482,79 +406,6 @@ def inv_23(ctx):
         warn.extend(_inv23_state_md(ctx, feat))
     return bad, warn
 
-# INV-47 (#1884): a validate run recorded PASS is graded against the member notes of ITS
-# cycle. FEAT-63's c2 was recorded PASS while notes/review-harness-qa-c2.md said BLOCKED —
-# the integration runner's exit 1 was real and CI caught it after the PASS. issue #919's
-# receipt check fires only on a qa PASS, and INV-46 compares the run's digest with feature.json;
-# nothing compared the lead's verdict with what its members returned. The note IS the
-# member's record (overwritten per cycle), so a FAIL or BLOCKED there under a PASS run means
-# the lead passed over a member it did not get to re-return. Cycle mapping is the run id's
-# own: `validate-validator` is c0, `validate-cN-validator` is cN; `-plan-cN` notes belong to
-# plan runs and are not members of a validate run.
-_VALIDATE_RUN_RE = re.compile(r"^validate(?:-c(\d+))?-validator$")
-# The lookahead keeps `-plan-cN` names out: plan-review notes are not members of a validate run.
-_MEMBER_NOTE_RE = re.compile(r"^review-harness-(?!.*-plan-c)[a-z-]+-c(\d+)\.md$")
-
-
-def _note_cycle(name):
-    """The cycle a member review note belongs to, or None for a non-member name."""
-    _nm = _MEMBER_NOTE_RE.match(name)
-    return int(_nm.group(1)) if _nm else None
-
-
-def _note_verdict(path):
-    """The VERDICT of the note's final fenced mapping (digest_record), upper-cased, or None
-    when the note is unreadable, carries no fenced mapping, or that mapping has no VERDICT."""
-    try:
-        _record = digest_record.last_fenced_mapping(read(path) or "", path)
-    except digest_record.DigestRecordError:
-        return None
-    _verdict = _inv15_digest_verdict(_record)
-    return _verdict.upper() if _verdict else None
-
-
-def _inv47_member_notes(ctx, feat, cycle):
-    """(name, verdict) for every member review note of `cycle`."""
-    _paths = sorted(glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "review-harness-*.md")))
-    return [(os.path.basename(_np), _note_verdict(_np)) for _np in _paths
-            if _note_cycle(os.path.basename(_np)) == cycle]
-
-
-def _passed_validate_cycle(_entry):
-    """(run id, cycle) when `_entry` is a validate run at PASS, else None."""
-    if not isinstance(_entry, dict):
-        return None
-    _rid = str(_entry.get("id", "")).strip()
-    _rm = _VALIDATE_RUN_RE.match(_rid)
-    if not _rm or str(_entry.get("verdict", "")).strip().upper() != "PASS":
-        return None
-    return _rid, int(_rm.group(1) or 0)
-
-
-def _passed_validate_cycles(_doc):
-    """(run id, cycle) for every validate run the record has at PASS."""
-    _found = (_passed_validate_cycle(_entry) for _entry in (_doc.get("runs") or []))
-    return [_hit for _hit in _found if _hit is not None]
-
-
-def _inv47_hit(_rid, _name, _verdict):
-    return ("INV-47", f"run {_rid} PASS over notes/{_name} {_verdict}",
-            f"run {_rid} is recorded PASS but its member note notes/{_name} says VERDICT: "
-            f"{_verdict} — a lead does not pass over a member's {_verdict}; the member "
-            f"returns again, or the run is FAIL (#1884)")
-
-
-def inv_47(ctx, feat):
-    _doc, _era = _feat59_record(ctx, feat)
-    if _doc is None:
-        return [], [], []
-    _hits = [_inv47_hit(_rid, _name, _verdict)
-             for _rid, _cycle in _passed_validate_cycles(_doc)
-             for _name, _verdict in _inv47_member_notes(ctx, feat, _cycle)
-             if _verdict in ("FAIL", "BLOCKED")]
-    return [], [], _hits
-
-
 # INV-39 (SC-15, DEC-157): the cycle budget is a bound, and a raise is a recorded decision.
 #
 # TODAY NOTHING ENFORCES `cycles_used <= max_total_cycles`. INV-7 bounds cycles_used from
@@ -567,35 +418,21 @@ def inv_47(ctx, feat):
 # the unrecorded decision this refuses. An entry recording an earlier value covers only that
 # raise; the current one is still undecided.
 #
-# INV-40 (SC-21, SC-20): every autonomous judgement leaves a judgements[] entry. Four
-# INDEPENDENT checks, each on its own trigger, so one record can fail all four and each line
-# names its own remedy: (a) a `mission` whose LAST entry of kind mission is absent or decided
-# a different value -- set-mission ran without the ledger hearing of it; (b) a run with verdict
-# FAIL that a later run follows -- a re-gate happened -- with no entry of kind regate; (c) a
-# handoff note with at least one run recorded after its `seq-N` -- a successor woke -- with no
-# entry of kind succession; (d) BUG-1716: a task whose current {files, intent, verify} hash
-# differs from the hash `sign-approval` recorded in `signed_task_hashes` -- the signed text
-# changed -- with no entry of kind amendment whose decision is that task's `T-NN.<field>`.
-# Entries are appended in order and the ledger is one flat list, so (b) and (c) match by
-# COUNT: k re-gates need k regate entries and the first uncovered run or note is the one
-# named. `seq-N` is the note's own first-line marker (templates/HANDOFF.md), read as the
-# ordinal of the run that wrote it; run N+1 onward is the successor's. An in-era note with no
-# marker is refused rather than skipped, because a note that cannot be placed cannot be
-# matched -- the same posture INV-32 takes on an undated approval. (d) recomputes with the
-# hash plan_merge/approval.py owns (`signed_task_hash`), never a re-spelling of it; an overruled
+# INV-40 (SC-21): every autonomous judgement leaves a judgements[] entry. Three INDEPENDENT
+# checks, each on its own trigger, so one record can fail all three and each line names its
+# own remedy: (a) a `mission` whose LAST entry of kind mission is absent or decided a
+# different value -- set-mission ran without the ledger hearing of it; (b) a run with verdict
+# FAIL that a later run follows -- a re-gate happened -- with no entry of kind regate; (d)
+# BUG-1716: a task whose current {files, intent, verify} hash differs from the hash
+# `sign-approval` recorded in `signed_task_hashes` -- the signed text changed -- with no entry
+# of kind amendment whose decision is that task's `T-NN.<field>`. The letters are kept: clause
+# (c), the handoff-note succession, retired with the notes it read (DEC-262). Entries are
+# appended in order and the ledger is one flat list, so (b) matches by COUNT: k re-gates need
+# k regate entries and the first uncovered run is the one named. (d) recomputes with the hash
+# plan_merge/approval.py owns (`signed_task_hash`), never a re-spelling of it; an overruled
 # amendment still covers -- the ledger is the historical record whatever the operator ruled;
 # a record with no `signed_task_hashes` (signed before BUG-1716) and a pending approval are
 # not graded; malformed hash data is the schema gate's finding, not this one's.
-#
-# INV-43 (BUG-1723 SC-03, D-02): the succession judgement for a handoff at seq-N is recorded
-# NO LATER than run N+1 started. INV-40(c) asks whether it exists; this asks WHEN. A
-# succession whose `at` postdates the successor's first run is a retrospective correction --
-# the shape #1713 measured twice on BUG-285-canonical-reader, where one context ran plan,
-# build and validate and wrote "seam correction" judgements after the fact. Matching is
-# INV-40's own: the k-th qualifying handoff (by seq) takes the k-th succession entry (by
-# ledger order). A timestamp that is present but unreadable is CANNOT VERIFY naming the
-# field, never a silent pass; a missing succession is INV-40's finding and is not repeated.
-# Chronology is compared on ISO-8601 instants, so `Z` and `+00:00` agree.
 def _signed_hashes_to_grade(ctx, doc, plan_doc):
     """The signed_task_hashes mapping when INV-40 (d) applies, else None: the hash module
     imported, the record carries hashes, and the plan's approval is `approved`."""
@@ -783,49 +620,6 @@ def _inv40_regates(_kinds59, _runs59):
     return _hits59
 
 
-def _inv40_handoff_need(_feat59, _hp59, _runs59, _era59):
-    """One handoff note's (seq, note, runs-after) entry for (c), or None when no run
-    follows it; a note with no `seq-N` is the in-era violation and is never counted."""
-    bad = []
-    _first59 = ((read(_hp59) or "").splitlines() or [""])[0]
-    _sm59 = re.search(r"\bseq-(\d+)\b", _first59)
-    if _sm59 is None:
-        if _era59:
-            bad.append(f"INV-40 {_feat59}: notes/{os.path.basename(_hp59)} carries no `seq-N` "
-                       f"on its first line, so the runs after it cannot be counted and no "
-                       f"succession can be matched to it — add it (templates/HANDOFF.md).")
-        return bad, None
-    _after59 = len(_runs59) - int(_sm59.group(1))
-    if _after59 > 0:
-        return bad, (int(_sm59.group(1)), os.path.basename(_hp59), _after59)
-    return bad, None
-
-
-def _inv40_successions(ctx, feat, _era59, _kinds59, _runs59):
-    """(c) one succession judgement per handoff note a later run follows, in seq order."""
-    bad, _hits59 = [], []
-    _fy59 = ctx.path(feat, "feature.json")
-    _succ59 = _kinds59.count("succession")
-    _need_succ = []
-    for _hp59 in glob.glob(os.path.join(os.path.dirname(_fy59), "notes", "handoff-*.md")):
-        _bad59, _need59 = _inv40_handoff_need(feat, _hp59, _runs59, _era59)
-        bad.extend(_bad59)
-        if _need59 is not None:
-            _need_succ.append(_need59)
-    _need_succ.sort()
-    if len(_need_succ) > _succ59:
-        _seq, _note, _after = _need_succ[_succ59]
-        _hits59.append(("INV-40",
-                        f"no succession judgement for notes/{_note} (seq-{_seq}, {_after} "
-                        f"run(s) after it)",
-                        f"notes/{_note} was written at seq-{_seq} and {_after} run(s) are recorded "
-                        f"after it, but judgements[] carries no matching entry of kind succession "
-                        f"({_succ59} recorded for {len(_need_succ)} handoff(s) with a successor "
-                        f"run) — the successor's continue/downgrade/stop decision is unrecorded "
-                        f"(SC-20/SC-21)"))
-    return bad, _hits59
-
-
 def inv_40(ctx, feat):
     bad, warn, _hits59 = [], [], []
     _doc59, _era59 = _feat59_record(ctx, feat)
@@ -836,99 +630,6 @@ def inv_40(ctx, feat):
     _hits59.extend(_inv40_mission(_doc59, _j59))
     _hits59.extend(_unledgered_task_edits(ctx, _doc59, ctx.plan_docs.get(feat) or {}))
     _hits59.extend(_inv40_regates(_kinds59, _runs59))
-    _sbad59, _shits59 = _inv40_successions(ctx, feat, _era59, _kinds59, _runs59)
-    return bad + _sbad59, warn, _hits59 + _shits59
-
-
-def _feat59_note_seq(_hp59):
-    """The seq-N a handoff note's first line names, or None when it names none."""
-    _first59 = ((read(_hp59) or "").splitlines() or [""])[0]
-    _sm59 = re.search(r"\bseq-(\d+)\b", _first59)
-    return None if _sm59 is None else int(_sm59.group(1))
-
-
-def _feat59_succession_entries(_doc59):
-    """The succession entries the ledger carries; an unreadable ledger carries none."""
-    _j59 = _doc59.get("judgements")
-    _j59 = _j59 if isinstance(_j59, list) else []
-    return [e for e in _j59 if isinstance(e, dict)
-            and str(e.get("kind", "")).strip() == "succession"]
-
-
-def _feat59_successions(ctx, feat, _doc59, _era59):
-    """The (seq, note, runs-after) handoffs INV-40 (c) counts, in seq order, and the
-    succession entries the ledger carries -- shared by INV-40 and INV-43."""
-    _runs59 = [e for e in (_doc59.get("runs") or []) if isinstance(e, dict)]
-    _need_succ = []
-    for _hp59 in glob.glob(os.path.join(ctx.feature_dir(feat), "notes", "handoff-*.md")):
-        _seq59 = _feat59_note_seq(_hp59)
-        if _seq59 is None:
-            continue
-        _after59 = len(_runs59) - _seq59
-        if _after59 > 0:
-            _need_succ.append((_seq59, os.path.basename(_hp59), _after59))
-    _need_succ.sort()
-    return _runs59, _need_succ, _feat59_succession_entries(_doc59)
-
-
-def _inv43_run(_runs59, _seq43):
-    """The run at seq -- the first run after the note -- or an empty record when the ledger
-    has no readable run there."""
-    return _runs59[_seq43] if _seq43 < len(_runs59) and isinstance(_runs59[_seq43], dict) else {}
-
-
-def _inv43_placement(_feat59, _seam_era_start, _seq43, _note43, _run43, _entry43):
-    """One succession's placement against the first run after its note: the two CANNOT
-    VERIFY hits, the retrospective hit, or that hit's pre-era warn -- as (hits, warn)."""
-    _hits59, warn = [], []
-    _rid43 = _run43.get("id", f"runs[{_seq43}]")
-    _at43 = _iso_instant(_entry43.get("at"))
-    _st43 = _iso_instant(_run43.get("started_at"))
-    if _at43 is None:
-        _hits59.append(("INV-43", f"succession for notes/{_note43}: `at` unreadable",
-                        f"CANNOT VERIFY the seam for notes/{_note43}: the matching succession "
-                        f"judgement's `at` ({_entry43.get('at')!r}) is not an "
-                        f"ISO-8601 instant, so it cannot be placed against run {_rid43}"))
-        return _hits59, warn
-    if _st43 is None:
-        _hits59.append(("INV-43", f"run {_rid43}: started_at unreadable",
-                        f"CANNOT VERIFY the seam for notes/{_note43}: run {_rid43} — the first "
-                        f"run after seq-{_seq43} — has no readable `started_at` "
-                        f"({_run43.get('started_at')!r}), so the succession cannot be placed "
-                        f"against it"))
-        return _hits59, warn
-    if _at43 > _st43:
-        _full43 = (f"the succession judgement for notes/{_note43} (seq-{_seq43}) is "
-                   f"recorded at {_entry43.get('at')}, AFTER run {_rid43} "
-                   f"started at {_run43.get('started_at')} — a retrospective seam "
-                   f"correction: the successor must append its succession no later "
-                   f"than its first run (DEC-159, BUG-1723)")
-        if _seam_era_start and _at43.date().isoformat() < _seam_era_start:
-            # BEFORE THE SEAM WAS GRADED (BUG-1071's rule for INV-32, same reason):
-            # the record cannot be re-recorded to satisfy a rule that did not exist
-            # when it was written (DEC-227). A note, so the exemption is visible.
-            warn.append(f"INV-43 {_feat59}: predates seam_era_start {_seam_era_start}; "
-                        f"not graded — would fail: {_full43}.")
-            return _hits59, warn
-        _hits59.append(("INV-43", f"retrospective succession for notes/{_note43}", _full43))
-    return _hits59, warn
-
-
-def inv_43(ctx, feat):
-    bad, warn, _hits59 = [], [], []
-    _feat59 = feat
-    _seam_era_start = ctx.seam_era_start
-    _doc59, _era59 = _feat59_record(ctx, feat)
-    if _doc59 is None:
-        return bad, warn, _hits59
-    _runs59, _need_succ, _succ_entries = _feat59_successions(ctx, feat, _doc59, _era59)
-    for _k43, (_seq43, _note43, _) in enumerate(_need_succ):
-        if _k43 >= len(_succ_entries):
-            break  # INV-40 names the missing one
-        _hits43, _warn43 = _inv43_placement(_feat59, _seam_era_start, _seq43, _note43,
-                                            _inv43_run(_runs59, _seq43), _succ_entries[_k43])
-        _hits59.extend(_hits43)
-        warn.extend(_warn43)
     return bad, warn, _hits59
 
 
@@ -936,10 +637,6 @@ def _collate59_in_era(feat, _hits59):
     """An in-era record: one violation per hit, the full form."""
     bad = []
     _feat59 = feat
-    # INV-43 gates on a terminal feature too (SC-03/D-02): a retrospective succession is
-    # the record of work that crossed the seam unhanded, and shipping does not change what
-    # the ledger says happened. Validate c0 struck the terminal downgrade this branch first
-    # carried; the boundary above is by DATE, not by station.
     for _inv, _short, _full in _hits59:
         bad.append(f"{_inv} {_feat59}: {_full}.")
     return bad

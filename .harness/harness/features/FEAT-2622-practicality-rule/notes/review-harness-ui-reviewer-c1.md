@@ -1,1 +1,0 @@
-Mode B — PASS, scoped out: `git diff --name-status 3e979ae3..d131c231` listed 45 paths (26 Markdown, 11 Python, 5 YAML, 3 JSON), none implementing a rendered or interactive UI; the Python changes are enforcement, CLI diagnostics, and tests, the pin contains no feature `DESIGN.md`, and visual accessibility and light/dark parity are not applicable.

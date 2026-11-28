@@ -12,7 +12,7 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py apply             --file <plan.yaml> --proposal <path or - for stdin>
     plan-merge.py add-tasks         --file <plan.yaml> --proposal <path or - for stdin>
     plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
-    plan-merge.py set-feature-station --file <plan.yaml> --station <name>
+    plan-merge.py set-feature-station --file <plan.yaml> --station <name>   (rejected then removes the feature's local working files)
     plan-merge.py set-panel         --file <plan.yaml> --value-file <panel.yaml>
     plan-merge.py record-panel      --file <plan.yaml> --digest <lead digest.md> --cycle N [--last-run <run-dir>]
     plan-merge.py set-lanes         --file <plan.yaml> --value-file <lanes.yaml>
@@ -63,7 +63,12 @@ the refusals can name why one was asked for, and so a caller cannot delete by re
 `set-task-station` and `set-feature-station` validate the station against the vocabulary
 factory_config declares — MANDATED_STATIONS plus TERMINAL_STATIONS, imported, never respelled —
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
-BEFORE the lock is taken, so a refused value never opens the file.
+BEFORE the lock is taken, so a refused value never opens the file. Once `set-feature-station`
+has written `rejected`, it removes the feature's local working files - notes/, runs/,
+observations/, scratch/ and the project notes its feature.json claims - through
+bin/working_files.py (DEC-262); a refused station write removes nothing. Its exit 10, returned
+by no other path of that verb, means the station was recorded and only the cleanup failed: it
+names what was already removed and the feature-worktree.py clean retry command.
 
 `approval:` has four controlled write paths: `apply` seeds a brand-new plan with the
 unsigned `status: pending` mapping, `sign-approval` is the only path that can transition it
@@ -110,7 +115,8 @@ Exit codes are the interface:
        a proposal's fields replace the base's)
     8  the proposal's approval mapping parses differently from the base's
     9  --file does not resolve to a plan.yaml this tool owns
-    10 `sign-approval` / `revoke-approval` invoked by a governed agent rather than the main session
+    10 `sign-approval` / `revoke-approval` invoked by a governed agent rather than the main session;
+       `set-feature-station`: station rejected was recorded but working-file cleanup failed
 
 python3 stdlib plus PyYAML (DEC-171 requires it here). Reads go through harness_yaml.py, same as
 every other harness tool (issue #720): a duplicate mapping key refuses here exactly as it would

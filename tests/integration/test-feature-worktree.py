@@ -26,6 +26,7 @@ checkout.
 """
 from integration_support import ROOT as _ROOT, BIN
 import itertools
+import json
 import os
 import shutil
 import subprocess
@@ -894,20 +895,22 @@ def case_gitignored_artifact_does_not_block(fx):
     `.harness/*/features/*/runs/**`: every run `digest.md` was untracked, could never reach the
     default branch, and Gate 3 refused on it, making act 3 of the worktree lifecycle unrunnable.
     Run records are tracked since BUG-2399 (only `runs/*/ui/` is ignored), but the gate's contract
-    is unchanged: an IGNORED file of any kind is not landed work. The fixture keeps the historical
-    rule as its arbitrary ignore — one TRACKED artifact that IS landed, plus one IGNORED file that
-    never can be. The pre-fix code exits 5 naming the ignored path."""
+    is unchanged: an IGNORED file of any kind is not landed work. Since FEAT-2641 an ignored file
+    under notes/, runs/, observations/ or scratch/ is GATE 2b's to refuse, so the fixture's
+    arbitrary ignore is a tmp-cache/ directory GATE 2b does not read — one TRACKED artifact that
+    IS landed, plus one IGNORED file that never can be. The pre-fix code exits 5 naming the
+    ignored path."""
     info = create_ok(fx, "harness", "FEAT-74")
     dest, seg = info["dest"], info["segment"]
 
     # The ignore rule, committed on the feature branch and merged, exactly as the real repo has it.
     with open(os.path.join(dest, ".gitignore"), "w") as f:
-        f.write(".harness/*/features/*/runs/**\n")
+        f.write(".harness/*/features/*/tmp-cache/**\n")
     rel = _commit_artifact(dest, seg, "FEAT-74", "v1\n", "add artifact and ignore rule")
     _merge_into_default(info["owner_root"], "FEAT-74")
 
     # An IGNORED run artifact, written AFTER the merge. git status is clean; the path is not on main.
-    run_rel = os.path.join(".harness", seg, "features", "FEAT-74", "runs", "r1", "digest.md")
+    run_rel = os.path.join(".harness", seg, "features", "FEAT-74", "tmp-cache", "r1", "digest.md")
     run_abs = os.path.join(dest, run_rel)
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
@@ -944,11 +947,11 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
     dest, seg = info["dest"], info["segment"]
 
     with open(os.path.join(dest, ".gitignore"), "w") as f:
-        f.write(".harness/*/features/*/runs/**\n")
+        f.write(".harness/*/features/*/tmp-cache/**\n")
     rel = _commit_artifact(dest, seg, "FEAT-71", "v1\n", "add artifact and ignore rule")
     # DELIBERATELY NOT MERGED.
 
-    run_abs = os.path.join(dest, ".harness", seg, "features", "FEAT-71", "runs", "r1", "digest.md")
+    run_abs = os.path.join(dest, ".harness", seg, "features", "FEAT-71", "tmp-cache", "r1", "digest.md")
     os.makedirs(os.path.dirname(run_abs), exist_ok=True)
     with open(run_abs, "w") as f:
         f.write("ignored\n")
@@ -968,9 +971,10 @@ def case_gitignored_does_not_mask_a_real_miss(fx):
 
 
 def case_remove_refuses_aborted_run_evidence(fx):
-    """BUG-2399 — an ABORTED run (written, never closed and committed) is untracked evidence under
-    the canonical repository ignore rules, so removal refuses (GATE 2, exit 4) and keeps it, where
-    the old broad run ignore let the tree, and the records with it, vanish."""
+    """BUG-2399, FEAT-2641 GATE 2b — an ABORTED run (written, never closed) is an ignored working
+    file under the canonical repository ignore rules (DEC-262), so GATE 2 sees a clean tree and
+    GATE 2b refuses (exit 4), naming the runs/ directory with its file count and the clean
+    command, and keeps the tree and both records byte-identical."""
     info = create_ok(fx, "harness", "FEAT-75")
     dest, seg = info["dest"], info["segment"]
     shutil.copyfile(os.path.join(ROOT, ".gitignore"), os.path.join(dest, ".gitignore"))
@@ -989,21 +993,353 @@ def case_remove_refuses_aborted_run_evidence(fx):
 
     r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-75"], fx)
     check(
-        "BUG-2399 aborted run: remove refuses with exit 4",
+        "BUG-2399 aborted run: remove refuses with exit 4 (GATE 2b)",
         r2.returncode == 4,
         _out(r2),
     )
-    discarded = [line[len("WOULD DISCARD "):] for line in r2.stdout.splitlines() if line.startswith("WOULD DISCARD ")]
     check(
-        "BUG-2399 aborted run: stdout names WOULD DISCARD for the run evidence",
-        all(any(rel == path or (path.endswith("/") and rel.startswith(path)) for path in discarded)
-            for rel in evidence),
+        "BUG-2399 aborted run: stdout names the runs/ directory with its file count",
+        f"WOULD DISCARD WORKING FILES .harness/{seg}/features/FEAT-75/runs/ (2 files)" in r2.stdout,
         r2.stdout,
     )
+    check("BUG-2399 aborted run: stdout prints the clean command",
+          _clean_command("FEAT-75") in r2.stdout, r2.stdout)
     survived = all(os.path.exists(os.path.join(dest, rel)) and open(os.path.join(dest, rel)).read() == text
                    for rel, text in evidence.items())
     check("BUG-2399 aborted run: the worktree and its evidence survive byte-identical",
           os.path.isdir(dest) and survived, dest)
+
+
+# FEAT-2641 (DEC-262): the five working-file ignore rules the repository carries.
+WORKING_IGNORE = (".harness/*/features/*/notes/\n.harness/*/features/*/runs/\n"
+                  ".harness/*/features/*/observations/\n.harness/*/features/*/scratch/\n"
+                  ".harness/notes/\n")
+WORKING_FILES = (os.path.join("notes", "x.md"), os.path.join("runs", "r", "digest.md"),
+                 os.path.join("observations", "a.md"))
+
+
+def _clean_command(feature, repo="harness"):
+    return (f"python3 .claude/skills/harness/bin/feature-worktree.py clean --repo {repo} "
+            f"--id {feature} --yes")
+
+
+def _write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def _commit_ignore(dest):
+    """Write and commit the four working-file rules alone, before anything else is staged. A
+    branch cut after an earlier case merged them already carries them, so nothing is committed."""
+    _write(os.path.join(dest, ".gitignore"), WORKING_IGNORE)
+    git(dest, "add", ".gitignore")
+    if git(dest, "diff", "--cached", "--quiet", check=False).returncode:
+        git(dest, "commit", "-q", "-m", "working-file ignore rules")
+
+
+def _commit_record(dest, rel_dir, station, message, project_notes=None):
+    """Commit plan.yaml reading `station` (and feature.json) under rel_dir in dest."""
+    _write(os.path.join(dest, rel_dir, "plan.yaml"), f"status: {station}\n")
+    doc = {} if project_notes is None else {"project_notes": project_notes}
+    _write(os.path.join(dest, rel_dir, "feature.json"), json.dumps(doc) + "\n")
+    git(dest, "add", "-A")
+    git(dest, "commit", "-q", "-m", message)
+
+
+def _working_fixture(fx, wt_id, feature, owner_station, wt_station, project_notes=None):
+    """A harness worktree `wt_id` whose .gitignore carries the four working-file rules (committed
+    first, alone), holding .harness/harness/features/<feature> with plan.yaml at `wt_station`.
+    The owner copy reads `owner_station` (merged into main) or is absent when that is None.
+    Ignored notes/x.md, runs/r/digest.md and observations/a.md are written last."""
+    info = create_ok(fx, "harness", wt_id)
+    dest = info["dest"]
+    _commit_ignore(dest)
+    rel_dir = os.path.join(".harness", "harness", "features", feature)
+    if owner_station is not None:
+        _commit_record(dest, rel_dir, owner_station, "landed record", project_notes)
+        _merge_into_default(info["owner_root"], wt_id)
+    if owner_station != wt_station:
+        _commit_record(dest, rel_dir, wt_station, "worktree record", project_notes)
+    _write_working_files(dest, rel_dir)
+    return info, rel_dir
+
+
+def _write_working_files(dest, rel_dir):
+    for rel in WORKING_FILES:
+        _write(os.path.join(dest, rel_dir, rel), f"{rel}\n")
+
+
+def _working_present(dest, rel_dir):
+    return [d for d in ("notes", "runs", "observations")
+            if os.path.lexists(os.path.join(dest, rel_dir, d))]
+
+
+def case_gate_2b_refuses_ignored_working_files(fx):
+    """D-08: ignored notes/, runs/ and observations/ files refuse remove with exit 4, one line per
+    directory, never per file; after clean --yes the tree is removable."""
+    info, rel_dir = _working_fixture(fx, "FEAT-60", "FEAT-60", "done", "done")
+    dest = info["dest"]
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-60"], fx)
+    lines = [f"WOULD DISCARD WORKING FILES {rel_dir}/{d}/ (1 files)"
+             for d in ("notes", "runs", "observations")]
+    check("GATE 2b: remove refuses with exit 4 on ignored working files",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("GATE 2b: names the three directories with (1 files)",
+          all(line in r.stdout.splitlines() for line in lines), r.stdout)
+    check("GATE 2b: prints no line for an individual file",
+          not any(rel in r.stdout for rel in WORKING_FILES), r.stdout)
+    check("GATE 2b: the worktree survives", os.path.isdir(dest), dest)
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-60", "--yes"], fx)
+    check("GATE 2b: clean --yes at done exits 0 and removes the three directories",
+          c.returncode == 0 and _working_present(dest, rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-60"], fx)
+    check("GATE 2b: remove succeeds after clean --yes",
+          r2.returncode == 0 and not os.path.isdir(dest),
+          f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}")
+
+
+def case_gate_2b_counts_scratch(fx):
+    """T-12 (D-13, SC-19): one untracked file under scratch/ refuses remove with exit 4, named
+    per directory with its count; clean --yes at done removes scratch/."""
+    info, rel_dir = _working_fixture(fx, "FEAT-77", "FEAT-77", "done", "done")
+    dest = info["dest"]
+    scratch = os.path.join(dest, rel_dir, "scratch")
+    _write(os.path.join(scratch, "pytest.log"), "raw runner output\n")
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-77"], fx)
+    check("T-12 GATE 2b: an untracked scratch/ file refuses remove with exit 4, naming scratch/ "
+          "with its count",
+          r.returncode == 4
+          and f"WOULD DISCARD WORKING FILES {rel_dir}/scratch/ (1 files)" in r.stdout.splitlines(),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-77", "--yes"], fx)
+    check("T-12 clean --yes at done removes scratch/",
+          c.returncode == 0 and not os.path.lexists(scratch),
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def case_gate_2b_ignores_committed_notes(fx):
+    """D-08: GATE 2b reads untracked files only; a committed notes file is GATE 3's to grade."""
+    info = create_ok(fx, "harness", "FEAT-61")
+    dest = info["dest"]
+    _commit_ignore(dest)
+    rel_dir = os.path.join(".harness", "harness", "features", "FEAT-61")
+    _write(os.path.join(dest, rel_dir, "plan.yaml"), "status: done\n")
+    _write(os.path.join(dest, rel_dir, "notes", "committed.md"), "tracked\n")
+    git(dest, "add", "-f", "-A")
+    git(dest, "commit", "-q", "-m", "committed notes file")
+    _merge_into_default(info["owner_root"], "FEAT-61")
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-61"], fx)
+    check("GATE 2b: a committed notes file alone does not trigger it",
+          r2.returncode == 0 and "WOULD DISCARD WORKING FILES" not in r2.stdout,
+          f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}")
+
+
+def case_clean_refuses_without_terminal_station(fx):
+    """clean runs only when the landed or the worktree record reads done, abandoned or rejected."""
+    for wt_id, owner_station, wt_station, label in (
+            ("FEAT-62", "building", "building", "both copies read building"),
+            ("FEAT-63", None, "plan", "the owner copy is absent and the worktree copy reads plan")):
+        info, rel_dir = _working_fixture(fx, wt_id, wt_id, owner_station, wt_station)
+        c = run_cli(["clean", "--repo", "harness", "--id", wt_id, "--yes"], fx)
+        check(f"clean: exits 7 and removes nothing when {label}",
+              c.returncode == 7 and "REFUSED clean:" in c.stdout + c.stderr
+              and _working_present(info["dest"], rel_dir) == ["notes", "runs", "observations"],
+              f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def case_clean_at_terminal_stations(fx):
+    """clean --yes proceeds on a terminal landed or worktree record, and deletes only listed
+    project notes under the owner's .harness/notes/."""
+    owner = fx["repoA"]
+    listed = ".harness/notes/grilling-feat-84.md"
+    unlisted = os.path.join(owner, ".harness", "notes", "spike-unlisted.md")
+    _write(os.path.join(owner, listed), "grilling\n")
+    _write(unlisted, "spike\n")
+    info, rel_dir = _working_fixture(fx, "FEAT-64", "FEAT-64", "done", "review", [listed])
+    dest = info["dest"]
+    dry = run_cli(["clean", "--repo", "harness", "--id", "FEAT-64"], fx)
+    check("clean without --yes lists and removes nothing",
+          dry.returncode == 0 and "WOULD REMOVE" in dry.stdout
+          and "re-run with --yes to remove them" in dry.stdout
+          and _working_present(dest, rel_dir) == ["notes", "runs", "observations"]
+          and os.path.exists(os.path.join(owner, listed)),
+          f"rc={dry.returncode} stdout={dry.stdout!r} stderr={dry.stderr!r}")
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-64", "--yes"], fx)
+    check("clean --yes: owner copy at done and worktree copy at review succeeds",
+          c.returncode == 0 and _working_present(dest, rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    check("clean --yes removes the listed project note and leaves the unlisted one",
+          not os.path.exists(os.path.join(owner, listed)) and os.path.exists(unlisted),
+          c.stdout)
+    for wt_id, owner_station, wt_station, label in (
+            ("FEAT-65", "building", "abandoned", "owner copy at building, worktree copy at abandoned"),
+            ("FEAT-66", None, "rejected", "worktree copy at rejected")):
+        info, rel_dir = _working_fixture(fx, wt_id, wt_id, owner_station, wt_station)
+        c = run_cli(["clean", "--repo", "harness", "--id", wt_id, "--yes"], fx)
+        check(f"clean --yes: {label} succeeds",
+              c.returncode == 0 and _working_present(info["dest"], rel_dir) == [],
+              f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def case_clean_refuses_directory_note(fx):
+    """A listed project note that is a directory refuses with exit 7 before anything is removed."""
+    owner = fx["repoA"]
+    listed = ".harness/notes/dir-note-87.md"
+    held = os.path.join(owner, listed, "unlisted.md")
+    _write(held, "held\n")
+    info, rel_dir = _working_fixture(fx, "FEAT-67", "FEAT-67", "done", "done", [listed])
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-67", "--yes"], fx)
+    check("clean --yes: a listed project note that is a directory exits 7, removing nothing",
+          c.returncode == 7 and os.path.exists(held)
+          and _working_present(info["dest"], rel_dir) == ["notes", "runs", "observations"],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def _short_id_fixture(root):
+    """A fresh fixture whose linked worktree FEAT-72 holds FEAT-72-a-slugged-name: the owner copy
+    committed at done, the worktree copy at review, ignored working files in the worktree."""
+    fx = build_fixture(root)
+    info, rel_dir = _working_fixture(fx, "FEAT-72", "FEAT-72-a-slugged-name", "done", "review")
+    return fx, info, rel_dir
+
+
+def _run_cli_project_dir(args, project_dir):
+    env = dict(os.environ)
+    env["HARNESS_PROJECT_DIR"] = project_dir
+    return subprocess.run([sys.executable, CLI] + args, capture_output=True, text=True, env=env)
+
+
+def case_clean_short_id_and_root(root):
+    """clean resolves both copies at the worktree seam from either id spelling and from a linked
+    worktree's HARNESS_PROJECT_DIR, and refuses when two linked worktrees hold the directory."""
+    fx, info, rel_dir = _short_id_fixture(os.path.join(root, "short-long"))
+    dest = info["dest"]
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-72-a-slugged-name", "--yes"], fx)
+    check("clean --id FEAT-72-a-slugged-name --yes removes the worktree's three directories",
+          c.returncode == 0 and _working_present(dest, rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    _write_working_files(dest, rel_dir)
+    c = _run_cli_project_dir(["clean", "--repo", "harness", "--id", "FEAT-72", "--yes"], dest)
+    check("clean with HARNESS_PROJECT_DIR naming the linked worktree removes the same",
+          c.returncode == 0 and _working_present(dest, rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    # The landed record reaches the worktree, as ship's does, so GATE 3 grades a landed tree.
+    _commit_record(dest, rel_dir, "done", "landed record")
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-72"], fx)
+    check("after clean, remove --id FEAT-72 succeeds",
+          r.returncode == 0 and not os.path.isdir(dest),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+    fx, info, rel_dir = _short_id_fixture(os.path.join(root, "short-short"))
+    dest = info["dest"]
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-72", "--yes"], fx)
+    check("clean --id FEAT-72 --yes removes the worktree's three directories",
+          c.returncode == 0 and _working_present(dest, rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    _write_working_files(dest, rel_dir)
+    second, _r = create_one(fx, "harness", "FEAT-72-a-slugged-name")
+    held = second["dest"] is not None and os.path.isdir(os.path.join(second["dest"], rel_dir))
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-72", "--yes"], fx)
+    check("clean exits 5 and removes nothing when two linked worktrees hold the directory",
+          held and c.returncode == 5
+          and _working_present(dest, rel_dir) == ["notes", "runs", "observations"],
+          f"held={held} rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def _unignored_fixture(fx, wt_id):
+    """A harness worktree whose committed .gitignore is empty, so its feature's notes/x.md,
+    runs/r/digest.md and observations/a.md are untracked and NOT ignored."""
+    info = create_ok(fx, "harness", wt_id)
+    dest = info["dest"]
+    _write(os.path.join(dest, ".gitignore"), "")
+    git(dest, "add", ".gitignore")
+    if git(dest, "diff", "--cached", "--quiet", check=False).returncode:
+        git(dest, "commit", "-q", "-m", "a checkout without the working-file ignore rules")
+    rel_dir = os.path.join(".harness", "harness", "features", wt_id)
+    _commit_record(dest, rel_dir, "done", "record")
+    _write_working_files(dest, rel_dir)
+    return dest, rel_dir
+
+
+def case_gate_2b_counts_unignored_working_files(fx):
+    """must_fix 8, SC-09: a checkout still missing the working-file ignore rules leaves notes/,
+    runs/ and observations/ unignored; remove still reports them per directory with counts and
+    the clean command, never as GATE 2's ordinary per-path discards."""
+    dest, rel_dir = _unignored_fixture(fx, "FEAT-76")
+    r = run_cli(["remove", "--repo", "harness", "--id", "FEAT-76"], fx)
+    out = r.stdout.splitlines()
+    counted = [f"WOULD DISCARD WORKING FILES {rel_dir}/{d}/ (1 files)"
+               for d in ("notes", "runs", "observations")]
+    plain = [line for line in out if line.startswith("WOULD DISCARD ") and line not in counted]
+    check("GATE 2b: unignored working files refuse with exit 4, per-directory counts and the "
+          "clean command",
+          r.returncode == 4 and all(line in out for line in counted)
+          and _clean_command("FEAT-76") in r.stdout and os.path.isdir(dest),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("GATE 2b: unignored working files print no plain GATE 2 discard line", not plain, plain)
+
+
+def case_clean_refuses_symlinked_ancestor(fx):
+    """must_fix 1: a retained worktree whose features/ directory is a symlink into another tree
+    refuses clean with exit 7, and that tree's real working files survive."""
+    info = create_ok(fx, "harness", "FEAT-68")
+    victim = os.path.join(os.path.dirname(fx["repoA"]), "victim-68")
+    rel_dir = os.path.join(".harness", "harness", "features", "FEAT-68")
+    _write(os.path.join(victim, rel_dir, "plan.yaml"), "status: done\n")
+    _write_working_files(victim, rel_dir)
+    features = os.path.join(info["dest"], ".harness", "harness", "features")
+    shutil.rmtree(features, ignore_errors=True)
+    os.symlink(os.path.dirname(os.path.join(victim, rel_dir)), features)
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-68", "--yes"], fx)
+    check("clean --yes: a worktree whose features/ ancestor is a symlink exits 7, removing nothing",
+          c.returncode == 7 and "REFUSED clean:" in c.stdout
+          and _working_present(victim, rel_dir) == ["notes", "runs", "observations"],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+    bad = run_cli(["clean", "--repo", "harness", "--id", "../FEAT-68", "--yes"], fx)
+    check("clean refuses an --id outside the flow-id form with exit 2, removing nothing",
+          bad.returncode == 2
+          and _working_present(victim, rel_dir) == ["notes", "runs", "observations"],
+          f"rc={bad.returncode} stdout={bad.stdout!r} stderr={bad.stderr!r}")
+
+
+def case_clean_reads_landed_claims(fx):
+    """must_fix 4: the landed record's project-note claims govern clean, not the retained
+    worktree's stale ledger: the landed claim is removed and the stale-only claim survives."""
+    owner = fx["repoA"]
+    landed, stale = ".harness/notes/landed-claim-69.md", ".harness/notes/stale-claim-69.md"
+    for note in (landed, stale):
+        _write(os.path.join(owner, note), "note\n")
+    info, rel_dir = _working_fixture(fx, "FEAT-69", "FEAT-69", "done", "done", [landed])
+    _commit_record(info["dest"], rel_dir, "review", "stale worktree record", [stale])
+    c = run_cli(["clean", "--repo", "harness", "--id", "FEAT-69", "--yes"], fx)
+    check("clean --yes reads project-note claims from the landed record",
+          c.returncode == 0 and not os.path.exists(os.path.join(owner, landed))
+          and os.path.exists(os.path.join(owner, stale))
+          and _working_present(info["dest"], rel_dir) == [],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
+
+
+def case_clean_refuses_failed_worktree_list(fx):
+    """must_fix 4: a failing `git worktree list` refuses clean (exit 7) rather than reading as
+    "no linked worktrees" and cleaning the owner copy alone."""
+    info, rel_dir = _working_fixture(fx, "FEAT-70", "FEAT-70", "done", "done")
+    shim = os.path.join(os.path.dirname(fx["repoA"]), "git-shim-70")
+    _write(os.path.join(shim, "git"),
+           "#!/bin/sh\n"
+           'if [ "$1" = worktree ] && [ "$2" = list ]; then\n'
+           '  echo "fatal: simulated worktree list failure" >&2\n  exit 128\nfi\n'
+           f'exec {shutil.which("git")} "$@"\n')
+    os.chmod(os.path.join(shim, "git"), 0o755)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=fx["repoA"],
+               PATH=shim + os.pathsep + os.environ.get("PATH", ""))
+    c = subprocess.run([sys.executable, CLI, "clean", "--repo", "harness", "--id", "FEAT-70",
+                        "--yes"], capture_output=True, text=True, env=env)
+    check("clean --yes exits 7 when git worktree list fails, removing nothing",
+          c.returncode == 7 and "git worktree list" in c.stdout
+          and _working_present(info["dest"], rel_dir) == ["notes", "runs", "observations"],
+          f"rc={c.returncode} stdout={c.stdout!r} stderr={c.stderr!r}")
 
 
 def case_short_id_resolves_to_the_flow_directory(fx):
@@ -1207,41 +1543,62 @@ def case_create_cuts_from_origin(fx):
         git(fx["repoA"], "remote", "remove", "origin")
 
 
+# Every case in run order, with the fixture values it takes: "fx" the fixture, "root" the temp
+# root, "created" create_four's worktrees, "tips" the branch tips read before create_four.
+_CASES = (
+    (case_layout, ("created",)),
+    (case_conflation_guard, ("fx", "created")),
+    (case_isolation, ("created",)),
+    (case_branch_isolation, ("created",)),
+    (case_cut_point, ("created", "tips")),
+    (case_concurrent_isolation, ("fx", "created", "tips")),
+    (case_shared_checkout_negative, ("root",)),
+    (case_clone_not_moved, ("fx",)),
+    (case_refuse_existing, ("fx", "created")),
+    (case_list, ("fx", "created")),
+    (case_undeclared_repo, ("fx",)),
+    (case_remove_dirty_untracked, ("fx",)),
+    (case_remove_dirty_tracked, ("fx",)),
+    (case_landed_refuse_then_allow, ("fx",)),
+    (case_landed_differs, ("fx",)),
+    (case_no_artifact_directory, ("fx",)),
+    (case_gitignored_artifact_does_not_block, ("fx",)),
+    (case_gitignored_does_not_mask_a_real_miss, ("fx",)),
+    (case_remove_refuses_aborted_run_evidence, ("fx",)),
+    (case_gate_2b_refuses_ignored_working_files, ("fx",)),
+    (case_gate_2b_ignores_committed_notes, ("fx",)),
+    (case_clean_refuses_without_terminal_station, ("fx",)),
+    (case_clean_at_terminal_stations, ("fx",)),
+    (case_clean_refuses_directory_note, ("fx",)),
+    (case_clean_short_id_and_root, ("root",)),
+    (case_gate_2b_counts_unignored_working_files, ("fx",)),
+    (case_gate_2b_counts_scratch, ("fx",)),
+    (case_clean_refuses_symlinked_ancestor, ("fx",)),
+    (case_clean_reads_landed_claims, ("fx",)),
+    (case_clean_refuses_failed_worktree_list, ("fx",)),
+    (case_short_id_resolves_to_the_flow_directory, ("fx",)),
+    (case_short_id_ambiguous_refuses, ("fx",)),
+    (case_behind_default_branch, ("fx",)),
+    (case_behind_sees_origin, ("fx",)),
+    (case_fleet_feature_has_two_worktrees, ("fx",)),
+    (case_fleet_create_is_all_or_nothing, ("fx",)),
+    (case_create_cuts_from_origin, ("fx",)),
+)
+
+
+def _run_cases(fx, root):
+    values = {"fx": fx, "root": root, "tips": _tips(fx)}
+    values["created"] = create_four(fx)
+    for case, names in _CASES:
+        case(*(values[name] for name in names))
+
 
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
     try:
         fx = build_fixture(root)
-
         if run_guard(fx, root):
-            tips_before = _tips(fx)
-            created = create_four(fx)
-            case_layout(created)
-            case_conflation_guard(fx, created)
-            case_isolation(created)
-            case_branch_isolation(created)
-            case_cut_point(created, tips_before)
-            case_concurrent_isolation(fx, created, tips_before)
-            case_shared_checkout_negative(root)
-            case_clone_not_moved(fx)
-            case_refuse_existing(fx, created)
-            case_list(fx, created)
-            case_undeclared_repo(fx)
-            case_remove_dirty_untracked(fx)
-            case_remove_dirty_tracked(fx)
-            case_landed_refuse_then_allow(fx)
-            case_landed_differs(fx)
-            case_no_artifact_directory(fx)
-            case_gitignored_artifact_does_not_block(fx)
-            case_gitignored_does_not_mask_a_real_miss(fx)
-            case_remove_refuses_aborted_run_evidence(fx)
-            case_short_id_resolves_to_the_flow_directory(fx)
-            case_short_id_ambiguous_refuses(fx)
-            case_behind_default_branch(fx)
-            case_behind_sees_origin(fx)
-            case_fleet_feature_has_two_worktrees(fx)
-            case_fleet_create_is_all_or_nothing(fx)
-            case_create_cuts_from_origin(fx)
+            _run_cases(fx, root)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:

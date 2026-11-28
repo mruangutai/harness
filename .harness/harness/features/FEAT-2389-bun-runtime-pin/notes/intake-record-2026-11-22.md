@@ -1,3 +1,0 @@
-# Intake record — FEAT-2389 — 2026-11-22
-
-The intake run `r-20261122-1-patch-product` closed PASS. The product lead's checkpoint (`state.yaml`, `.run-identity.json`, carrying `run_id: r-20261122-1-patch-product`, `run_uid 3c4105408dcb4548bf990d310e359170`) was written to a misnamed directory, `runs/2026-11-22-1-product/`, while the return gate accepted only the registered `runs/r-20261122-1-patch-product/digest.md`. The main session removed the misnamed directory before checking its contents against the registered run. That was a mistake: the two checkpoint files were not kept. The registered digest is intact and is the run's record, and check-state raises no violation for the run.

@@ -1,1 +1,0 @@
-PASS T-01: green receipt bound to its committed pre-move checkpoint; canonical cases gate on the named-plan contract

@@ -39,7 +39,7 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
 1. **Read state from disk, every cycle** — your feature's `STATE.md` and `feature.json`, plus the
    **parts of `BRIEF.md` and `plan.yaml` your current step needs** (Grep for the task/SC id; a plan
    runs to tens of KB). Never from memory: your context may reset and the files are what survive.
-   `runs/` and `notes/` are archives, read by pointer when a digest is cited, **NEVER as a startup
+   `runs/` and `notes/` are local working files, read by pointer when a digest is cited, **NEVER as a startup
    sweep** (DEC-150). Resuming a predecessor: the handoff note is your working set; read only what
    it names. On the first cycle ever, instantiate both files from
    `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/`; budgets come from harness.json
@@ -47,6 +47,9 @@ never at startup (DEC-150, DEC-158); other personas' references share the direct
    `## Mission` block and write it — `feature-record.py set-mission --file <feature.json> --mission
    <patch|plan> --by harness-orchestrator --reason "<the block's reason: line>"`; the verb writes
    the `mission` judgement in the same act, so a mission never exists without its entry (INV-40).
+   Record each `<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/` path your dispatch hands you as made for this feature (the
+   grilling artifact, its facts file) with `feature-record.py project-note --file <feature.json>
+   --path <path>`; cleanup deletes only those (DEC-262).
    No `## Mission` is not an intake: return `BLOCKED` naming it.
    **The approval gate depends on your mission.** On **ship**, BRIEF's `## Approval` *and*
    `plan.yaml`'s `approval.status` must both read `approved`, else `BLOCKED` at step 0. On **plan**

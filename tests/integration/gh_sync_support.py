@@ -84,6 +84,53 @@ def label_create_fails(script, response="HTTP 403: Resource not accessible by in
                           "  \"label create\") echo '%s' >&2; exit 1 ;;" % response, 1)
 
 
+def write_validate_handoff(feat_dir, run_id="validate-c0-validator", squad="validator",
+                           verdict="PASS"):
+    """The validate handoff `gh-sync ship` demands before its first terminal write (BUG-1129),
+    recorded where ship reads it since DEC-262 D-07: a validator run at PASS in feature.json's
+    runs, never a notes/ file. Every fixture that models a VALIDATED feature calls this; the
+    ship cases that model an unvalidated feature omit it or record a different run."""
+    path = os.path.join(feat_dir, "feature.json")
+    with open(path, encoding="utf-8") as f:
+        doc = json.load(f)
+    doc["runs"] = list(doc.get("runs") or []) + [{"id": run_id, "squad": squad, "verdict": verdict}]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+
+
+def stage_working_files(feat_dir, owner_root=None, listed=(), unlisted=()):
+    """The local working files FEAT-2641 cleans: notes/x.md, runs/r/digest.md and
+    observations/a.md under the feature, plus project notes under owner_root/.harness/notes/ -
+    `listed` ones claimed in feature.json project_notes, `unlisted` ones not. Returns
+    {name: absolute path} for every listed and unlisted note."""
+    for rel in ("notes/x.md", "runs/r/digest.md", "observations/a.md"):
+        p = os.path.join(feat_dir, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("working file\n")
+    paths = {}
+    for name in tuple(listed) + tuple(unlisted):
+        p = os.path.join(owner_root, ".harness", "notes", name)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write("project note\n")
+        paths[name] = p
+    if listed:
+        fj = os.path.join(feat_dir, "feature.json")
+        with open(fj, encoding="utf-8") as f:
+            doc = json.load(f)
+        doc["project_notes"] = [f".harness/notes/{n}" for n in listed]
+        with open(fj, "w", encoding="utf-8") as f:
+            json.dump(doc, f, indent=2)
+    return paths
+
+
+def working_dirs_present(feat_dir):
+    """Which of notes/, runs/ and observations/ exist under feat_dir."""
+    return [d for d in ("notes", "runs", "observations")
+            if os.path.lexists(os.path.join(feat_dir, d))]
+
+
 def _swap(script, old, new):
     """`script` with its one occurrence of OLD replaced by NEW. A missing or repeated anchor
     raises, so a reworded base fake cannot silently leave a variant identical to its base."""
@@ -101,17 +148,6 @@ def _fail_branch(script, pattern):
     start = script.index(head) + len(head)
     end = script.index("    exit 0 ;;", start) + len("    exit 0 ;;")
     return script[:start] + '    echo "simulated network failure" >&2\n    exit 1 ;;' + script[end:]
-
-
-def write_validate_handoff(feat_dir):
-    """The validate seam note `gh-sync ship` demands before its first terminal write (BUG-1129).
-    Every fixture that models a VALIDATED feature calls this; the one ship case that models
-    an unvalidated feature omits it and is the refusal's own test."""
-    notes = os.path.join(feat_dir, "notes")
-    os.makedirs(notes, exist_ok=True)
-    open(os.path.join(notes, "handoff-validate.md"), "w").write(
-        "## next\nship\n## trust\nfixture\n## dead ends\nnone\n## working set\nnone\n"
-        "## done when\nshipped\n")
 
 
 def stage(tmp, sync=True, repo="implentio/fake", phrase="reliable csv export",

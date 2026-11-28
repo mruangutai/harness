@@ -1,9 +1,0 @@
-# FEAT-2542 — Mode A design review, plan cycle 1
-
-**FAIL — the new operator-facing refusal text does not yet tell the operator how to recover in three cases.** There is no `DESIGN.md` or visual surface. The text contract is `BRIEF.md` (operator outcome and SC-02), `plan.yaml` T-01, and the characterization note’s planned contract table. The five denial tokens and text-only status are specified; visual design system, light/dark contrast, layout, focus, and keyboard interaction do not apply.
-
-- **Ambiguous (med).** T-01 `plan.yaml:121` tells the operator to release by runtime id and feature. `find_run_claim` reports matching registry roots, not feature selectors (`inflight_registry.py:313–343`), and `release` acts only in the selected root (`_release_command`, `_resolve_root`). From the default root the prescribed command can miss a surplus claim in a linked worktree. Specify how to verify which rooted claim is surplus, then target that registry explicitly; do not guess which claim to remove.
-- **Pathless registry error (med).** `plan.yaml:119` says to repair the named registry even for a bare `OSError` (an explicit T-01 fixture), which need not identify any file. Keep named-file repair where the path is known; otherwise specify a diagnostic next step and do not imply a particular registry is corrupt. Retain the refusal and no-delete guidance.
-- **Persona mismatch (med).** `plan.yaml:122–123` tells the operator to inspect the registry, but the lookup only confirms the same wrong-persona claim; it does not say what must change before retry. Name a safe next step to restore or re-establish the lead’s correctly bound run, without relabeling or disturbing a live claim whose ownership is uncertain.
-
-Make T-01 case 39 assert the case-specific next step for each denial, not just the shared `find-run` hint (`plan.yaml:96`), so SC-02 checks recovery guidance as well as exit status. No tests run; review is of the draft contract only.

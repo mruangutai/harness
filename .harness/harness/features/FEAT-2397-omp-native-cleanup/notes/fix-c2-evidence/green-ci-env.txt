@@ -1,8 +1,0 @@
-cmd: HARNESS_PROJECT_DIR=$PWD bun test tests/unit/omp-hooks.test.ts (full file, after fix, assembled name)
-bun test v1.3.14 (0d9b296a)
-
- 247 pass
- 0 fail
- 1575 expect() calls
-Ran 247 tests across 1 file. [16.76s]
-exit=0

@@ -1,7 +1,0 @@
-PASS  u.1 an absent item is looked up, added once with the canonical URL, then set
-PASS  u.2 an existing item is set with its own id and never re-added
-PASS  u.3 a GhError at lookup (existing=None) is a BoardError naming the issue and the lowercase station, with no later call
-PASS  u.3 a GhError at add (existing=None) is a BoardError naming the issue and the lowercase station, with no later call
-PASS  u.3 a GhError at set (existing=None) is a BoardError naming the issue and the lowercase station, with no later call
-PASS  u.3 a GhError at set (existing='ITEM_EXISTING') is a BoardError naming the issue and the lowercase station, with no later call
-exit=0

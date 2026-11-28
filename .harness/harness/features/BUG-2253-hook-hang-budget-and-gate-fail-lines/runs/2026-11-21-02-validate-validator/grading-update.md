@@ -1,3 +1,0 @@
-# Grading qualification correction
-
-The FAIL verdict and both must-fixes are unchanged. Retract the earlier statement that no mechanical grading evidence exists: the code reviewer subsequently received Main's existing `code-grade.py --base 3769919f --head 16ec2047` result, exit 0, `PASSING: 21`, no `RESULT: FAIL` rows. Main supplied endpoint-content equivalence: 16ec2047..21e064c9 differs only in plan.yaml; 3dd8bb67..3769919f has no Python differences. This is supplied byte-equivalent-range evidence, not an exact-endpoint rerun or reader-executed check. See notes/review-harness-code-reviewer-c0.md, Mechanical evidence. QA c1's historical statement that it ran no grading remains true. This correction supersedes the initial digest's grading-gap claim only.

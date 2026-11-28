@@ -17,7 +17,8 @@ import tempfile
 from git_support import checked_git, commit_all, git_out, init_repo
 from gh_sync_support import (
     FAKE_GH_STATIONS, add_plan_station, calls, check, install_gh, read_feature_json,
-    read_plan_station, report, run, stage, stage_station, write_feature_json)
+    read_plan_station, report, run, stage, stage_station, write_feature_json,
+    write_validate_handoff)
 
 
 # ---------- T-03 (FEAT-26): record-pr derives and records the PR number from the recorded
@@ -74,6 +75,7 @@ def _ship_feature(tmp, feat_name, origin="adopted"):
     if origin is not None:
         github["parent_origin"] = origin
     write_feature_json(os.path.join(feat, "feature.json"), feature_id=feat_name, github=github)
+    write_validate_handoff(feat)  # the rewrite above drops stage()'s validator PASS run
     return feat
 
 
@@ -470,6 +472,7 @@ def main():
         _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None,
                     github={"milestone": 7, "parent": 40, "parent_origin": "created",
                             "attached": ["T-01"], "issues": {"T-01": 41}})
+        write_validate_handoff(featPR6)
         init_repo(tmpPR6, "main", git=checked_git)
         commit_all(tmpPR6, "fixture", git=checked_git)
         strayPR6 = os.path.join(tmpPR6, "operator-wip.txt")

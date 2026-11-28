@@ -36,7 +36,8 @@ second writer and no second lock lifetime:
     expertise-merge.py replay          --root R --feature F --base MAIN-SHA [--check]
 
 member-ops applies ordinary ops to the persona's own file beneath the feature checkout and persists
-notes/expertise-receipt-<sha256(runtime id)>.json beside the feature (it travels in the PR).
+notes/expertise-receipt-<sha256(runtime id)>.json beside the feature: a local working file, never
+committed, removed by the post-merge cleanup (DEC-262).
 verify-receipt is read-only. replay rebuilds each touched file from the main blob and replays the
 PR's active receipt batches. Their stdout is one JSON object; extra exit codes:
     13 replay refused (changed/vanished original, independent callers, cap, candidate) — the JSON
@@ -56,6 +57,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+import working_files  # noqa: E402
 
 # DEC-145's four canonical sections and their entry caps, verbatim. This is the one place this
 # tool spells them; test-expertise-merge.py's case 8 reads check-expertise.py's own CAPS mapping
@@ -789,14 +791,10 @@ def feature_directory(root, feature):
     """The one `.harness/<segment>/features/<feature>` directory under `root`."""
     if not (isinstance(feature, str) and FEATURE_RE.match(feature)):
         _refuse(9, f"REFUSED feature {feature!r} is not a feature id")
-    real_root = os.path.realpath(root)
-    harness_dir = os.path.join(real_root, ".harness")
-    found = [p for p in (os.path.join(harness_dir, s, "features", feature) for s in harness_segments(real_root))
-             if os.path.isdir(p) and os.path.realpath(p) == p]
-    if len(found) != 1:
-        _refuse(9, f"REFUSED feature {feature} has {len(found)} feature directories under "
-                   f"{harness_dir}; exactly one is required")
-    return found[0]
+    try:
+        return working_files.feature_directory(root, feature)
+    except working_files.WorkingFilesError as exc:
+        _refuse(9, f"REFUSED {exc}")
 
 
 def receipt_location(feature_dir, runtime_id):
@@ -1013,20 +1011,15 @@ def _changed_expertise_paths(real_root, base_sha):
     return {path for path in changed if EXPERTISE_PATH_RE.match(path)}
 
 
-def pr_receipt_paths(real_root, feature_dir, base_sha):
-    """This PR's receipt files: every receipt in the feature's notes that the main base does not
-    already carry. A receipt already on main belongs to an earlier distill and is never read."""
+def receipt_paths(feature_dir):
+    """This feature's receipt files: every receipt name in its local notes, sorted, as absolute
+    paths. Receipts are local working files never on any base (D-04), so nothing is excluded."""
     notes = os.path.join(feature_dir, "notes")
     try:
         names = sorted(n for n in os.listdir(notes) if RECEIPT_NAME_RE.match(n))
     except OSError:
         return []
-    paths = [os.path.join(notes, n) for n in names]
-    if base_sha is None:
-        return paths
-    proc = _git(real_root, "ls-tree", "-r", "--name-only", base_sha, "--", os.path.relpath(notes, real_root))
-    known = set(proc.stdout.decode().splitlines()) if proc.returncode == 0 else set()
-    return [p for p in paths if os.path.relpath(p, real_root) not in known]
+    return [os.path.join(notes, n) for n in names]
 
 
 # ---- supersession graph ----------------------------------------------------------------------
@@ -1092,12 +1085,12 @@ def _check_identities(entries):
             _refuse(EXIT_EVIDENCE, f"IDENTITY MISMATCH batch={entry['id']} in {entry['receipt']}: content does not hash to its identity")
 
 
-def load_active(root, feature, base_sha):
-    """(all entries, active entries, receipt manifest) of the current PR's receipts. Missing,
+def load_active(root, feature):
+    """(all entries, active entries, receipt manifest) of the feature's local receipts. Missing,
     unreadable or tampered evidence refuses with 15; nothing here writes."""
     real_root = os.path.realpath(root)
     entries, manifest = [], []
-    for path in pr_receipt_paths(real_root, feature_directory(real_root, feature), base_sha):
+    for path in receipt_paths(feature_directory(real_root, feature)):
         raw, digest = read_receipt_file(path, feature)
         rel = os.path.relpath(path, real_root)
         entries.extend(_flatten(raw, rel, digest))
@@ -1274,7 +1267,7 @@ def replay_feature(root, feature, base, check_only):
     All-or-nothing: any refusal leaves every file byte-identical. `check_only` never writes."""
     real_root = os.path.realpath(root)
     base_sha = resolve_base(real_root, base)
-    entries, active, manifest = load_active(real_root, feature, base_sha)
+    entries, active, manifest = load_active(real_root, feature)
     _check_coverage(real_root, base_sha, entries)
     plans = [_plan_destination(real_root, base_sha, rel, batches)
              for rel, batches in _by_destination(active).items()]
@@ -1339,7 +1332,7 @@ def _supersession_context(real_root, caller, rel, refs, base, own, receipt):
     if not refs:
         return None, None
     base_sha = resolve_base(real_root, base)
-    entries, _, _ = load_active(real_root, caller["feature"], base_sha)
+    entries, _, _ = load_active(real_root, caller["feature"])
     stub = dict(caller, id="pending", seq=len(own["batches"]) + 1 if own else 1, destination=rel, supersedes=refs,
                 receipt=os.path.relpath(receipt, real_root), ops=[], originals=[], recorded_at_ns=0)
     validated = active_entries(entries + [stub])
@@ -1508,10 +1501,10 @@ def _require_files(real_root, receipt, dest, rel):
         _refuse(EXIT_EVIDENCE, f"MISSING FILE {rel}")
 
 
-def _recorded_batches(real_root, feature, caller, rel, base):
+def _recorded_batches(real_root, feature, caller, rel):
     """(the caller's active batches for `rel` in sequence, every recorded write to `rel`), after the
     receipt identity is bound. The writes include superseded batches: they still landed."""
-    entries, active, _ = load_active(real_root, feature, resolve_base(real_root, base) if base else None)
+    entries, active, _ = load_active(real_root, feature)
     runtime_id = caller["runtime_id"]
     _check_caller_identity([e for e in entries if e["runtime_id"] == runtime_id], caller)
     mine = sorted((e for e in active if e["runtime_id"] == runtime_id and e["destination"] == rel),
@@ -1608,7 +1601,7 @@ def verify_receipt(root, feature, persona, runtime_id, parent_id, tier, segment,
     caller = _caller(feature, persona, runtime_id, parent_id)
     real_root, rel, dest, receipt = _locate(root, feature, persona, runtime_id, tier, segment)
     _require_files(real_root, receipt, dest, rel)
-    mine, writes = _recorded_batches(real_root, feature, caller, rel, base)
+    mine, writes = _recorded_batches(real_root, feature, caller, rel)
     unreported = _match_claimed(mine, _claimed_ops(claimed, persona))
     data, sections = _read_destination(dest, rel)
     _refuse_mismatches(mine, sections)
@@ -1651,7 +1644,8 @@ def _add_verify_parser(sub):
     p_verify = sub.add_parser("verify-receipt", help="read-only: check a member's claimed ops against its receipt")
     _add_identity_arguments(p_verify)
     p_verify.add_argument("--claimed", required=True, help="path to the expertise_update list, or - for stdin")
-    p_verify.add_argument("--base", help="main commit sha; limits receipts to this PR's")
+    p_verify.add_argument("--base", help="main commit sha whose merge-base with HEAD anchors the write chain; "
+                                         "default: the default branch")
     p_verify.set_defaults(func=cmd_verify_receipt)
 
 

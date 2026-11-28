@@ -1,1 +1,0 @@
-PASS T-04: matched-tree CLI equivalence ALL PASS under the stated relocation map, relocated-row finding rewritten; five audit files and the copied-bin smoke green; receipts bound by tree id

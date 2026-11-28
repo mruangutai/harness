@@ -1,5 +1,0 @@
-# Observations — harness-orchestrator — FEAT-2489-plan-routes-split
-
-- 2026-11-24: A signed behaviour contract for a verbatim move ("identical except this closed list") cascaded through three signer amendments. Each reviewer found one more forced divergence: printed code locations, then per-file counts and parse scope, then the per-file alias map. It only terminated when the contract was re-anchored on what the move actually proves: real-tree equivalence, plus "unchanged rules applied per physical file" on perturbed trees, with an exhaustive census as evidence rather than as the definition. For a refactor, state the contract from the move's own guarantee, and commission the per-file-state census before signature, not after the second escalation.
-- 2026-11-24: Running a state-writing verb (sign-approval) in parallel with the edit it depends on let it run first, so it silently re-hashed a signed task. Run every state- or signature-writing command alone, after its inputs land.
-- 2026-11-24: Committing with a gating check-state row on screen (INV-32 at signature) is an ordering slip, even when the cause is bookkeeping. Read check-state before every commit.

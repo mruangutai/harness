@@ -35,51 +35,35 @@ its default branch, every Harness reader refuses that member.
   would delete the reasoning behind the only write-scope guarantee. `upgrade-config.py`
   prints the exact new entries and **exits 1**; the main session MUST relay them and add
   them by hand, preserving the existing globs and their comments.
-- **Run records checklist (BUG-2399): the ignore merge in an existing checkout.** Harness
-  once shipped a broad `runs/**` ignore. Run records other than `runs/*/ui/` are retained
-  evidence (DEC-238) and are tracked now, so `merge-gitignore.py` replaces that rule with the
-  narrow run-UI rule, `runs/*/ui/**` under each feature (DEC-257). Any historical evidence it
-  was hiding becomes untracked the moment the rule narrows, and both `merge-gate.py
-  merge-distill` and `feature-worktree.py remove` refuse a tree carrying it. The operator runs
-  this once per checkout:
-  1. Pause teams, distill and worktree removal in this checkout. Commit, or set aside, any
-     staged or unrelated edits first (`git status` is clean), so the review below sees only
-     the migration.
-  2. Before narrowing, see what the old rule hides. Under the checkout's `.harness` directory,
-     both layouts appear: namespaced (`<segment>/features/<id>/runs/<run>/`) and legacy
-     (`features/<id>/runs/<run>/`).
-
-     ```bash
-     git ls-files --others --ignored --exclude-standard -z -- .harness | tr '\0' '\n'
-     ```
-
-  3. Narrow the rule:
+- **Working files checklist (DEC-262): the ignore merge in an existing checkout.** Each
+  feature's `notes/`, `runs/`, `observations/` and `scratch/` and the project notes directory
+  are local working files, never committed. The operator runs this once per checkout:
+  1. Pause teams, distill and worktree removal in this checkout.
+  2. Run the merge:
 
      ```bash
      <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/merge-gitignore.py .
      ```
 
-  4. Review `git diff -- .gitignore` and `git status --untracked-files=all`. The exposed
-     run files are the evidence. Run UI and `*.lock` files stay ignored. If a project ignore
-     still hides a reviewed record, resolve that with the project owner; do not force-add it.
-  5. Stage `.gitignore` and the reviewed non-UI run files by explicit path. Use literal
-     pathspecs, so names with spaces or glob characters stage exactly. Never use `git add -A`
-     or `-f`, and never delete evidence:
+  3. Review `git diff -- .gitignore`.
+  4. Untrack the working files:
 
      ```bash
-     git --literal-pathspecs add -- .gitignore '<reviewed run path>' ...
-     git diff --cached --name-only
+     git -C .harness rm -r --cached --sparse --ignore-unmatch -- \
+       ':(glob)*/features/*/notes/**' ':(glob)*/features/*/runs/**' \
+       ':(glob)*/features/*/observations/**' ':(glob)*/features/*/scratch/**' \
+       ':(glob)notes/**'
      ```
 
-  6. Confirm that the staged list is exactly `.gitignore` plus the reviewed records, then
-     commit it as its own commit (`git commit -m "harness: track run records (BUG-2399)"`).
-     With no historical evidence, stage `.gitignore` alone. Resume teams only after that commit.
+  5. Commit `.gitignore` and the untracking as their own commit. History is not rewritten and
+     the files stay on disk.
 
-  From then on, nothing is ever force-added. The orchestrator's feature-directory commit
-  carries each run's records. A distill run's records are committed and pushed before
-  `merge-distill`, and an aborted run's untracked records refuse removal rather than vanish.
+  An in-flight branch that still tracks its own working files brings them back as tracked files
+  when it merges main (in the Harness repository its `test-working-files-untracked.py` unit test
+  goes red); its repair is the same `git rm -r --cached --sparse` command run on that branch and
+  committed alone (DEC-262).
 - **Re-run the checklist above for an existing checkout that pulls a snippet change** (the
-  PyYAML `.pyyaml-bootstrap` entry, or the BUG-2399 run-UI rule). `merge-gitignore.py --check`
+  PyYAML `.pyyaml-bootstrap` entry, or the DEC-262 working-file rules). `merge-gitignore.py --check`
   reads its rule list from the snippet and reports obsolete Harness rules, so the check
   correctly goes red on already-initialised projects until the merge is re-run. The merge is
   idempotent and preserves the project's own ignore rules.

@@ -1,9 +1,0 @@
-- .claude/skills/harness/bin/harness_merge.py#locked_update
-- path: tests/unit/test-harness-merge-journal.py
-  create: true
-- path: tests/integration/canonical-reader-classification.json
-  quote: '".claude/skills/harness/bin/harness_merge.py"'
-- path: .harness/harness/features/FEAT-2488-plan-merge-atomicity/notes/red-t01-journal-unit.txt
-  create: true
-- .claude/skills/harness/bin/check-domain.py
-- tests/integration/test-check-domain-approval.py

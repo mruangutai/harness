@@ -274,12 +274,15 @@ You still run the matrix; `validate-digest.py` no longer runs it again. An uncon
    **once** with DEC-255's production runner command, writing that absolute
    `qa/manifest-<kind>.json`. In a fix run the checkout is the fixed tip, clean outside the
    feature's own directory (DEC-255), and the run is the fix run (`fix-c<N>-validator`).
-3. Keep the tested commit and the runner's full output in your note, beside the named SC and
-   fail-first evidence. A receipt is the runner's own file: **never hand-edit one green**.
+3. Keep in your note, beside the named SC and fail-first evidence, one summary per suite: what
+   ran (the runner command and kind), at which commit, the verdict and the pass/fail/skip counts.
+   Write the runner's raw output to the feature's `scratch/`
+   (`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/scratch/`), never into the note (DEC-261). A receipt is the
+   runner's own file: **never hand-edit one green**.
 4. A refusal names every bad receipt and the exact command that repairs it. Run that command
    and return again; the validator never falls back to a run of its own.
 
-Main commits the receipts with the closed run record (tracked files, DEC-257); you do not commit them.
+The receipts stay in the local run record (DEC-262); nobody commits them.
 Only QA dispatched by a live `harness-validator-lead` with exactly one open registered run can
 PASS this way: QA always runs under the validate or fix team.
 

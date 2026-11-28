@@ -47,7 +47,7 @@ import tempfile
 
 from check_support import Checks
 from git_support import (IDENTITY, MAINTENANCE_OFF, add_worktree, commit_all, commit_feature,
-                         commit_files, feature_rel, init_repo)
+                         commit_files, init_repo)
 from harness_config_support import write_config
 
 C = Checks()
@@ -180,15 +180,13 @@ def _commit_done_feature(repo, feature_id):
     sweep did NOT take the build-entry retention branch.
     THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the LANDED
     plan at the default branch's ref, so it must be in the SAME commit.
-    BUG-1129: ship refuses a feature with no validate handoff; this fixture models a VALIDATED
-    terminal feature, so the note lands in the same commit."""
+    BUG-1129 / DEC-262: ship refuses a feature whose feature.json records no validator run at
+    PASS; this fixture models a VALIDATED terminal feature, so the run lands in the same commit."""
     doc = {"feature_id": feature_id,
-           "github": {"repo": GITHUB_REPO, "milestone": 9001, "build_entry": "opened"}}
-    nrel = feature_rel("harness", feature_id, "notes", "handoff-validate.md")
+           "github": {"repo": GITHUB_REPO, "milestone": 9001, "build_entry": "opened"},
+           "runs": [{"id": "validate-c0-validator", "squad": "validator", "verdict": "PASS"}]}
     return commit_feature(
-        repo, feature_id, doc, "harness", f"add {feature_id}", plan_station="done",
-        extra_files={nrel: "## next\n## trust\n## dead ends\n## working set\n## done when\n"},
-        git=_git)
+        repo, feature_id, doc, "harness", f"add {feature_id}", plan_station="done", git=_git)
 
 
 def _stub_gh(tmp):

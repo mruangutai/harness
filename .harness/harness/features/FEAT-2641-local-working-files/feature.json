@@ -1,0 +1,331 @@
+{
+  "feature_id": "FEAT-2641-local-working-files",
+  "branch": "feat/FEAT-2641-local-working-files",
+  "pr": null,
+  "review_sha": "da1758bae6a5fe5eb4af57ef79c129cc7a3b9186",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T02:33:26+00:00",
+      "tokens": 125793,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-product/digest.md",
+        "sha256": "4cae3940e3f73dd0249ef38b0306107b679f47ad5feffe80c88dd2302dec781f"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-28T03:20:46+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T03:26:00+00:00",
+      "tokens": 105653,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-c2-product/digest.md",
+        "sha256": "13749db3b4cd53e210c16765a473b64015ffd11533db4ce2f76923d54547989d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-28T03:53:15+00:00",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T05:38:56+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/validate-validator/digest.md",
+        "sha256": "67d90d9ec908a7e03d5cc52b33d561f78084148c04e4cf0bc17bc8616a1387f6"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T05:55:08+00:00"
+    },
+    {
+      "id": "fix-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T14:57:45+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c1-validator/digest.md",
+        "sha256": "e4f0d1f90065432af31432f96ea693ef1c45349d86625628e9f8bf1c8ebb01d5"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T15:25:04+00:00"
+    },
+    {
+      "id": "fix-c2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T15:43:41+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c2-validator/digest.md",
+        "sha256": "8873b634ea7e37df15a62af0a6126dc490673163a9c2cf0f7e3e86f477c2703b"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T16:00:26+00:00"
+    },
+    {
+      "id": "fix-c3-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T16:32:30+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c3-validator/digest.md",
+        "sha256": "9b3048bcd9ae0c94ebef55e87950fa080c3a332eacbe63e75b467fbfb36dcaf3"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T16:57:33+00:00"
+    },
+    {
+      "id": "fix-c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "started_at": "2026-11-28T17:10:04+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/fix-c4-validator/digest.md",
+        "sha256": "d463b51303a0300ea41173d39ddbddcf0d629932d22121a129715a851e0aa3cb"
+      },
+      "cycles_used": 0,
+      "tokens": null,
+      "ended_at": "2026-11-28T17:26:35+00:00"
+    }
+  ],
+  "judgements": [
+    {
+      "at": "2026-11-28T02:33:25+00:00",
+      "by": "harness-orchestrator",
+      "kind": "mission",
+      "decision": "plan",
+      "reason": "changes enforcement surfaces (check-state invariants, gh-sync ship refusal, prune-run-evidence, gitignore template, merge-distill receipts) and amends live decisions; patch rule's third condition fails; DEC-174 applies"
+    },
+    {
+      "at": "2026-11-28T03:20:47+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "plan run returned ESCALATE: OQ-02 (working files of shipped-but-undistilled features) is a scope question only the operator can rule; no re-panel before that answer since it may change the tasks a re-read would cover"
+    },
+    {
+      "at": "2026-11-28T03:25:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "operator answered OQ-02, LEAD-01, OQ-01, GC-01, OQ-03..05 in notes/answers-plan-product.md; apply via pm and run the one authorized scope re-read as plan-c2-product"
+    },
+    {
+      "at": "2026-11-28T03:53:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "answers applied and the one authorized re-read ran; its 5 substance findings were applied and are unread (LEAD-02); no second re-read is authorized so the plan returns pending for signature"
+    },
+    {
+      "at": "2026-11-28T13:23:05.882457+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "operator ruling E3 at validate c0 (notes/answers-validate-c0.md; runs/validate-validator/digest.md): harness-validator-lead.md still says Main commits the receipts with the closed run record (DEC-257), leaving SC-14 unmet"
+    },
+    {
+      "at": "2026-11-28T13:23:24.679893+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-02.files",
+      "reason": "operator ruling E1 (notes/answers-validate-c0.md): it still asserts retired INV-16 and the test-check-state-*.py glob misses it; delete or trim that case with the invariant"
+    },
+    {
+      "at": "2026-11-28T13:23:27.253845+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-05.files",
+      "reason": "operator ruling E2 (notes/answers-validate-c0.md): its ship fixtures lack the validator PASS D-07 requires; fix in gh_sync_support.py, this file only if needed"
+    },
+    {
+      "at": "2026-11-28T13:23:29.605537+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-06.files",
+      "reason": "operator ruling OQ-SCOPE5 (notes/answers-validate-c0.md): records simplify 8655e96e's load_active caller migration, forced by T-06's receipt_paths change"
+    },
+    {
+      "at": "2026-11-28T13:23:38.518017+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "operator ruling E3 (notes/answers-validate-c0.md): the retired-instruction grep now covers .omp/agents/harness-validator-lead.md, the file E3 adds"
+    },
+    {
+      "at": "2026-11-28T13:23:40.757996+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.verify",
+      "reason": "operator ruling E5 (notes/answers-validate-c0.md): SC-13 reads unchanged by this branch: the four protected files are diffed against origin/main...HEAD, not e2bffca0, which main's #2648 moved"
+    },
+    {
+      "at": "2026-11-28T13:23:49.388609+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-09.intent",
+      "reason": "operator ruling E5 (notes/answers-validate-c0.md): step 3 now matches the amended verify: the four protected files are unchanged by this branch, not byte-identical to e2bffca0"
+    },
+    {
+      "at": "2026-11-28T14:24:26.243877+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "operator ruling (a) (notes/answers-validate-c0-amend2.md): README.md:181 and SPEC.md:256, 1692, 2388 still say run records and QA receipts are committed"
+    },
+    {
+      "at": "2026-11-28T14:24:28.872358+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "operator ruling (a) (notes/answers-validate-c0-amend2.md): the retired-instruction grep covers README.md and SPEC.md and adds the receipts-committed phrasings they use"
+    },
+    {
+      "at": "2026-11-28T14:40:21.272299+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T14:40:22.313123+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-08.verify",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T14:40:22.825152+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-12.intent",
+      "reason": "origin/main took DEC-260 (practicality rule, FEAT-2622) and DEC-261 (scratch); FEAT-2641's own decision lands as DEC-262, per T-08 step 1 (next free number)"
+    },
+    {
+      "at": "2026-11-28T15:27:13.649253+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.files",
+      "reason": "OQ-SC14 operator ruling (notes/answers-fix-c1.md): .claude/skills/harness-verification-rules/SKILL.md joins T-07 so its 'candidate receipts for main to commit' line aligns with DEC-262."
+    },
+    {
+      "at": "2026-11-28T15:27:15.558397+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-07.verify",
+      "reason": "OQ-SC14 operator ruling (notes/answers-fix-c1.md): T-07 grep widened to the verification-rules skill and its 'receipts for main to commit' phrase."
+    },
+    {
+      "at": "2026-11-28T15:27:17.400580+00:00",
+      "by": "main-session",
+      "kind": "amendment",
+      "decision": "T-12.files",
+      "reason": "OQ-YAML operator ruling (notes/answers-fix-c1.md): tests/integration/test-harness-yaml.py joins T-12; its COLLECT_FIXTURE gains the scratch rows T-12's grants add."
+    },
+    {
+      "at": "2026-11-28T17:09:17+00:00",
+      "by": "operator",
+      "kind": "continue",
+      "decision": "check-plan-routes receipt from a clean clone at the tested commit",
+      "reason": "OQ-ROUTES-C2/C3: linked worktrees read the owner team-config lacking T-12 grants; clone run at exact HEAD is the integration receipt; gate defect B-2"
+    }
+  ],
+  "mission": "plan",
+  "rework": {
+    "rounds": 4,
+    "wall_clock_minutes": 180,
+    "decision": ".harness/harness/features/FEAT-2641-local-working-files/notes/answers-signature-2026-11-27.md"
+  },
+  "signed_task_hashes": {
+    "T-01": "164c12b18b7260faa1d0447e33c160335e90d4bf74e7b302fd1f5567eddbc67c",
+    "T-02": "acd33be9c0013f02db49f4e4a9e4928f8b5fc5306bea0d029391ab26047baf4b",
+    "T-03": "b81b2cae689c744be19088a45fd7f4dfbf2c78964cc9154b409154b96d08f776",
+    "T-04": "a027d116ba133adf0f23b39bb9b73e09a2299c936e07cb4e86d18820f537a030",
+    "T-05": "2f94f74430b89497afe8e9baefedd1b01070155dc9eba0e722bf81845fb0a967",
+    "T-06": "e2a7556a27a745b5e9e7ce601181fb7aa0938afd95ebeb072885677905fb581b",
+    "T-07": "033faa2ad8be54533d213f9a765e154ee7a9c58594671a5f5aceabfe7755bf2c",
+    "T-08": "b0ff88cabad8fe82b065c5a320ca6a72f481981f1404fa5417e2a9aefc83418b",
+    "T-09": "655b5f4db2cfb68d5db56311fba5b0574a46acb90bd84286ca35f0b72354e575",
+    "T-10": "b6f6340b9073b80c477ed995f81c6e96b14941cec363a3e95a62723b02a2ad39",
+    "T-11": "ea074095956286d72a8a215aa24ec5993343711a3df4f8e78f5506eb2a76866a",
+    "T-12": "7e33c1f330f45e2799a1e18dc188908baf39a647e4d2eb7527fa36648270249b"
+  },
+  "github": {
+    "milestone": 148,
+    "parent": 2655,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12"
+    ],
+    "issues": {
+      "T-01": 2656,
+      "T-02": 2657,
+      "T-03": 2658,
+      "T-04": 2659,
+      "T-05": 2660,
+      "T-06": 2661,
+      "T-07": 2662,
+      "T-08": 2663,
+      "T-09": 2664,
+      "T-10": 2665,
+      "T-11": 2686,
+      "T-12": 2691
+    },
+    "source_issues": [
+      2641
+    ],
+    "typed": {
+      "T-01": true,
+      "T-02": true,
+      "T-03": true,
+      "T-04": true,
+      "T-05": true,
+      "T-06": true,
+      "T-07": true,
+      "T-08": true,
+      "T-09": true,
+      "T-10": true,
+      "T-11": true,
+      "T-12": true,
+      "parent": true
+    },
+    "build_entry": "opened",
+    "repo": "mruangutai/harness"
+  }
+}

@@ -131,17 +131,36 @@ def case_explicit_project_root_ignores_caller_cwd():
         require(caller_target.read_bytes() == caller_before, "caller cwd .gitignore changed")
 
 
-# --- BUG-2399: non-UI run evidence is ordinary tracked material; only runs/*/ui/ stays out ---
+# --- DEC-262: notes/, runs/, observations/, scratch/ and .harness/notes/ are local working files ---
 REPO_GITIGNORE = ROOT / ".gitignore"
-NARROW_RULE = ".harness/*/features/*/runs/*/ui/**"
-LOCK_RULE = ".harness/**/*.lock"
-BROAD_RULES = [".harness/features/*/runs/**", ".harness/*/features/*/runs/**"]
-HISTORICAL_TARGETS = (("legacy", BROAD_RULES[:1]), ("namespaced", BROAD_RULES[1:]), ("both", list(BROAD_RULES)))
-RUN_EVIDENCE = [
-    "digest.md", "state.yaml", ".run-identity.json", "acceptance.md",
-    "qa/manifest-unit.json", "qa/manifest-integration.json", "panel-c0.md", "altitude-ruling-c1.md",
+SCRATCH_RULE = ".harness/*/features/*/scratch/"
+WORKING_RULES = [
+    ".harness/*/features/*/notes/",
+    ".harness/*/features/*/runs/",
+    ".harness/*/features/*/observations/",
+    SCRATCH_RULE,
+    ".harness/notes/",
 ]
-RUN_EXCLUDED = ["ui/shot.webp", "ui/traces/trace.zip", "state.yaml.lock"]
+LOCK_RULE = ".harness/**/*.lock"
+OBSOLETE = [
+    ".harness/features/*/runs/**",
+    ".harness/*/features/*/runs/**",
+    ".harness/*/features/*/runs/*/ui/**",
+]
+FEATURE = ".harness/acme/features/FEAT-1-fixture/"
+WORKING_FILES = [
+    FEATURE + "notes/answers.md", FEATURE + "notes/prototypes/FEAT-1-fixture/shot.png",
+    FEATURE + "runs/r-1/digest.md", FEATURE + "runs/r-1/ui/shot.webp",
+    FEATURE + "observations/a.md", FEATURE + "scratch/pytest.log", ".harness/notes/project.md",
+    FEATURE + "state.yaml.lock",
+]
+RECORD_FILES = [FEATURE + name for name in ("plan.yaml", "feature.json", "BRIEF.md", "STATE.md")]
+PREVIOUS_HEADER = (
+    "# --- harness ---\n"
+    "# Run UI is never committed; every other run record is retained evidence (DEC-238)\n"
+    "# and is committed with its feature. Everything else under .harness/ is committed\n"
+    "# on purpose — it is the record of what shipped.\n"
+)
 
 
 def git(repo, *args):
@@ -161,80 +180,94 @@ def git_repo(path):
     return path
 
 
-def seed_run(repo, run_dir, names):
-    files = {(Path(run_dir) / name).as_posix(): ("evidence %s\n" % name).encode() for name in names}
-    write_files(repo, files)
-    return list(files)
-
-
-def require_records_tracked_and_ui_excluded(repo, label):
-    run_dir = ".harness/acme/features/FEAT-1-fixture/runs/r-1"
-    evidence = seed_run(repo, run_dir, RUN_EVIDENCE)
-    excluded = seed_run(repo, run_dir, RUN_EXCLUDED)
+def require_record_tracked_and_working_files_excluded(repo, label):
+    write_files(repo, {rel: ("content %s\n" % rel).encode() for rel in WORKING_FILES + RECORD_FILES})
     git(repo, "add", "--", ".harness")
     staged = z_paths(repo, "diff", "--cached", "--name-only")
-    missing = sorted(set(evidence) - staged)
-    leaked = sorted(set(excluded) & staged)
-    require(not missing, "BUG-2399 %s: ordinary git add left run evidence untracked: %r" % (label, missing))
-    require(not leaked, "BUG-2399 %s: run UI or lock files were staged: %r" % (label, leaked))
+    missing = sorted(set(RECORD_FILES) - staged)
+    leaked = sorted(set(WORKING_FILES) & staged)
+    require(not missing, "DEC-262 %s: ordinary git add left the record untracked: %r" % (label, missing))
+    require(not leaked, "DEC-262 %s: working files or locks were staged: %r" % (label, leaked))
 
 
-def case_bug2399_repository_rules_track_run_records():
+def case_repository_rules_exclude_working_files():
     with tempfile.TemporaryDirectory() as directory:
         repo = git_repo(Path(directory) / "repo")
         (repo / ".gitignore").write_bytes(REPO_GITIGNORE.read_bytes())
-        require_records_tracked_and_ui_excluded(repo, "repository .gitignore")
+        require_record_tracked_and_working_files_excluded(repo, "repository .gitignore")
 
 
-def case_bug2399_fresh_install_tracks_run_records():
+def case_fresh_install_excludes_working_files():
     with tempfile.TemporaryDirectory() as directory:
         repo = git_repo(Path(directory) / "repo")
         result = run(repo)
         require(result.returncode == 0, result.stderr)
         content = (repo / ".gitignore").read_text(encoding="utf-8").splitlines()
-        require(NARROW_RULE in content and LOCK_RULE in content,
-                "BUG-2399 fresh install lacks the run-UI or lock rule: %r" % content)
-        require(not any(line.startswith("!") for line in content), "BUG-2399 fresh install ships a negation")
-        require_records_tracked_and_ui_excluded(repo, "fresh snippet install")
+        require(all(rule in content for rule in WORKING_RULES + [LOCK_RULE]),
+                "DEC-262 fresh install lacks a working-file or lock rule: %r" % content)
+        require(not any(rule in content for rule in OBSOLETE), "DEC-262 fresh install ships an obsolete run rule")
+        require(not any(line.startswith("!") for line in content), "DEC-262 fresh install ships a negation")
+        require_record_tracked_and_working_files_excluded(repo, "fresh snippet install")
 
 
-def case_bug2399_check_reports_obsolete_broad_rules():
-    for label, broad in HISTORICAL_TARGETS:
+def obsolete_targets():
+    """(label, file text): each obsolete rule alone outside a block, inside a block, and all three."""
+    for rule in OBSOLETE:
+        yield "outside %s" % rule, "custom-first\n# my run notes\n%s\ncustom-last\n" % rule
+        yield "inside %s" % rule, ("custom-first\n# my run notes\ncustom-last\n\n"
+                                   "# --- harness ---\n%s\n# --- end harness ---\n" % rule)
+    yield "all three", "custom-first\n# my run notes\n%s\ncustom-last\n" % "\n".join(OBSOLETE)
+
+
+def case_check_reports_obsolete_and_missing_and_is_read_only():
+    for label, text in obsolete_targets():
         with project_target() as (project, target):
-            lines = ["custom-first"] + RULES + [NARROW_RULE, LOCK_RULE] + broad + ["custom-last"]
-            original = ("\n".join(lines) + "\n").encode()
+            original = text.encode()
             target.write_bytes(original)
             result = run(project, check=True)
-            require(result.returncode == 1, "BUG-2399 %s: --check accepted an obsolete broad run rule" % label)
-            require(all(rule in result.stderr for rule in broad),
-                    "BUG-2399 %s: --check did not name the obsolete rule: %r" % (label, result.stderr))
-            require(target.read_bytes() == original, "BUG-2399 %s: --check modified .gitignore" % label)
+            obsolete = {line[len("  x "):] for line in result.stderr.splitlines() if line.startswith("  x ")}
+            missing = {line[len("  - "):] for line in result.stderr.splitlines() if line.startswith("  - ")}
+            present = {rule for rule in OBSOLETE if rule in text.splitlines()}
+            require(result.returncode == 1, "DEC-262 %s: --check accepted an obsolete run rule" % label)
+            require(obsolete == present, "DEC-262 %s: obsolete bullets %r, want %r" % (label, obsolete, present))
+            require(set(WORKING_RULES) <= missing,
+                    "DEC-262 %s: --check did not name every working-file rule missing: %r" % (label, missing))
+            require(target.read_bytes() == original, "DEC-262 %s: --check modified .gitignore" % label)
 
 
-def require_broad_rules_migrated(lines, label):
-    """The merged lines drop every broad run rule, install the narrow UI rule once, write no
-    negation, and keep the project's own lines in order."""
-    require(not any(rule in lines for rule in BROAD_RULES), "BUG-2399 %s: broad run rule survived merge" % label)
-    require(lines.count(NARROW_RULE) == 1, "BUG-2399 %s: narrow UI rule not installed once" % label)
-    require(not any(line.startswith("!") for line in lines), "BUG-2399 %s: merge wrote a negation" % label)
-    kept = [line for line in lines if line in ("custom-first", "# my run notes are ephemeral", "custom-last")]
-    require(kept == ["custom-first", "# my run notes are ephemeral", "custom-last"],
-            "BUG-2399 %s: unrelated project lines lost or reordered: %r" % (label, kept))
+def case_check_names_all_three_obsolete_and_five_missing():
+    with project_target() as (project, target):
+        others = [rule for rule in RULES if rule not in WORKING_RULES]
+        original = ("\n".join(["custom-first"] + others + OBSOLETE + ["custom-last"]) + "\n").encode()
+        target.write_bytes(original)
+        result = run(project, check=True)
+        obsolete = [line[len("  x "):] for line in result.stderr.splitlines() if line.startswith("  x ")]
+        missing = [line[len("  - "):] for line in result.stderr.splitlines() if line.startswith("  - ")]
+        require(result.returncode == 1, "DEC-262: --check exited %d, want 1" % result.returncode)
+        require(obsolete == OBSOLETE, "DEC-262: obsolete bullets %r, want %r" % (obsolete, OBSOLETE))
+        require(missing == WORKING_RULES, "DEC-262: missing bullets %r, want %r" % (missing, WORKING_RULES))
+        require(target.read_bytes() == original, "DEC-262: --check modified .gitignore")
 
 
-def case_bug2399_merge_replaces_broad_rules():
-    for label, broad in HISTORICAL_TARGETS:
+def case_merge_replaces_obsolete_rules():
+    for label, text in obsolete_targets():
         with project_target() as (project, target):
-            target.write_text("custom-first\n# my run notes are ephemeral\n%s\ncustom-last\n" % "\n".join(broad),
-                              encoding="utf-8")
+            target.write_text(text, encoding="utf-8")
             first = run(project)
             after_first = target.read_bytes()
             require(first.returncode == 0, first.stderr)
-            require_broad_rules_migrated(after_first.decode("utf-8").splitlines(), label)
+            lines = after_first.decode("utf-8").splitlines()
+            require(not any(rule in lines for rule in OBSOLETE), "DEC-262 %s: obsolete run rule survived merge" % label)
+            require(all(lines.count(rule) == 1 for rule in WORKING_RULES),
+                    "DEC-262 %s: working-file rules not installed once each" % label)
+            require(not any(line.startswith("!") for line in lines), "DEC-262 %s: merge wrote a negation" % label)
+            kept = [line for line in lines if line in ("custom-first", "# my run notes", "custom-last")]
+            require(kept == ["custom-first", "# my run notes", "custom-last"],
+                    "DEC-262 %s: unrelated project lines lost or reordered: %r" % (label, kept))
             second = run(project)
             require(second.returncode == 0 and target.read_bytes() == after_first,
-                    "BUG-2399 %s: second merge was not byte-identical" % label)
-            require(run(project, check=True).returncode == 0, "BUG-2399 %s: --check red after migration" % label)
+                    "DEC-262 %s: second merge was not byte-identical" % label)
+            require(run(project, check=True).returncode == 0, "DEC-262 %s: --check red after migration" % label)
 
 
 def case_bug2399_merge_corrects_shipped_rationale_only():
@@ -257,6 +290,23 @@ def case_bug2399_merge_corrects_shipped_rationale_only():
                 "BUG-2399: project prose was rewritten:\n%s" % content)
 
 
+def case_previous_header_rationale_removed():
+    with project_target() as (project, target):
+        project_lines = "# project: Run UI is never committed; mine is\nbuild/\n\n"
+        block = (PREVIOUS_HEADER + ".harness/*/features/*/runs/*/ui/**\n.harness/**/*.lock\nmy-project-rule\n"
+                 "# --- end harness ---\n")
+        target.write_text(project_lines + block, encoding="utf-8")
+        result = run(project)
+        content = target.read_text(encoding="utf-8")
+        lines = content.splitlines()
+        require(result.returncode == 0, result.stderr)
+        stale = [line for line in PREVIOUS_HEADER.splitlines()[1:] if line in lines]
+        require(not stale, "DEC-262: previous HEADER rationale survived merge: %r" % stale)
+        require(content.startswith(project_lines), "DEC-262: project prose was rewritten:\n%s" % content)
+        require("my-project-rule" in lines and LOCK_RULE in lines, "DEC-262: project line inside block lost:\n%s" % content)
+        require(all(lines.count(rule) == 1 for rule in WORKING_RULES), "DEC-262: working-file rules not added once")
+
+
 def case_bug2399_line_endings_preserved():
     with project_target() as (project, target):
         target.write_bytes(b"crlf-first\r\n.harness/*/features/*/runs/**\r\ncrlf-last\r\n")
@@ -271,57 +321,25 @@ def case_bug2399_line_endings_preserved():
         require(result.returncode == 0, result.stderr)
         require(merged.startswith(b"no-newline-first\nno-newline-last\n"),
                 "BUG-2399: unterminated last line not preserved before appended rules: %r" % merged[:80])
-        require(NARROW_RULE.encode() + b"\n" in merged, "BUG-2399: narrow rule missing after unterminated input")
+        require(all(rule.encode() + b"\n" in merged for rule in WORKING_RULES),
+                "DEC-262: working-file rules missing after unterminated input")
 
 
-def seed_fleet_checkout(repo):
-    """A fleet checkout on the old broad rules, holding historical evidence the rules hide."""
-    (repo / ".gitignore").write_text("scratch-dir/\n%s\n%s\n" % tuple(BROAD_RULES), encoding="utf-8")
-    (repo / "README.md").write_text("fleet\n", encoding="utf-8")
-    git(repo, "add", "--", ".gitignore", "README.md")
-    git(repo, "commit", "-qm", "base")
-    fleet = ".harness/acme/features/FEAT-7-fleet/runs/"
-    evidence = (seed_run(repo, fleet + "r 1", ["digest.md", "qa/manifest-unit.json"])
-                + seed_run(repo, fleet + "r-2", ["panel-c0[*].md", "state.yaml"])
-                + seed_run(repo, ".harness/features/FEAT-3-legacy/runs/r-3", ["digest.md"]))
-    excluded = seed_run(repo, fleet + "r-2", ["ui/shot.webp", "digest.md.lock"]) + ["unrelated.txt"]
-    (repo / "unrelated.txt").write_text("not evidence\n", encoding="utf-8")
-    return evidence, excluded
-
-
-def stage_reviewed_evidence(repo):
-    """Checklist steps 4-5: review the exposed run files, stage them by literal path."""
-    visible = z_paths(repo, "ls-files", "--others", "--exclude-standard")
-    reviewed = sorted(path for path in visible if "/runs/" in path and "/ui/" not in path)
-    git(repo, "--literal-pathspecs", "add", "--", ".gitignore", *reviewed)
-    return reviewed, z_paths(repo, "diff", "--cached", "--name-only")
-
-
-def require_operator_commit(repo, evidence, excluded, before):
-    """Checklist step 6: the separate operator commit tracks exactly the reviewed evidence."""
-    git(repo, "commit", "-qm", "operator: track historical run evidence")
-    now = z_paths(repo, "ls-files")
-    require(set(evidence) <= now and not set(excluded) & now,
-            "BUG-2399 checklist: evidence untracked, or UI, lock or unrelated file tracked")
-    require(all((repo / path).read_bytes() == data for path, data in before.items()),
-            "BUG-2399 checklist: reviewed evidence bytes changed")
-
-
-def case_bug2399_operator_checklist_commands_compose():
-    """The checkout-upgrade checklist's command sequence, run as an operator would on a fleet checkout."""
-    with tempfile.TemporaryDirectory() as directory:
-        repo = git_repo(Path(directory) / "fleet")
-        evidence, excluded = seed_fleet_checkout(repo)
-        base_head = git(repo, "rev-parse", "HEAD")
-        before = {path: (repo / path).read_bytes() for path in evidence}
-        merged = run(repo)
+def case_scratch_rule_checked_then_added():
+    """FEAT-2641 T-12 (D-13): a project .gitignore holding every rule but scratch/'s is named
+    by --check without a write, then gains the scratch/ rule once on merge."""
+    with project_target() as (project, target):
+        original = ("custom-first\n" + "\n".join(r for r in RULES if r != SCRATCH_RULE) + "\n").encode()
+        target.write_bytes(original)
+        result = run(project, check=True)
+        missing = [line[len("  - "):] for line in result.stderr.splitlines() if line.startswith("  - ")]
+        require(result.returncode == 1 and missing == [SCRATCH_RULE],
+                "T-12: --check exited %d naming %r, want 1 naming the scratch rule" % (result.returncode, missing))
+        require(target.read_bytes() == original, "T-12: --check modified .gitignore")
+        merged = run(project)
+        lines = target.read_text(encoding="utf-8").splitlines()
         require(merged.returncode == 0, merged.stderr)
-        reviewed, staged = stage_reviewed_evidence(repo)
-        require(reviewed == sorted(evidence),
-                "BUG-2399 checklist: narrowed rule did not expose exactly the historical evidence: %r" % reviewed)
-        require(staged == set(evidence) | {".gitignore"}, "BUG-2399 checklist: staged set differs: %r" % sorted(staged))
-        require(git(repo, "rev-parse", "HEAD") == base_head, "BUG-2399 checklist: merge or staging committed")
-        require_operator_commit(repo, evidence, excluded, before)
+        require(lines.count(SCRATCH_RULE) == 1, "T-12: scratch rule not added exactly once: %r" % lines)
 
 
 CASES = [
@@ -332,13 +350,15 @@ CASES = [
     case_partial_target_retains_present_rule_and_adds_missing_once,
     case_second_merge_is_byte_identical,
     case_explicit_project_root_ignores_caller_cwd,
-    case_bug2399_repository_rules_track_run_records,
-    case_bug2399_fresh_install_tracks_run_records,
-    case_bug2399_check_reports_obsolete_broad_rules,
-    case_bug2399_merge_replaces_broad_rules,
+    case_repository_rules_exclude_working_files,
+    case_fresh_install_excludes_working_files,
+    case_check_reports_obsolete_and_missing_and_is_read_only,
+    case_check_names_all_three_obsolete_and_five_missing,
+    case_merge_replaces_obsolete_rules,
     case_bug2399_merge_corrects_shipped_rationale_only,
+    case_previous_header_rationale_removed,
     case_bug2399_line_endings_preserved,
-    case_bug2399_operator_checklist_commands_compose,
+    case_scratch_rule_checked_then_added,
 ]
 
 

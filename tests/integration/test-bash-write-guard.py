@@ -187,7 +187,7 @@ teams:
 """
 
 def fire(root, cmd, agent="harness-backend-dev", guard=GUARD, cwd=None,
-         agent_id=None, parent_agent_id=None, feature=None):
+         agent_id=None, parent_agent_id=None, feature=None, extra_env=None):
     """Run the guard on one Bash payload. A falsy agent or id leaves its key out entirely
     (agent None is the main session, which sends no agent_type)."""
     payload = {"tool_name": "Bash", "tool_input": {"command": cmd}}
@@ -197,7 +197,7 @@ def fire(root, cmd, agent="harness-backend-dev", guard=GUARD, cwd=None,
         if value:
             payload[key] = value
     return subprocess.run([guard], input=json.dumps(payload), capture_output=True,
-                          text=True, env=_env(root), cwd=cwd)
+                          text=True, env=_env(root, **(extra_env or {})), cwd=cwd)
 
 
 def _partial_bin(*extra):
@@ -780,6 +780,205 @@ def run_head_move():
           f"exit {r11.returncode}: {r11.stderr.strip()[:200]}")
 
     shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _put(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def _native_remove_fixture():
+    """A real repository (git init, one commit) with two linked worktrees made by this test's
+    own git: FEAT-91 holding untracked, IGNORED notes/x.md and runs/r/digest.md under
+    .harness/harness/features/FEAT-91-probe (the loss git cannot see), FEAT-92 holding only an
+    untracked scratch.txt."""
+    tmp = tempfile.mkdtemp(prefix="bash-guard-native-remove-")
+    root = os.path.join(tmp, "root")
+    _put(os.path.join(root, ".harness", "team-config.yaml"), FIXTURE_MANIFEST)
+    _put(os.path.join(root, ".gitignore"), _NATIVE_IGNORES)
+    git = ["git", "-C", root, "-c", "user.email=t@example.com", "-c", "user.name=T"]
+    for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "init"]):
+        subprocess.run(git + args, check=True, capture_output=True)
+    worktrees = {}
+    for wt_id in ("FEAT-91", "FEAT-92"):
+        worktrees[wt_id] = os.path.join(root, ".claude", "worktrees", "harness", wt_id)
+        subprocess.run(git + ["worktree", "add", "-q", "-b", f"feat/{wt_id}", worktrees[wt_id]],
+                       check=True, capture_output=True)
+    feature = os.path.join(worktrees["FEAT-91"], ".harness", "harness", "features", "FEAT-91-probe")
+    _put(os.path.join(feature, "notes", "x.md"), "working file\n")
+    _put(os.path.join(feature, "runs", "r", "digest.md"), "working file\n")
+    _put(os.path.join(worktrees["FEAT-92"], "scratch.txt"), "scratch\n")
+    return tmp, root, worktrees, feature
+
+
+def run_native_remove_retention():
+    """FEAT-2641 T-11 (ruling E4): an unforced native `git worktree remove` of a worktree holding
+    untracked working files is refused with GATE 2b's per-directory counts; a worktree without
+    them is left to git, and prune and the force refusal are unchanged."""
+    tmp, root, worktrees, feature = _native_remove_fixture()
+    wt = worktrees["FEAT-91"]
+    results = []
+
+    def expect(name, cmd, want, needles=()):
+        r = fire(root, cmd)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+
+    counts = ("notes/ (1 files)", "runs/ (1 files)", "feature-worktree.py")
+    expect("T-11 (a): unforced `git worktree remove <wt>` with untracked working files exits 2",
+           f"git worktree remove {wt}", 2, counts)
+    expect("T-11 (b): `git -C <root> worktree remove <relative wt>` resolves against -C and "
+           "exits 2", f"git -C {root} worktree remove .claude/worktrees/harness/FEAT-91", 2, counts)
+    results.append(("T-11 (a)/(b): the worktree and both working files survive",
+                    os.path.isdir(wt) and os.path.exists(os.path.join(feature, "notes", "x.md"))
+                    and os.path.exists(os.path.join(feature, "runs", "r", "digest.md")), wt))
+    expect("T-11 (c): a worktree holding only an untracked scratch.txt is left to git (exit 0)",
+           f"git worktree remove {worktrees['FEAT-92']}", 0)
+    expect("T-11 (d): unforced `git worktree prune` stays allowed", "git worktree prune", 0)
+    expect("T-11 (e): `git worktree remove` with no operand is refused naming the command",
+           "git worktree remove", 2, ("git worktree remove",))
+    shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
+_NATIVE_COUNTS = ("notes/ (1 files)", "runs/ (1 files)", "feature-worktree.py")
+
+
+def _native_identifier_cases(root, tmp):
+    """(name, command, wanted exit, hook cwd, stderr needles) for the identifier operands."""
+    return [
+        ("T-11 (f): `git worktree remove FEAT-91` (a bare worktree identifier, cwd the owner "
+         "checkout) exits 2 with the counts", "git worktree remove FEAT-91", 2, root, _NATIVE_COUNTS),
+        ("T-11 (g): a unique multi-component suffix `harness/FEAT-91` exits 2",
+         "git worktree remove harness/FEAT-91", 2, root, _NATIVE_COUNTS),
+        ("T-11 (h): `git -C <root> worktree remove FEAT-91` from outside any repository resolves "
+         "through -C and exits 2", f"git -C {root} worktree remove FEAT-91", 2, tmp, _NATIVE_COUNTS),
+        ("T-11 (i): an identifier that cannot be resolved (no repository at the cwd) is refused",
+         "git worktree remove FEAT-91", 2, tmp, ("git worktree list",)),
+        ("T-11 (j): the identifier of a worktree without working files is left to git (exit 0)",
+         "git worktree remove FEAT-92", 0, root, ()),
+    ]
+
+
+def run_native_remove_identifier():
+    """FEAT-2641 T-11 (fix c1 must_fix 1): git also takes a worktree by a unique path-suffix
+    identifier, resolved in the repository the cwd or -C addresses, so the guard resolves the
+    operand as git's find_worktree does; an operand it cannot resolve is refused."""
+    tmp, root, worktrees, feature = _native_remove_fixture()
+    results = []
+    for name, cmd, want, cwd, needles in _native_identifier_cases(root, tmp):
+        r = fire(root, cmd, cwd=cwd)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+    kept = [os.path.join(feature, "notes", "x.md"), os.path.join(feature, "runs", "r", "digest.md")]
+    results.append(("T-11 (f)-(i): the worktree and both working files survive",
+                    os.path.isdir(worktrees["FEAT-91"]) and all(map(os.path.exists, kept)), feature))
+    shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
+_NATIVE_IGNORES = "/.harness/*/features/*/notes/\n/.harness/*/features/*/runs/\n"
+_NATIVE_FEATURE_REL = ".harness/harness/features/FEAT-91-probe"
+
+
+def _undecodable_git(tmp):
+    """A bin directory whose `git` runs the real one and, for `ls-files`, adds one more NUL-ended
+    path that is not valid UTF-8 (notes/\\377.md): APFS will not create such a name."""
+    bindir = os.path.join(tmp, "undecodable-bin")
+    _put(os.path.join(bindir, "git"),
+         f'#!/bin/sh\n"{shutil.which("git")}" "$@"\nrc=$?\n'
+         f'case " $* " in *" ls-files "*) printf \'{_NATIVE_FEATURE_REL}/notes/\\377.md\\0\' ;; esac\n'
+         'exit $rc\n')
+    os.chmod(os.path.join(bindir, "git"), 0o755)
+    return {"PATH": bindir + os.pathsep + os.environ["PATH"]}
+
+
+def _native_selector_cases(root, other, tmp):
+    """(name, command, wanted exit, hook cwd, stderr needles, extra env) for the fix c2 legs. The
+    cwd `other` is a different repository, where the identifier FEAT-91 names nothing."""
+    gd = os.path.join(root, ".git")
+    sel = [("--git-dir", f"git --git-dir {gd} worktree remove FEAT-91"),
+           ("--git-dir=", f"git --git-dir={gd} worktree remove FEAT-91"),
+           ("--work-tree", f"git --work-tree {root} worktree remove FEAT-91"),
+           ("--work-tree=", f"git --work-tree={root} worktree remove FEAT-91"),
+           ("GIT_DIR=", f"GIT_DIR={gd} git worktree remove FEAT-91"),
+           ("GIT_WORK_TREE=", f"GIT_WORK_TREE={root} git worktree remove FEAT-91"),
+           ("GIT_COMMON_DIR=", f"GIT_COMMON_DIR={gd} git worktree remove FEAT-91"),
+           ("env GIT_DIR=", f"env GIT_DIR={gd} git worktree remove FEAT-91"),
+           ("export GIT_DIR=", f"export GIT_DIR={gd}; git worktree remove FEAT-91")]
+    cases = [(f"T-11 (k) MF-2: `{form}` with an identifier operand and ignored evidence, cwd another "
+              f"repository, is refused", cmd, 2, other, ("cannot tell which worktree",), None)
+             for form, cmd in sel]
+    cases.append(("T-11 (l) MF-1: a working file whose name is not valid UTF-8 is counted, never a "
+                  "crash: exit 2 with notes/ (2 files)", "git worktree remove FEAT-91", 2, root,
+                  ("notes/ (2 files)", "runs/ (1 files)"), _undecodable_git(tmp)))
+    return cases
+
+
+def _native_option_cases(root):
+    """(name, command, wanted exit, hook cwd, stderr needles, extra env) for fix c3 MF-2b: git's
+    global options are a closed set. One taking a spaced value (--config-env, --attr-source)
+    must not desynchronise the subcommand walk, and an option outside the set refuses."""
+    counted = ("notes/ (1 files)", "runs/ (1 files)")
+    return [
+        ("T-11 (m) MF-2b: spaced `--config-env a=B` is still a removal: counted, exit 2",
+         "git --config-env a=B worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: `--config-env=a=B` is still a removal: counted, exit 2",
+         "git --config-env=a=B worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: spaced `--attr-source HEAD` is still a removal: counted, exit 2",
+         "git --attr-source HEAD worktree remove FEAT-91", 2, root, counted, None),
+        ("T-11 (m) MF-2b: a global option outside the closed set is refused before a removal "
+         "(behind `env`, which REQ-04's first-token walk skips, so this gate is the one refusing)",
+         "env git --frobnicate value worktree remove FEAT-91", 2, root, ("does not model",), None),
+    ]
+
+
+def run_native_remove_c2():
+    """FEAT-2641 T-11 (fix c2 MF-1, MF-2): a repository selector the guard does not model refuses
+    (DEC-151), and an undecodable working-file name is counted rather than crashing the hook
+    open. The evidence is ignored, so git alone would remove it."""
+    tmp, root, worktrees, _feature = _native_remove_fixture()
+    other = os.path.join(tmp, "other")
+    subprocess.run(["git", "init", "-q", other], check=True, capture_output=True)
+    ignored = subprocess.run(["git", "-C", worktrees["FEAT-91"], "check-ignore", "-q",
+                              f"{_NATIVE_FEATURE_REL}/notes/x.md"], capture_output=True)
+    results = [("T-11 c2: the fixture's notes/x.md is ignored by git", ignored.returncode == 0,
+                f"check-ignore exit {ignored.returncode}")]
+    for name, cmd, want, cwd, needles, extra in (_native_selector_cases(root, other, tmp)
+                                                 + _native_option_cases(root)):
+        r = fire(root, cmd, cwd=cwd, extra_env=extra)
+        ok = r.returncode == want and all(n in r.stderr for n in needles)
+        results.append((name, ok, f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+    shutil.rmtree(tmp, ignore_errors=True)
+    _record(results)
+
+
+_HEAD_OPTION_CASES = (
+    ("REQ-04 MF-2b: spaced `--config-env a=B` cannot hide `switch`",
+     "git --config-env a=B switch x", 2, "moves HEAD"),
+    ("REQ-04 MF-2b: spaced `--attr-source HEAD` cannot hide `checkout main`",
+     "git --attr-source HEAD checkout main", 2, "moves HEAD"),
+    ("REQ-04 MF-2b: a global option outside the closed set is undecidable, so refused",
+     "git --frobnicate value status", 2, "cannot determine"),
+    ("REQ-04 MF-2b: a known spaced global option before `status` stays allowed",
+     "git --config-env a=B status", 0, ""),
+    ("REQ-04 MF-2b: known valueless global options before `log` stay allowed",
+     "git --no-pager --no-optional-locks log -1", 0, ""),
+)
+
+
+def run_head_move_global_options():
+    """FEAT-2641 T-11 (fix c3 MF-2b): the REQ-04 HEAD-mover walk shares the closed global-option
+    set, so a value-taking option cannot pass its value off as the subcommand."""
+    root = fixture(FIXTURE_MANIFEST)
+    results = []
+    for name, cmd, want, needle in _HEAD_OPTION_CASES:
+        r = fire(root, cmd)
+        results.append((name, r.returncode == want and needle in r.stderr,
+                        f"exit {r.returncode} (want {want}): {r.stderr.strip()[:300]}"))
+    _record(results)
+
 
 FEAT50_MANIFEST = """schema_version: 1
 teams:
@@ -1758,6 +1957,10 @@ def main():
     run_worktree()
     run_worktree_deep()
     run_head_move()
+    run_native_remove_retention()
+    run_native_remove_identifier()
+    run_native_remove_c2()
+    run_head_move_global_options()
     run_feat50_checkout_binding()
     run_feat61_feature_checkout_adapter()
     run_feat65_guard_cases()
@@ -1767,6 +1970,7 @@ def main():
     run_bug1304_claim_set()
     run_feat2225_expertise_cli()
     return C.report()
+
 
 def run_bug895_wrong_checkout():
     """Issue #895 code review (PR #1188): the Bash route must refuse the SAME

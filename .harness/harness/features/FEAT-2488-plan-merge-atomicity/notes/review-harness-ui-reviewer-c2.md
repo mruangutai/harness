@@ -1,1 +1,0 @@
-Mode B scoped out: the pinned diff `2491336e..c35841fe` changes 98 files (8 CLI/tool source, 3 tests/fixtures, 87 feature records); none is UI, a component, or a stylesheet, so accessibility and light/dark parity are not applicable.

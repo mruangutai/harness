@@ -1,1 +1,0 @@
-PASS — Mode A is out of scope: `plan.yaml` T-01–T-05 change GitHub transport, existing CLI failure handling, and documentation/backlog records, not a user-facing visual or interaction surface; no DESIGN.md or prototype is needed.

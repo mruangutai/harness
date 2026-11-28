@@ -1,0 +1,1120 @@
+schema: plan/1
+feature: FEAT-2641-local-working-files
+approval:
+  date: '2026-11-28'
+  approved_by: operator
+  status: approved
+drafted_at: '2026-11-28T02:57:10Z'
+status: review
+source_issues: [2641]
+
+panel:
+  last_run: plan-c2-product
+  cycle: 2
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: skipped
+    persona: fable-advisor
+    reason: 'status skipped: outside the operator''s one-reader cycle-2 authorization;
+      ran in cycle 1'
+  - reader: design
+    status: skipped
+    persona: harness-ui-reviewer
+    reason: 'status skipped: outside the operator''s one-reader cycle-2 authorization;
+      ran in cycle 1'
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-731dc8d41464ad33631df0ad129853cb
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-05/T-07 deletes evidence before terminal state on reject with no successor.
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-30e2e530f2af6d062b968deb2174f89b
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-03/T-06/T-07 cannot reliably clean after ship or distill.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-5c090d3ab8ccad628723a324f88d832b
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-03's project-note cleanup can delete unclaimed files.
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-104ac367c33abf71d6867bc06892d35c
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-06/T-07 does not stage D-04's durable distill ledger.
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-3f271400dff62a4490a215e5e079e2d3
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: T-01 changes T-03/T-06 fixture semantics before their gates are migrated; first landing and registry timing are unstated.
+    disposition: resolved
+    resolved_by: T-09
+  - id: PF-b17709953e672c6f042dbe547e430b0d
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: T-08 misses live clauses in affected decisions.
+    disposition: resolved
+    resolved_by: T-08
+  - id: PF-0c8d95b1179763e2006b76a35948c604
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: T-07's negative grep matches its own required documentation.
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-a6ec2bbc0832acd82f07f35920645d05
+    severity: high
+    reader: ui-reviewer
+    kind: substance
+    summary: T-05 deletes local working files before writing the terminal station on reject --superseded-by none.
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-7701ed4da900a411e05e1a41c5372070
+    severity: med
+    reader: ui-reviewer
+    kind: substance
+    summary: T-05 does not specify what abandon or reject reports when the terminal operation succeeds but local cleanup fails.
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-a157f7f630651c9cb0288af09e95f730
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: GATE 2b's per-file "WOULD DISCARD WORKING FILE" listing turns every post-merge sweep into a wall of output for shipped-but-undistilled features
+    disposition: resolved
+    scope: task
+    resolved_by: T-03
+  - id: PF-2d4c89064d3e8394f3fa96851839315d
+    severity: info
+    reader: should-not-exist
+    kind: form
+    summary: T-06's induced-cleanup-failure integration fixture ("a directory the process cannot remove") is environment-dependent and should be a unit-level fake instead
+    disposition: resolved
+    resolved_by: T-06
+  - id: PF-9bc62a8e3a392a180f1b866d54246450
+    severity: info
+    reader: should-not-exist
+    kind: substance
+    summary: Everything of substance traces to an operator ruling or a grilling "Not
+      yet specified" item; no task builds a thing the user does not need, and no task
+      is obsoleted by another
+    disposition: open
+  - id: PF-171caabfc552732fdf7bd488123262e3
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: 'T-05/T-09 (D-11/D-12, SC-18): the local decline can silently skip.'
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-294f43955c34cd3c2757977d7a60c985
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: 'T-05 (D-11, SC-18): a failed decline commit still permits cleanup.'
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-05ce8bbd8ef4721305d4a14cb8e0b4fd
+    severity: high
+    reader: code-reviewer
+    kind: substance
+    summary: 'T-03/T-05/T-07 (D-05/D-11, SC-08/09/18): clean can resolve the wrong checkout or fail before deletion.'
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-85f4dfb75d8a4fb02ad265af6ce350d1
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: 'T-06 (SC-17): post-merge lookup failure can report a merge refusal.'
+    disposition: resolved
+    resolved_by: T-06
+  - id: PF-cdd37b93a5bbd893370b57cbbe71780a
+    severity: med
+    reader: code-reviewer
+    kind: substance
+    summary: 'T-08 (D-04/D-05, SC-10/15): two amendment reasons still direct obsolete behavior.'
+    disposition: resolved
+    resolved_by: T-08
+  - id: PF-527a970021ad554d682dc27f095a5dc6
+    severity: low
+    reader: code-reviewer
+    kind: form
+    summary: 'T-05/T-07/T-08/T-09/T-10: the task list is not topological.'
+    disposition: open
+lanes:
+  resolved_at: 0b5aa6e40d4bcf541addf40a4fdb7863303e3362
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 keeps the gate scripts, validators and refusing tools this feature changes with the main session.
+    - surface: tests/**
+      lane: main-session-direct
+      reason: DEC-174 keeps each gate's owning tests and the reader registries with the change they grade.
+    - surface: .gitignore
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY; an ungranted surface is a declared main-session step (DEC-179).
+    - surface: .claude/skills/harness/templates/**
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .claude/skills/harness/schemas/**
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .claude/skills/harness/references/**
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .claude/skills/harness/teams/**
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .claude/skills/harness-uat/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY (DEC-179).
+    - surface: .omp/**
+      lane: main-session-direct
+      reason: check-domain.py --resolve answers NOBODY for agent definitions and commands (DEC-179).
+    - surface: .harness/README.md
+      lane: main-session-direct
+      reason: granted to harness-documentor, but its committed-versus-local sentence describes the DEC-174 enforcement change and lands with it, as in FEAT-2581.
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      reason: granted to harness-documentor, but the decision-record amendments describe the DEC-174 enforcement change itself and land with it, as in FEAT-2557 and FEAT-2581.
+
+decisions:
+  - id: D-01
+    choice: A feature's notes/ (prototypes, mockups and screenshots included), runs/ (all of it, not only ui/) and observations/, and every project note under .harness/notes/, are local working files - ignored by four directory rules in .gitignore and templates/gitignore.snippet, untracked here with git rm --cached, history never rewritten, and a committed guard test refuses any tracked one; the committed feature record is feature.json, plan.yaml, BRIEF.md and STATE.md. Recorded as a new decision that strikes DEC-257.
+    because: Since FEAT-71 about half of main's object growth is notes and runs and deleting them later never shrinks history; the operator ruled notes exist only for distill and expertise. An ignore rule alone leaves already-tracked files and in-flight branches tracked, so the index is guarded too.
+    dec: DEC-262
+  - id: D-02
+    choice: check-state retires INV-8, INV-12, INV-15, INV-16, INV-17, INV-18, INV-36, INV-43, INV-46, INV-47 and INV-51 and INV-40 clause (c), numbers never reused; INV-7 keeps only the cycle arithmetic; the read-side evidence helpers in feature_record/evidence.py go with them. Rejected - keeping them as local-only check-state rows, because check-state is one program CI also runs and a row red in CI by construction is the defect being removed.
+    because: Each reads a notes, runs or handoff file that is no longer in any checkout CI sees; write-time and yield-time checks keep grading the same artifacts while they exist on disk.
+    dec: DEC-262
+  - id: D-03
+    choice: No working file gets a committed home. Answers, UAT results, ship briefings, prototypes, research, debug and review notes, handoffs, receipts and run records stay local; feature-record --decision, --evidence and --digest keep their write-time checks and record path and sha256 as provenance of a file not retained after cleanup. Rejected - copying ruling and answer text into feature.json, which DEC-150 caps at 300 lines, or into the PR body.
+    because: The operator ruled notes need not be committed or included in any artifact; the decisions they informed are already in feature.json judgements, rework and runs and in plan.yaml approval and panel.
+    dec: DEC-262
+  - id: D-04
+    choice: 'Expertise receipts stay at notes/expertise-receipt-<sha>.json as local working files; expertise-merge reads every receipt in the feature''s local notes with no base-tree exclusion, merge-distill replays them unchanged, and already-applied state is main''s merged Expertise plus the receipts'' deletion by the post-merge cleanup. Distill runs stay registered in feature.json runs: the distill PR commits the reconstructed Expertise files and feature.json, staged only after every distill run is closed, while the run directories, receipts and observation logs stay local and unstaged and are read at runtime by validate-digest and dispatch-guard as today. Rejected - committing receipts to a tracked path outside notes, which keeps a remote audit of applied ops but regrows the committed record the operator excluded.'
+    because: merge-distill already runs in the live distill worktree where the receipts exist, so committing them only served the git ls-tree exclusion that an untracked receipt makes dead.
+    dec: DEC-262
+  - id: D-05
+    choice: 'One module, bin/working_files.py, owns cleanup and its path contract. It removes the feature directory''s notes/, runs/ and observations/ recursively, unlinks each project note feature.json project_notes lists as one file or symlink, refuses before removing anything when a listed note is a directory or the .harness/notes parent is a symlink or resolves elsewhere, never follows a symlink, and owns the project-note path validator feature-record.py imports. Every caller runs it only after its own terminal write has succeeded, so a refused write leaves every file in place. Callers - merge-gate.py merge-distill after a successful merge; gh-sync.py abandon --yes after it records abandoned; plan-merge.py set-feature-station whenever it has written rejected, which covers gh-sync.py reject --yes with a numeric successor (it writes the station through that verb) and the caller of reject --superseded-by none alike; gh-sync.py skip-distill after it records and commits the declined distill (D-11); and a new feature-worktree.py clean verb, which resolves the owner checkout from whichever checkout runs it and the one linked worktree holding the feature directory, named by the short or the full id, refuses when two hold it, and is refused unless the landed record (the owner checkout''s plan.yaml, which ship writes) or the worktree''s plan.yaml reads done, abandoned or rejected - the routine skip-distill runs, the route for a distill that changed no Expertise, and the retry for a failed cleanup. A terminal command whose write landed but whose cleanup failed names what was removed and the clean command and never asks for the terminal command again: gh-sync.py and merge-gate.py exit 4, plan-merge.py set-feature-station exits 10, a code no plan-merge path returned before.'
+    because: The operator wants cleanup to be a routine, not a hand step, and ruled on 2026-11-27 (GC-01) that writing rejected and declining a distill run it automatically, overriding the drafted caller-run step; one implementation keeps every cleaning path - abandon, the rejected write, merge-distill, skip-distill and clean, while ship leaves the files for distill - deleting the same bounded set (generalizes DEC-238's abandon prune). Cleaning inside set-feature-station, after its locked write returns, is the one place both reject paths share and the one point where the station is known to have landed, so the evidence of an intake whose station write refuses is never destroyed. Rejected - cleaning inside gh-sync.py reject for the none path, which cannot know whether its caller's later station write succeeds.
+    dec: DEC-262
+  - id: D-06
+    choice: feature.json gains project_notes, a list of .harness/notes/<name> paths, written only by feature-record.py project-note; the orchestrator records the grilling artifact and every other .harness/notes/ path its dispatch hands it at its first cycle; cleanup deletes only listed project notes and never one no feature claimed.
+    because: A grilling note is written before the feature id exists, so it cannot live under the feature; a recorded claim is the only way cleanup can tell a feature's project notes from spike and ad-hoc notes it must never delete.
+    dec: DEC-262
+  - id: D-07
+    choice: gh-sync.py ship's validation precondition reads feature.json instead of notes/handoff-validate.md - it refuses, before any GitHub write, a feature with no validator-squad validate or fix run recorded PASS unless every task is main-session-direct. Rejected - deleting the precondition outright, which reopens BUG-1129 (the post-merge sweep shipping a feature whose validate is still in flight).
+    because: Ship runs in the main checkout or a plain clone, where an untracked note never exists, so the old check would refuse every feature; the PASS run it stood for is already in the committed ledger. This departs from the grilling, which listed ship's handoff-validate refusal among the gates to delete; the operator kept the precondition, moved to feature.json, on 2026-11-27 (OQ-01).
+    dec: DEC-262
+  - id: D-08
+    choice: feature-worktree.py remove refuses, exit 4, while the feature directory holds any file under notes/, runs/ or observations/ that git does not track, naming each of those directories with its file count and the clean command, and bash-write-guard.py refuses an unforced native git worktree remove on the same condition (T-11, operator ruling E4); the post-merge sweep therefore keeps a shipped feature's worktree until distill or clean has run. Rejected - deleting working files with the tree, because the sweep removes the worktree when the station-done record lands, which would destroy the observation logs before distill reads them.
+    because: Ignored files are invisible to the existing dirty-tree gate and git worktree remove deletes them silently, so without this gate nothing protects them.
+    dec: DEC-262
+  - id: D-09
+    choice: harness.json seam_era_start stays declared in the schema and template and in this repository's harness.json, unread once INV-43 retires.
+    because: Removing a declared key makes every onboarded checkout's harness.json fail DEC-256's closed schema; a schema migration is outside this feature, and an unread declared key breaks nothing.
+    dec: DEC-256
+
+  - id: D-10
+    choice: The main session executes every task directly in the feature worktree as local commits on feat/FEAT-2641-local-working-files and pushes the branch and opens its one pull request only after T-09's verify passes on the final tree. CI's integration shards, canonical-reader audit and repository-state gate therefore grade only that final head, never T-01's untracking without T-02's retired rows or a deleted test before T-09's registry update. The operator merges it through the ordinary hooked merge, which runs the owner checkout's pre-change merge-gate.py on its ordinary route - a route this feature does not change (T-06 changes only merge-distill) - so no change executes through the enforcement it changes. FEAT-2641's own ship, clean and any distill, and the five distill declines of D-12, run after the merge on main's new code. Rejected - one pull request per task, which would put an untracked tree in front of the old check-state in CI and leave the reader registries stale between merges.
+    because: The tasks share gate inputs without sharing file anchors - the root .gitignore read by merge-gate and feature-worktree fixtures, check-state's corpus, and the two CI registries - so only the cumulative tree is a state any live gate may see (DEC-174, DEC-183).
+    dec: DEC-174
+  - id: D-11
+    dec: DEC-262
+    choice: gh-sync.py skip-distill <feature-dir> --reason-file <path> [--yes] records a declined distill and then cleans. It takes the landed record in the owner checkout and refuses a worktree path as ship does; refuses, writing nothing, unless that plan.yaml reads done; appends one feature.json judgement of a new eighth kind, distill, decision declined, through feature-record.py judgement, unless one is already recorded; commits that feature.json alone in its own checkout without pushing, through ship's terminal-station commit helper; and only after that commit succeeded runs feature-worktree.py clean --yes, which deletes the retained worktree's copy when one exists. A failed commit exits 1 with nothing removed, and a re-run commits the recorded decline without appending another. It is dispatched before gh-sync's GitHub config and auth preflight, so github.sync off or an absent or unauthenticated gh never turns it into a silent SKIP. Without --yes it prints what it would record and remove and changes nothing. Rejected - a plan.yaml station or key, because done must stay the shipped station every reader keys on; a marker under notes/, which the cleanup itself deletes; and feature-record.py as the home, which writes one feature.json and cannot resolve the retained worktree copy the cleanup must delete.
+    because: The operator ruled on 2026-11-27 (GC-01) that declining a distill is a recorded act that runs the same cleanup, not a documented follow-up; feature.json judgements is the committed ledger the operator already audits, and gh-sync.py already hosts the terminal verbs with their --yes preview, the landed-record worktree refusal and the local commit of a terminal record.
+  - id: D-12
+    dec: DEC-262
+    choice: 'BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and FEAT-2581, shipped with no distill commit on origin/main, are declined: no preservation step and no snapshot of their observation logs. After the operator merges FEAT-2641, the main session runs gh-sync.py skip-distill --yes on each one''s landed record in the owner checkout, on main''s new code, so each feature.json carries the committed distill declined judgement, which the main session confirms per feature from git and the ledger rather than from the exit alone. Rejected - copying their observation logs aside before the untracking lands, which keeps lessons the operator chose to drop.'
+    because: 'Operator ruling 2026-11-27 (OQ-02): their lessons are dropped; their working files leave every checkout when the untracking commit is pulled and stay readable in git history. Recording after the merge keeps every write of this feature''s build inside its own directory (FEAT-1559) and runs the new verb on landed code (DEC-174).'
+  - id: D-13
+    dec: DEC-261
+    choice: 'Raw verification output (runner logs, captured stdout/stderr, measurement stores, generated receipts and receipt scripts) is written under the feature''s scratch/ directory, .harness/<segment>/features/<id>/scratch/, a fifth local working-file class beside notes/, runs/ and observations/: git-ignored by the same .gitignore and gitignore.snippet rule set, refused when tracked by the guard test, counted by GATE 2b and bash-write-guard''s native worktree-remove check, and removed by working_files.clean on every terminal path. Notes and receipts carry one summary per check - what ran, at which commit, the verdict and the counts - never the pasted output; a dev receipt still carries the verify command verbatim, which is all validate-digest.py checks. DEC-261''s clause that runs/ records and QA manifests stay as DEC-238, DEC-255 and DEC-257 set them becomes: they are local working files under DEC-262, never committed. Rejected - /tmp/featNNNN-* paths, which no cleanup owns and no worktree gate protects.'
+    because: 'Operator ruling 2026-11-28 (notes/answers-validate-c0-amend2.md (b)): DEC-261 landed on main while FEAT-2641 was in validate, and its pointer to DEC-238/DEC-257 contradicts DEC-262, which untracks runs/ and QA manifests; a scratch directory inside the feature lets the routine that already owns working-file cleanup own raw output too.'
+decisions_affected:
+- dec: DEC-257
+  disposition: strike
+  clause: is ordinary tracked
+  successor: D-01
+  reason: Run records become local working files, so the entry's ruling that every run file except ui is tracked is flatly contradicted (DEC-188).
+- dec: DEC-238
+  disposition: amend
+  clause: '**Abandon prunes.** `gh-sync.py abandon` removes `runs/` in the same act as recording the'
+  successor: D-05
+  reason: Abandon, set-feature-station when it writes rejected, skip-distill, merge-distill and clean all delete notes, runs and observations through one routine, and INV-51 retires.
+- dec: DEC-238
+  disposition: amend
+  clause: '**Ship keeps the record and drops the rest.**'
+  successor: D-01
+  reason: prune-run-evidence.py is deleted; ship keeps no run evidence because none is committed.
+- dec: DEC-44
+  disposition: amend
+  clause: write answers to `.harness/notes/answers-<runid>.md`, never only into a run dir.
+  successor: D-03
+  reason: Answers are written to the feature's notes/answers-<runid>.md, a named local working file, not retained after cleanup.
+- dec: DEC-130
+  disposition: amend
+  clause: '`.harness/notes/` remains for
+
+    genuinely project-scoped artifacts (cross-feature research, docs sweeps)'
+  successor: D-06
+  reason: .harness/notes/ also holds pre-feature intake notes a feature claims through project_notes, and all of it is local.
+- dec: DEC-131
+  disposition: amend
+  clause: '**INV-12** now warns on any run dir absent from `feature.json`'
+  successor: D-02
+  reason: INV-12 retires; an orphaned run directory is local disk no CI gate reads.
+- dec: DEC-154
+  disposition: amend
+  clause: 'check-state.py INV-16 now whitelists top-level state.yaml keys and rejects
+
+    duplicates.'
+  successor: D-02
+  reason: INV-16 retires; check-domain's write-time state.yaml whitelist (DEC-160) is the remaining mechanism.
+- dec: DEC-156
+  disposition: amend
+  clause: '**check-state.py INV-15:** every complete lead run needs a readable accepted digest'
+  successor: D-02
+  reason: INV-15 and INV-46 retire; validate-digest's yield-time append to the local digest.md stays.
+- dec: DEC-156
+  disposition: amend
+  clause: '**check-state.py INV-16 (mechanizes DEC-154):**'
+  successor: D-02
+  reason: INV-16 retires with the committed run checkpoints it read.
+- dec: DEC-157
+  disposition: amend
+  clause: 'INV-7 rejects impossible attribution above the total and invalid
+
+    present evidence'
+  successor: D-02
+  reason: INV-7 keeps the attribution arithmetic and no longer verifies cycle evidence files.
+- dec: DEC-159
+  disposition: amend
+  clause: '`check-state.py` INV-17 demands all five sections of every handoff note'
+  successor: D-02
+  reason: INV-17 retires; the write-time shape gate grades every handoff while it is written.
+- dec: DEC-159
+  disposition: amend
+  clause: '(2) **The seam is graded.** `check-state.py` INV-43:'
+  successor: D-02
+  reason: INV-43 retires; feature-record run-start's succession refusal grades the seam at runtime.
+- dec: DEC-160
+  disposition: amend
+  clause: '3. **INV-18: run dirs without feature.yaml.**'
+  successor: D-02
+  reason: INV-18 retires with the run directories it keyed on.
+- dec: DEC-160
+  disposition: amend
+  clause: The whitelist is deliberately duplicated in check-state.py (INV-16) and
+  successor: D-02
+  reason: With INV-16 retired the whitelist lives only in check-domain.py.
+- dec: DEC-203
+  disposition: amend
+  clause: record `abandoned` before pruning `runs/` under INV-51 and DEC-238.
+  successor: D-05
+  reason: Abandon records the station, then the shared routine deletes notes, runs, observations and claimed project notes; INV-51 retires.
+- dec: DEC-208
+  disposition: amend
+  clause: keeps the INV-15 pointer
+  successor: D-02
+  reason: INV-15 retires, so the pointer the fail-open branch kept names nothing.
+- dec: DEC-215
+  disposition: amend
+  clause: 'INV-17 demands all
+
+    five sections, `## Done when` included, of every existing handoff note'
+  successor: D-02
+  reason: INV-17 retires; the shared parser runs at write time only.
+- dec: DEC-230
+  disposition: amend
+  clause: a handoff with runs after it and no `succession` entry
+  successor: D-02
+  reason: INV-40 drops clause (c); run-start refuses a successor run without its succession at runtime.
+- dec: DEC-230
+  disposition: amend
+  clause: INV-40's four triggers are the ones that leave a trace in `feature.json`
+  successor: D-02
+  reason: INV-40 keeps three triggers once the handoff clause retires.
+- dec: DEC-237
+  disposition: amend
+  clause: INV-15/INV-46 distinguish
+  successor: D-02
+  reason: INV-15 and INV-46 retire; the refusal provenance stays in feature.json.
+- dec: DEC-252
+  disposition: amend
+  clause: INV-17 demanded `notes/handoff-validate.md` only at `done`, so
+  successor: D-07
+  reason: No note is demanded anywhere; ship's precondition reads the validate PASS from feature.json.
+- dec: DEC-252
+  disposition: amend
+  clause: keep their checks (INV-44, INV-51)
+  successor: D-02
+  reason: INV-51 retires; rejected keeps INV-44.
+- dec: DEC-253
+  disposition: amend
+  clause: '`notes/expertise-receipt-<sha256-runtime-id>.json`, committed in this PR.'
+  successor: D-04
+  reason: Receipts are local working files, never committed, deleted by the post-merge cleanup.
+- dec: DEC-253
+  disposition: amend
+  clause: reconstruction with original receipts before merge. Only this PR's receipts participate.
+  successor: D-04
+  reason: The distill PR commits the reconstructed Expertise and feature.json's closed distill ledger, never a receipt; the replay reads this feature's local receipts.
+- dec: DEC-255
+  disposition: amend
+  clause: '**Receipts are committed with the run record.**'
+  successor: D-01
+  reason: QA runner receipts stay in the local run record and are read at yield; nothing commits them.
+- dec: DEC-46
+  disposition: amend
+  clause: all runs for a feature commit to `harness/<slug>`
+  successor: D-04
+  reason: Run ids are registered in the committed feature.json; run directories are local working files.
+- dec: DEC-46
+  disposition: amend
+  clause: '`ls features/<feat>/runs/` is the feature''s full history, which grows.'
+  successor: D-01
+  reason: runs/ is local and removed at cleanup; feature.json runs is the committed history.
+- dec: DEC-131
+  disposition: amend
+  clause: INV-12 catches the orphaned work
+  successor: D-02
+  reason: INV-12 retires; an orphaned run directory is local disk no gate reads.
+- dec: DEC-150
+  disposition: amend
+  clause: runs/ and notes/ are archives read by
+  successor: D-01
+  reason: runs/ and notes/ are local working files, not archives; they are removed at cleanup.
+- dec: DEC-156
+  disposition: amend
+  clause: INV-16's whitelist will need a new key added
+  successor: D-02
+  reason: INV-16 retires; check-domain's write-time whitelist carries that cost.
+- dec: DEC-156
+  disposition: amend
+  clause: the per-member roll-up INV-15 validates.
+  successor: D-02
+  reason: INV-15 retires; the members roll-up is validated at yield.
+- dec: DEC-159
+  disposition: amend
+  clause: INV-17 checks the fifth section's shape and pointer grammar
+  successor: D-02
+  reason: INV-17 retires; only the write-time gate grades the handoff.
+- dec: DEC-159
+  disposition: amend
+  clause: harness.json `seam_era_start`
+  successor: D-02
+  reason: INV-43 retires, so seam_era_start bounds nothing; the key stays declared and unread (D-09).
+- dec: DEC-191
+  disposition: amend
+  clause: INV-15/INV-46 accept it as grandfathered data
+  successor: D-02
+  reason: INV-15 and INV-46 retire; run-end and close-run are the remaining readers of the frozen marker.
+- dec: DEC-215
+  disposition: amend
+  clause: persisted-corpus INV-17 pass calls the same implementation
+  successor: D-02
+  reason: INV-17 retires; the parser runs at write time only.
+- dec: DEC-215
+  disposition: amend
+  clause: is the single parser and resolver used by both
+  successor: D-02
+  reason: With INV-17 retired the parser serves one gate, the write gate.
+- dec: DEC-238
+  disposition: amend
+  clause: ship keeps the passing validate runs, abandon keeps nothing
+  successor: D-05
+  reason: Ship keeps no run evidence and leaves the local working files for distill; abandon, the rejected write, merge-distill, skip-distill and clean remove them through one routine.
+- dec: DEC-238
+  disposition: amend
+  clause: A feature's `runs/<id>/` is evidence for one reader
+  successor: D-01
+  reason: runs/ is a local working file read during the feature and by distill, never at a shipped pin.
+- dec: DEC-238
+  disposition: amend
+  clause: '**INV-51** (`abandoned-evidence`)'
+  successor: D-02
+  reason: INV-51 retires with the committed run directories it graded.
+- dec: DEC-252
+  disposition: amend
+  clause: '`prune-run-evidence.py` deletes run digests at ship (DEC-238)'
+  successor: D-01
+  reason: prune-run-evidence.py is deleted; the sentence is history, stated in the past tense.
+- dec: DEC-253
+  disposition: amend
+  clause: historical receipts remain immutable in the current PR.
+  successor: D-04
+  reason: Receipts are never in a PR; historical receipts stay immutable in the feature's local notes/.
+- dec: DEC-255
+  disposition: amend
+  clause: so main force-adds each
+  successor: D-01
+  reason: Nothing force-adds a QA receipt; it stays in the local run record.
+- dec: DEC-255
+  disposition: amend
+  clause: If main omits the force-add, an
+  successor: D-01
+  reason: No force-add exists; an accepted PASS is checked at yield against the local receipt.
+- dec: DEC-230
+  disposition: amend
+  clause: '`rejected` last on the numeric-successor path.'
+  successor: D-05
+  reason: Reject records rejected through plan-merge.py set-feature-station, on the numeric-successor path and when the caller of none writes it, and that write removes the working files once it has succeeded.
+- dec: DEC-230
+  disposition: amend
+  clause: The seven kinds are exhaustive
+  successor: D-11
+  reason: An eighth kind, distill with decision declined, records a declined distill, written by gh-sync.py skip-distill.
+- dec: DEC-174
+  disposition: keep
+  clause: Planning such a change through the harness remains fine and useful;
+  successor: none
+  reason: Every task is main-session-direct; the harness plans but never executes changes to its own gates.
+- dec: DEC-75
+  disposition: keep
+  clause: bundled with PLAN approval as one signature
+  successor: none
+  reason: The prototype becomes a local working file; its approval stays recorded by the plan signature.
+- dec: DEC-226
+  disposition: keep
+  clause: --rework rounds=N,minutes=M --decision <path>` writes
+  successor: none
+  reason: The ruling path stays write-time provenance; feature.json rework remains the committed record (D-03).
+- dec: DEC-231
+  disposition: keep
+  clause: A handoff's `## Done when` cites at least one
+  successor: none
+  reason: check-domain still enforces the brief-perspective authority at write time.
+- dec: DEC-112
+  disposition: keep
+  clause: '`.gitignore` is still merged by `merge-gitignore.py`, never hand-edited'
+  successor: none
+  reason: merge-gitignore.py ships the four new rules and removes the superseded run rules.
+- dec: DEC-145
+  disposition: keep
+  clause: never injected, so detail is free
+  successor: none
+  reason: Observation logs keep their role and writer; only their committed copy goes.
+- dec: DEC-74
+  disposition: keep
+  clause: produces a step in
+  successor: none
+  reason: The UAT file still gates the briefing; it is a local working file.
+- dec: DEC-191
+  disposition: keep
+  clause: admits only schema-declared keys
+  successor: none
+  reason: project_notes is added through the feature.json schema.
+- dec: DEC-256
+  disposition: keep
+  clause: (Draft 2020-12) is the sole
+  successor: none
+  reason: seam_era_start stays declared so no onboarded harness.json fails the closed schema (D-09).
+- dec: DEC-188
+  disposition: keep
+  clause: struck from the record
+  successor: none
+  reason: DEC-257 is flatly contradicted and struck; softer changes are amended.
+- dec: DEC-205
+  disposition: keep
+  clause: An entry states current truth directly.
+  successor: none
+  reason: Every amendment rewrites its clause in place; no amendment notes.
+- dec: DEC-261
+  disposition: amend
+  clause: '`runs/` records and QA
+
+    manifests stay as DEC-238, DEC-255 and DEC-257 set them.'
+  successor: D-13
+  reason: Run records and QA manifests are local working files under DEC-262 (D-01), so the pointer to DEC-238 and the struck DEC-257 no longer states current truth.
+- dec: DEC-261
+  disposition: amend
+  clause: 'It is written outside the
+
+    repository and deleted once the check that reads it has run'
+  successor: D-13
+  reason: Raw verification output goes to the feature's git-ignored scratch/, removed by the working-file cleanup (operator ruling (b)3).
+
+tasks:
+  - id: T-01
+    title: Ignore the four working-file classes, untrack the tracked ones, and guard the index
+    traces: [SC-01, SC-02, SC-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - merge-gitignore.py and the ignore contract are Harness enforcement surfaces, and .gitignore resolves to NOBODY (DEC-179).
+    depends_on: []
+    status: done
+    files:
+      - .gitignore
+      - .claude/skills/harness/templates/gitignore.snippet
+      - .claude/skills/harness/bin/merge-gitignore.py
+      - tests/integration/test-merge-gitignore.py
+      - tests/unit/test-working-files-untracked.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-working-files-untracked.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-merge-gitignore.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/merge-gitignore.py . --check
+      test -z "$(git ls-files -- '.harness/*/features/*/notes/*' '.harness/*/features/*/runs/*' '.harness/*/features/*/observations/*' '.harness/notes/*')"
+      for p in .harness/kaya/features/FEAT-0-probe/notes/prototypes/FEAT-0-probe/shot.png .harness/harness/features/FEAT-0-probe/notes/mockups/shot.png .harness/harness/features/FEAT-0-probe/runs/r/digest.md .harness/harness/features/FEAT-0-probe/observations/a.md .harness/notes/probe.md; do git check-ignore -q --no-index "$p"; done
+      if git check-ignore -q --no-index .harness/harness/features/FEAT-0-probe/plan.yaml; then exit 1; fi
+      git merge-base --is-ancestor e2bffca0 HEAD
+      git cat-file -e e2bffca0:.harness/harness/features/FEAT-2581-feature-record-package/notes/answers-2026-11-27-signature.md
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0. Every relative path is relative to it and every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist in this checkout (docs/ holds PRINCIPLES.md only as prose); the governing record is .harness/harness/docs/DECISIONS.md - read DEC-112, DEC-238 and DEC-257 and this plan's D-01 and D-09 first. Run Python as env -u HARNESS_AGENT_TYPE python3.
+
+      1. templates/gitignore.snippet. Inside the existing --- harness --- block, delete the rule .harness/*/features/*/runs/*/ui/** and the comment lines above it that call run records retained, committed evidence, and the sentence listing notes among the committed record. In their place write one comment stating that each feature's notes/ (prototypes, mockups and screenshots included), runs/ and observations/, and project notes under .harness/notes/, are local working files kept only for distill and expertise and never committed (DEC-260), then exactly these four rules, one per line, in this order:
+      .harness/*/features/*/notes/
+      .harness/*/features/*/runs/
+      .harness/*/features/*/observations/
+      .harness/notes/
+      Keep every other line of the block (.harness/**/*.lock, .harness/.pyyaml-bootstrap, __pycache__/, *.pyc, .claude/worktrees/, .DS_Store and their comments) byte-identical.
+
+      2. bin/merge-gitignore.py. OBSOLETE_RULES becomes the three run rules Harness once shipped: b".harness/features/*/runs/**", b".harness/*/features/*/runs/**", b".harness/*/features/*/runs/*/ui/**". HEADER keeps its first line and replaces the three rationale lines with: "# A feature's notes/, runs/ and observations/ and .harness/notes/ are local working\n# files, never committed (DEC-260). Everything else under .harness/ is committed on\n# purpose - it is the record of what shipped.\n". OBSOLETE_RATIONALE gains the three rationale lines of the previous HEADER, byte for byte as they read at e2bffca0, so a block an older version wrote loses them (removed only inside a Harness block, as today). _report_obsolete's parenthetical becomes "(superseded by the working-file rules, DEC-260)" and _report_removed says "removed superseded run rules". Rewrite the module docstring's OBSOLETE RULES paragraph to say the three run rules are replaced by the snippet's four working-file directory rules. Behaviour otherwise unchanged: obsolete removal first, then missing rules appended in one marker block, --check exits 1 naming every obsolete and missing rule and writes nothing, exit 0 when complete.
+
+      3. Repository .gitignore. Run env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/merge-gitignore.py . at the worktree root; it removes the run-UI rule and appends the four rules in a marker block. Then delete by hand the four comment lines that stood above the removed rule (they begin "# Harness run UI: screenshots and traces" and claim every other run record is retained, committed evidence), because they sit outside a marker block and are now false. Leave every other line as it is.
+
+      4. tests/integration/test-merge-gitignore.py. Replace the cases that treat the run-UI rule as canonical: (a) a target holding each of the three obsolete rules, inside and outside a Harness block, is rewritten without them and gains the four rules; (b) --check on that target exits 1, names the three as obsolete and the four as missing, and leaves the bytes unchanged; (c) a block written with the previous HEADER loses its three rationale lines and keeps project lines; (d) the existing byte-preservation cases (order, CRLF, unrelated rules and prose) keep passing. Never weaken an existing assertion that still holds.
+
+      5. Create tests/unit/test-working-files-untracked.py, a plain script in the style of the other tests/unit scripts: one "ok <name>" or "FAIL <name>: <detail>" line per assertion, exit 1 when any FAIL printed. Repository root is Path(__file__).resolve().parents[2]. Assertions: (i) git -C <root> ls-files -z exits 0 and lists at least one entry matching ^\.harness/[^/]+/features/[^/]+/feature\.json$ (non-vacuity); (ii) no entry matches ^\.harness/[^/]+/features/[^/]+/(notes|runs|observations)/ or ^\.harness/notes/ - on failure print the count, the first ten paths and the repair command: git rm -r --cached --sparse --ignore-unmatch -- followed by the four pathspecs ':(glob).harness/*/features/*/notes/**' ':(glob).harness/*/features/*/runs/**' ':(glob).harness/*/features/*/observations/**' ':(glob).harness/notes/**'; (iii) git check-ignore -q --no-index exits 0 for .harness/kaya/features/FEAT-0-probe/notes/prototypes/FEAT-0-probe/shot.png, .harness/harness/features/FEAT-0-probe/notes/mockups/shot.png, .harness/harness/features/FEAT-0-probe/runs/r/digest.md, .harness/harness/features/FEAT-0-probe/observations/a.md and .harness/notes/probe.md; (iv) it exits 1 for .harness/harness/features/FEAT-0-probe/plan.yaml, feature.json, BRIEF.md and STATE.md (positive control, DEC-169). The fixture ids carry no asserted token.
+
+      6. Untrack. From the worktree root run git rm -r --cached --sparse --ignore-unmatch --quiet with the four pathspecs from step 5. Files on disk stay; history is not rewritten. Commit this index change as its own commit, separate from steps 1-5, so the deletion of the 2,750 tracked working files (1,954 notes, 750 runs, 46 observations at e2bffca0) is reviewable alone. Never use git add -f anywhere in this feature.
+
+      Expected red before the work: at e2bffca0 test-working-files-untracked.py fails assertion (ii) with 2,750 paths and assertion (iii); keep that output for qa.
+
+      Witness timing: tests/integration/test-merge-gate.py case_bug2399_distill_records_commit_before_merge and tests/integration/test-feature-worktree.py case_remove_refuses_aborted_run_evidence copy the repository .gitignore, so this task's rules turn them red; T-06 and T-03 replace them and T-09 re-runs both. Do not edit them here. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+  - id: T-02
+    title: Retire the check-state rows that read notes, runs or handoffs, and keep INV-7's arithmetic
+    traces: [SC-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - check-state.py is a CI gate and its tests grade it; the change is executed directly, never through the gate it changes.
+    depends_on: []
+    status: done
+    files:
+    - .claude/skills/harness/bin/check-state.py
+    - .claude/skills/harness/bin/check_state/*.py
+    - tests/integration/test-check-state-*.py
+    - tests/integration/test-checker-structure-locks.py
+    - tests/integration/test-corpus-non-regression.py
+    - tests/unit/test-handoff-policy.py
+    - tests/unit/test-artifact-accessors.py
+    - path: tests/unit/test-check-state-retired.py
+      create: true
+    - tests/integration/test-check-state.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      for f in tests/unit/test-check-state-retired.py tests/integration/test-check-state-local-files.py tests/integration/test-check-state-feat59.py tests/integration/test-check-state-table.py tests/integration/test-check-state-records.py tests/integration/test-check-state-entry.py tests/integration/test-checker-structure-locks.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
+      for f in .claude/skills/harness/bin/check_state/seams.py .claude/skills/harness/bin/check_state/run_state.py tests/integration/test-check-state-handoff.py tests/integration/test-check-state-inv51.py; do test ! -e "$f"; done
+      if grep -nE 'notes/|"notes"|runs/|"runs", *"\*"' .claude/skills/harness/bin/check_state/table.py; then exit 1; fi
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-156, DEC-157, DEC-159, DEC-205, DEC-230, DEC-252 and this plan's D-02 and D-09. Run Python as env -u HARNESS_AGENT_TYPE python3.
+
+      Retire eleven rows. In check_state/table.py remove the Inv rows INV-8, INV-12, INV-15, INV-16, INV-17, INV-18, INV-36, INV-43, INV-46, INV-47 and INV-51, remove groups left empty (seams, runs-without-record, run-state, abandoned-evidence), remove their imports and the _RUN_STATE and _HANDOFF constants once unused, and add each number to RETIRED with the value "DEC-260 - <what it read> is a local working file no CI gate reads" naming its artifact (handoff notes for INV-17 and INV-43, member review notes for INV-47, run directories for INV-8, INV-12, INV-18 and INV-51, run checkpoints for INV-16 and INV-36, run digests for INV-15 and INV-46). Numbers are never reused (DEC-205).
+
+      Delete check_state/seams.py and check_state/run_state.py whole. In check_state/feature_record.py delete inv_8, inv_12, inv_18, inv_43 with its helpers (_feat59_note_seq, _feat59_succession_entries, _feat59_successions, _inv43_run, _inv43_placement) and inv_47 with its helpers (_note_cycle, _note_verdict, _inv47_member_notes, _passed_validate_cycle, _passed_validate_cycles, _inv47_hit) and their comment blocks. In inv_40 delete clause (c): _inv40_handoff_need, _inv40_successions and their call; clauses (a) mission, (b) regate and (d) amendment stay byte-for-byte in behaviour; INV-40's reads tuple drops _HANDOFF and its contract keeps naming mission, regate and amendment only. collate_feat59 keeps its legacy-note behaviour for INV-39 and INV-40 hits and drops INV-43 and INV-47 handling. In check_state/plan.py delete inv_51 and its comment.
+
+      INV-7: in inv_7 delete the feature_record.evidence load and the run_evidence_problems loop and the "historical cycle attribution without evidence" note; keep the nonnegative-integer total check, the per-run attribution type check, the unknown-attribution note and the attributed-exceeds-total violation. Its reads tuple becomes (_FEATURE_JSON,) and its contract "nonnegative per-run cycle attribution never exceeds the feature total; unknown history is noted".
+
+      check_state/ctx.py: delete the station-to-handoff-note mapping and its comments, the runs/*/state.yaml iterator, and the seam_era_start attribute (D-09 keeps the harness.json key, unread); delete any other ctx member left without a caller. check-state.py: delete the handoff_policy import and anything else left unused. bin/handoff_policy.py stays (dispatch-guard and gh-sync use it).
+
+      Tests. Delete tests/integration/test-check-state-handoff.py and tests/integration/test-check-state-inv51.py. In test-check-state-feat59.py delete the INV-40 succession groups, the INV-43 groups and the INV-47 groups; every INV-39 and INV-40 mission, regate and amendment group stays unchanged. In the other listed test files delete or update only assertions that name a retired row, its function, its reads or its message; never weaken an assertion about a surviving row. Create tests/unit/test-check-state-retired.py (plain script, ok/FAIL lines, exit 1 on FAIL): imports check_state.table from the bin directory and asserts per number that each of the eleven is a RETIRED key and names no INVARIANTS row, that INV-7 and INV-40 are still rows, and that no row's reads names notes/, runs/ or handoff paths. Create tests/integration/test-check-state-local-files.py, reusing the fixture helper the existing check-state integration tests use: one feature at station review with a signed BRIEF, an approved plan.yaml and a feature.json recording an eng run and a validator-squad validate run at PASS, cycles_used 0 and a pinned review_sha, and no notes/, runs/ or observations/ directory; check-state.py --feature <it> exits 0 with no line starting VIOLATION; check-state.py --list shows each of the eleven numbers as retired; positive control - the same fixture with cycles_used -1 prints an INV-7 VIOLATION for that feature.
+
+      Expected red before the work: at e2bffca0 the fixture prints INV-17 and INV-15 VIOLATION lines (no handoff notes, no digests), and test-check-state-retired.py fails; keep that output for qa. tests/integration/canonical-reader-classification.json and integration-durations.json are T-09's, not this task's.
+
+      Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook. Until this task lands, check-state on the untracked tree prints the retired rows' violations; that intermediate state is never pushed.
+  - id: T-03
+    title: Add the working-file routine, the clean verb, and the worktree-removal gate
+    traces:
+    - SC-06
+    - SC-08
+    - SC-09
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - feature-worktree.py remove is a refusing gate the post-merge hook calls; the routine is shared by gh-sync and merge-gate.
+    depends_on:
+    - T-01
+    status: done
+    files:
+      - {path: .claude/skills/harness/bin/working_files.py, create: true}
+      - .claude/skills/harness/bin/feature-worktree.py
+      - tests/integration/test-feature-worktree.py
+      - {path: tests/unit/test-working-files.py, create: true}
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-working-files.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-feature-worktree.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/feature-worktree.py clean --help
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-193, DEC-238, DEC-252, DEC-257 and this plan's D-05, D-06, D-08 and D-10. Run Python as env -u HARNESS_AGENT_TYPE python3. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+
+      1. Create bin/working_files.py, the one owner of a feature's local working files and of the project-note path contract (D-05). Contents:
+      WORKING_DIRS = ("notes", "runs", "observations").
+      class WorkingFilesError(Exception).
+      PROJECT_NOTE_RE = re.compile(r"^\.harness/notes/(?!\.\.?$)[^/]+$").
+      validate_project_note(value): returns value when it is a str matching PROJECT_NOTE_RE, else raises WorkingFilesError("project note must be .harness/notes/<name>, got <repr of value>"). It is the one Python validator of the contract: feature-record.py project-note imports it (T-04) and schemas/feature.json carries the same pattern, which T-04's test asserts equal to PROJECT_NOTE_RE.pattern.
+      feature_directory(root, feature): the one directory .harness/<segment>/features/<feature> under realpath(root), segment being any directory under .harness/; exactly one existing, non-symlinked match or WorkingFilesError naming the count (the rule expertise-merge.py feature_directory applies today; T-06 makes that one call this).
+      project_notes(feature_dir): the feature.json project_notes list read with feature_record.read.load_feature_json; absent key or absent feature.json gives []; every entry passes through validate_project_note.
+      targets(feature_dir, owner_root): absolute paths in this order, only those for which os.path.lexists is true - feature_dir/notes, feature_dir/runs, feature_dir/observations, then owner_root joined with each project note in list order.
+      clean(feature_dir, owner_root, dry_run=False, emit=print): first, before removing anything, when project_notes is non-empty: parent = owner_root/.harness/notes; raise WorkingFilesError naming it when os.path.islink(parent) or os.path.realpath(parent) differs from os.path.join(os.path.realpath(owner_root), ".harness", "notes"); raise WorkingFilesError naming any listed project note that is a directory and not a symlink. Then, for each target, emit "would remove <path>" or "removed <path>": notes/, runs/ and observations/ are os.unlink-ed when a symlink (never followed) and shutil.rmtree-d otherwise; a project note is only ever os.unlink-ed (a file or a symlink). Returns the list of removed paths; an OSError propagates after earlier removals, each already emitted. targets and clean accept owner_root None when project_notes is empty and never read it then (plan-merge.py set-feature-station passes None for a feature that claims no project note, T-10).
+      untracked(checkout, feature_rel): the paths git -C checkout ls-files -z --others -- <feature_rel>/notes <feature_rel>/runs <feature_rel>/observations prints (no --exclude-standard, so ignored files are included; tracked files are not); a failed git raises WorkingFilesError.
+      clean_argv(feature_dir): the list ["clean", "--repo", <repo>, "--id", <feature>, "--yes"], feature being the directory's basename and repo worktree_terminal.repo_arg_for_segment(<segment>) for the segment in .harness/<segment>/features/<feature>, or the segment itself when that returns None. retry_command(feature_dir): the string "python3 .claude/skills/harness/bin/feature-worktree.py " followed by clean_argv(feature_dir) joined by single spaces. Every caller that tells the operator to clean prints retry_command: GATE 2b here, gh-sync.py abandon, reject and skip-distill (T-05), plan-merge.py set-feature-station (T-10), merge-gate.py merge-distill (T-06); gh-sync.py skip-distill runs feature-worktree.py with clean_argv.
+
+      2. bin/feature-worktree.py.
+      (a) remove: after GATE 2 and before GATE 3, for the worktree that holds artifacts (segment is not None) add GATE 2b: resolve the feature directory as GATE 3 does (_artifact_id) and call working_files.untracked(dest, artifact_rel). When non-empty, print one line per working directory holding any of those paths, "WOULD DISCARD WORKING FILES <artifact_rel>/<dir>/ (<n> files)", never one line per file (the post-merge sweep reprints this output for every shipped feature awaiting distill), then "working files remain for <id>: distill it (merge-gate.py merge-distill removes them after merging), decline the distill with gh-sync.py skip-distill, which removes them after recording the decline, or retry a failed cleanup with <retry_command>", and exit 4. No worktree is removed when any gate of any worktree refuses (cmd_remove's existing order). Tracked files never trigger GATE 2b; GATE 3 still grades them.
+      (b) new subcommand clean --repo <repo> --id <id> [--yes]; --id takes the short worktree id (FEAT-72) or the full feature id (FEAT-72-a-slugged-name). Resolve both copies at the worktree seam, never from the --id spelling alone, using the targets(args.repo) entry whose artifact segment is not None. Owner: owner = feature_corpus.owner_root(<that entry's owner_root>), so a clean run through a linked worktree's bin, or with HARNESS_PROJECT_DIR naming a linked worktree, still reaches the owner checkout; never call harness_boundary.resolve_root directly; a feature_corpus.CorpusError prints "REFUSED clean: <message>" and exits 7. Owner copy: owner/.harness/<segment>/features/<the _artifact_id of args.id in that features directory>. Worktree copy: among _linked_worktree_paths(owner), take the worktrees whose parent is realpath(owner/.claude/worktrees/<worktree segment>) and whose basename W equals args.id, or is args.id followed by "-" and more, or followed by "-" and more is args.id (so a worktree FEAT-72 holding FEAT-72-a-slugged-name matches either spelling, and so does the reverse); keep those holding the directory .harness/<segment>/features/<the _artifact_id of args.id in that worktree's features directory>. Exactly one gives the worktree copy; none means there is no worktree copy; two or more print "REFUSED clean: <id> is held by <n> linked worktrees: <paths>; nothing was removed" and exit 5. Deletion copy: the worktree copy when one exists, else the owner copy. The terminal record is resolved separately from the deletion copy: read check_state.ctx.lenient_station (DEC-252's one-line reader; import it, never re-implement) on the owner copy - the landed record, which gh-sync.py ship writes and which ship refuses to write in a worktree - and on the worktree copy, each only when that directory exists. Proceed when either reads done, abandoned or rejected: a shipped feature's owner copy reads done while its retained worktree copy still reads review, and abandon or reject records its station in the worktree before anything lands. When neither does, print "REFUSED clean: <id> is at no terminal station (landed record: <station or absent>; worktree record: <station or absent>); working files are cleaned only at a terminal station" and exit 7, removing nothing. Owner root for project notes: owner. Without --yes print each target as "WOULD REMOVE <path>" and "re-run with --yes to remove them" and exit 0. With --yes run working_files.clean and print "REMOVED <path>" per path; a WorkingFilesError prints "REFUSED clean: <message>" and exits 7 with nothing removed; an OSError prints the error and what was already removed and exits 1. No targets prints "nothing to clean for <id>" and exits 0. Add clean to the module docstring's subcommand list.
+
+      3. tests/integration/test-feature-worktree.py. T-01 changed the repository .gitignore that case_remove_refuses_aborted_run_evidence copies, so its GATE 2 expectation no longer holds: replace it in place with the same aborted-run fixture asserting GATE 2b - remove exits 4, prints "WOULD DISCARD WORKING FILES .harness/<segment>/features/FEAT-75/runs/ (2 files)" and the clean command, and the worktree and both records survive byte-identical. Keep every other existing case. New cases, on a fixture whose worktree .gitignore carries the four rules .harness/*/features/*/notes/, runs/, observations/ and .harness/notes/, written and committed before any working file is created or anything else is staged: remove refuses with exit 4 when ignored notes/x.md, runs/r/digest.md and observations/a.md exist, naming the three directories with "(1 files)" and printing no line for an individual file, and leaves the worktree; a committed notes file alone does not trigger GATE 2b; remove succeeds after clean --yes; clean exits 7 and removes nothing when both copies read building, and when the owner copy is absent and the worktree copy reads plan (a rejected intake whose station is not yet recorded); clean --yes succeeds with the owner copy at done and the worktree copy at review, with the owner copy at building and the worktree copy at abandoned, and with the worktree copy at rejected; clean without --yes lists and removes nothing; clean --yes at done removes the three directories and a project note listed in feature.json project_notes under the owner's .harness/notes/, and leaves an unlisted note there; clean --yes exits 7, removing nothing, when a listed project note is a directory holding an unlisted file. Short-id and root resolution, through the CLI: a linked worktree created with --id FEAT-72 holds .harness/<segment>/features/FEAT-72-a-slugged-name with ignored notes/x.md, runs/r/digest.md and observations/a.md, while the owner copy is committed reading done and the worktree copy reads review: clean --id FEAT-72-a-slugged-name --yes, and on a fresh fixture clean --id FEAT-72 --yes, each exit 0 and remove the worktree's three directories; a run with HARNESS_PROJECT_DIR naming the linked worktree removes the same; with a second linked worktree named FEAT-72-a-slugged-name also holding the directory, clean exits 5 and removes nothing; after clean, remove --id FEAT-72 succeeds.
+
+      4. Create tests/unit/test-working-files.py (plain script, ok/FAIL lines, exit 1 on FAIL): validate_project_note and project_notes reject "/abs.md", ".harness/notes/../x.md", ".harness/notes/a/b.md", "notes/x.md", ".harness/notes/.." and a non-string, and accept ".harness/notes/grilling-x-2026-01-01.md"; targets order and lexists filtering; dry_run removes nothing; a notes symlink pointing at a directory outside the feature is unlinked and that directory's file survives; a listed project note that is a symlink is unlinked and its target file survives; a listed project note that is a directory raises WorkingFilesError and nothing is removed, notes/ included; an owner .harness/notes that is a symlink to an outside directory raises WorkingFilesError and nothing is removed; feature_directory with zero or two matches raises; clean_argv for .harness/harness/features/FEAT-0-probe returns ["clean", "--repo", "harness", "--id", "FEAT-0-probe", "--yes"] and retry_command returns the feature-worktree.py clean command with those arguments; targets and clean with owner_root None on a feature claiming no project note remove notes/, runs/ and observations/.
+
+      Expected red before the work: clean --help exits 2 (unknown subcommand) and the new cases fail at e2bffca0. Do not touch tests/integration/test-post-merge-sweep.py or test-hooks-install.py; T-05 owns them.
+  - id: T-04
+    title: Record owned project notes in feature.json and delete the dead evidence readers
+    traces:
+    - SC-11
+    - SC-13
+    - SC-18
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - feature-record.py and the feature.json schema are enforcement surfaces the gates import; the schema path resolves to NOBODY (DEC-179).
+    depends_on:
+    - T-02
+    - T-03
+    status: done
+    files:
+    - .claude/skills/harness/bin/feature-record.py
+    - .claude/skills/harness/bin/feature_record/budget.py
+    - .claude/skills/harness/bin/feature_record/evidence.py
+    - .claude/skills/harness/bin/feature_record/judgements.py
+    - .claude/skills/harness/schemas/feature.json
+    - tests/unit/test-feature-record.py
+    - tests/integration/test-validate-feature-json.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-feature-record.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-validate-feature-json.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/feature-record.py project-note --help
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/feature-record.py judgement --help | grep -q distill
+      if grep -rn "run_evidence_problems" .claude/skills/harness/bin tests; then exit 1; fi
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-150, DEC-191, DEC-259 and this plan's D-03, D-05, D-06 and D-11. Run Python as env -u HARNESS_AGENT_TYPE python3.
+
+      1. schemas/feature.json: add top-level property project_notes - type array, uniqueItems true, items type string with pattern ^\.harness/notes/(?!\.\.?$)[^/]+$ - with a description saying these are the .harness/notes/ paths this feature claims, written only by feature-record.py project-note, and that the working-file cleanup deletes only these (DEC-260). additionalProperties stays false.
+      2. feature_record/budget.py: add cmd_project_note(args). It validates --path with working_files.validate_project_note, imported from bin/working_files.py (T-03), the one Python validator of the contract - never a second regex; a WorkingFilesError prints "project-note: <its message>" to stderr and exits 2 without touching the file. Otherwise it writes through the same locked, schema-checked write path set-mission uses, appending the path to project_notes (creating the list) only when absent, and prints "ADDED project_notes <path>" or "PRESENT project_notes <path>"; a repeat call leaves the file bytes unchanged. Extend the module docstring's verb list.
+      3. feature-record.py: register subcommand project-note (help "record a .harness/notes/ path this feature owns") with the shared --file option and --path (required), set_defaults(func=cmd_project_note) imported from feature_record.budget; the entry stays a thin parser per DEC-259.
+      4. feature_record/evidence.py: delete run_evidence_problems, _check_cycle_evidence, _check_refusal and _verify_lead_cycle_evidence, which T-02 left without a caller, plus any helper left with no caller in bin/ or tests/; keep resolve_evidence_ref, verify_evidence_ref, verify_historical_cycle_count and verify_run_digest_owner, which feature_record/runs.py calls at write time (D-03 keeps those checks).
+      5. tests/unit/test-feature-record.py: add project-note cases - adds the path; a second call leaves the bytes identical and prints PRESENT; each of "/abs.md", ".harness/notes/../x.md", ".harness/notes/a/b.md", "notes/x.md" and ".harness/notes/.." exits 2 with the file bytes unchanged. Add one case asserting the schema's project_notes items pattern equals working_files.PROJECT_NOTE_RE.pattern, so the schema and the Python validator cannot drift. Delete only cases that exercise the deleted functions. The methods test_run_start_after_a_handoff_owes_a_succession_and_refuses_without_one and test_run_start_with_succession_reason_lands_run_and_judgement_in_one_write stay byte-identical (SC-13).
+      6. tests/integration/test-validate-feature-json.py: a record carrying project_notes [".harness/notes/grilling-x-2026-01-01.md"] validates; one carrying "notes/x.md" is refused naming project_notes.
+
+      7. Judgement kind distill (D-11). feature_record/judgements.py: JUDGEMENT_KINDS gains "distill" as its eighth member, after "reject". schemas/feature.json: the judgements items kind enum gains "distill", and its description adds that distill records a declined distill, decision declined, written by gh-sync.py skip-distill. tests/unit/test-feature-record.py: judgement --kind distill --decision declined --by operator --reason "r" appends exactly that entry. tests/integration/test-validate-feature-json.py: a record carrying that judgement validates, and one with kind "distilled" is refused.
+
+      Expected red before the work: project-note --help exits 2 at e2bffca0, judgement --kind distill exits 2, and the new cases fail; keep that output for qa.
+
+      Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+  - id: T-05
+    title: Make ship read the ledger, make abandon clean, rely on set-feature-station for reject, add skip-distill, and delete prune-run-evidence
+    traces:
+    - SC-05
+    - SC-06
+    - SC-09
+    - SC-14
+    - SC-17
+    - SC-18
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - gh-sync.py ship, abandon and reject are refusing gates over irreversible GitHub writes, and prune-run-evidence.py is a ship gate; their tests and the ship door change with them.
+    depends_on:
+    - T-03
+    - T-04
+    - T-10
+    status: done
+    files:
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/prune-run-evidence.py
+    - tests/unit/test-prune-run-evidence.py
+    - tests/unit/test-gh-sync-abandon-sources.py
+    - tests/integration/gh_sync_support.py
+    - tests/integration/test-gh-sync-ship.py
+    - tests/integration/test-gh-sync-abandon.py
+    - path: tests/integration/test-gh-sync-skip-distill.py
+      create: true
+    - tests/integration/test-post-merge-sweep.py
+    - tests/integration/test-hooks-install.py
+    - .omp/commands/harness-ship.md
+    - tests/integration/test-gh-sync-record.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      for f in tests/unit/test-gh-sync-abandon-sources.py tests/integration/test-gh-sync-ship.py tests/integration/test-gh-sync-abandon.py tests/integration/test-gh-sync-skip-distill.py tests/integration/test-post-merge-sweep.py tests/integration/test-hooks-install.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
+      test ! -e .claude/skills/harness/bin/prune-run-evidence.py
+      test ! -e tests/unit/test-prune-run-evidence.py
+      if grep -nE "handoff-validate|_prune_abandoned_runs" .claude/skills/harness/bin/gh-sync.py; then exit 1; fi
+      if grep -n "prune-run-evidence" .omp/commands/harness-ship.md; then exit 1; fi
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-203, DEC-230, DEC-238, DEC-252, references/reject-path.md and this plan's D-05, D-07, D-08, D-10 and D-11. Run Python as env -u HARNESS_AGENT_TYPE python3. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+
+      1. gh-sync.py cmd_ship: delete the BUG-1129 block that checks notes/handoff-validate.md. In its place, at the same position (after the worktree refusal, before any GitHub write), load feature.json with record_read.load_feature_json and accept when any runs entry has squad "validator", an id matching re.compile(r"(?:^|-)(?:validate|fix)-") and verdict "PASS" case-insensitively (the predicate prune-run-evidence.py's _is_validate_run used; define it here). Otherwise, unless handoff_policy.exempt_reason(feat_dir)[0] is truthy, die with "validation incomplete: feature.json records no validator validate or fix run at PASS, so ship would record a terminal station for work never validated. No GitHub state was changed. Close the validate run PASS (or, for a plan built entirely main-session-direct, mark every task execution_mode: main-session-direct) and ship again." - exit 1, a refusal, never a skip. Rewrite the comment above it to say why (BUG-1129, DEC-260: ship runs where notes never exist).
+
+      2. Add one helper, _clean_after_terminal(feat_dir, station, verb): inside one try it resolves owner_root = feature_corpus.owner_root(feat_dir) when working_files.project_notes(feat_dir) is non-empty, else None, and runs working_files.clean(feat_dir, owner_root, emit=<print "gh-sync: " plus the line, and collect it>). On WorkingFilesError, feature_corpus.CorpusError or OSError from any of the three it prints to stderr "gh-sync: station <station> was recorded, but working-file cleanup failed: <error>", one "gh-sync: removed before the failure: <path>" line per path already removed, and "gh-sync: retry the cleanup alone with: <working_files.retry_command(feat_dir)> - do not re-run <verb>; its GitHub writes and station have landed", then exits 4; a lookup failure after the station landed is reported the same way, never as a traceback.
+
+      3. cmd_abandon: replace _prune_abandoned_runs (delete it) with _clean_after_terminal(feat_dir, "abandoned", "abandon"), run in the same place - only when the station reads abandoned, after it is recorded - and the else branch prints "gh-sync: FAILED - working files not removed: the station was not recorded abandoned, so they are kept". The dry run (_report_abandon_dry_run) lists each working_files.targets path as "gh-sync: would remove <path>". Update cmd_abandon's docstring and comments that name runs/ and INV-51.
+
+      4. cmd_reject. Numeric successor: the printed list gains, after "record feature station rejected", one "remove <path>" line per working_files.targets path, each removed by plan-merge.py set-feature-station once it has written rejected (T-10); under --yes gh-sync writes the station through _record_station as today and runs no cleanup of its own, relaying plan-merge's "plan-merge: removed <path>" lines prefixed "gh-sync: ". _record_station: when plan-merge.py exits 10 (station recorded, cleanup failed - T-10), relay its stderr lines prefixed "gh-sync: ", print to stderr "gh-sync: station rejected was recorded, but working-file cleanup failed - retry the cleanup alone with: <working_files.retry_command(feat_dir)> - do not re-run reject; its GitHub writes and station have landed", and exit 4; every other non-zero exit keeps today's FAILED line and returns False. A failed step or a refused station write exits 1 as today and removes nothing. --superseded-by none: gh-sync writes no station and removes nothing; with or without --yes its printed output ends with "gh-sync: working files are kept by this command: plan-merge.py set-feature-station removes them when you record station rejected", so the preview never claims a removal this command makes. Update cmd_reject's docstring.
+
+      5. Delete bin/prune-run-evidence.py and tests/unit/test-prune-run-evidence.py. In .omp/commands/harness-ship.md delete the whole bullet that begins "On ship, before the PR - prune run evidence (#1997)" through its closing commit instruction.
+
+      6. Tests. test-gh-sync-ship.py: replace the handoff-validate cases with - a feature with no notes/ directory and a validator validate-c0 run at PASS passes the precondition; one with only a fix-c1-validator PASS passes; one whose validator run is FAIL, or which has only an eng PASS, is refused before any gh call (stub records no call); an all-main-session-direct plan is exempt. test-gh-sync-abandon.py: abandon --yes removes notes/, runs/, observations/ and a project note listed in project_notes under the owner .harness/notes/, and leaves an unlisted note; the dry run lists them and removes nothing; a refused station write (plan.yaml absent, the existing F1 technique) removes nothing; reject numeric --yes leaves the station reading rejected and the working files removed by that station write, and its preview lists the remove lines after the station line; reject numeric with a refused station write (the same technique) exits 1 and removes nothing; a failed reject step removes nothing; reject none --yes exits 0, removes nothing, leaves the station unrejected and prints that set-feature-station removes them, with no remove line and no clean command with or without --yes; a following plan-merge.py set-feature-station --station rejected on that feature removes them. gh_sync_support.py: fixture helpers for these. test-gh-sync-abandon-sources.py: replace the intercepted _prune_abandoned_runs seam with _clean_after_terminal, and add in-process cases that patch the module's working_files.clean to emit "removed <a>" and then raise OSError (and, separately, to raise WorkingFilesError) and call _clean_after_terminal on a temp .harness/harness/features/FEAT-0-probe directory: each exits 4, stderr names "station abandoned was recorded", "removed before the failure: <a>" for the OSError case, the clean command and "do not re-run abandon", and no GitHub seam is called; with feature_corpus.owner_root patched to raise CorpusError on a feature claiming a project note, it exits 4 the same way. Add: a reject --yes whose _record_station sees plan-merge.py exit 10 exits 4, stderr names "station rejected was recorded", the clean command and "do not re-run reject", and no GitHub seam is called after it; a skip-distill --yes whose feature-worktree.py clean subprocess is patched to exit 1 exits 4, stderr names "distill decline was recorded", the clean command and "do not re-run skip-distill", and the judgement stays recorded. Create tests/integration/test-gh-sync-skip-distill.py (plain script, ok/FAIL lines, exit 1 on FAIL) on a git-initialised owner fixture carrying the harness marker, with a shipped feature (plan.yaml status done) holding notes/x.md, runs/r/digest.md, observations/a.md and a project note listed in project_notes beside an unlisted one under the owner .harness/notes/: without --yes it prints the would-record line and the WOULD REMOVE lines and changes no byte; with --yes it appends exactly one judgement kind distill, decision declined, with the reason, commits feature.json (git log -1 names "distill declined" and git status shows that path clean), removes the three directories and the listed note and leaves the unlisted one; a re-run records no second judgement and exits 0; a feature at review exits 1 with nothing written or removed; a worktree path is refused as ship refuses it; an empty reason file exits 1 with nothing written; a feature.json the judgement write refuses (one carrying a key the schema does not declare) exits 1 and removes nothing; with harness.json github.sync false, and separately with PATH holding no gh executable, --yes records, commits and cleans exactly as above and prints no "gh-sync: SKIP" line; with a fixture pre-commit hook that exits 1, --yes exits 1, feature.json holds the one judgement uncommitted and every working file and both notes remain, and once the hook is removed a re-run exits 0, records no second judgement, commits feature.json and removes them; an uncommitted plan.yaml edit present during --yes stays uncommitted and byte-identical and git show --name-only --format= HEAD lists only feature.json; a feature.json carrying an uncommitted unrelated change and no decline exits 1 with nothing written or removed. Retained short-id worktree, with HARNESS_PROJECT_DIR naming the owner fixture: a linked worktree named FEAT-<n> holds the feature directory and the working files while the owner copy reads done; --yes on the owner record removes the worktree's notes/, runs/ and observations/; on a second such fixture, running working_files.clean_argv(feat_dir) through the absolute feature-worktree.py path from the owner fixture (the printed retry command) removes them too. test-post-merge-sweep.py and test-hooks-install.py: fixtures that wrote notes/handoff-validate.md to satisfy ship write a validator validate run at PASS into feature.json instead, and the case asserting ship refuses without the note asserts it refuses without the PASS run; add one sweep case - a terminal feature whose worktree holds an ignored notes/x.md is shipped but its worktree survives, and the output carries "WOULD DISCARD WORKING FILES" (SC-09).
+
+      7. New verb skip-distill (D-11): gh-sync.py skip-distill <feature-dir> --reason-file <path> [--yes]; add it to the usage line, the module docstring and the --yes and --reason-file acceptance lists. Dispatch it in main() right after the feature-directory check and the root resolution and before load_config, calling cmd_skip_distill and returning: it makes no GitHub write, so github config, github.sync and gh auth are never read and can never turn it into a SKIP, and it never prints "gh-sync: SKIP". Each step runs only after the one before succeeded. (a) Apply cmd_ship's worktree refusal (the landed record lives in the owner checkout), then refuse with exit 1 unless check_state.ctx.lenient_station(feat_dir) reads done: "skip-distill: <id> is at <station or no station>, not done; a distill is declined only after ship. Nothing was written or removed." (b) The reason is the reason file's text with whitespace runs collapsed to single spaces and stripped; empty, or longer than 240 characters, exits 1 naming the limit, writing nothing. (c) Without --yes print "gh-sync: would record judgement distill: declined (<reason>)", or "gh-sync: decline already recorded" when feature.json judgements already holds kind distill with decision declined, then run feature-worktree.py with working_files.clean_argv(feat_dir) minus --yes, relay its lines prefixed "gh-sync: ", print "gh-sync: re-run with --yes to record the decline and remove them" and exit 0, writing nothing. (d) With --yes and no decline recorded yet: when git -C <feat_dir> status --porcelain -- <absolute feature.json> prints anything, refuse with exit 1, "skip-distill: <id>'s feature.json has uncommitted changes; commit or discard them first. Nothing was written or removed."; otherwise run feature-record.py judgement --file <feat_dir>/feature.json --by operator --kind distill --decision declined --reason <reason> as a subprocess (the one feature.json write route); a non-zero exit prints "gh-sync: FAILED - decline not recorded: <its last line>; nothing was removed" and exits 1. With --yes and a decline already recorded, print "gh-sync: decline already recorded" and write no judgement. (e) Commit feature.json alone. Give _commit_terminal_station two keyword parameters, paths (default today's plan.yaml and feature.json) and message (default today's "<id>: station done at ship"), and make it return True when it committed or found the paths clean and False after printing its WARNING; its printed lines for the default paths stay byte-identical. ship passes neither and ignores the return, so ship's pathspec and loud-but-never-fatal posture are unchanged. skip-distill calls it with paths [<absolute feature.json>] and message "<id>: distill declined", so a dirty plan.yaml or any other path is never part of the commit; on False it prints to stderr "gh-sync: FAILED - decline recorded in feature.json but not committed; nothing was removed. Fix the cause and re-run skip-distill --yes, which commits the recorded decline without recording a second" and exits 1. (f) Only after that commit succeeded or found feature.json clean, run feature-worktree.py with working_files.clean_argv(feat_dir) through sys.executable and the absolute bin path, cwd the owner root (feature_corpus.owner_root(feat_dir)), relaying its lines prefixed "gh-sync: "; exit 0 when it exits 0, otherwise print to stderr "gh-sync: distill decline was recorded, but working-file cleanup failed (feature-worktree.py clean exited <n>) - retry the cleanup alone with: <working_files.retry_command(feat_dir)> - do not re-run skip-distill" and exit 4. skip-distill makes no GitHub write.
+
+      Expected red before the work: at e2bffca0 the no-notes PASS case is refused with "validation incomplete" and abandon leaves notes/ and observations/; keep that output for qa.
+  - id: T-06
+    title: Read expertise receipts from local disk and clean working files after merge-distill
+    traces: [SC-07, SC-10, SC-17]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - merge-gate.py and expertise-merge.py are the serialized distill gate and its receipt verifier.
+    depends_on:
+    - T-01
+    - T-03
+    status: done
+    files:
+    - .claude/skills/harness/bin/merge-gate.py
+    - .claude/skills/harness/bin/expertise-merge.py
+    - tests/integration/test-merge-gate.py
+    - tests/integration/test-expertise-merge.py
+    - path: tests/unit/test-expertise-receipt-paths.py
+      create: true
+    - path: tests/unit/test-merge-distill-cleanup.py
+      create: true
+    - .claude/skills/harness/bin/validate-digest.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-expertise-receipt-paths.py
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-merge-distill-cleanup.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-expertise-merge.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-merge-gate.py
+      if grep -n "ls-tree" .claude/skills/harness/bin/expertise-merge.py; then exit 1; fi
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-219, DEC-253 and this plan's D-04, D-05 and D-10. Run Python as env -u HARNESS_AGENT_TYPE python3. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+
+      1. expertise-merge.py: replace pr_receipt_paths(real_root, feature_dir, base_sha) with receipt_paths(feature_dir) - every name in feature_dir/notes matching RECEIPT_NAME_RE, sorted, as absolute paths; an absent notes directory gives []. No git call and no base exclusion: receipts are never on any base (D-04). Update load_active and every other caller; base_sha keeps its other uses (replay base blobs, coverage). feature_directory(root, feature) becomes a call to working_files.feature_directory mapping WorkingFilesError to _refuse(9, <its message>). The module docstring's sentence that the receipt travels in the PR says instead that it is a local working file, never committed, removed by the post-merge cleanup (DEC-260).
+
+      2. merge-gate.py. Add _clean_after_merge(root, feature): inside one try it resolves feature_dir = working_files.feature_directory(root, feature) and owner = feature_corpus.owner_root(root) and runs working_files.clean(feature_dir, owner, emit=<collect>); it catches working_files.WorkingFilesError, feature_corpus.CorpusError and OSError from all three alike, so no post-merge lookup failure reaches distill_main's REFUSED handler or escapes as a traceback. It returns (removed paths, None, None), or (removed so far, error text, retry command) on failure, the retry command being working_files.retry_command(feature_dir) when feature_dir resolved, else "python3 .claude/skills/harness/bin/feature-worktree.py clean --repo <repo> --id <feature> --yes" with the literal <repo> placeholder and the feature argument. merge_distill calls it after _verified_merge returns, while still holding the lock, and adds "cleaned": <removed> to the evidence, plus "cleanup_error": <text> and "cleanup_retry": <command> when cleanup failed. distill_main, given evidence carrying cleanup_error, prints the evidence JSON, prints to stderr "merge-distill: MERGED <feature> PR #<n>, but working-file cleanup failed: <error>; retry the cleanup alone with: <cleanup_retry> - do not re-run merge-distill; the merge has landed" and returns 4 (distill_main returns 0, 3 or the lock refusal code today; if harness_merge's refusal can be 4, use the lowest code no branch returns and name it in the docstring). Any refusal before the merge removes nothing.
+
+      3. tests/integration/test-expertise-merge.py: delete the cases asserting a receipt already on the base is excluded; add - in a fixture whose .gitignore ignores .harness/*/features/*/notes/, two receipts written by member-ops and never committed are both read by replay --check, which reports replayed true.
+
+      4. tests/integration/test-merge-gate.py. seed_owner writes the owner .gitignore as *.lock plus the four rules .harness/*/features/*/notes/, .harness/*/features/*/runs/, .harness/*/features/*/observations/ and .harness/notes/, before the base commit, so every distill fixture's member-ops receipts and run records are ignored before commit_push's git add -A runs; every existing distill case must keep passing with receipts that exist only on disk. Replace case_bug2399_distill_records_commit_before_merge (it copies the repository .gitignore T-01 changed and expects run records to be staged) with a ledger case: after member-ops, write runs/distill-validator/digest.md, state.yaml and .run-identity.json and observations/harness-backend-dev.md under the feature directory and change feature.json (add a runs entry with id distill-validator, squad validator, verdict PASS); merge-distill refuses with "uncommitted .harness changes" while the feature.json change is uncommitted; git add -A -- .harness stages feature.json and the Expertise file and no path under notes/, runs/ or observations/; once committed and pushed the same distill merges at the new head, git ls-tree -r of that head lists no notes/, runs/ or observations/ path, and the evidence's cleaned list names notes/, runs/ and observations/, which no longer exist. Add: the evidence of a merged distill also lists a project note claimed in feature.json project_notes, which no longer exists, while an unclaimed .harness/notes/ file survives; a refusal (uncommitted .harness change) leaves every working file in place.
+
+      5. Create tests/unit/test-expertise-receipt-paths.py (plain script, ok/FAIL lines, exit 1 on FAIL): loads expertise-merge.py by path, writes two receipt-shaped names and one non-matching name into a temp feature notes directory, asserts receipt_paths returns exactly the two sorted, and [] for an absent notes directory.
+
+      6. Create tests/unit/test-merge-distill-cleanup.py (plain script, ok/FAIL lines, exit 1 on FAIL): loads merge-gate.py by path; patches its working_files.clean to emit one removal and then raise OSError, calls _clean_after_merge on a temp .harness/harness/features/FEAT-0-probe directory and asserts the removed path and error text come back; patches merge_distill to return evidence carrying cleanup_error and asserts distill_main returns 4 and prints the MERGED message with the clean command and "do not re-run merge-distill"; separately patches working_files.feature_directory to raise WorkingFilesError, and then feature_corpus.owner_root to raise CorpusError, and asserts _clean_after_merge returns the error and a retry command without raising, and that distill_main given each resulting evidence returns 4, prints MERGED, the clean command and "do not re-run merge-distill", and never prints REFUSED. No permission-based unremovable directory is used anywhere (it is inert for root).
+
+      Expected red before the work: at e2bffca0 merge-distill leaves notes/ in place and receipt_paths does not exist; keep that output for qa.
+  - id: T-07
+    title: Rewrite the instructions that commit working files or name retired gates
+    traces: [SC-14, SC-16]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The skill, agent and command files resolve to NOBODY (DEC-179) and describe the DEC-174 enforcement change, so they land with it.
+    depends_on:
+    - T-03
+    - T-04
+    - T-05
+    - T-06
+    - T-10
+    status: done
+    files:
+    - .claude/skills/harness/references/distillation.md
+    - .claude/skills/harness/references/checkout-upgrade.md
+    - .claude/skills/harness/references/build-phase.md
+    - .claude/skills/harness/references/ledger.md
+    - .claude/skills/harness/references/succession.md
+    - .claude/skills/harness/references/reject-path.md
+    - .claude/skills/harness/SKILL.md
+    - .claude/skills/harness/teams/validate.yaml
+    - .claude/skills/harness-uat/SKILL.md
+    - .omp/agents/harness-qa.md
+    - .omp/agents/harness-visual-designer.md
+    - .omp/commands/harness.md
+    - .harness/README.md
+    - .omp/agents/harness-validator-lead.md
+    - README.md
+    - .harness/harness/docs/SPEC.md
+    - .claude/skills/harness-verification-rules/SKILL.md
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      F=".claude/skills/harness/references/distillation.md .claude/skills/harness/references/checkout-upgrade.md .claude/skills/harness/references/build-phase.md .claude/skills/harness/references/ledger.md .claude/skills/harness/references/succession.md .claude/skills/harness/SKILL.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness-uat/SKILL.md .omp/agents/harness-qa.md .omp/agents/harness-visual-designer.md .omp/commands/harness.md .harness/README.md .claude/skills/harness/references/reject-path.md .omp/agents/harness-validator-lead.md README.md .harness/harness/docs/SPEC.md .claude/skills/harness-verification-rules/SKILL.md"
+      if grep -nE "INV-43|INV-15/INV-46|INV-17|DEC-257|prune-run-evidence|track run records|Committed, so what|committed, so what|commits the receipts|committed with the run record|staged by ordinary|with the original applied receipts|Committed with the run|ordinary tracked files|committed with the feature|\*\*committed\*\* with the feature|receipts for main to commit" $F; then exit 1; fi
+      grep -q "feature-record.py project-note" .claude/skills/harness/SKILL.md
+      grep -q "gh-sync.py skip-distill" .omp/commands/harness.md
+      grep -q "feature-worktree.py clean" .claude/skills/harness/references/distillation.md
+      grep -q "DEC-262" .harness/README.md
+      grep -q "exit 10" .claude/skills/harness/references/reject-path.md
+      grep -q "rm -r --cached --sparse" .claude/skills/harness/references/checkout-upgrade.md
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-refs.py .
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-weight.py .
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md and this plan's D-01 to D-08 and D-10. Rule skills carry the rule, one clause of why and a DEC pointer (DEC-158); cite DEC-260 for the new rule. Change only what is listed; keep every other sentence.
+
+      references/distillation.md: in step 3's "Before merge" paragraph, once every distill run is closed, commit and push the reconstructed Expertise files and feature.json, which carries the distill runs' committed ledger (git add -A -- .harness stages only those, because the working files are ignored); the original and replacement receipts, the distill runs' directories and the observation logs are local working files, never staged and never force-added (DEC-260); merge-distill replays the worktree's local receipts and refuses any uncommitted .harness change, feature.json included. Add: when no member applied an op, so the branch changes no Expertise file, merge-distill refuses it as not a distill candidate - commit feature.json, merge that pull request through the ordinary route, then run feature-worktree.py clean --repo <repo> --id <FEAT> --yes, which accepts the landed done station. Replace the paragraph about an aborted run's untracked records making remove refuse with: feature-worktree.py remove refuses while working files remain, which keeps the worktree alive for distill or for gh-sync.py skip-distill when the distill is declined. Step 4 becomes: observation logs are local working files, read here and never injected; nothing archives them. Add step 5: after it merges, merge-gate.py merge-distill deletes the feature's notes/, runs/, observations/ and the project notes its feature.json project_notes lists, and prints them; exit 4 means merged but cleanup failed - run feature-worktree.py clean --repo <repo> --id <FEAT> --yes; never delete them before the merge, because replay reads the receipts.
+      references/checkout-upgrade.md: replace the "Run records checklist (BUG-2399)" bullet with a "Working files checklist (DEC-260)" bullet: pause teams, distill and worktree removal; run merge-gitignore.py <root>; review git diff -- .gitignore; run git rm -r --cached --sparse --ignore-unmatch with the four pathspecs ':(glob).harness/*/features/*/notes/**' ':(glob).harness/*/features/*/runs/**' ':(glob).harness/*/features/*/observations/**' ':(glob).harness/notes/**'; commit .gitignore and the untracking as their own commit; history is not rewritten and files stay on disk. Add to that bullet: an in-flight branch that still tracks its own working files turns tests/unit/test-working-files-untracked.py red once it merges main; its repair is the same git rm -r --cached --sparse command run on that branch and committed alone (DEC-260). In the following "Re-run the checklist" bullet replace "the BUG-2399 run-UI rule" with "the DEC-260 working-file rules".
+      references/build-phase.md, references/ledger.md, references/succession.md: every sentence saying INV-43 grades a late succession says instead that feature-record.py run-start refuses the successor run without its succession; delete ledger.md's sentences about INV-15/INV-46 reading refusal provenance and about harness.json seam_era_start.
+      harness/SKILL.md step 1: "runs/ and notes/ are archives" becomes "runs/ and notes/ are local working files"; after the set-mission sentence add: record each .harness/notes/ path your dispatch hands you as made for this feature (the grilling artifact, its facts file) with feature-record.py project-note --file <feature.json> --path <path>; cleanup deletes only those (DEC-260).
+      teams/validate.yaml: the comment saying the qa receipt is committed with the run record says it stays in the local run record, never committed (DEC-260).
+      harness-uat/SKILL.md: "Committed, so what was accepted and when is on the record." becomes "A local working file, never committed (DEC-260); the ship briefing carries what was accepted and when."
+      .omp/agents/harness-qa.md: "Main commits the receipts with the closed run record (tracked files, DEC-257); you do not commit them." becomes "The receipts stay in the local run record (DEC-260); nobody commits them."
+      .omp/agents/harness-visual-designer.md: the prototype line becomes "Lives in notes/prototypes/<FEAT>/, a local working file never committed (DEC-260); the plan signature records the approval (DEC-75)."
+      .omp/commands/harness.md section 4: the shipped row adds - if the user declines the distill, once the station reads done run gh-sync.py skip-distill <feature-dir> --reason-file <path> --yes, which records the decline in feature.json and only then removes the feature's local working files, so the post-merge sweep can remove the worktree; the abandon row adds that --yes also removes the feature's working files after recording the station.
+      references/reject-path.md step 4: the numeric-successor bullet adds that the station write it makes through plan-merge.py set-feature-station removes the feature's working files once rejected is recorded; the none bullet keeps - it leaves the station to you: only after it exits 0, write rejected once with plan-merge.py set-feature-station - and adds that this write removes the feature's working files once it has succeeded, while a refused write removes nothing. Add one sentence: exit 4 from gh-sync.py reject or exit 10 from set-feature-station means the station landed and only the cleanup failed - run the printed feature-worktree.py clean command, never write the station or reject again.
+      .harness/README.md: the notes row says project notes are local working files; the "Committed, except run UI" paragraph says everything is committed except each feature's notes/, runs/ and observations/ and the project .harness/notes/, which are git-ignored local working files removed at distill or by abandon, reject or clean (DEC-260).
+
+      Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+  - id: T-08
+    title: Record DEC-262, strike DEC-257, amend the affected decisions, regenerate the index
+    traces: [SC-15]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The decision record describes the DEC-174 enforcement change and lands with it, as in FEAT-2557 and FEAT-2581.
+    depends_on:
+    - T-01
+    - T-02
+    - T-03
+    - T-04
+    - T-05
+    - T-06
+    - T-07
+    - T-10
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-decision-anchors.py
+      env -u HARNESS_AGENT_TYPE python3 - <<'PY'
+      import re, yaml
+      t = open(".harness/harness/docs/DECISIONS.md").read()
+      p = yaml.safe_load(open(".harness/harness/features/FEAT-2641-local-working-files/plan.yaml"))
+      def sec(d):
+          m = re.search(r"^## " + d + r" .*?(?=^## DEC-|\Z)", t, re.S | re.M)
+          return m.group(0) if m else ""
+      assert sec("DEC-262"), "DEC-262 missing"
+      assert "DEC-262" in sec("DEC-257") and "struck" in sec("DEC-257").lower(), "DEC-257 strike record"
+      bad = [(r["dec"], r["clause"][:60]) for r in p["decisions_affected"] if r["disposition"] != "keep" and r["clause"] in sec(r["dec"])]
+      bad += [(r["dec"], "keep clause gone") for r in p["decisions_affected"] if r["disposition"] == "keep" and r["clause"] not in sec(r["dec"])]
+      assert not bad, bad
+      print("decision landing ok")
+      PY
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; this task edits .harness/harness/docs/DECISIONS.md itself. Read DEC-188 and DEC-205 first (strike flat contradictions with a strike record; amend in place as current truth; no amendment notes; numbers never reused) and DEC-86 for the strike-record shape.
+
+      1. Append DEC-260 (if main has gained DEC-260 by build time, use the next free number and record that change against this task's verify and the D-NN dec fields before landing). Title: Feature working files are local: notes, runs and observations are never committed. Body, current truth, in the entry style of DEC-257: Chose - D-01 to D-08, D-11 and D-12 of FEAT-2641's plan.yaml, each as one paragraph (the four ignored classes and the guard test; the eleven retired check-state rows and INV-40 (c), INV-7 kept as arithmetic; no committed home, write-time evidence checks kept as provenance; receipts local and replayed by merge-distill, distill identity in feature.json runs; the working_files.py routine and its callers, plan-merge.py set-feature-station cleaning once it has written rejected included; gh-sync.py skip-distill and the distill judgement kind; feature.json project_notes and feature-record.py project-note; ship's ledger precondition; feature-worktree.py remove's working-file gate; the five declined distills), plus D-09's seam_era_start note. Over - committing working files, rewriting history, receipts in a tracked path, local-only check-state rows, deleting ship's precondition. Because - main gained 5,376 objects from 2026-10-08 to a55453f38d, about half notes and runs, Kaya prototype PNGs 12 MiB; deleting later never shrinks history; the operator ruled notes exist only for distill and expertise. Tradeoff accepted - answers, rulings, receipts, UAT results and validate run records are not retained after cleanup; pulling the merged main deletes the untracked copies from every checkout's disk (each stays readable through git show at an older sha); an in-flight branch still tracking its working files must untrack them before merging; a shipped feature's worktree stays until distill or clean runs. Record - FEAT-2641, #2641; strikes DEC-257; amends the DECs this plan's decisions_affected lists as amend.
+      2. DEC-257: replace its body with a strike record per DEC-188 - one paragraph: struck under DEC-188 because run records are now local working files, never tracked; DEC-260 is the named successor; its merge-distill and remove consequences are restated in DEC-260. Keep its heading line.
+      3. For every amend row in plan.yaml decisions_affected, replace the quoted clause in that entry with text stating the current truth its reason names, rewriting the whole sentence or bullet it sits in so no neighbouring sentence still directs the old behaviour: DEC-44; DEC-46 (runs are registered in the committed feature.json, run directories are local; its tradeoff line); DEC-130; DEC-131 (heading and INV-12 bullet); DEC-150 (runs/ and notes/ are local working files read by pointer); DEC-154; DEC-156 (both bullets, the INV-16 whitelist tradeoff sentence and the INV-15 roll-up clause); DEC-157; DEC-159 (the INV-17 sentences and clause 2 with its seam_era_start boundary); DEC-160 (item 3 and the duplicated-whitelist sentence); DEC-191 (the frozen refusal marker stays readable because run-end and close-run replay it; INV-15 and INV-46 are retired); DEC-203; DEC-208; DEC-215 (the persisted-corpus INV-17 pass and the both-gates sentence - the parser serves the write gate only); DEC-230 (both INV-40 clauses; the reject clause: gh-sync records rejected through plan-merge.py set-feature-station on a numeric successor, its caller writes it on none, and that write removes the working files once it has succeeded; and the kinds sentence: eight kinds, distill added, decision declined, written by gh-sync.py skip-distill); DEC-237; DEC-238 (heading, opening paragraph, abandon and ship bullets - ship keeps no run evidence and leaves the local working files in place until merge-distill, skip-distill or clean removes them, while abandon and the rejected write remove them; the pin and prototype bullets stay); DEC-252 (both clauses and the present-tense prune-run-evidence sentence, now past); DEC-253 (both clauses and the historical-receipts sentence - the distill PR commits the reconstructed Expertise and feature.json's closed distill ledger and never a receipt; receipts stay immutable in the feature's local notes/); DEC-255 (the receipts paragraph and the force-add sentence of its tradeoff). Keep each DEC-191 keep clause and every other keep clause untouched. Amending a heading changes its DECISIONS-INDEX.md row; regenerate in step 4. The quoted clause text must not survive in its entry; keep clauses must survive untouched.
+      4. Regenerate the index with gen-decisions-index.py, then hand-write the ruling after ' :: ' for DEC-260 (at most 30 words) and rewrite the rulings of DEC-257 (struck, successor DEC-260), DEC-131, DEC-215, DEC-238, DEC-252 and DEC-253 wherever their current ruling text names a retired invariant or committed receipts or run records (the ' :: ' tail is hand-written; regeneration alone never changes it). Re-run gen-decisions-index.py --stdout and diff until identical.
+
+      Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+  - id: T-09
+    title: Reconcile the reader and duration registries and run the cumulative gates
+    traces: [SC-12, SC-13, SC-14]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - the canonical-reader classification and shard durations are read by the CI route and shard gates; the terminal cumulative checks run after every code task.
+    depends_on:
+    - T-01
+    - T-02
+    - T-03
+    - T-04
+    - T-05
+    - T-06
+    - T-07
+    - T-08
+    - T-10
+    status: done
+    files:
+      - tests/integration/canonical-reader-classification.json
+      - tests/integration/integration-durations.json
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+      for f in tests/integration/test-run-unit-tests-shards.py tests/integration/test-run-unit-tests-layout.py tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py tests/unit/test-working-files-untracked.py tests/integration/test-merge-gate.py tests/integration/test-feature-worktree.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
+      git diff --quiet origin/main...HEAD -- tests/integration/test-check-domain-post.py tests/integration/test-check-domain-approval.py tests/integration/test-validate-digest-shadows.py tests/unit/test-handoff-done-when.py
+      if grep -rn --include=*.py --include=*.md --include=*.yml --include=*.yaml --include=*.ts "prune-run-evidence" .claude .omp .github tests; then exit 1; fi
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md (DEC-183, DEC-211, DEC-213). Rebase onto current main first if it has moved; both registries change on main independently (0b5aa6e4 touched the classification).
+
+      1. tests/integration/canonical-reader-classification.json: run env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit; delete every row whose file or call site T-02 to T-06 removed (check_state/seams.py, check_state/run_state.py, the deleted check_state/feature_record.py and plan.py functions, prune-run-evidence.py, gh-sync.py's handoff check and _prune_abandoned_runs, expertise-merge.py's ls-tree exclusion, the deleted feature_record/evidence.py functions); add a row for every new reader site the audit reports (bin/working_files.py, gh-sync.py's ledger precondition, feature-worktree.py clean's station read, feature-record.py project-note, plan_merge/stations.py's rejected cleanup, gh-sync.py skip-distill's station and judgement reads) classified with the category and remedy canonical_reader_audit.py defines for that call. Re-run until it exits 0 with no unresolved site.
+      2. tests/integration/integration-durations.json: delete the entries for tests/integration/test-check-state-handoff.py and test-check-state-inv51.py; add tests/integration/test-check-state-local-files.py with its duration measured by one run, in the existing field shape; keep every other entry.
+      3. Run the verify. SC-12 and SC-13 rest on the four named test files being unchanged by this branch (git diff --quiet origin/main...HEAD) and passing; if any of them changed, stop and report it, never edit it here. The verify re-runs test-merge-gate.py and test-feature-worktree.py because T-01's ignore rules changed their inputs before T-03 and T-06 replaced their witnesses; this is the terminal cumulative run.
+
+      4. Landing (D-10). The audit in step 1 and the verify are pre-push diagnostics run by the main session, not live enforcement and not an approval. Only after the verify exits 0: push feat/FEAT-2641-local-working-files and open its one pull request. The live gates are CI on that head - the canonical-reader audit step in .github/workflows/tests.yml, the repository-state gate running check-state.py, and the integration shards - and the operator's ordinary hooked merge, which runs the owner checkout's merge-gate.py on its unchanged ordinary route. Never merge through merge-distill and never land any earlier commit separately.
+
+      5. After the operator merges (D-12, operator rulings OQ-02 and OQ-04). In the owner checkout on main's new code, for each of BUG-2451-prune-staging-dec257, FEAT-2557-code-layout-pattern, BUG-2565-digest-frontmatter-contract, BUG-2566-stale-hook-detection and FEAT-2581-feature-record-package: write with the file tools, outside the repository, a one-line reason file saying the operator declined this distill on 2026-11-27 (FEAT-2641 OQ-02), then run env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/gh-sync.py skip-distill .harness/harness/features/<that id> --reason-file <that file> --yes; each must exit 0, print the recorded decline and print no "gh-sync: SKIP" line. Then confirm each in the owner checkout: git log -1 --format=%s -- <that feature directory>/feature.json reads "<that id>: distill declined", git status --porcelain -- <that feature directory>/feature.json prints nothing, and the feature.json judgements hold exactly one entry of kind distill with decision declined (read with python3 and json). Report each exit and each confirmation at landing; a failed confirmation stops the remaining declines and is reported, never repaired by hand. No preservation step and no snapshot: their lessons are dropped by ruling. Never record this feature's own grilling or facts notes under .harness/notes/ in project_notes; the operator removes them by hand.
+  - id: T-10
+    title: Make set-feature-station remove the working files once it has written rejected
+    traces:
+    - SC-06
+    - SC-17
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - plan-merge.py is the plan's one write route and the station verb gh-sync reject and the reject procedure call; its tests change with it.
+    depends_on:
+    - T-03
+    status: done
+    files:
+    - .claude/skills/harness/bin/plan_merge/stations.py
+    - .claude/skills/harness/bin/plan-merge.py
+    - tests/integration/test-plan-merge.py
+    - path: tests/unit/test-set-feature-station-cleanup.py
+      create: true
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-set-feature-station-cleanup.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py
+      grep -q "exit 10" .claude/skills/harness/bin/plan-merge.py
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files, base e2bffca0; every edit stays inside it. docs/spec.md, docs/decisions.md and docs/architecture.md do not exist here; the governing record is .harness/harness/docs/DECISIONS.md - read DEC-174, DEC-230, references/reject-path.md and this plan's D-05 and D-10. Run Python as env -u HARNESS_AGENT_TYPE python3. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes, so no intermediate commit is graded by CI, ship or a hook.
+
+      1. bin/plan_merge/stations.py cmd_set_feature_station. After _locked_plan_update returns and the STATION and APPLIED lines are printed, and only when args.station is "rejected", call a new _clean_rejected(resolved) and exit with what it returns; every other station exits 0 as today and removes nothing. Every refusal before or inside the locked write (illegal station exit 4, no feature: key exit 5, destination exit 9, a lock refusal) exits as today before cleanup is reached, so a refused station write removes nothing (D-05). _clean_rejected(plan_path): feature_dir = os.path.dirname(plan_path); notes = working_files.project_notes(feature_dir); owner_root = feature_corpus.owner_root(feature_dir) when notes is non-empty, else None (working_files never reads it then - T-03); when working_files.targets(feature_dir, owner_root) is empty print "plan-merge: no working files to clean for <basename of feature_dir>" and return 0; otherwise run working_files.clean(feature_dir, owner_root, emit=<print "plan-merge: " plus the line, and collect it>) and return 0. On working_files.WorkingFilesError, feature_corpus.CorpusError or OSError print to stderr "plan-merge: station rejected was recorded in <plan_path>, but working-file cleanup failed: <error>", one "plan-merge: removed before the failure: <path>" line per path already removed, and "plan-merge: retry the cleanup alone with: <working_files.retry_command(feature_dir)> - do not write the station again", and return 10. Import working_files and feature_corpus from the bin directory the way the module's other bin imports are made.
+
+      2. plan-merge.py: in the module docstring's set-feature-station usage line and the station paragraph, say that writing rejected then removes the feature's local working files through bin/working_files.py (DEC-260), and that exit 10 - returned by no other path - means the station was recorded and only the cleanup failed.
+
+      3. tests/integration/test-plan-merge.py: keep every existing case, the set-feature-station ACCEPTS rejected case included, unchanged. Add, on a git-initialised fixture carrying the harness marker feature_corpus.owner_root requires, with .harness/harness/features/FEAT-0-probe holding plan.yaml, a feature.json whose project_notes lists .harness/notes/claimed.md, notes/x.md, runs/r/digest.md and observations/a.md, and owner .harness/notes/claimed.md and unclaimed.md: set-feature-station --station rejected exits 0, the plan reads rejected, notes/, runs/, observations/ and claimed.md are gone, unclaimed.md survives, and stdout names each removed path; --station building on a fresh copy of the fixture exits 0 and removes nothing; --station bogus exits 4 and removes nothing; a plan.yaml with no top-level feature: key exits 5 and removes nothing; a second --station rejected on the cleaned feature exits 0 and prints the no-working-files line.
+
+      4. Create tests/unit/test-set-feature-station-cleanup.py (plain script, ok/FAIL lines, exit 1 on FAIL): loads bin/plan_merge/stations.py with the bin directory on sys.path, writes a temp .harness/harness/features/FEAT-0-probe holding a plan.yaml and notes/x.md, patches the module's working_files.clean to emit "removed <a>" and then raise OSError, calls _clean_rejected on that plan, and asserts it returns 10 and stderr carries "station rejected was recorded", "removed before the failure: <a>", the feature-worktree.py clean command with --id FEAT-0-probe and "do not write the station again"; separately, patched to raise WorkingFilesError, it returns 10 with no removed line. No permission-based unremovable directory is used anywhere (it is inert for root).
+
+      Expected red before the work: at e2bffca0 set-feature-station --station rejected leaves notes/ in place and _clean_rejected does not exist; keep that output for qa.
+  - id: T-11
+    title: Apply the working-file retention gate to native git worktree remove in bash-write-guard
+    traces: [SC-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - bash-write-guard.py is a PreToolUse hook that refuses Bash commands, and the retention routine it shares with feature-worktree.py remove is the gate this feature adds; operator ruling E4 at validate c0.
+    depends_on:
+    - T-03
+    status: done
+    files:
+    - .claude/skills/harness/bin/bash-write-guard.py
+    - .claude/skills/harness/bin/working_files.py
+    - .claude/skills/harness/bin/feature-worktree.py
+    - tests/integration/test-bash-write-guard.py
+    - tests/unit/test-working-files.py
+    - tests/integration/canonical-reader-classification.json
+    - .harness/harness/docs/DECISIONS.md
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      env -u HARNESS_AGENT_TYPE python3 tests/unit/test-working-files.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-bash-write-guard.py
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-feature-worktree.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-plan-routes.py --canonical-reader-audit
+      grep -q "working_files.untracked_counts" .claude/skills/harness/bin/bash-write-guard.py
+      grep -q "working_files.untracked_counts" .claude/skills/harness/bin/feature-worktree.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-decision-anchors.py
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. The governing record is .harness/harness/docs/DECISIONS.md - read DEC-151, DEC-174, DEC-260 and this plan's D-05 and D-08. Run Python as env -u HARNESS_AGENT_TYPE python3. Operator ruling E4 (notes/answers-validate-c0.md, security S2 in runs/validate-validator/digest.md): bash-write-guard.py:849-866 hands an unforced native `git worktree remove` straight to git, and git deletes the ignored notes/, runs/ and observations/ silently, bypassing T-03's GATE 2b. This task closes that route with the same retention check; it changes nothing about add, move, prune or the force refusal. Test-first: write the step 4 cases, run them against the unchanged guard and keep the failing output in notes/red-T-11.txt before step 1; keep the passing run in notes/green-T-11.txt. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes on the final tree.
+
+      1. bin/working_files.py: add untracked_counts(checkout, feature_rel) returning a dict {working dir: count} built from untracked(checkout, feature_rel), counting the paths under f"{feature_rel}/{d}/" for each d in WORKING_DIRS and keeping only nonzero counts, in WORKING_DIRS order; it raises WorkingFilesError exactly when untracked does. bin/feature-worktree.py _gate_working_files replaces its inline counting loop with one call to untracked_counts and prints the same "WOULD DISCARD WORKING FILES <prefix> (<count> files)" lines, the same retry sentence and exit 4, byte for byte as today; one counting rule serves both gates.
+
+      2. bin/bash-write-guard.py, in the `_sub in ("remove", "prune")` branch, after the force refusal and only when _sub is "remove": resolve the worktree operand - the first non-flag operand after `remove`, walked with the _WT_FLAGS_WITH_VALUE coupling _worktree_destination already applies (extend _worktree_destination to answer "remove" rather than writing a second walker) - against the command's effective directory: git's own `-C <dir>` when the segment carries one, else the hook's cwd. No determinable operand refuses at exit 2 naming the command (the DEC-151 undecidable direction). A resolved path that is not an existing directory passes to git, which refuses it itself. Otherwise, for each directory <wt>/.harness/<segment>/features/<id> (direct children only, symlinks never followed) holding a notes, runs or observations entry (os.path.lexists), call working_files.untracked_counts(<wt>, <its path relative to wt>); a WorkingFilesError refuses at exit 2 naming the error, never passes. When any count is nonzero, print to stderr "bash-write-guard: BLOCKED - `git worktree remove <operand>` would delete untracked working files git cannot see (DEC-260 D-08).", then one line per feature directory and working dir "  <feature_rel>/<d>/ (<count> files)", then "  Use .claude/skills/harness/bin/feature-worktree.py remove, which keeps the worktree until distill (merge-gate.py merge-distill), gh-sync.py skip-distill or <working_files.retry_command(<feature dir>)> has removed them.", and exit 2. A worktree with no such directory, or whose counts are all zero, behaves exactly as today: git decides.
+
+      3. .harness/harness/docs/DECISIONS.md: in DEC-260's paragraph for D-08, add one sentence as current truth: bash-write-guard.py refuses an unforced native git worktree remove on the same condition, naming the same directories and counts and pointing to feature-worktree.py remove (ruling E4). Change no other sentence; the DECISIONS-INDEX ruling tail is unchanged. If check-plan-routes.py --canonical-reader-audit reports a new reader site in bash-write-guard.py or working_files.py, add exactly that row to tests/integration/canonical-reader-classification.json in the existing shape; otherwise leave the file untouched.
+
+      4. Tests. tests/unit/test-working-files.py: on a git-initialised temp repository whose feature directory holds two untracked files under notes/, one under runs/ and one tracked file under observations/, untracked_counts returns {"notes": 2, "runs": 1}; with no working dirs it returns {}; a failing git (a non-repository checkout) raises WorkingFilesError. tests/integration/test-bash-write-guard.py keeps every existing case unchanged, case 8 (an unforced remove of a worktree with no feature working files is allowed) included, and adds, on a real repository built by the test's own subprocess git (git init, one commit, git worktree add under <root>/.claude/worktrees/harness/FEAT-91 - the hook is not in that loop): (a) with <wt>/.harness/harness/features/FEAT-91-probe/notes/x.md and runs/r/digest.md written and untracked, firing `git worktree remove <wt>` exits 2, stderr names notes/ (1 files), runs/ (1 files) and feature-worktree.py, and the worktree and both files still exist; (b) the same refusal for `git -C <root> worktree remove .claude/worktrees/harness/FEAT-91`, the relative operand resolved against -C; (c) with only an untracked scratch.txt at the worktree root and no working files, the same command is not refused by this rule (exit 0); (d) `git worktree prune` unforced stays allowed; (e) `git worktree remove` with no operand is refused naming the command. Expected red before step 1 and 2: cases (a), (b) and (e) exit 0 and untracked_counts does not exist; keep that output for qa.
+  - id: T-12
+    title: Fold DEC-261 in - raw verification output goes to the feature's scratch/, instructions ask for a summary
+    traces: [SC-19, SC-20]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 - working_files.py, GATE 2b, the ignore rules, the member grants and validate-digest.py are enforcement this feature changes; the instruction and decision edits describe that change and land with it. Operator ruling (b) in notes/answers-validate-c0-amend2.md.
+    depends_on:
+    - T-03
+    - T-07
+    - T-08
+    - T-11
+    status: done
+    files:
+    - .harness/harness/docs/DECISIONS.md
+    - .harness/harness/docs/DECISIONS-INDEX.md
+    - .omp/agents/harness-qa.md
+    - .claude/skills/harness/teams/validate.yaml
+    - .claude/skills/harness/teams/fix.yaml
+    - .claude/skills/harness-digest-dev/SKILL.md
+    - .claude/skills/harness/bin/validate-digest.py
+    - .claude/skills/harness/bin/working_files.py
+    - .claude/skills/harness/bin/feature-worktree.py
+    - .claude/skills/harness/bin/bash-write-guard.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/plan-merge.py
+    - .claude/skills/harness/bin/merge-gitignore.py
+    - .claude/skills/harness/templates/gitignore.snippet
+    - .claude/skills/harness/templates/team-config.yaml
+    - .harness/team-config.yaml
+    - .gitignore
+    - .claude/skills/harness/references/checkout-upgrade.md
+    - .harness/README.md
+    - tests/unit/test-working-files.py
+    - tests/unit/test-working-files-untracked.py
+    - tests/integration/test-merge-gitignore.py
+    - tests/integration/test-feature-worktree.py
+    - tests/integration/test-check-domain-grant.py
+    - tests/integration/test-harness-yaml.py
+    verify: |
+      set -e
+      cd "$(git rev-parse --show-toplevel)"
+      git merge-base --is-ancestor d0d13c7e HEAD
+      for f in tests/unit/test-working-files.py tests/unit/test-working-files-untracked.py tests/integration/test-merge-gitignore.py tests/integration/test-feature-worktree.py tests/integration/test-check-domain-grant.py tests/integration/test-validate-digest.py tests/integration/test-bash-write-guard.py; do env -u HARNESS_AGENT_TYPE python3 "$f"; done
+      git check-ignore -q .harness/harness/features/FEAT-0-probe/scratch/pytest.log
+      env -u HARNESS_AGENT_TYPE python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import working_files; assert 'scratch' in working_files.WORKING_DIRS"
+      if grep -nE "verbatim\*\* output|full output in your note|runner's full output|stay as DEC-238, DEC-255 and DEC-257|written outside the$|its verbatim output|then its output" .omp/agents/harness-qa.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness/teams/fix.yaml .claude/skills/harness-digest-dev/SKILL.md .harness/harness/docs/DECISIONS.md .claude/skills/harness/bin/validate-digest.py; then exit 1; fi
+      if grep -rn "/tmp/feat" .claude .omp; then exit 1; fi
+      for f in .claude/skills/harness-digest-dev/SKILL.md .omp/agents/harness-qa.md .claude/skills/harness/teams/validate.yaml .claude/skills/harness/teams/fix.yaml; do grep -q "scratch/" "$f"; done
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-decision-anchors.py
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-refs.py .
+      env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/check-skill-weight.py .
+    intent: |
+      Product checkout: the Harness repository itself, worktree /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2641-local-working-files, branch feat/FEAT-2641-local-working-files; every edit stays inside it. The governing record is .harness/harness/docs/DECISIONS.md - read DEC-174, DEC-255, DEC-262, DEC-261 and this plan's D-01, D-05, D-08, D-10 and D-13. Run Python as env -u HARNESS_AGENT_TYPE python3. Operator ruling (b), notes/answers-validate-c0-amend2.md. DEC-261 is on origin/main (d0d13c7e) and not on this branch: before any edit, bring origin/main in by the route T-09's intent names (rebase onto current main) so DEC-261's section exists to edit; the verify's first line checks it. `.agents/skills` is a tracked symlink to `../.claude/skills`, so every `.agents/skills/...` path in the ruling is the `.claude/skills/...` file listed here; no generation or skill-sync step applies. Test-first: write the step 5 cases, run them against the unchanged tree and keep the failing output in scratch/ with its one-paragraph summary in notes/red-T-12.txt before step 1; the passing run's summary goes in notes/green-T-12.txt. Landing (D-10): commit locally on the feature branch only; never push or open a pull request before T-09's verify passes on the final tree.
+
+      1. Scratch is a working-file class (D-13). bin/working_files.py: WORKING_DIRS becomes ("notes", "runs", "observations", "scratch"); its module docstring and the targets docstring name scratch/. Every consumer keyed on WORKING_DIRS - targets and clean (abandon, the rejected station write, merge-distill, skip-distill, feature-worktree.py clean), untracked and untracked_counts (GATE 2b in feature-worktree.py remove and bash-write-guard.py's native worktree-remove check from T-11) - then covers scratch/ with no change of its own; change only the comments, docstrings and printed sentences in feature-worktree.py, bash-write-guard.py, gh-sync.py and plan-merge.py that enumerate notes/, runs/ and observations/ so they name scratch/ too. .gitignore and templates/gitignore.snippet gain .harness/*/features/*/scratch/ beside the existing three feature rules, and their comment names it; merge-gitignore.py's HEADER and module docstring name scratch/ (the rules themselves come from the snippet). references/checkout-upgrade.md's working-files checklist adds ':(glob).harness/*/features/*/scratch/**' to the git rm --cached pathspecs. .harness/README.md's committed-versus-local paragraph names scratch/ as the place raw verification output lives and removed with the other working files.
+
+      2. Grants. In .harness/team-config.yaml and templates/team-config.yaml, every member whose dispatch runs a verify or a suite - harness-qa, harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, harness-dev-ops, harness-documentor - gains { path: .harness/*/features/*/scratch/**, upsert: true } (the template keeps its own .harness/features/* path form), so a Write and a Bash redirect into the feature's scratch/ are admitted by check-domain.py and bash-write-guard.py; no other grant changes.
+
+      3. Decision record (D-13). In DEC-261's section of DECISIONS.md, replace "It is written outside the repository and deleted once the check that reads it has run" with: it is written under the feature's git-ignored scratch/ (.harness/<segment>/features/<id>/scratch/), never committed, and removed with the feature's other local working files (DEC-262); and replace "`runs/` records and QA manifests stay as DEC-238, DEC-255 and DEC-257 set them." with: `runs/` records and QA manifests (runs/<id>/qa/manifest-*.json) are local working files under DEC-262, never committed. Keep every other sentence of DEC-261, its core rule included (raw output is scratch, never committed; one summary per check). DEC-238 and DEC-257 were already amended and struck by T-08; touch them only if a sentence there still says runs/ records or QA manifests are committed. Add DEC-262 to DEC-261's Refs. Regenerate the index with gen-decisions-index.py; rewrite DEC-261's hand-written ruling tail only if it names committed runs/ or manifests.
+
+      4. Instructions: a summary, never the output. .omp/agents/harness-qa.md step 3 ("Keep the tested commit and the runner's full output in your note"): keep in the note one summary per suite - what ran (the runner command and kind), at which commit, the verdict and the pass/fail/skip counts - and write the runner's raw output to the feature's scratch/, never into the note. teams/validate.yaml (the "keep the tested commit and full output in your note" clause) and teams/fix.yaml (the same clause): the same sentence. harness-digest-dev/SKILL.md, the paragraph opening "Report the result as `task_verify`": paste into your receipt the verify command exactly as plan.yaml spells it, the commit it ran at, the verdict and the counts; write the raw output to the feature's scratch/, never into the receipt; validate-digest.py refuses task_verify: pass when the receipt is missing or does not carry the command (DEC-261). validate-digest.py _receipt_error: its two refusal messages ask for the receipt to hold the verify command and the summary, and never for the output; the check itself - the receipt exists and carries the verify command verbatim - is unchanged. INV-47 is retired by this feature (D-02), so no gate reads a review note's body; nothing changes there.
+
+      5. Tests. tests/unit/test-working-files.py: on a temp feature directory holding scratch/pytest.log beside notes/x.md, targets lists scratch/ after observations/ and clean removes it; untracked_counts on a git-initialised repository with two untracked files under scratch/ reports {"scratch": 2}. tests/unit/test-working-files-untracked.py: its WORKING pattern and pathspecs include scratch, and a probe path .harness/harness/features/FEAT-0-probe/scratch/pytest.log is reported ignored by git check-ignore and refused when tracked. tests/integration/test-merge-gitignore.py: a project .gitignore lacking the scratch rule gains it, and --check names it as missing without writing. tests/integration/test-feature-worktree.py: remove refuses with exit 4 while the feature directory holds one untracked file under scratch/, printing "WOULD DISCARD WORKING FILES <feature>/scratch/ (1 files)", and clean --yes on a done feature removes scratch/. tests/integration/test-check-domain-grant.py: a Write by harness-qa and by harness-backend-dev to .harness/harness/features/FEAT-0-probe/scratch/run.log is allowed. Expected red before steps 1 to 4: every new case fails - WORKING_DIRS has no scratch, the probe path is not ignored and the grant is absent; keep that summary for qa.

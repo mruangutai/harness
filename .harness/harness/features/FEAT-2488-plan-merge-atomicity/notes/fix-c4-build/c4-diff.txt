@@ -1,2 +1,0 @@
-# git diff 2491336e -- <C4 forbidden surfaces> (working tree, uncommitted c4 build); empty body = untouched
-diff-exit=0

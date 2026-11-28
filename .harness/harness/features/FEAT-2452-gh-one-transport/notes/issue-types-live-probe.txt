@@ -1,1 +1,0 @@
-probe-issue-types: CAPABILITY PRESENT mruangutai/harness declares native issue types Bug, Feature, Task

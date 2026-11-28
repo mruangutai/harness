@@ -1,2 +1,0 @@
-scanned 68 file(s), 0 violation(s)
-exit=0

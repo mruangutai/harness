@@ -521,6 +521,42 @@ def case_rejected_overruled_outside_a_live_amendment():
         check(f"rejected_overruled_{label}", any("overruled" in p for p in problems), problems)
 
 
+# FEAT-2641 T-04 — project_notes (DEC-262) and the distill judgement kind (D-11).
+
+def case_accepted_project_notes():
+    doc = full_doc()
+    doc["project_notes"] = [".harness/notes/grilling-x-2026-01-01.md"]
+    problems = clean(doc)
+    check("accepted_project_notes", problems == [], problems)
+
+
+def case_rejected_project_note_outside_harness_notes():
+    doc = full_doc()
+    doc["project_notes"] = ["notes/x.md"]
+    problems = clean(doc)
+    check("rejected_project_note_outside_harness_notes",
+          any("project_notes" in p for p in problems), problems)
+
+
+def _distill(kind="distill"):
+    return {"at": "2026-09-15T12:00:00+00:00", "by": "operator",
+            "kind": kind, "decision": "declined", "reason": "r"}
+
+
+def case_accepted_distill_judgement():
+    doc = full_doc()
+    doc["judgements"] = [_distill()]
+    problems = clean(doc)
+    check("accepted_distill_judgement", problems == [], problems)
+
+
+def case_rejected_distilled_judgement_kind():
+    doc = full_doc()
+    doc["judgements"] = [_distill("distilled")]
+    problems = clean(doc)
+    check("rejected_distilled_judgement_kind", bool(problems), problems)
+
+
 
 # ---------------------------------------------------------------------------
 # BUG-1309 T-01 — github.build_entry, the root of the mirror-build DAG. The
@@ -811,6 +847,12 @@ CASES = (
     case_t15_uniform_for_every_feature_and_index,
     case_t15_accepted_with_the_field,
     case_t15_red,
+
+    # FEAT-2641 T-04 — project_notes and the distill judgement
+    case_accepted_project_notes,
+    case_rejected_project_note_outside_harness_notes,
+    case_accepted_distill_judgement,
+    case_rejected_distilled_judgement_kind,
 )
 
 

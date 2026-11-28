@@ -178,7 +178,7 @@ Policy remains in the tested shell/Python modules authored under `.claude/skills
 
 Every policy process runs asynchronously under one 30-second budget, `POLICY_TIMEOUT_MS`, so a hung gate or helper cannot freeze the session: past the budget it is killed, a broad gate reports itself visibly unavailable, and a narrow gate refuses only the command it guards (DEC-100). The five Bash gates run as five independent processes started together, and their answers combine in a fixed order.
 
-QA records one runner receipt per test kind it claims, `runs/<run-id>/qa/manifest-<kind>.json`, and the return check verifies that recorded run instead of running the suite again. An invalid receipt is refused with the exact command that repairs it, and main commits the receipts with the run record. This trusts recorded execution; the unchanged PR CI suite is the backstop against a forged receipt (DEC-255).
+QA records one runner receipt per test kind it claims, `runs/<run-id>/qa/manifest-<kind>.json`, and the return check verifies that recorded run instead of running the suite again. An invalid receipt is refused with the exact command that repairs it. The receipts stay in the local run record, a working file nobody commits (DEC-262). This trusts recorded execution; the unchanged PR CI suite is the backstop against a forged receipt (DEC-255).
 
 ## Expertise and artifacts
 

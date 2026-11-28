@@ -1,8 +1,0 @@
-omp_path=/Users/molchairuangutai/.bun/bin/omp
-omp_version=omp/19.1.0
-omp_sha256=dca5643669ed5e553f707bd065499babd0fe3030696bbb24c9da09c798af5abb
-source_sha=d1e203d4
-main_session=~/.omp/agent/sessions/-GitHub-harness-.claude-worktrees-harness-BUG-2171-task-structured/2026-11-21T15-51-23-264Z_01a1fece-1d80-71ed-bc1b-55ec6796029b.jsonl
-lead_session=.../01a1fece.../SmokeProductLead.jsonl (yield call_8a582d7c...; tools include yield; outputSchema == harness-product-lead bundle, strict)
-pm_session=.../01a1fece.../SmokeProductLead/SmokeProductLead.SexualRoundworm.jsonl (yield call_2c282581...; outputSchema == harness-pm bundle, strict)
-note: persisted task-call outputSchema/schemaMode equal the persona bundles and no task call was refused, so they were hook-injected, not caller-supplied

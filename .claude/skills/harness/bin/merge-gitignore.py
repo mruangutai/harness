@@ -6,12 +6,13 @@ and every obsolete rule Harness once shipped, without modifying the target;
 normal mode removes the obsolete rules and appends only missing rules under a
 marker block (DEC-112).
 
-OBSOLETE RULES (BUG-2399). Harness once shipped a broad run-directory ignore,
-in two spellings, with a rationale claiming run records were ephemeral. They
-are retained evidence (DEC-238), so the broad rule is replaced by the snippet's
-run-UI rule. Only those exact shipped lines are removed, and the rationale
-lines only inside a Harness marker block; project rules and prose are never
-touched. Line endings, order and unrelated bytes are preserved.
+OBSOLETE RULES (BUG-2399, DEC-262). Harness once shipped three run rules: a
+broad run-directory ignore in two spellings, and later a run-UI-only rule.
+All three are replaced by the snippet's five working-file directory rules
+(a feature's notes/, runs/, observations/ and scratch/, and .harness/notes/). Only those
+exact shipped lines are removed, and the superseded rationale lines only
+inside a Harness marker block; project rules and prose are never touched.
+Line endings, order and unrelated bytes are preserved.
 
 WAS A .sh ENTRY POINT (issue #1674). The native implementation retains the
 shell command's argv, byte-preservation, diagnostics, and even its historical
@@ -49,17 +50,24 @@ import sys
 USAGE = "usage: merge-gitignore.py <project-root> [--check]"
 HEADER = (
     "# --- harness ---\n"
-    "# Run UI is never committed; every other run record is retained evidence (DEC-238)\n"
-    "# and is committed with its feature. Everything else under .harness/ is committed\n"
-    "# on purpose — it is the record of what shipped.\n"
+    "# A feature's notes/, runs/, observations/ and scratch/ (raw verification output) and\n"
+    "# .harness/notes/ are local working files, never committed (DEC-262). Everything else\n"
+    "# under .harness/ is committed on purpose - it is the record of what shipped.\n"
 ).encode("utf-8")
 FOOTER = b"# --- end harness ---\n"
 BLOCK_OPEN, BLOCK_CLOSE = HEADER.split(b"\n", 1)[0], FOOTER.rstrip(b"\n")
-OBSOLETE_RULES = (b".harness/features/*/runs/**", b".harness/*/features/*/runs/**")
+OBSOLETE_RULES = (
+    b".harness/features/*/runs/**",
+    b".harness/*/features/*/runs/**",
+    b".harness/*/features/*/runs/*/ui/**",
+)
 OBSOLETE_RATIONALE = (
     b"# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these",
     b"# must be ignored or the harness deadlocks itself. Everything else under",
     "# .harness/ is committed on purpose — it is the record of what shipped.".encode("utf-8"),
+    b"# Run UI is never committed; every other run record is retained evidence (DEC-238)",
+    b"# and is committed with its feature. Everything else under .harness/ is committed",
+    "# on purpose — it is the record of what shipped.".encode("utf-8"),
 )
 
 
@@ -168,14 +176,14 @@ def _report_appended(target, missing):
 def _report_obsolete(target, obsolete):
     if not obsolete:
         return
-    print(f"merge-gitignore: OBSOLETE in {target} (run records are tracked since BUG-2399):",
+    print(f"merge-gitignore: OBSOLETE in {target} (superseded by the working-file rules, DEC-262):",
           file=sys.stderr)
     for rule in obsolete:
         print(f"  x {rule.decode('utf-8')}", file=sys.stderr)
 
 
 def _report_removed(target, obsolete):
-    print(f"merge-gitignore: removed obsolete run-directory rules from {target}")
+    print(f"merge-gitignore: removed superseded run rules from {target}")
     for rule in obsolete:
         print(f"  x {rule.decode('utf-8')}")
 

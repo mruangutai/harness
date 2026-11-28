@@ -115,6 +115,7 @@ teams:
           - { path: docs/**, upsert: true }                # SEED — this project's docs root
           - { path: README.md, upsert: true }
           - { path: .harness/README.md, upsert: true }
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-documentor.md, upsert: true }
           - { path: ".", read: true }
 
@@ -137,6 +138,7 @@ teams:
         domain:
           - { path: src/**, upsert: true }                 # SEED — frontend source root
           - { path: .harness/features/*/notes/receipt-harness-frontend-dev-*.md, upsert: true }   # its verification receipt (B-7)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -148,6 +150,7 @@ teams:
           - { path: src/**, upsert: true }                 # SEED — backend source root
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: .harness/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -159,6 +162,7 @@ teams:
           - { path: src/**/prompts/**, upsert: true }      # SEED — prompt/agent source
           - { path: evals/**, upsert: true }               # SEED — eval root
           - { path: .harness/features/*/notes/receipt-harness-ai-dev-*.md, upsert: true }   # its verification receipt (B-7)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -170,6 +174,7 @@ teams:
           - { path: migrations/**, upsert: true }          # SEED — migrations root
           - { path: src/**/schema*, upsert: true }         # SEED — schema/model files
           - { path: .harness/features/*/notes/receipt-harness-data-engineer-*.md, upsert: true }   # its verification receipt (B-7)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
           - { path: ".", read: true }
 
@@ -183,6 +188,7 @@ teams:
           - { path: .harness/harness.json, upsert: true }
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: .harness/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw verification output, never committed (DEC-261)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
@@ -203,6 +209,7 @@ teams:
           - { path: "**/*.test.*", upsert: true }          # SEED — colocated tests
           - { path: .harness/features/*/notes/qa-*.md, upsert: true }   # assessments (DEC-130)
           - { path: .harness/features/*/runs/*/qa/manifest-*.json, upsert: true }   # runner receipts only (DEC-255)
+          - { path: .harness/features/*/scratch/**, upsert: true }   # raw runner output, never committed (DEC-261)
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: ".", read: true }
 
