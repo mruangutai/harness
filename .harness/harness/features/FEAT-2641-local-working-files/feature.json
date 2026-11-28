@@ -21,6 +21,22 @@
       "cycles_used": 0,
       "ended_at": "2026-11-28T03:20:46+00:00",
       "code_grade": "n_a"
+    },
+    {
+      "id": "plan-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T03:26:00+00:00",
+      "tokens": 105653,
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/plan-c2-product/digest.md",
+        "sha256": "13749db3b4cd53e210c16765a473b64015ffd11533db4ce2f76923d54547989d"
+      },
+      "cycles_used": 0,
+      "ended_at": "2026-11-28T03:53:15+00:00",
+      "code_grade": "n_a"
     }
   ],
   "judgements": [
@@ -37,6 +53,20 @@
       "kind": "continue",
       "decision": "stop",
       "reason": "plan run returned ESCALATE: OQ-02 (working files of shipped-but-undistilled features) is a scope question only the operator can rule; no re-panel before that answer since it may change the tasks a re-read would cover"
+    },
+    {
+      "at": "2026-11-28T03:25:59+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "continue",
+      "reason": "operator answered OQ-02, LEAD-01, OQ-01, GC-01, OQ-03..05 in notes/answers-plan-product.md; apply via pm and run the one authorized scope re-read as plan-c2-product"
+    },
+    {
+      "at": "2026-11-28T03:53:16+00:00",
+      "by": "harness-orchestrator",
+      "kind": "continue",
+      "decision": "stop",
+      "reason": "answers applied and the one authorized re-read ran; its 5 substance findings were applied and are unread (LEAD-02); no second re-read is authorized so the plan returns pending for signature"
     }
   ],
   "mission": "plan"

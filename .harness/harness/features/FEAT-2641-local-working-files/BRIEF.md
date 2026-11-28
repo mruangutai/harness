@@ -18,9 +18,9 @@ local copies when a feature finishes.
 **operator** — No feature's notes (prototypes and screenshots included), runs or observations,
 and no project note under `.harness/notes/`, is ever committed or carried in a pull request; the
 ones already tracked leave the tree without history being rewritten. My local disk is cleaned for
-me when a feature distills or ends by abandon or reject, or when I decline its distill, and
-nothing deletes a project note no feature claimed. A worktree is never removed while its feature
-still has working files on disk.
+me when a feature distills or ends by abandon or reject, or when I decline its distill, and the
+decline itself is on the record; nothing deletes a project note no feature claimed. A worktree is
+never removed while its feature still has working files on disk.
 
 **code maintainer** — No CI gate reads a working file: the invariants and the ship refusal that
 did are deleted with their tests, not stubbed or skipped. One routine owns working-file cleanup
@@ -53,13 +53,13 @@ note the main checkout cannot see.
 - SC-05 (orchestrator): `gh-sync.py ship` reads no `notes/` file: a feature with no `notes/` directory whose `feature.json` records a validator-squad validate or fix run at PASS passes the validation precondition, and one with no such run, not built entirely main-session-direct, is refused before any GitHub write; qa shows the first case refused at the base.
   verify: automated
   evidence: integration
-- SC-06 (operator): `gh-sync.py abandon --yes`, and `gh-sync.py reject --yes` with a numeric successor, delete the feature's `notes/`, `runs/` and `observations/` and each `.harness/notes/` path its `feature.json` `project_notes` lists, only after they record the station; without `--yes` they list those paths and delete nothing; a project note not listed survives; a refused station write deletes nothing. `gh-sync.py reject --superseded-by none`, whose caller records the station, deletes nothing with or without `--yes`, never previews a removal, and names the `feature-worktree.py clean` command.
+- SC-06 (operator): `gh-sync.py abandon --yes` deletes the feature's `notes/`, `runs/` and `observations/` and each `.harness/notes/` path its `feature.json` `project_notes` lists only after it records the station, and `plan-merge.py set-feature-station --station rejected` deletes the same set only after its station write has succeeded — both the write `gh-sync.py reject --yes` makes for a numeric successor and the one the caller of `--superseded-by none` makes; a refused station write, a write of any other station, and abandon or reject without `--yes` delete nothing; a project note not listed survives; `gh-sync.py reject --superseded-by none` itself deletes nothing and previews no removal.
   verify: automated
   evidence: integration
 - SC-07 (operator): `merge-gate.py merge-distill` deletes the same set after the merge succeeds and reports each deleted path; any refusal before the merge deletes nothing.
   verify: automated
   evidence: integration
-- SC-08 (operator): `feature-worktree.py clean --repo <repo> --id <FEAT> --yes` deletes the same set when either the landed record (the owner checkout's `plan.yaml`) or the worktree's `plan.yaml` reads `done`, `abandoned` or `rejected` — including owner `done` with worktree `review` — and refuses, deleting nothing, when neither does; it refuses, deleting nothing, when a listed project note is a directory; without `--yes` it lists the paths and deletes nothing.
+- SC-08 (operator): `feature-worktree.py clean --repo <repo> --id <FEAT> --yes` deletes the same set when either the landed record (the owner checkout's `plan.yaml`) or the worktree's `plan.yaml` reads `done`, `abandoned` or `rejected` — including owner `done` with worktree `review` — and refuses, deleting nothing, when neither does; it deletes the retained linked worktree's copy whether that worktree is named by the short id or the full feature id and whether the command runs from the owner checkout or a linked worktree, and refuses, deleting nothing, when two linked worktrees hold the feature directory; it refuses, deleting nothing, when a listed project note is a directory; without `--yes` it lists the paths and deletes nothing.
   verify: automated
   evidence: integration
 - SC-09 (operator): `feature-worktree.py remove` refuses with exit 4, removing nothing, while the feature directory holds untracked files under `notes/`, `runs/` or `observations/`, naming each of those directories with its file count (no per-file line) and the `clean` command, and removes the worktree once they are gone; `post-merge-sweep.py` leaves such a worktree in place.
@@ -81,11 +81,14 @@ note the main checkout cannot see.
   verify: inspection
 - SC-15 (code maintainer): Read at the pin with `git show <review_sha>:.harness/harness/docs/DECISIONS.md`, a new entry states the local-working-files rule, DEC-257 carries a strike record naming it, every amend row in `plan.yaml` `decisions_affected` reads as current truth, and `gen-decisions-index.py --stdout` equals the committed `DECISIONS-INDEX.md`; the reviewer cites the lines.
   verify: inspection
-- SC-16 (orchestrator): Read at the pin, the distillation reference ends with the cleanup step, commits the reconstructed Expertise with `feature.json` and no receipt or run record, and routes a distill that changed no Expertise to `feature-worktree.py clean`; the reject procedure tells the caller of `--superseded-by none` to run `feature-worktree.py clean` only after recording `rejected`; the orchestrator playbook records owned project notes with `feature-record.py project-note`, `.omp/commands/harness.md` names `feature-worktree.py clean` for a declined distill, and `harness-ship.md` no longer prunes run evidence; the reviewer cites file and line.
+- SC-16 (orchestrator): Read at the pin, the distillation reference ends with the cleanup step, commits the reconstructed Expertise with `feature.json` and no receipt or run record, and routes a distill that changed no Expertise to `feature-worktree.py clean`; the reject procedure says the `rejected` write through `plan-merge.py set-feature-station` removes the working files once it succeeds, on both paths, and that exit 4 or 10 means only the cleanup failed; `.omp/commands/harness.md` names `gh-sync.py skip-distill` for a declined distill; `checkout-upgrade.md` names the `git rm -r --cached --sparse` repair for an in-flight branch still tracking its working files; the orchestrator playbook records owned project notes with `feature-record.py project-note`, and `harness-ship.md` no longer prunes run evidence; the reviewer cites file and line.
   verify: inspection
-- SC-17 (operator): When the station or merge landed but working-file cleanup then fails, `gh-sync.py abandon`, `gh-sync.py reject` and `merge-gate.py merge-distill` exit 4, naming what landed, each path already removed, and the `feature-worktree.py clean` command to retry cleanup alone, and tell the operator not to re-run the terminal command; proven by in-process faults at the cleanup seam, with no GitHub write repeated.
+- SC-17 (operator): When the station, decline or merge landed but working-file cleanup then fails — resolving the feature directory or the owner checkout after it landed included — `gh-sync.py abandon`, `gh-sync.py reject`, `gh-sync.py skip-distill` and `merge-gate.py merge-distill` exit 4 and `plan-merge.py set-feature-station` exits 10, each naming what landed, each path already removed, and the `feature-worktree.py clean` command to retry cleanup alone, and telling the operator not to re-run the terminal command; proven by in-process faults at the cleanup seam, with no GitHub write repeated.
   verify: automated
   evidence: unit
+- SC-18 (operator): On a shipped feature, `gh-sync.py skip-distill <feature-dir> --reason-file <path> --yes` appends one `feature.json` judgement of kind `distill` with decision `declined`, commits that `feature.json` alone, and only once that commit has succeeded deletes the feature's `notes/`, `runs/` and `observations/` — the retained worktree's copy when one exists, named by the short or the full id — and each `.harness/notes/` path `project_notes` lists, leaving an unlisted note; it does so with `github.sync` off or no authenticated `gh` alike and never prints a SKIP; a refused commit deletes nothing, and a re-run commits the recorded decline without a second judgement; without `--yes` it changes nothing; a feature not at `done`, or a refused judgement write, writes and deletes nothing.
+  verify: automated
+  evidence: integration
 
 ## Verification gaps
 
@@ -96,6 +99,9 @@ note the main checkout cannot see.
   git's documented behaviour, disclosed under Constraints, not a criterion.
 - `handoff_comprehension` (locally run) is not run: the handoff contract (shape, sections, cap) is
   unchanged; only the CI re-check of persisted notes goes.
+- Not graded at the pin: the distill declines of BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and
+  FEAT-2581 (plan D-12) are recorded after the merge, on main's new code, so no SC grades them;
+  the main session reports each `gh-sync.py skip-distill` exit at landing (plan T-09).
 
 ## Constraints
 
@@ -115,18 +121,30 @@ note the main checkout cannot see.
 - KEPT, not removed (operator): runtime checks reading local disk while work happens —
   check-domain's handoff shape gate, validate-digest's receipt and citation checks, expertise
   receipt verification, `feature-record.py run-start`'s succession refusal.
+- Departure from the grilling (operator, OQ-01): the grilling listed ship's
+  `notes/handoff-validate.md` refusal among the gates to delete; this plan keeps the precondition
+  and moves it to `feature.json` (plan D-07), because deleting it reopens BUG-1129.
 - Disclosure: when this lands and a checkout pulls `main`, git deletes from that checkout's disk
   every working file this feature untracks; each stays readable through `git show <sha>:<path>`.
-  A feature shipped but not yet distilled at that moment loses its observation logs from disk
-  (open question OQ-02).
+  A feature shipped but not yet distilled at that moment loses its observation logs from disk.
+  The operator declined the distills of BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and FEAT-2581
+  with no preservation step; each decline is recorded with `gh-sync.py skip-distill` after the
+  merge (plan D-12, OQ-02).
 - Disclosure: an in-flight branch still tracking its own working files turns the guard test red
-  when it merges `main`; its repair is `git rm -r --cached --sparse` on those paths (OQ-03).
+  when it merges `main`; its repair is `git rm -r --cached --sparse` on those paths, which the
+  operator accepted and `checkout-upgrade.md` records (plan T-07, OQ-03).
 
 ## Out of scope
 
 - Rewriting `main`'s history to drop what is already committed — it changes every SHA and breaks
   cited SHAs and every clone (operator agreed).
 - `core.abbrev` or any git-config workaround for hash length (operator agreed).
+- Preserving the observation logs or lessons of BUG-2451, FEAT-2557, BUG-2565, BUG-2566 and
+  FEAT-2581 — the operator declined their distills (OQ-02).
+- Claiming this feature's own grilling and facts notes
+  (`.harness/notes/grilling-notes-local-only-2026-11-27.md`,
+  `.harness/notes/facts-notes-local-only-2026-11-27.md`) in `project_notes` — the operator removes
+  them by hand (OQ-04).
 
 ## Approval
 

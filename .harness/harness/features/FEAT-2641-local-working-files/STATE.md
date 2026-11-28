@@ -3,13 +3,13 @@
 ## Current
 
 - feature: FEAT-2641-local-working-files
-- run: runs/plan-product/state.yaml (ESCALATE, panel cycle 1, 0 cycles)
+- run: runs/plan-c2-product/state.yaml (ESCALATE, panel cycle 2, 0 cycles)
 - squad: none
-- status: awaiting-user (BRIEF and plan pending, unsigned; cycles_used 0 of 10)
+- status: awaiting-user (BRIEF and plan pending, unsigned; 10 tasks, 12 decisions; cycles_used 0 of 10)
 
 ## Open Questions
 
-- OQ-02 (blocking): how the working files of shipped-but-undistilled features are preserved when the untracking commit is pulled. Pointer: runs/plan-product/digest.md.
-- LEAD-01 (blocking signature): the applied text of T-03, T-05, T-06, T-07, T-09 is unread by any reader; one scope re-read, or sign accepting it unread. Pointer: runs/plan-product/digest.md.
-- OQ-01, GC-01 (signature): two departures from the grilling's Settled list, D-07 and caller-run cleanup on reject-none and declined distill. Pointer: notes/research-FEAT-2641-local-working-files-goalcheck-plan.md.
-- OQ-03, OQ-04, OQ-05 (non-blocking): runs/plan-product/digest.md.
+- LEAD-02 (blocking signature): the one authorized re-read ran; its 3 high and 2 med substance findings were applied afterwards, so T-03, T-05, T-06, T-08, T-09, D-05, D-11, D-12, the DEC-253 and DEC-238 rows and BRIEF SC-08, SC-17, SC-18 are unread. Pointer: runs/plan-c2-product/digest.md.
+- PM-C2-01 (non-blocking): the five distill declines are recorded post-merge from the owner checkout (D-12, T-09 step 5). Pointer: runs/plan-c2-product/digest.md.
+- PM-C2-02 (non-blocking): a zero-op distill still ends with a manual clean step. Pointer: runs/plan-c2-product/digest.md.
+- PF-527a (low, form, open): task list not topological; plan-merge has no reorder verb. Pointer: runs/plan-c2-product/panel-c2.md.
