@@ -155,6 +155,7 @@ steps:
 #     recorded as assessed-and-dismissed with a reason, not omitted
 #   - triage by the practicality rule before routing: a finding that is contrived, no_worse
 #     and not adversary-controlled is lowered to at most med or dropped, with a one-line
-#     reason naming the reader's severity; a remedy touching signed text reaches the operator
-#     only when its finding survives this triage
+#     reason naming the reader's severity, never raising a severity and never revising kind;
+#     a remedy touching signed text reaches the operator only when its finding survives this
+#     triage
 #   - report the SHA it reviewed; a fix cycle is `fix.yaml`, hosted by the same lead

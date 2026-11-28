@@ -447,6 +447,8 @@ transcribed as `exposure: unrated`, never invented. In this team a `contrived`, 
 non-adversary finding is lowered to at most `med`, never dropped, so its panel row exists and, left
 open, does not deny its reader the carve-out (DEC-123 as amended). `plan-merge.py record-panel`
 refuses a finding without `exposure` and a contrived, no_worse, non-adversary finding above `med`.
+Never raise a severity. A remedy that would touch signed text reaches the operator
+(`open_questions` or `ESCALATE`) only when its finding survives this triage.
 If `fable-advisor` does not resolve or preflight refuses it, SKIP it and RECORD a readers
 entry with the literal words `status skipped`, its persona, and the host's reason — never report
 that it ran and found nothing. Your close-out digest carries the same `readers:` (now including

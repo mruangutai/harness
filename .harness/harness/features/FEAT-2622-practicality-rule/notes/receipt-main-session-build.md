@@ -36,3 +36,24 @@ As in BUG-2582, the main session ran the four angles itself, read-only, over `3e
 - `_severity_max_errors` and `_reviewer_fail_errors`.
 
 After the split, every changed function passes. The T-01 and T-02 suites were re-run after the apply.
+
+## Fix round 1
+
+Source: validate run 02 (FAIL, MF-1 to MF-5). Operator rulings are in `notes/answers-2026-11-28-validate-c1.md`. Every fix ran main-session-direct.
+
+- **MF-1 (substance, high, T-01).** An open discounted panel row now relieves a plan-team reader FAIL only when the digest's current finding with the same PF id is also discounted at a non-gating severity. The change is `_matched_row_reason` and `_discounted_non_gating` in `validate-digest.py`. The resolved-row path is unchanged.
+  - **Test first.** `practicality-carveout-stale-row-current-high-denied` (a high, plausible/regression current finding over an open contrived/no_worse med row) was FAIL at the pin, with relief granted and "no errors".
+  - **Mutation.** With the fix applied, removing the digest-side `_discounted_non_gating(item)` conjunct turns that case red again, and only that case.
+- **MF-2 (substance, med, T-01).**
+  - **New case.** `practicality-discounted-high-medmax-capped`: a discounted high finding at PASS with `severity_max: med`, so no aggregate check fires.
+  - **Isolation.** Each refusal case now requires the rule's own message at its own location (`findings[0]`, `must_fix[0]`, `severity_max`, `VERDICT FAIL`).
+  - **Clean acceptance.** Acceptance cases run on a security-reviewer fixture that validates clean and require no error at all. The relief case requires a clean digest too.
+  - **Mutation.** Removing the `_severity_errors` call turns four cases red, the new medmax case among them. Before this round, by the code reviewer's reading, no case caught that removal.
+  - Neither new case name ends in refused/relieved/carried, so T-01's red-first count stays 16 as signed.
+- **MF-3 (form, T-05).** DEC-123's carve-out clause was rewritten in place (DEC-205). The matched row may now be resolved, or open with both the row and the current finding discounted at a non-gating severity; a stale discounted row whose current finding is not discounted keeps worst-wins. DEC-260's D-06 bullet says the same. The index was regenerated, with anchors only.
+- **MF-4 (form, T-03/T-04).** The signed-text routing clause and "never raise a severity" now appear in `harness-product-lead.md` and the `teams/plan.yaml` lead comment. "never raising a severity and never revising kind" now appears in the `teams/validate.yaml` lead bullet.
+- **MF-5 (form, T-04).** `harness-tdd-enforcement` now says the absence of exotic-input tests elsewhere "is neither a coverage gap nor a finding". `harness-verification-rules` now says "Tests target the code's plausible inputs".
+
+### Ledger note: closing run 02
+
+`feature-record.py close-run` from this worktree refused run 02's digest: the lead yielded it against the control plane's pre-feature schema (VAL-OQ-02), and the worktree's schema requires `exposure`. That is D-04's known residual, a lead run open while this feature's own schema change is live in the worktree. The run was closed with the control plane's `feature-record.py`, the validator its digest was yielded under, with verdict FAIL recorded. Run 03 will close the same way until the merge.

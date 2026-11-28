@@ -227,6 +227,8 @@ steps:
 # it discounts (contrived, no_worse, not adversary-controlled), with a one-line reason, never
 # raising a severity or revising kind; in this team it lowers rather than drops, so the panel
 # row exists and, left open at med, does not deny its reader the carve-out (DEC-123 as amended).
+# A remedy that would touch signed text reaches the operator only when its finding survives
+# this triage.
 # The lead does not assign PF- ids: record-panel computes identity once from reader and summary.
 # If fable-advisor cannot resolve or preflight refuses it, the lead skips the step and records
 # a reader entry containing "status skipped", the persona, and the host reason. It never

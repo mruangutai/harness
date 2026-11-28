@@ -2496,10 +2496,11 @@ alone), and carrying exactly one member entry per reader step (a skipped one cou
 persona `teams/plan.yaml` declares for that step, a reader member (`scope`, `should-not-exist` or
 `design`) at `verdict: FAIL` ranks as `PASS` when every finding the team digest attributes to it
 matches exactly one row of that feature's `plan.yaml` `panel.findings` by recomputed PF id,
-carrying the same reader string and `disposition: resolved`, and every other on-disk row
-attributed to it is `resolved` or, under the practicality rule (DEC-260), open at a non-gating
-severity with a discounted exposure. An open (other than such a discounted row), absent,
-mismatched, unattributable or ambiguous finding, a
+carrying the same reader string, and that row is `disposition: resolved` or, under the
+practicality rule (DEC-260), open with both the row and the digest's current finding discounted at
+a non-gating severity; and every other on-disk row attributed to it is `resolved` or open and
+discounted at a non-gating severity. An open row that is not so discounted, a stale discounted row
+whose current finding is not, an absent, mismatched, unattributable or ambiguous finding, a
 malformed panel row, a missing, duplicated or mislabelled reader step, a non-plan dispatch, an
 unloadable plan, `ESCALATE` or `BLOCKED`, and every other team or mission keep worst-wins.
 Reporting **worse** stays legal: a lead may know something its members could not see.
@@ -8876,7 +8877,9 @@ rows carry it.
   `validate-digest.py` refuses a `severity_max` of high or critical that only discounted findings
   support. It also refuses a code, security or UI review FAIL whose every finding is discounted,
   with `must_fix` empty, a non-gating `severity_max` and no failed code grade. In DEC-123's
-  plan-team carve-out, an open row discounted at a non-gating severity does not deny relief.
+  plan-team carve-out, an open row discounted at a non-gating severity does not deny relief,
+  provided the digest's current finding with that id is discounted at a non-gating severity too;
+  a stale discounted row never hides a re-rated gating finding.
 - **Tests.** Tests target the code's plausible inputs. Adversarial and malformed-input tests
   belong only where input crosses a trust boundary (`harness-tdd-enforcement` and the QA
   guidance).

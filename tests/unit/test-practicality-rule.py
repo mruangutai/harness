@@ -82,12 +82,17 @@ def errors_of(persona, obj):
         return [f"{type(exc).__name__}: {exc}"]
 
 
-def refused(errors):
-    return any(RULE in e for e in errors)
+def refused(errors, where):
+    """The rule's own refusal, at `where`, so another check's message never stands in for it."""
+    return any(e.startswith(where) and RULE in e for e in errors)
 
 
 def accepted(errors):
-    return not any(RULE in e or "exposure" in e for e in errors)
+    """A clean digest: the fixtures carry no unrelated defect, so any error at all is a miss."""
+    return not errors
+
+
+REVIEWER = "harness-security-reviewer"  # a reviewer whose fixture validates with no binding
 
 
 def show(errors):
@@ -120,17 +125,23 @@ C.check("practicality-wellformed-accepted", accepted(wellformed), show(wellforme
 
 
 # --- A discounted finding is at most med.
-def severity_case(name, exposure, severity, want_refused, persona="harness-code-reviewer"):
-    """A gating severity is a FAIL review; a non-gating one is a PASS."""
+def severity_case(name, exposure, severity, want_refused, persona=REVIEWER, verdict=None,
+                  severity_max=None):
+    """By default a gating severity is a FAIL review and a non-gating one a PASS."""
     gating = severity not in ("info", "low", "med")
     item = finding("a stale cache entry", exposure, severity)
-    errors = errors_of(persona, digest(persona, [item], verdict="FAIL" if gating else "PASS",
-                                       severity_max="high" if gating else severity))
-    C.check(name, refused(errors) if want_refused else accepted(errors), show(errors))
+    errors = errors_of(persona, digest(
+        persona, [item], verdict=verdict or ("FAIL" if gating else "PASS"),
+        severity_max=severity_max or ("high" if gating else severity)))
+    C.check(name, refused(errors, "findings[0]") if want_refused else accepted(errors),
+            show(errors))
 
 
 severity_case("practicality-discounted-high-refused", DISCOUNTED, "high", True)
 severity_case("practicality-discounted-unrated-severity-refused", DISCOUNTED, "unrated", True)
+# The per-finding ceiling alone: a PASS whose severity_max is med fires no aggregate check.
+severity_case("practicality-discounted-high-medmax-capped", DISCOUNTED, "high", True,
+              verdict="PASS", severity_max="med")
 severity_case("practicality-discounted-med-accepted", DISCOUNTED, "med", False)
 severity_case("practicality-adversary-high-accepted", {**DISCOUNTED, "control": "adversary"},
               "high", False)
@@ -146,10 +157,10 @@ severity_case("practicality-unrated-exposure-high-accepted", "unrated", "high", 
 def must_fix_case(name, must_fix, want_refused):
     stale = finding("a stale cache entry", DISCOUNTED, "med")
     real = finding("the token is logged in clear", PLAUSIBLE, "med")
-    errors = errors_of("harness-code-reviewer",
-                       digest("harness-code-reviewer", [real, stale], must_fix=must_fix,
-                              severity_max="med"))
-    C.check(name, refused(errors) if want_refused else accepted(errors), show(errors))
+    errors = errors_of(REVIEWER, digest(REVIEWER, [real, stale], must_fix=must_fix,
+                                        severity_max="med"))
+    C.check(name, refused(errors, "must_fix[0]") if want_refused else accepted(errors),
+            show(errors))
 
 
 STALE_ID = panel_findings.finding_id("code-reviewer", "a stale cache entry")
@@ -169,45 +180,50 @@ for persona in ("harness-code-reviewer", "harness-security-reviewer", "harness-u
     if lead:
         C.check(f"practicality-unrated-accepted-{short}", accepted(errors), show(errors))
     else:
-        C.check(f"practicality-unrated-refused-{short}", refused(errors), show(errors))
+        C.check(f"practicality-unrated-refused-{short}", refused(errors, "findings[0]"),
+                show(errors))
 
 
 # --- A discounted finding never decides severity_max or a reviewer's FAIL.
-def verdict_case(name, want_refused, verdict="FAIL", severity_max="med", extra=(), must_fix=()):
+def verdict_case(name, refusal=None, verdict="FAIL", severity_max="med", extra=(), must_fix=()):
+    """`refusal` is the start of the error the case expects; None expects a clean digest."""
     items = [*extra, finding("a stale cache entry", DISCOUNTED, "med")]
-    errors = errors_of("harness-code-reviewer",
-                       digest("harness-code-reviewer", items, verdict=verdict,
-                              severity_max=severity_max, must_fix=list(must_fix)))
-    C.check(name, refused(errors) if want_refused else accepted(errors), show(errors))
+    errors = errors_of(REVIEWER, digest(REVIEWER, items, verdict=verdict,
+                                        severity_max=severity_max, must_fix=list(must_fix)))
+    C.check(name, refused(errors, refusal) if refusal else accepted(errors), show(errors))
 
 
-verdict_case("practicality-severity-max-discounted-only-refused", True, severity_max="high")
-verdict_case("practicality-severity-max-witnessed-accepted", False, severity_max="high",
+verdict_case("practicality-severity-max-discounted-only-refused", "severity_max",
+             severity_max="high")
+verdict_case("practicality-severity-max-witnessed-accepted", severity_max="high",
              extra=[finding("the token is logged in clear", PLAUSIBLE, "high")])
-verdict_case("practicality-fail-discounted-only-refused", True)
-verdict_case("practicality-fail-with-mustfix-accepted", False,
+verdict_case("practicality-fail-discounted-only-refused", "VERDICT FAIL")
+verdict_case("practicality-fail-with-mustfix-accepted",
              extra=[finding("the token is logged in clear", PLAUSIBLE, "med")],
              must_fix=["fix: the token is logged in clear"])
-verdict_case("practicality-discounted-only-pass-accepted", False, verdict="PASS")
+verdict_case("practicality-discounted-only-pass-accepted", verdict="PASS")
 
 
 # --- DEC-123 as amended: an open row discounted at med does not deny the carve-out.
-def carveout_case(name, exposure, want_relief):
-    item = finding("a speculative refactor", exposure, "med", reader="fable-advisor")
+def carveout_case(name, exposure, want_relief, current=None):
+    """`exposure` is the open panel row's; `current` is the team digest's finding with the same
+    PF id, by default the row's own rating."""
+    row_item = finding("a speculative refactor", exposure, "med", reader="fable-advisor")
+    item = current or row_item
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(os.path.realpath(tmp))
-        feature = rollup.build(root, [rollup.row(item, "open", exposure=copy.deepcopy(exposure))])
+        feature = rollup.build(root, [rollup.row(row_item, "open",
+                                                 exposure=copy.deepcopy(exposure))])
         obj = rollup.product_digest(feature, "PASS", [item], member_list=rollup.members(
             scope="PASS", **{"should-not-exist": "FAIL"}))
-        obj["DIGEST"]["severity_max"] = "med"
+        obj["DIGEST"]["severity_max"] = item["severity"]
         errors = vd.validate(rollup.PRODUCT, obj, feature_dir=str(feature))
-    worst = rollup.worst_error(errors)
-    C.check(name, not worst if want_relief else worst, show(errors))
+    C.check(name, not errors if want_relief else rollup.worst_error(errors), show(errors))
 
 
-def run_carveout(name, exposure, want_relief):
+def run_carveout(name, exposure, want_relief, current=None):
     try:
-        carveout_case(name, exposure, want_relief)
+        carveout_case(name, exposure, want_relief, current)
     except Exception as exc:  # noqa: BLE001  a base-tree red must still print its line
         C.check(name, False, f"{type(exc).__name__}: {exc}")
 
@@ -215,5 +231,8 @@ def run_carveout(name, exposure, want_relief):
 run_carveout("practicality-carveout-discounted-open-relieved", DISCOUNTED, True)
 run_carveout("practicality-carveout-plausible-open-denied", {**DISCOUNTED, "trigger": "plausible"},
              False)
+# A stale discounted row never relieves a current finding the rule does not discount (MF-1).
+run_carveout("practicality-carveout-stale-row-current-high-denied", DISCOUNTED, False,
+             current=finding("a speculative refactor", PLAUSIBLE, "high", reader="fable-advisor"))
 
 sys.exit(C.report())

@@ -2121,7 +2121,7 @@ PLAN_READER_STEPS = tuple(PLAN_READER_PERSONAS)
 # orchestrator could not tell "plan ready" from "plan failed". A reader member's FAIL ranks as
 # PASS only when the feature's plan.yaml, on disk, records every finding attributed to that
 # reader as `resolved`, or open at a non-gating severity with an exposure the practicality rule
-# discounts (FEAT-2622 D-06).
+# discounts while the digest's current finding with that id is discounted too (FEAT-2622 D-06).
 #
 # - Attribution accepts the slot or the persona spelling, both observed in real digests
 #   (`scope`, `code-reviewer`, `harness-code-reviewer`), but PF identity binds the exact reader
@@ -2283,9 +2283,23 @@ def _open_row_reason(row, index, members):
 def _row_relieves(row):
     """A resolved row, or (DEC-123 as amended by the practicality rule, FEAT-2622 D-06) an open
     row whose exposure is discounted at a non-gating severity."""
-    return row.get("disposition") == "resolved" or (
-        panel_findings.is_discounted(row.get("exposure"))
-        and panel_findings.is_non_gating(row.get("severity")))
+    return row.get("disposition") == "resolved" or _discounted_non_gating(row)
+
+
+def _discounted_non_gating(entry):
+    return (panel_findings.is_discounted(entry.get("exposure"))
+            and panel_findings.is_non_gating(entry.get("severity")))
+
+
+def _matched_row_reason(item, row, pfid):
+    """An open discounted row relieves only while the team digest's current finding with its
+    id is discounted at a non-gating severity too: record-panel keeps a base row's bytes, so a
+    stale discounted rating must never hide a re-rated gating finding (FEAT-2622 MF-1)."""
+    if row.get("disposition") == "resolved":
+        return None
+    if _discounted_non_gating(row) and _discounted_non_gating(item):
+        return None
+    return f"finding {pfid} is not resolved"
 
 
 def _digest_finding_reason(item, rows):
@@ -2299,9 +2313,7 @@ def _digest_finding_reason(item, rows):
             or panel_findings.finding_id(str(hits[0].get("reader")),
                                          str(hits[0].get("summary"))) != pfid):
         return f"finding {pfid} has no matching plan.yaml panel row"
-    if not _row_relieves(hits[0]):
-        return f"finding {pfid} is not resolved"
-    return None
+    return _matched_row_reason(item, hits[0], pfid)
 
 
 def _empty_members_errors(members, steps_run):

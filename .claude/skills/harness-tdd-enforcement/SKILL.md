@@ -51,9 +51,9 @@ under-specified task gives, every field present.
 ## Plausible inputs, not exotic ones
 
 Tests target the code's plausible inputs. Adversarial and malformed-input tests belong only where
-input crosses a trust boundary (external input, credentials, a gate meant to refuse). A
-contrived, no-worse-than-today finding is never the reason for a new test (the practicality rule,
-`harness-code-review`).
+input crosses a trust boundary (external input, credentials, a gate meant to refuse); their
+absence elsewhere is neither a coverage gap nor a finding. A contrived, no-worse-than-today
+finding is never the reason for a new test (the practicality rule, `harness-code-review`).
 
 ## Exemptions
 
