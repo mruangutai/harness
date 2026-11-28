@@ -1,0 +1,90 @@
+schema_version: 2
+run_id: 2026-11-28-01-plan-product
+run_uid: b1ec1c7b5d494375976df43dc96bbf8e
+feature: FEAT-2423-retire-state-md
+squad: product
+host: harness-product-lead
+status: complete
+steps:
+  - id: draft
+    persona: harness-pm
+    seq: 1
+    depends_on: []
+    mutates_repo: true
+    status: complete
+    verdict: ESCALATE
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-2423-retire-state-md/plan.yaml
+    note: draft meets criteria.md; ESCALATE is env-only (sparse worktree, Q-05) so reader wave proceeds on unchanged text
+  - id: scope
+    persona: harness-code-reviewer
+    seq: 2
+    depends_on: [draft]
+    mutates_repo: false
+    max_cycles: 1
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2423-retire-state-md/notes/review-harness-code-reviewer-plan-c1.md
+    note: all 7 findings resolved in plan.yaml at apply (DEC-123 carve-out)
+  - id: should-not-exist
+    persona: fable-advisor
+    seq: 3
+    depends_on: [draft]
+    mutates_repo: false
+    max_cycles: 1
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    note: ran inline; 1 low task proportionality finding; transcribed in panel-c1.md
+  - id: design
+    persona: harness-ui-reviewer
+    seq: 4
+    depends_on: [draft]
+    mutates_repo: false
+    max_cycles: 1
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-3
+    completed_at: seq-4
+    artifact: .harness/harness/features/FEAT-2423-retire-state-md/notes/review-harness-ui-reviewer-plan-c1.md
+  - id: apply
+    persona: harness-pm
+    seq: 5
+    depends_on: [scope, should-not-exist, design]
+    mutates_repo: true
+    status: complete
+    verdict: PASS
+    cycles: 1
+    redispatches: 1
+    dispatched_at: seq-5
+    completed_at: seq-6
+    redispatched_at: seq-8
+    recompleted_at: seq-9
+    artifact: .harness/harness/features/FEAT-2423-retire-state-md/plan.yaml
+    note: c1 resolved 9/9 panel findings; send-back closed goalcheck GC-01 (T-01 INV-2/5 prose orphans)
+    evidence:
+      check_worktree_root: exit 1, 40 failures all sparse STATE.md anchors (Q-05)
+      check_main_root: exit 0, 78 anchors resolved
+  - id: goalcheck
+    persona: harness-pm
+    seq: 6
+    depends_on: [apply]
+    mutates_repo: false
+    status: complete
+    verdict: FAIL
+    lead_verdict: PASS
+    cycles: 0
+    dispatched_at: seq-7
+    completed_at: seq-8
+    artifact: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-FEAT-2423-retire-state-md-goalcheck-plan.md
+    note: FAIL on GC-01 only; remediated by apply send-back and recorded in the note's Remediation applied section

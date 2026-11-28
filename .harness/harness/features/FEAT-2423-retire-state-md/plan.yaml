@@ -1,0 +1,827 @@
+schema: plan/1
+feature: FEAT-2423-retire-state-md
+approval:
+  status: pending
+drafted_at: '2026-11-28T15:45:25Z'
+status: plan
+source_issues:
+- 2423
+panel:
+  last_run: 2026-11-28-01-plan-product
+  cycle: 1
+  readers:
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    reason: none
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    reason: none
+  - reader: design
+    status: ran
+    persona: harness-ui-reviewer
+    reason: none
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    reason: none
+  findings:
+  - id: PF-e9e676d58e4dd5d531bbe6196c11b729
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-01 breaks the existing catalogue assertion and weakens the rename witness
+    disposition: resolved
+    exposure:
+      trigger: routine
+      vs_today: regression
+      control: harness
+    resolved_by: T-01
+  - id: PF-13bc2c8aa089b5edb9883cbf2542024e
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-05 rejects existing DEC-182 wording its intent does not change
+    disposition: resolved
+    exposure:
+      trigger: routine
+      vs_today: regression
+      control: harness
+    resolved_by: T-05
+  - id: PF-dbf137bb6a59299168a0bfcf95fb274e
+    severity: high
+    reader: scope
+    kind: substance
+    summary: T-06/T-07 verification can exit zero with a tracked STATE.md still present
+    disposition: resolved
+    exposure:
+      trigger: routine
+      vs_today: regression
+      control: harness
+    resolved_by: T-07
+  - id: PF-8ade7d415d1e09a0e1497afe344eb01a
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-05 omits active DEC-180 clauses and incompletely updates DEC-181 and DEC-199
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-05
+  - id: PF-9fe0c77924b1ce3b5a7bb07f90ded241
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03/T-04 under-specify the digest read at first entry and wake
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-03
+  - id: PF-902c65f1e078c54dab1dfad17e23869d
+    severity: med
+    reader: scope
+    kind: substance
+    summary: T-03 runs the wake suite before T-05 changes both files it tests
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-05
+  - id: PF-48a3eddbe2ad77e4f3ef91e74441bd32
+    severity: low
+    reader: scope
+    kind: proportionality
+    summary: T-02 needlessly rewrites the subject of a historical measurement
+    disposition: resolved
+    scope: task
+    exposure:
+      trigger: routine
+      vs_today: regression
+      control: harness
+    resolved_by: T-02
+  - id: PF-fbee252a53ba6c1c98dd4fb8a7bd3795
+    severity: low
+    reader: should-not-exist
+    kind: proportionality
+    summary: T-02's new dedicated file tests/unit/test-check-domain-state-retired.py should be cases in the existing check-domain integration suites, not a new pseudo-unit file
+    disposition: resolved
+    scope: task
+    exposure:
+      trigger: routine
+      vs_today: no_worse
+      control: harness
+    resolved_by: T-02
+  - id: PF-c9e2cf0b35b09f0b8d14a2a8dc6e69f6
+    severity: med
+    reader: design
+    kind: substance
+    summary: T-04 removes the org reference table's only explicit state and open-question pointer without naming the live records.
+    disposition: resolved
+    exposure:
+      trigger: plausible
+      vs_today: regression
+      control: harness
+    resolved_by: T-04
+lanes:
+  resolved_at: 36ee67e584e521a1576b54cc67da734f515571bf
+  rows:
+  - surface: .claude/skills/harness/bin/**
+    lane: main-session-direct
+    reason: Gate code (check-state, check-domain, check-plan-routes, plan loader, feature-record validator) under DEC-174.
+  - surface: tests/**
+    lane: main-session-direct
+    reason: Gate tests travel with their gate under DEC-174.
+  - surface: .claude/skills/harness/SKILL.md
+    lane: main-session-direct
+    reason: Operator routed the whole feature main-session-direct; the playbook changes with the gates.
+  - surface: .claude/skills/harness/references/**
+    lane: main-session-direct
+    reason: Same feature-wide routing.
+  - surface: .claude/skills/harness/templates/**
+    lane: main-session-direct
+    reason: Same feature-wide routing.
+  - surface: .omp/agents/**
+    lane: main-session-direct
+    reason: Same feature-wide routing.
+  - surface: .harness/team-config.yaml
+    lane: main-session-direct
+    reason: Comment-only edit in the manifest the domain gate reads.
+  - surface: .harness/README.md
+    lane: main-session-direct
+    reason: Same feature-wide routing.
+  - surface: .harness/harness/docs/**
+    lane: main-session-direct
+    reason: SPEC, org.html, DECISIONS and its regenerated index change with the gates.
+  - surface: .harness/*/features/*/STATE.md
+    lane: main-session-direct
+    reason: Deleting other features' records from a sparse feature worktree.
+decisions:
+- id: D-01
+  choice: 'Retire STATE.md outright: the orchestrator reads plan.yaml status and approval.status, feature.json runs (the open run is the PENDING entry) and the latest run digest''s open_questions with handed answers notes; no replacement file and no feature.json field.'
+  because: 12 of the 15 newest copies were stale while plan.yaml said done, main-session-direct features have no reader, and a second status channel drifts.
+  dec: DEC-129
+- id: D-02
+  choice: INV-2 and INV-5 retire into check_state RETIRED with their numbers never reused; INV-23 keeps its number for feature.json and CLAUDE.md; INV-2 is not retargeted to a feature.json-without-BRIEF rule.
+  because: Both read only the retired file; a retarget is a new gate outside this scope, at the accepted cost that a feature directory lacking BRIEF.md is no longer flagged.
+  dec: DEC-129
+- id: D-03
+  choice: DEC-45 is struck with its heading and strike record kept rather than deleted, and its logs/ separation rule survives only in SPEC section 2.4.
+  because: Operator ruling keeps citations resolving, and the logs half of DEC-45 is not contradicted by this feature.
+  dec: DEC-188
+decisions_affected:
+- dec: DEC-45
+  disposition: strike
+  clause: '`STATE.md` holds no history at all (only `## Current` + `## Open Questions`, both'
+  successor: D-01
+  reason: The entry exists only to bound the retired file; heading and strike record stay so citations resolve.
+- dec: DEC-71
+  disposition: amend
+  clause: 'different shapes depending on how it happened to be requested, and would put un-assessed work into
+
+    `STATE.md`.'
+  successor: D-01
+  reason: Un-assessed work would reach the feature record, not a status file.
+- dec: DEC-71
+  disposition: amend
+  clause: In exchange `STATE.md` sees a
+  successor: D-01
+  reason: The orchestrator, not a status file, sees the uniform digest stream.
+- dec: DEC-95
+  disposition: amend
+  clause: '`STATE.md ## Current` being singular is *correct within a worktree*'
+  successor: D-01
+  reason: What is singular within a worktree is the station and the open run.
+- dec: DEC-120
+  disposition: amend
+  clause: '**`STATE.md` moves per-feature.**'
+  successor: D-01
+  reason: Per-feature live state is plan.yaml and feature.json; the main session lists features from feature.json.
+- dec: DEC-129
+  disposition: amend
+  clause: '`STATE.md`/`feature.json` in `.harness/features/<FEAT>/`'
+  successor: D-01
+  reason: 'Operator ruling: rewrite in place; the directory holds no status file.'
+- dec: DEC-129
+  disposition: amend
+  clause: INV-1..5 are per-feature now, and INV-4/5 accept
+  successor: D-02
+  reason: INV-2 and INV-5 retire; INV-1, INV-3 and INV-4 remain per-feature.
+- dec: DEC-138
+  disposition: amend
+  clause: a second status channel competes with `STATE.md` and drifts from it
+  successor: D-01
+  reason: The channel a mid-build comment would compete with is the run digests and plan.yaml.
+- dec: DEC-150
+  disposition: amend
+  clause: The spec was already right — STATE.md is `## Current` + `## Open Questions`, "holds no history at
+  successor: D-01
+  reason: 'Operator ruling: rewrite in place without the retired file.'
+- dec: DEC-150
+  disposition: amend
+  clause: 'or to `STATE.md` over
+
+    120 lines or carrying any section besides the two legal ones,'
+  successor: D-01
+  reason: The shape gate no longer has a STATE.md rule.
+- dec: DEC-150
+  disposition: amend
+  clause: legal/illegal STATE.md,
+  successor: D-01
+  reason: The two STATE.md proof shapes no longer exist.
+- dec: DEC-150
+  disposition: amend
+  clause: 'step 5 now says REPLACE `## Current`, data-not-narrative for
+
+    feature.json; the DEC-148 relay text names the three correct homes instead of "STATE.md" loosely.'
+  successor: D-01
+  reason: The playbook no longer replaces a Current section.
+- dec: DEC-159
+  disposition: amend
+  clause: transitions are STATE.md log entries.
+  successor: D-01
+  reason: A transition is recorded by the plan.yaml station write.
+- dec: DEC-159
+  disposition: amend
+  clause: validating `## Next` against PLAN/STATE (one grep)
+  successor: D-01
+  reason: The successor validates Next against plan.yaml and feature.json.
+- dec: DEC-159
+  disposition: amend
+  clause: 'STATE.md remains the single durable truth per feature, `## Current`
+
+    replaced across every orchestrator that ever serves it;'
+  successor: D-01
+  reason: plan.yaml and feature.json are the durable truth across orchestrators.
+- dec: DEC-159
+  disposition: amend
+  clause: '`STATE.md`, the
+
+    handoff note and the commit stay the orchestrator''s separate writes;'
+  successor: D-01
+  reason: 'Two separate writes remain after close-run: the handoff note and the commit.'
+- dec: DEC-181
+  disposition: amend
+  clause: handoff notes 60, STATE.md 120.
+  successor: D-01
+  reason: The STATE.md budget no longer exists.
+- dec: DEC-181
+  disposition: amend
+  clause: 'exactly as for the four
+
+    state files. That makes `CLAUDE.md`''s budget the **fourth** number duplicated'
+  successor: D-02
+  reason: INV-23 no longer sweeps four state files; the fourth-number count is dated to its commit.
+- dec: DEC-182
+  disposition: amend
+  clause: '`STATE.md` and the
+
+    handoff note are both.'
+  successor: D-01
+  reason: Only the handoff note is both budget and vocabulary now.
+- dec: DEC-182
+  disposition: amend
+  clause: INV-3/4/5 must keep working for them.
+  successor: D-02
+  reason: INV-5 retires; INV-3 and INV-4 keep the PLAN.md reader.
+- dec: DEC-199
+  disposition: amend
+  clause: 'Run directories are gitignored, so this entry and the feature''s `STATE.md` are
+
+    the durable record and the run directory is not.'
+  successor: D-01
+  reason: The evidence claim is dated to when run directories were gitignored; DEC-257 has since made retained run digests tracked, and feature.json never held that evidence.
+- dec: DEC-201
+  disposition: amend
+  clause: re-reads `STATE.md` and `feature.json` from disk
+  successor: D-01
+  reason: The wake-time re-read is plan.yaml and feature.json.
+- dec: DEC-31
+  disposition: keep
+  clause: '`.planning/STATE.md` Phase-03'
+  successor: none
+  reason: Names GSD's .planning/STATE.md, a different and already removed file.
+- dec: DEC-121
+  disposition: keep
+  clause: what preserves `STATE.md` granularity under hierarchy
+  successor: none
+  reason: A dated quote of the spec when the validator was measured; asserts no current duty.
+- dec: DEC-160
+  disposition: keep
+  clause: not-a-second-STATE.md
+  successor: none
+  reason: Dated narrative of the first live handoff; asserts no current duty.
+- dec: DEC-173
+  disposition: keep
+  clause: FEAT-03-subissue-mirror's `STATE.md`
+  successor: none
+  reason: Records, in the past tense, where a question was raised.
+- dec: DEC-180
+  disposition: amend
+  clause: '**INV-23 sweeps the same budgets from disk at `/harness` entry, at WARN level, and the level is'
+  successor: D-02
+  reason: INV-23 now sweeps only the feature.json and CLAUDE.md budgets.
+- dec: DEC-180
+  disposition: amend
+  clause: 'Now 200, 120,
+
+    20 and 60 do'
+  successor: D-01
+  reason: The present-tense duplicate list is dated to its change; the drift detector now pairs only the CLAUDE.md budget.
+- dec: DEC-180
+  disposition: keep
+  clause: FEAT-05's `STATE.md` at 165 lines
+  successor: none
+  reason: Dated measurement narrative stays; the active INV-23 and duplicated-budget clauses are amended in the two rows above.
+- dec: DEC-131
+  disposition: keep
+  clause: INV-12 catches the orphaned work
+  successor: none
+  reason: State-tagged but never mentions the file; INV-12 is untouched.
+- dec: DEC-171
+  disposition: keep
+  clause: '**PyYAML is permitted.**'
+  successor: none
+  reason: State-tagged but never mentions the file.
+- dec: DEC-191
+  disposition: keep
+  clause: '**The execution-state file admits only schema-declared keys.**'
+  successor: none
+  reason: Supplies the rule that no status field is added to feature.json.
+- dec: DEC-193
+  disposition: keep
+  clause: '**There are exactly two places code is written under harness''s authority:**'
+  successor: none
+  reason: State-tagged but never mentions the file.
+- dec: DEC-174
+  disposition: keep
+  clause: it builds directly.
+  successor: none
+  reason: Every task changes or tests gate code, so the main session builds it directly.
+- dec: DEC-188
+  disposition: keep
+  clause: '**A struck decision is DELETED only when a named successor exists to repoint its citations to.**'
+  successor: none
+  reason: DEC-45 keeps heading and strike record by operator ruling; deletion is permitted, not required.
+- dec: DEC-205
+  disposition: keep
+  clause: '**The amendment convention is ended.**'
+  successor: none
+  reason: DEC-129 and DEC-150 are rewritten in place with no Amended-by text.
+tasks:
+- id: T-01
+  title: Retire INV-2, INV-5 and the STATE.md half of INV-23 from check-state
+  traces:
+  - SC-03
+  - SC-04
+  - SC-05
+  - SC-07
+  - SC-08
+  change_type: cross_module
+  execution_mode: main-session-direct
+  execution_reason: Gate code and its tests change; DEC-174 forbids executing that through the enforcement being changed, and the operator routed the whole feature main-session-direct.
+  depends_on: []
+  status: ready
+  files:
+  - .claude/skills/harness/bin/check_state/table.py#INVARIANTS
+  - .claude/skills/harness/bin/check_state/feature_record.py#inv_2
+  - .claude/skills/harness/bin/check_state/plan.py#inv_5
+  - .claude/skills/harness/bin/check_state/ctx.py
+  - .claude/skills/harness/bin/structure_audit.py#ROW_FAMILIES
+  - .claude/skills/harness/bin/harness_yaml.py#_refuse_a_minted_marker
+  - tests/integration/test-check-state-table.py
+  - tests/integration/test-check-state-plans.py
+  - tests/integration/test-check-state-entry.py
+  - tests/integration/test-check-state-shipped.py
+  - tests/integration/test-check-state-records.py
+  - tests/integration/test-harness-yaml.py
+  - tests/integration/test-checker-structure-locks.py
+  - tests/unit/test-check-state-shipped-ctx.py
+  - path: .claude/skills/harness/bin/check_state/brief.py
+    quote: is skipped for INV-1/2's reason
+  verify: |
+    set -e -o pipefail
+    python3 tests/integration/test-check-state-table.py
+    python3 tests/integration/test-check-state-plans.py
+    python3 tests/integration/test-check-state-entry.py
+    python3 tests/integration/test-check-state-shipped.py
+    python3 tests/integration/test-check-state-records.py
+    python3 tests/integration/test-harness-yaml.py
+    python3 tests/integration/test-checker-structure-locks.py
+    python3 tests/integration/test-structure-audit-single-pass.py
+    python3 tests/unit/test-check-state-shipped-ctx.py
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check_state .claude/skills/harness/bin/structure_audit.py .claude/skills/harness/bin/harness_yaml.py tests/integration/test-check-state-plans.py tests/integration/test-check-state-entry.py tests/integration/test-check-state-shipped.py tests/integration/test-check-state-records.py tests/integration/test-harness-yaml.py tests/unit/test-check-state-shipped-ctx.py || rc=$?; test "$rc" -eq 1
+    python3 - <<'PY'
+    import ast, re, subprocess, sys
+    f, fn = 'tests/integration/test-check-state-table.py', 'case_stray_status_file_is_inert'
+    src = open(f, encoding='utf-8').read()
+    spans = [(n.lineno, n.end_lineno) for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef) and n.name == fn]
+    hits = [i for i, l in enumerate(src.splitlines(), 1) if re.search(r'STATE\.md|STATE_MD|state_md', l)]
+    bad = [h for h in hits if not any(a <= h <= b for a, b in spans)]
+    print(spans, hits, bad); inert_ok = bool(spans and hits and not bad)
+    p = subprocess.run(['git', 'grep', '-n', '-I', '-E', r'INV-(2|5)([^0-9]|$)|INV-([0-9]+/)+(2|5)([^0-9]|$)|INV-[1-5]\.\.([2-9]|[1-9][0-9])([^0-9]|$)', '--', '.claude/skills/harness/bin', 'tests', ':(exclude)tests/integration/fixtures/prior-*', ':(exclude)tests/integration/test-check-state-table.py'], capture_output=True, text=True)
+    inv = p.stdout.splitlines(); live = [h for h in inv if not re.match(r'\.claude/skills/harness/bin/check_state/table\.py:[0-9]+:\s+"INV-(2|5)": "DEC-129 ', h)]
+    print('git grep exit', p.returncode, p.stderr.strip(), 'retired', len(inv) - len(live), 'live', len(live), *live, sep='\n'); sys.exit(2 if p.returncode not in (0, 1) else 0 if inert_ok and p.returncode == 0 and not live and len(inv) == 2 else 1)
+    PY
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-01 retires INV-2, INV-5 and the STATE.md half of INV-23 from check-state (plan D-02). FEAT-2643 edits check_state/ctx.py#is_shipped, check_state/plan.py#_inv32_shape and check_state/feature_record.py#inv_33: if it has merged, rebase onto main first and preserve its changes.
+
+    Tests first, in tests/integration/test-check-state-table.py.
+    (1) case_retired_numbers: run check-state.py --list against the file's existing fixture root; assert the INV-2 line and the INV-5 line each read retired and cite DEC-129. Import check_state.table from the subject bin directory and assert no name is both an INVARIANTS row and a RETIRED key, and no name occurs twice across the two. Update the file's existing --list case in place rather than adding a parallel one: the active-row assertion expects INV-44 at rows[-8], because two more retired rows now follow the active ones; the retired-numbers assertion expects rows[-7:] to be INV-2, INV-5, INV-9, INV-10, INV-13, INV-28, INV-30, each of those lines marked retired; and a new assertion requires the --list INV-23 line to name the feature.json path glob and path:CLAUDE.md and no status file.
+    (2) case_stray_status_file_is_inert, written as def case_stray_status_file_is_inert(): and called once at module level, because it is the only place in this file allowed to name the status file: build one fixture feature with the file's existing helpers (a pending plan.yaml carrying T-01, a BRIEF.md). Write STATE.md in it holding a '## Current' line, a '## Bogus Section' line, the token T-99 and 200 filler lines. Run check-state.py, delete that file, run again with identical arguments. Assert equal exit codes, equal stdout, and that no stdout line contains the file's name.
+    Show both cases failing at the base commit (INV-2 and INV-5 listed active; INV-5 and INV-23 lines naming the file), then passing.
+
+    Production.
+    - check_state/table.py: delete the INV-2 row with its state-has-goal group, the INV-5 row and the _STATE_MD constant; drop the inv_2 and inv_5 imports. The INV-23 row reads (_FEATURE_JSON, "path:CLAUDE.md") with contract "feature.json and CLAUDE.md stay within their line budgets (notes)". Add to RETIRED, keeping its order by number: "INV-2": "DEC-129 — the per-feature status file is retired; INV-1 grades a feature's goal of record" and "INV-5": "DEC-129 — the per-feature status file is retired; nothing names plan tasks outside the plan".
+    - check_state/feature_record.py: delete inv_2 (with its docstring 'INV-2: a flow with a STATE.md has a BRIEF.md') and _inv23_state_md and the loop that calls it in inv_23; drop 2 from the module docstring's list, so it reads 'INV-1/6/7/8/12/18/22/23/33'. Rewrite the INV-23 header comment and the _inv23_claude_md comment so they describe feature.json and CLAUDE.md only, without the old status file's measurements.
+    - check_state/plan.py: delete inv_5 (with its docstring 'INV-5: no flow's STATE.md points at a task its plan does not contain.'), _inv5_plan_yaml (with its docstring pointer 'see the INV-3/4/5 note above') and _inv5_plan_md; delete _plan_md_tasks only if nothing else calls it. The module docstring's list 'INV-35/3/4/5/34/32/44' becomes 'INV-35/3/4/34/32/44'. Rename the section comment '# --- INV-3/4/5 on plan.yaml (DEC-182). Same three invariants' to INV-3/4 with 'Same two invariants', and rewrite it so the station-only scoping argument speaks only of the approval check and its closing sentence names the approval block alone. The T-NN parse guard f-string 'INV-4/5 would be vacuous' says 'INV-4 would be vacuous'. The _inv32_shape comment 'INV-3/4/5 check approval.status only' says 'INV-3/4 check approval.status only'.
+    - check_state/brief.py: in both copies of the INV-38 comment block and in the INV-49 comment, 'skipped for INV-1/2's reason' becomes 'skipped for INV-1's reason' and 'the only BRIEF checks here are INV-1/2 (the ## Approval block)' becomes 'the only BRIEF checks here are INV-1 (the ## Approval block)'. Change nothing else in brief.py; FEAT-2643 does not touch it.
+    - check_state/ctx.py: delete the self.states load and its comment, rename _load_states_and_abandoned to _load_abandoned and update its one caller, remove the file's name from the FEAT-2206 and _selected comments, and change the plan-load message from INV-3/4/5 to INV-3/4.
+    - structure_audit.py: remove INV-2 from ROW_FAMILIES feature_record and INV-5 from plan; _SHARED_SOURCE_TEXTS becomes ("BRIEF.md", "PLAN.md"); fix the comment that lists the shared text sources.
+    - harness_yaml.py: in _refuse_a_minted_marker the comment and the PlanSchemaError message say "the approval check" instead of "the approval and STATE.md checks"; drop the INV-5 mention from the membership-test comment.
+
+    Test retargets, every asserted property kept.
+    - test-check-state-table.py: the fixtures that write a status file naming T-09 to raise INV-5 for the no-argument, --only, comma-list, --feature, --changed and rename cases now raise INV-1: write each fixture feature's BRIEF.md with no '## Approval' section. Use INV-1 for INV-5 and BRIEF.md for the status file in the --changed dirty-file case. Replace the rename-pair case, whose INV-2 silence could not show that the rename's source path was counted dirty, with an INV-7 witness that observes each side: give each fixture feature a feature.json run with cycles_used 0 and a lead-digest cycle_evidence whose path is cycle-evidence.data, built as the file's existing --changed INV-7 case builds it. FEAT-A-first commits a cycle-evidence.data whose bytes match its recorded sha256; FEAT-B-second records the sha256 of different bytes and holds no such file. Commit, then git mv FEAT-A-first's cycle-evidence.data to FEAT-B-second/cycle-evidence.data and run --changed --only INV-7. Assert exit 1, a line naming FEAT-A-first (its evidence is now missing, so only the rename's source side can select it) and a line naming FEAT-B-second that carries hash does not match (only the destination side can select it). Keep exit 1, per-feature counts, violations before INV-3 notes and feature narrowing in the other cases.
+    - test-check-state-plans.py: delete case (n)'s status-file row and its writing branch, and the q/inv5 assertion; remove the state_md parameter from _q_out and _i34_station_only and every caller; station-only cases keep asserting quiet or loud for the approval check; rewrite docstrings that name the file. The file-header docstring names INV-3/4/5 twice (its first line and 'the plan read through the loader (INV-3/4/5)'): both say INV-3/4. The case_q docstring '(q) DEC-182: INV-3/4/5 read plan.yaml through the loader' says INV-3/4 and drops its sentence about STATE.md pointing at a task; the '# INV-5 across the yaml path' comment goes with the q/inv5 assertion.
+    - test-check-state-entry.py: delete the status-file row from the budget-agreement tuple.
+    - test-check-state-shipped.py and tests/unit/test-check-state-shipped-ctx.py: remove the status-file fixture and its docstring mention.
+    - test-check-state-records.py and test-harness-yaml.py: reword the comments that name the file.
+    - test-checker-structure-locks.py: retarget both reparse mutants from inv_2 to inv_1, mutating the 'def inv_1(ctx, feat):' docstring opener and asserting 'inv_1' or 'INV-1 ' in every finding, so neither mutant's assertion names inv_2 or 'INV-2 '.
+
+    No live INV-2 or INV-5 mention survives under .claude/skills/harness/bin or tests: not bare, not inside a slash list such as INV-3/4/5 or INV-1/2/6, and not inside a numeric range spanning 2 or 5. Three exemptions only: the two RETIRED entries this task adds to check_state/table.py, the frozen byte-identical tests/integration/fixtures/prior-* fixtures, and tests/integration/test-check-state-table.py, whose case_retired_numbers asserts the retired lines. The final python verify block enforces this alongside its status-file check: it fails on any git grep error (exit other than 0 or 1), fails when the two RETIRED entries are absent (the positive control, so git grep exit 1 is also a failure), and fails on any other hit. At the base commit it lists 25 live mentions across brief.py, ctx.py, feature_record.py, plan.py, table.py, harness_yaml.py, structure_audit.py, test-check-state-plans.py and test-checker-structure-locks.py.
+
+    Done when the file's name appears in these files only inside case_stray_status_file_is_inert, no live INV-2 or INV-5 mention survives as above, and every verify command exits 0.
+- id: T-02
+  title: Remove the STATE.md shape rule from check-domain
+  traces:
+  - SC-03
+  - SC-06
+  - SC-07
+  change_type: logic
+  execution_mode: main-session-direct
+  execution_reason: Gate code and its tests change; DEC-174 forbids executing that through the enforcement being changed, and the operator routed the whole feature main-session-direct.
+  depends_on:
+  - T-01
+  status: ready
+  files:
+  - .claude/skills/harness/bin/check-domain.py#ROUTING
+  - .claude/skills/harness/bin/check-plan-routes.py
+  - tests/integration/test-check-domain-approval.py
+  - tests/integration/test-check-domain-post.py
+  - tests/integration/test-check-domain-worktree.py
+  verify: |
+    set -e -o pipefail
+    python3 tests/integration/test-check-domain-approval.py
+    python3 tests/integration/test-check-domain-post.py
+    python3 tests/integration/test-check-domain-worktree.py
+    python3 tests/integration/test-check-plan-routes.py
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/bin/check-domain.py .claude/skills/harness/bin/check-plan-routes.py tests/integration/test-check-domain-approval.py tests/integration/test-check-domain-worktree.py || rc=$?; test "$rc" -eq 1
+    python3 - <<'PY'
+    import ast, re, sys
+    f, fn = 'tests/integration/test-check-domain-post.py', 'run_retired_status_file_is_ungated'
+    src = open(f, encoding='utf-8').read()
+    spans = [(n.lineno, n.end_lineno) for n in ast.walk(ast.parse(src)) if isinstance(n, ast.FunctionDef) and n.name == fn]
+    hits = [i for i, l in enumerate(src.splitlines(), 1) if re.search(r'STATE\.md|STATE_MD|state_md', l)]
+    bad = [h for h in hits if not any(a <= h <= b for a, b in spans)]
+    print(spans, hits, bad)
+    sys.exit(0 if spans and hits and not bad else 1)
+    PY
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-02 removes the STATE.md shape rule from check-domain.py. It depends on T-01, because test-check-state-entry.py compared the two gates' budgets until T-01 removed that row.
+
+    Tests first. Add one function, def run_retired_status_file_is_ungated():, to tests/integration/test-check-domain-post.py and call it from that file's main() beside the other run_ functions. It drives BIN/check-domain.py as a subprocess against a temporary fixture project built with the file's existing check_domain_support helpers (fixture, fire_write_payload, fire_post), including whatever claim fixtures a governed write needs. It is the only place in this file allowed to name the status file.
+    (a) A PreToolUse Write by agent harness-orchestrator of a 200-line payload holding '## Current' and '## Bogus Section' to .harness/harness/features/FEAT-90-fixture/STATE.md exits 0 with empty stderr.
+    (b) The same file reached through the PostToolUse Bash sweep exits 0.
+    (c) Controls in the same fixture each exit 2: an over-budget feature.json, a 70-line notes/handoff-plan.md, and an 81-line CLAUDE.md.
+    (d) No control denial contains the word STATE.
+    Show (a), (b) and (d) failing at the base commit, then passing.
+
+    Production, check-domain.py.
+    - Delete RE_STATE_MD, _rule_state_md, its SHAPE_RULES row, its SHAPE_PATTERNS entry and the status-file entry of _SWEEP_PATTERNS.
+    - Set ROUTING to exactly: "Routing: the station lives in plan.yaml; per-run findings and open questions go in that run's digest.md; rationale goes in notes/. State files carry no history."
+    - Rewrite every comment and docstring that names the file so none does: the first-write artifact list, the _norm docstring's eeabc59 measurement (keep its path-normalization rationale: the inline segment literal left the repository segment in two-level worktree paths, so they matched no shape pattern and the domain refusal masked it; delete the 204-line and 120-line figures and RE_STATE_MD from its pattern list; never restate the measurement with another file as its subject), the two notes on ROUTING, the CLAUDE.md peer list (expertise 150, feature.json 300, handoff 60), and the worktree-sweep measurement comments.
+    - Every other rule's behaviour is unchanged.
+
+    check-plan-routes.py: drop "STATE.md (120)" from the peer-budget comment.
+
+    Test retargets.
+    - test-check-domain-approval.py: delete the State.md/STATE.md case-insensitivity parameter row and its body-map entry. The T-09 assertion that the plan.yaml schema denial does not carry the ROUTING sentence now asserts "Routing:" is absent from stderr.
+    - test-check-domain-post.py: delete the status-file sweep row.
+    - test-check-domain-worktree.py: the eeabc59 two-level worktree budget case and the sweep/clean-tracked cases use the old file as their over-budget subject. Retarget each to the feature's feature.json, with an over-budget payload shaped like the existing feature.json budget cases in test-check-domain-approval.py. Keep every outcome: SHAPE refusals at the main checkout and at one and two worktree levels, still asserting DEC-150 where the feature.json denial carries it and otherwise its budget sentence, never exit code alone; a committed clean-tracked file skipped; modified and untracked files reported. Rewrite the docstrings to match.
+
+    Done when the file's name appears in check-domain.py, check-plan-routes.py and these tests only inside run_retired_status_file_is_ungated in tests/integration/test-check-domain-post.py, and every verify command exits 0.
+- id: T-03
+  title: Switch the orchestrator playbook, templates and agent bodies off STATE.md
+  traces:
+  - SC-01
+  - SC-02
+  - SC-03
+  - SC-07
+  - SC-08
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: Gate code and its tests change; DEC-174 forbids executing that through the enforcement being changed, and the operator routed the whole feature main-session-direct.
+  depends_on: []
+  status: ready
+  files:
+  - .claude/skills/harness/SKILL.md
+  - .claude/skills/harness/references/succession.md
+  - .claude/skills/harness/templates/HANDOFF.md
+  - .claude/skills/harness/templates/README.md
+  - .claude/skills/harness/templates/STATE.md
+  - .claude/skills/harness/templates/team-config.yaml
+  - .claude/skills/harness/templates/gitignore.snippet
+  - .harness/team-config.yaml
+  - .omp/agents/harness-orchestrator.md
+  - .omp/agents/harness-product-lead.md
+  - .claude/skills/harness/bin/feature_record/schema.py#_REDIRECT
+  - tests/integration/test-validate-feature-json.py
+  - tests/unit/test-answers-provenance.py
+  verify: |
+    set -e -o pipefail
+    python3 tests/unit/test-answers-provenance.py
+    python3 tests/unit/test-orchestrator-playbook.py
+    python3 tests/unit/test-check-skill-refs.py
+    python3 tests/integration/test-validate-feature-json.py
+    python3 tests/integration/test-merge-gitignore.py
+    python3 tests/integration/test-check-skill-weight.py
+    test ! -e .claude/skills/harness/templates/STATE.md
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills/harness/SKILL.md .claude/skills/harness/references .claude/skills/harness/templates .omp .harness/team-config.yaml .claude/skills/harness/bin/feature_record tests/unit/test-answers-provenance.py tests/integration/test-validate-feature-json.py || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -w STATE -- .claude/skills/harness/templates || rc=$?; test "$rc" -eq 1
+    git grep -q -F 'latest accepted run digest' -- .claude/skills/harness/SKILL.md
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-03 retires the file from the orchestrator playbook, references, templates, agent bodies, team-config comments and the feature-record redirect sentence (plan D-01). The open run is the feature.json runs entry whose verdict is PENDING (feature_record/runs.py run-start writes it).
+
+    - .claude/skills/harness/SKILL.md, The loop:
+      - Step 1: "your feature's `STATE.md` and `feature.json`, plus the" becomes "your feature's `plan.yaml` `status` (the station) and `approval.status`, its `feature.json` `runs` (the open run is the entry whose `verdict` is `PENDING`), and the `open_questions` of the latest accepted run digest: `runs/<run-id>/digest.md` of the newest `runs` entry whose `verdict` is not `PENDING`, read with only the `notes/answers-*.md` paths you were handed. When no such entry exists (a first entry, or no return accepted yet), no digest has been accepted: record that, never read it as a digest with no open questions. Plus the". "instantiate both files from" becomes "instantiate `feature.json` from".
+      - Step 4: "re-read `STATE.md` and `feature.json`, verify its artifact" becomes "re-read `plan.yaml`'s station and approval and `feature.json`, verify its artifact (read the returned digest's `open_questions` only once that check passes: a `PENDING` run with no verified digest has returned nothing to read)".
+      - Step 6: "**Three writes are separate, after close-run:** REPLACE `STATE.md`'s `## Current` (values, never narrative, DEC-150); the phase handoff note at a seam; the commit." becomes "**Two writes are separate, after close-run:** the phase handoff note at a seam; the commit."
+    - references/succession.md:
+      - Replace the sentence recording each station transition as a log entry with "A station transition is recorded by the station write itself, the playbook's verb rule."
+      - "validate `## Next` against PLAN and STATE" becomes "validate `## Next` against `plan.yaml` and `feature.json`".
+      - The disk-only path lists "`plan.yaml` (station and approval), `feature.json` (runs and the open run) and the cited run digests' `open_questions`".
+    - templates/HANDOFF.md: the Next placeholder says "validates this against plan.yaml and feature.json before acting".
+    - templates/README.md: delete the status-file row.
+    - templates/STATE.md: delete the file with git rm.
+    - templates/team-config.yaml and .harness/team-config.yaml: the orchestrator's first domain-row comment becomes "# its feature's feature.json and runs/". No glob changes.
+    - templates/gitignore.snippet: "BRIEF, PLAN, STATE, notes, logs, expertise" becomes "BRIEF, plan, notes, logs, expertise".
+    - .omp/agents/harness-orchestrator.md, Domain: "your feature's directory (`STATE.md`, `feature.json`," with its continuation becomes "your feature's directory (`feature.json`, `runs/` metadata)". Keep every sentence that tests/unit/test-answers-provenance.py asserts.
+    - .omp/agents/harness-product-lead.md: "so `STATE.md` keeps its granularity" becomes "so the run record keeps per-member granularity".
+    - feature_record/schema.py: _REDIRECT becomes exactly "This file holds execution state only. An operator ruling goes in that feature's plan.yaml under approval.rulings; the station goes in plan.yaml status; run narrative, findings, corrections and open questions go in that run's digest; measurements, research and receipts go in notes/." tests/integration/test-validate-feature-json.py REDIRECT_SENTENCE carries the same literal.
+    - tests/unit/test-answers-provenance.py:
+      - Delete STATE_TEMPLATE, the two state-template cases and their main() calls.
+      - case_orchestrator_canonical_no_longer_claims_the_write_grant asserts the pre-#671 tail "`notes/answers-*.md`, and your own Expertise file. Read anything." is absent, so the stale literal no longer names the file.
+      - Show the rewritten case failing against a copy of harness-orchestrator.md carrying that tail.
+
+    Done when every verify command exits 0.
+- id: T-04
+  title: Rewrite SPEC, the .harness README and org.html without STATE.md
+  traces:
+  - SC-08
+  - SC-10
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: The documents the gates cite change in the same main-session-direct feature (DEC-174).
+  depends_on:
+  - T-03
+  status: ready
+  files:
+  - .harness/harness/docs/SPEC.md
+  - .harness/README.md
+  - .harness/harness/docs/org.html
+  verify: |
+    set -e -o pipefail
+    rc=0; git grep -n -I -w STATE -- .harness/README.md .harness/harness/docs/SPEC.md .harness/harness/docs/org.html || rc=$?; test "$rc" -eq 1
+    git grep -q -F 'plan.yaml' -- .harness/harness/docs/SPEC.md
+    git grep -q -F 'latest accepted run digest' -- .harness/harness/docs/SPEC.md
+    git grep -q -F 'features/&lt;F&gt;/plan.yaml' -- .harness/harness/docs/org.html
+    git grep -q -F 'PENDING' -- .harness/harness/docs/org.html
+    git grep -q -F 'open_questions' -- .harness/harness/docs/org.html
+    python3 tests/unit/test-answers-provenance.py
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-04 rewrites the live documents so they describe live state as plan.yaml, feature.json and run digests (plan D-01). It depends on T-03, whose tests/unit/test-answers-provenance.py reads SPEC.md; keep every SPEC sentence that test asserts.
+
+    .harness/harness/docs/SPEC.md, using the section numbers in its index:
+    - §1: "`BRIEF`/`PLAN`/`STATE` are what the 16 agents read at spawn" becomes "`BRIEF.md` and `plan.yaml` are what the 16 agents read at spawn".
+    - §2 state table:
+      - Delete the status-file row.
+      - The logs row's "lives in that feature's `STATE.md` and run dirs" becomes "lives in that feature's `plan.yaml`, `feature.json` and run dirs".
+    - §2.2: delete the row "STATE points at a task absent from PLAN".
+    - §2.3: the single-writer bullet becomes: each feature's `feature.json` is owned by that feature's orchestrator, its `plan.yaml` station is written only through plan-merge verbs, and the lead's consolidated DIGEST carries a per-member log block, so per-member granularity survives in the run digest without a second writer.
+    - §2.4: the opening sentence and first bullet become: live state files hold no history; `plan.yaml` carries the station, `feature.json` the run ledger, and narrative goes to run digests and notes/. Keep the logs, pruning and PLAN.md bullets. The logs bullet is the surviving home of DEC-45's separation rule.
+    - §2.5:
+      - Pause/resume: `plan.yaml` (station and approval), `feature.json` (runs, the open run) and the latest accepted run digest's `open_questions` are the handoff artifacts, re-read at every /harness entry.
+      - The commit policy list drops the status file and reads `BRIEF.md` / `plan.yaml` (legacy `PLAN.md`) / `notes/` / `logs/` / `expertise/`.
+    - The templates list drops the status file.
+    - §10.1:
+      - Step 1 reads "`BRIEF.md`, `plan.yaml`, `feature.json` and the latest accepted run digest's `open_questions` (no digest accepted yet is recorded as such, never as no open questions)".
+      - Step 5 "log to `STATE`" becomes "close the run in `feature.json`".
+    - §10.2: "In exchange, `STATE.md` sees a uniform stream" becomes "In exchange, the orchestrator sees a uniform stream". The flow diagram line "orchestrator logs to STATE" becomes "orchestrator closes the run".
+    - §10.5: the worktree callout says a feature's station and open run stay singular within a flow.
+    - §10.6: ad-hoc mode reads "the orchestrator reads `plan.yaml`, `feature.json` and the latest accepted run digest".
+    - §15:
+      - The single-operator sentence becomes "`plan.yaml`, `feature.json` and the run digests are per-feature, each feature has exactly one orchestrator, and `logs/` is written only by the main session."
+      - The worktree table's first row says a feature's station and open run being singular is correct within a worktree.
+    - The cost bullet's "`BRIEF`/`PLAN`/`STATE`" becomes "`BRIEF.md`/`plan.yaml`".
+
+    .harness/README.md:
+    - Delete the status-file table row.
+    - The orchestrator-ownership bullet reads "that flow's `feature.json`, and the".
+    - The template list drops the status file.
+
+    .harness/harness/docs/org.html:
+    - Drop the status file from the orchestrator card.
+    - Delete the status-file table row, and make the remaining artifact rows say where a resumed feature's live state is (plan D-01), keeping each row's Written by cell and the table markup:
+      - The features/<F>/PLAN.md row becomes features/<F>/plan.yaml (legacy PLAN.md), described as: Decisions, fully specified tasks each carrying a change_type, and the feature's station (status) and approval.
+      - The features/<F>/feature.json row's description becomes: Execution facts: branch, pinned review SHA, cycles used, and the runs ledger, where the open run is the entry whose verdict is PENDING.
+      - The runs/<r>/digest.md row's description becomes: The lead's collated report, the team digest on disk; the latest accepted one carries the feature's open_questions.
+
+    Done when every verify command exits 0.
+- id: T-05
+  title: Strike DEC-45, rewrite DEC-129 and DEC-150, land the amends and regenerate the index
+  traces:
+  - SC-08
+  - SC-09
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: DECISIONS.md is amended in the same main-session-direct feature (DEC-174); the index is regenerated with it.
+  depends_on:
+  - T-01
+  - T-02
+  - T-03
+  - T-04
+  status: ready
+  files:
+  - .harness/harness/docs/DECISIONS.md
+  - .harness/harness/docs/DECISIONS-INDEX.md
+  verify: |
+    set -e -o pipefail
+    python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    python3 .claude/skills/harness/bin/check-decision-anchors.py
+    python3 tests/unit/test-lead-stop-and-wake.py
+    grep -q '^## DEC-45 — STRUCK 2026-' .harness/harness/docs/DECISIONS.md
+    python3 - <<'PY'
+    import re, sys
+    t = open('.harness/harness/docs/DECISIONS.md', encoding='utf-8').read()
+    def sec(d):
+        return re.search(r'^## ' + d + r' .*?(?=^## DEC-|\Z)', t, re.M | re.S).group(0)
+    bad = [d for d in ('DEC-71', 'DEC-95', 'DEC-120', 'DEC-129', 'DEC-138', 'DEC-150', 'DEC-159', 'DEC-181', 'DEC-182', 'DEC-199', 'DEC-201')
+           if 'STATE.md' in sec(d) or 'STATE ' in sec(d) or '/STATE' in sec(d)]
+    bad += [d + ' Amended by' for d in ('DEC-129', 'DEC-150') if 'Amended by' in sec(d)]
+    bad += [s for s in ('INV-1..5', 'INV-4/5', 'INV-3/4/5 must keep') if s in sec('DEC-129') + sec('DEC-182')]
+    bad += [s for s in ('INV-23 sweeps the same budgets', 'Now 200, 120,', 'exactly as for the four', 'Run directories are gitignored')
+            if s in sec('DEC-180') + sec('DEC-181') + sec('DEC-199')]
+    idx = open('.harness/harness/docs/DECISIONS-INDEX.md', encoding='utf-8').read()
+    for d in ('DEC-45', 'DEC-129', 'DEC-150'):
+        tail = re.search(r'^- ' + d + r' @.*? :: (.*)$', idx, re.M).group(1)
+        if 30 < len(tail.split()) or 'STATE.md' in tail and d != 'DEC-45':
+            bad.append(d + ' index tail')
+    print(bad)
+    sys.exit(1 if bad else 0)
+    PY
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-05 lands every amend and strike row of this plan's decisions_affected in .harness/harness/docs/DECISIONS.md and regenerates DECISIONS-INDEX.md. It depends on T-01 to T-04, so the rewritten entries describe the landed tree. DEC-205 governs: rewrite in place, never add an Amended-by line, never renumber. Keep rows change nothing, and DEC-90 stays byte-identical. Only DEC-129 and DEC-150 are barred from Amended-by text; DEC-182 keeps its three existing Amended-by headings untouched.
+
+    - DEC-45 (strike, DEC-188, operator ruling to keep a strike record):
+      - Heading: "## DEC-45 — STRUCK 2026-11-28".
+      - Body: the entry recorded that the per-feature status file held only Current and Open Questions with the activity stream in dated logs/ files. It is struck under DEC-188 on the operator's word, because 12 of the 15 newest copies still described a finished feature as in progress and main-session-direct features had no reader. Live state is plan.yaml, feature.json and the latest run digest, as DEC-129 states. The logs/ separation is unchanged and lives in SPEC §2.4. DEC-45's number is retired, not reused.
+    - DEC-71: "would put un-assessed work into the feature's record."; "In exchange the orchestrator sees a uniform stream of consolidated DIGESTs".
+    - DEC-95: "a feature's station and open run being singular is *correct within a worktree*".
+    - DEC-120: the "moves per-feature" paragraph becomes: "**Live state is per-feature.** A project-level status file would give N orchestrators N writers, so there is none: a feature's station and approval live in its plan.yaml, its runs in its feature.json, each with one writer per feature. The trade the operator accepted: no single file answers \"what is happening right now\" — the main session lists in-flight features from features/*/feature.json, which is cheap because the index is small." Keep the feature.yaml sentence after it only if still true; otherwise drop it.
+    - DEC-129: "`BRIEF.md`, `plan.yaml` (legacy `PLAN.md`) and `DESIGN.md` join `feature.json` in `.harness/features/<FEAT>/`", then a new sentence: "The directory holds no status file: live state is the plan.yaml station and approval, the feature.json runs and the latest run digest's open_questions; a second copy drifted from them and was retired." "INV-1..5 are per-feature now, and INV-4/5 accept both task formats after the smoke showed heading-style tasks made INV-4 silently vacuous" becomes "INV-1, INV-3 and INV-4 are per-feature, and INV-4 accepts both task formats after the smoke showed heading-style tasks made it silently vacuous".
+    - DEC-138 table row: "a second status channel competes with the run digests and plan.yaml and drifts from them".
+    - DEC-150:
+      - "The spec was already right — feature.yaml is data a script parses — but nothing enforced it, and the playbook itself taught the opposite: it told the orchestrator to append per-member roll-ups to a status file."
+      - The shape-gate sentence drops the status-file clause and routes "the station lives in plan.yaml, per-run findings and open questions go to that run's digest, rationale to notes/".
+      - The proof-shape list drops "legal/illegal STATE.md," and stops counting the shapes.
+      - "step 5 now says data-not-narrative for feature.json; the DEC-148 relay text names the correct homes."
+    - DEC-159:
+      - "transitions are recorded by the plan.yaml station write."
+      - "validating `## Next` against plan.yaml and feature.json (one grep)".
+      - "plan.yaml and feature.json remain the durable truth per feature across every orchestrator that ever serves it;".
+      - "The handoff note and the commit stay the orchestrator's separate writes;".
+    - DEC-180 (its dated FEAT-05 and FEAT-02 measurements stay):
+      - "**INV-23 sweeps the same budgets from disk at `/harness` entry, at WARN level, and the level is" becomes "**INV-23 sweeps the `feature.json` and `CLAUDE.md` budgets from disk at `/harness` entry, at WARN level, and the level is".
+      - "Now 200, 120, 20 and 60 do, alongside the checkpoint vocabulary and the four handoff headings." becomes "At that change 200, 120, 20 and 60 did, alongside the checkpoint vocabulary and the four handoff headings; since feature.json's budget moved to one constant (FEAT-54) and the status file was retired, the drift detector in tests/integration/test-check-state-entry.py pairs only the CLAUDE.md line budget."
+    - DEC-181:
+      - "handoff notes 60."
+      - "exactly as for the four state files. That makes `CLAUDE.md`'s budget the **fourth** number duplicated" becomes "as it does `feature.json`. That made `CLAUDE.md`'s budget the **fourth** number duplicated".
+    - DEC-182: "the handoff note is both." and "INV-3 and INV-4 must keep working for them."
+    - DEC-199: "Run directories are gitignored, so this entry and the feature's `STATE.md` are the durable record and the run directory is not." becomes "When this entry was written, run directories were gitignored, so this entry and the feature's status file of that time were the durable record and its run directory was not; DEC-257 has since made retained run digests tracked."
+    - DEC-201: "re-reads `plan.yaml` and `feature.json` from disk".
+
+    Then run .claude/skills/harness/bin/gen-decisions-index.py, and hand-write the ruling tails it does not produce (30 words or fewer each):
+    - DEC-45: "STRUCK 2026-11-28 under DEC-188 — the per-feature status file is retired; live state is plan.yaml, feature.json and run digests (DEC-129); logs/ separation lives in SPEC §2.4."
+    - DEC-129: "A feature's whole world is one directory: `.harness/features/<FEAT>/` holds `BRIEF.md`, `plan.yaml`, `DESIGN.md` and `feature.json`, with no status file; INV-1, INV-3 and INV-4 are per-feature."
+    - DEC-150: "State files have caps enforced as physics: `check-domain.py` denies an over-budget `feature.json`, handoff note or `CLAUDE.md` at write and reports after it (DEC-180); step-1 read scoping stays advisory."
+
+    Re-run the generator after the tails until its --stdout output diffs clean.
+
+    Done when every verify command exits 0.
+- id: T-06
+  title: Delete the BUG-* features' tracked STATE.md files
+  traces:
+  - SC-01
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: Deleting other features' records is a main-session act in this sparse worktree; the feature is routed main-session-direct (DEC-174).
+  depends_on:
+  - T-05
+  status: ready
+  files:
+  - .harness/harness/features/BUG-20261006-fleet-planning-recovery/STATE.md
+  - .harness/harness/features/BUG-2161-abandon-source-tickets/STATE.md
+  - .harness/harness/features/BUG-2169-guard-yaml-reimport/STATE.md
+  - .harness/harness/features/BUG-2171-task-structured/STATE.md
+  - .harness/harness/features/BUG-2180-inv26-fleet-routing/STATE.md
+  - .harness/harness/features/BUG-2181-board-item-add/STATE.md
+  - .harness/harness/features/BUG-2190-inv37-offline-binding/STATE.md
+  - .harness/harness/features/BUG-2239-route-gate-and-injection-note/STATE.md
+  - .harness/harness/features/BUG-2241-smoke-run-id/STATE.md
+  - .harness/harness/features/BUG-2294-prune-keeps-run-digests/STATE.md
+  - .harness/harness/features/BUG-2295-handoff-one-per-phase/STATE.md
+  - .harness/harness/features/BUG-2305-schema-copy-idempotent/STATE.md
+  - .harness/harness/features/BUG-2328-digest-schema-cache/STATE.md
+  - .harness/harness/features/BUG-2349-plan-merge-inline-empty-union/STATE.md
+  - .harness/harness/features/BUG-2399-run-records-staged-at-ship/STATE.md
+  - .harness/harness/features/BUG-2420-plan-merge-first-task-station/STATE.md
+  - .harness/harness/features/BUG-2451-prune-staging-dec257/STATE.md
+  - .harness/harness/features/BUG-2565-digest-frontmatter-contract/STATE.md
+  - .harness/harness/features/BUG-2566-stale-hook-detection/STATE.md
+  verify: |
+    set -e -o pipefail
+    out=$(git ls-files -- '.harness/harness/features/BUG-*/STATE.md')
+    test -z "$out"
+    git ls-files --error-unmatch -- .harness/harness/features/BUG-2399-run-records-staged-at-ship/plan.yaml
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-06 deletes the tracked per-feature status files of the BUG-* features on main (plan D-01; operator ruling, git history keeps them). These paths are outside this sparse worktree's cone, so they are absent on disk. From the worktree root, run git rm --sparse -q -- with exactly the files: list of this task, then commit. If bash-write-guard or check-domain refuses the deletion, stop and report the refusal verbatim; never route around it. Touch no other file in those feature directories.
+
+    Done when every verify command exits 0.
+- id: T-07
+  title: Delete the remaining tracked STATE.md files and sweep the whole change
+  traces:
+  - SC-01
+  - SC-03
+  change_type: docs
+  execution_mode: main-session-direct
+  execution_reason: Deleting other features' records is a main-session act in this sparse worktree; the feature is routed main-session-direct (DEC-174).
+  depends_on:
+  - T-06
+  status: ready
+  files:
+  - .harness/harness/features/FEAT-2037-product-document-guidance/STATE.md
+  - .harness/harness/features/FEAT-2206-skip-shipped-features/STATE.md
+  - .harness/harness/features/FEAT-2225-member-expertise-writes/STATE.md
+  - .harness/harness/features/FEAT-2229-decision-dispositions/STATE.md
+  - .harness/harness/features/FEAT-2257-typescript-typecheck/STATE.md
+  - .harness/harness/features/FEAT-2274-omp-native-gate-policy/STATE.md
+  - .harness/harness/features/FEAT-2297-harness-json-schema/STATE.md
+  - .harness/harness/features/FEAT-2337-omp-native-gate-runtime/STATE.md
+  - .harness/harness/features/FEAT-2340-gate-one-pattern-per-concept/STATE.md
+  - .harness/harness/features/FEAT-2397-omp-native-cleanup/STATE.md
+  - .harness/harness/features/FEAT-2398-qa-test-kind-status/STATE.md
+  - .harness/harness/features/FEAT-2452-gh-one-transport/STATE.md
+  - .harness/harness/features/FEAT-2458-shape-stamp-sweep/STATE.md
+  - .harness/harness/features/FEAT-2488-plan-merge-atomicity/STATE.md
+  - .harness/harness/features/FEAT-2489-plan-routes-split/STATE.md
+  - .harness/harness/features/FEAT-2537-registry-record-cleanup/STATE.md
+  - .harness/harness/features/FEAT-2542-dispatcher-placement/STATE.md
+  - .harness/harness/features/FEAT-2557-code-layout-pattern/STATE.md
+  - .harness/harness/features/FEAT-2581-feature-record-package/STATE.md
+  - .harness/harness/features/FEAT-71-corpus-independence/STATE.md
+  - .harness/kaya/features/FEAT-01-kaya-platform/STATE.md
+  verify: |
+    set -e -o pipefail
+    out=$(git ls-files -- '.harness/*/features/*/STATE.md')
+    test -z "$out"
+    git ls-files --error-unmatch -- .harness/harness/features/FEAT-71-corpus-independence/plan.yaml
+    test ! -e .claude/skills/harness/templates/STATE.md
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- .claude/skills .omp .harness/team-config.yaml || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -w STATE -- .claude/skills/harness/templates || rc=$?; test "$rc" -eq 1
+    rc=0; git grep -n -I -E 'STATE\.md|STATE_MD|state_md' -- tests ':(exclude)tests/integration/fixtures/prior-*' ':(exclude)tests/integration/test-check-state-table.py' ':(exclude)tests/integration/test-check-domain-post.py' || rc=$?; test "$rc" -eq 1
+    git grep -q -F 'feature.json' -- .claude/skills/harness/SKILL.md
+  intent: |
+    Work directly in PRODUCT checkout /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-2423-retire-state-md, the harness repository itself (feature FEAT-2423-retire-state-md, source issue 2423). Keep every relative-path edit inside this feature worktree; it is a sparse checkout. The main session executes this task itself and dispatches no lead or team: it changes or tests gate code or the documents those gates cite, and DEC-174 forbids executing that through the enforcement being changed. PRODUCT read inputs docs/spec.md, docs/decisions.md and docs/architecture.md are absent in this checkout at intake; consult them if present at execution and never invent their contents. The harness's own authorities are .harness/harness/docs/SPEC.md and .harness/harness/docs/DECISIONS.md. Settled scope: /Users/molchairuangutai/GitHub/harness/.harness/notes/grilling-retire-state-md-2026-11-28.md. Inventory, dispositions and base-suite baselines: .harness/harness/features/FEAT-2423-retire-state-md/notes/research-retire-state-md.md. Base commit for every fail-first demonstration: 3c49011652cc396e7717e799c49173ed8f452edb. Run every suite with HARNESS_AGENT_TYPE unset. Keep raw runner output outside the repository and commit at most one summary per check under this feature's notes/ (DEC-261).
+
+    T-07 deletes the remaining tracked status files: the FEAT-* features on main, plus the kaya-segment copy, which the operator rules on at signature (BRIEF Q-03). If the operator keeps that copy, the main session amends T-07 with plan-merge amend before building: it removes the kaya anchor from files: and, in verify:, replaces test -z "$out" with test "$out" = .harness/kaya/features/FEAT-01-kaya-platform/STATE.md, so the gate and SC-01's retained variant name the same inventory. Use the same procedure as T-06: git rm --sparse -q -- with exactly this task's files: list, stop on any refusal, then commit.
+
+    This is the terminal task, so its verify also grades the cumulative change set: no tracked status file anywhere under .harness; no mention left in skills, agents, the team-config or the templates; and under tests/ no line names the file outside the frozen prior-* fixtures and the two retirement cases whose placement T-01 and T-02 verify. Every check is bound by set -e, and a git error is never read as an empty listing.
+
+    Done when every verify command exits 0.

@@ -3,15 +3,23 @@
   "branch": "feat/FEAT-2423-retire-state-md",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
     {
       "id": "2026-11-28-01-plan-product",
       "squad": "product",
       "agent": "harness-product-lead",
-      "verdict": "PENDING",
-      "started_at": "2026-11-28T15:26:18+00:00"
+      "verdict": "ESCALATE",
+      "started_at": "2026-11-28T15:26:18+00:00",
+      "cycle_evidence": {
+        "source": "lead-digest",
+        "path": "runs/2026-11-28-01-plan-product/digest.md",
+        "sha256": "e69b77762da577d5fec49e0bd2c16dcdd2e9f5d7f30951a0be7e24f80508993d"
+      },
+      "cycles_used": 1,
+      "tokens": null,
+      "ended_at": "2026-11-28T16:21:00+00:00"
     }
   ],
   "judgements": [
